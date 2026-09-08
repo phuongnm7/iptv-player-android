@@ -2,6 +2,8 @@
 
 Cập nhật: 2026-09-08. Lưu file này trong GitHub riêng tư để nối lại dù phiên trò chuyện hoặc thư mục tạm mất.
 
+**Trạng thái hiện tại:** APK đã build thành công ở Build 2. Đang bổ sung kiểm tra hành vi trên emulator; chưa xác nhận smoke test hoặc phát trên máy thật.
+
 ## Mục tiêu và quyền đã được xác nhận
 
 - Tạo APK Android cài được: nhập URL/tệp M3U, tìm/lọc, phát IPTV, chọn và xuất kênh; hỗ trợ Full HD/QHD/4K nếu codec/thiết bị/nguồn cho phép.
@@ -36,10 +38,11 @@ Cập nhật: 2026-09-08. Lưu file này trong GitHub riêng tư để nối l�
 ## Kết quả kiểm tra đã có
 
 - CoreCheck chạy bằng Java thật: PASS 24 assertions.
-- Có 10 test JUnit; chưa chạy được JUnit Android trước khi build SDK hoàn tất.
+- Có 10 test JUnit; tác vụ testDebugUnitTest đã chạy thành công ở Build 2.
 - 15 XML parse hợp lệ, ID giao diện ngang/dọc khớp.
 - Workflow YAML parse hợp lệ.
-- Chưa có APK. Chưa kiểm thử giao diện trên emulator hoặc phát video trên điện thoại thật.
+- Có APK debug-signed ở Build 2; chữ ký APK v1/v2 xác minh thành công.
+- Chưa kiểm thử giao diện trên emulator hoặc phát video trên điện thoại thật tại mốc ghi này.
 
 ## Lịch sử build
 
@@ -53,21 +56,37 @@ Cập nhật: 2026-09-08. Lưu file này trong GitHub riêng tư để nối l�
 - Chưa chạy compiler/test/lint; không phải lỗi mã Java đã xác định.
 - Cách sửa đang thực hiện: thêm bước cài Android command-line tools trước khi gọi sdkmanager; không dựa vào image runner đã có SDK.
 
-### Build 2 — bản sửa môi trường đã chuẩn bị
+### Build 2 — thành công, đã có APK
 
 - Đã xác minh lại kho private và HEAD vẫn là commit app đầu, không có thay đổi của người dùng bị ghi đè.
 - Thêm android-actions/setup-android v3, pin commit 9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407.
 - Cài command-line tools 12266719 và platform-tools, thiết lập PATH/ANDROID_HOME trước khi cài API 36 và build-tools 36.0.0.
-- Bản sửa và file nhật ký này được lưu cùng một commit. Chưa có kết quả build mới tại thời điểm ghi mốc này.
+- Commit: 8495f2cde2463813dcb8b4ac4bc50764e097dc67.
+- Tree: d71176a74d81352c913f45882e3a4e4f1d387c6f.
+- Run: https://github.com/phuongnm7/iptv-player-android/actions/runs/34205233861 (job 101993064010).
+- SDK setup, testDebugUnitTest, lintDebug, assembleDebug, kiểm tra chữ ký và upload artifact đều thành công.
+- BUILD SUCCESSFUL in 3m 16s. APK có chữ ký v1/v2 hợp lệ (Android Debug).
+- Artifact IPTV-Player-1.1-APK: ID 10047594665, hết hạn 2026-10-08.
+- SHA-256 APK Build 2: 081ea974eab47f5b649db8f8951ff5ff7318f191d1f311203cb278ffa3fdffe1.
+- Android-test-reports: ID 10047595347, hết hạn 2026-09-22.
+- Còn cảnh báo compiler về annotation Scope.LIBRARY_GROUP và setup-android Node20 bị runner chuyển Node24; không có lỗi build/lint chặn.
+
+### Build 3 — bổ sung kiểm tra trên emulator
+
+- Script tools/android_smoke.py dùng adb và máy ảo Android 15; fixtures playlist và video MP4/HLS/DASH 320×180 được tạo cục bộ.
+- Kiểm tra import, trùng/thiếu URL, tìm/lọc/chọn, URL đầy đủ, ngang/dọc, import lỗi không làm mất dữ liệu, khôi phục sau process restart và giao thức không hỗ trợ.
+- Phát mẫu qua localhost được adb reverse; không dùng nội dung/credential của bên thứ ba.
+- Workflow đã chuẩn bị thêm action emulator pin commit a421e43855164a8197daf9d8d40fe71c6996bb0d và artifact bằng chứng riêng tư.
+- Chưa có kết quả Build 3 tại thời điểm ghi mốc này. APK được upload trước smoke test nên nếu smoke lỗi phải phân biệt lỗi hành vi với lỗi tạo APK.
 
 ## Làm tiếp
 
 1. Xác minh repo còn private và HEAD hiện tại để không ghi đè thay đổi của người dùng.
-2. Thêm bước thiết lập SDK, commit cùng nhật ký này rồi theo dõi run mới.
-3. Đọc log thực; sửa lỗi build/test/lint. Không tắt lint/tests để che lỗi.
-4. Khi build thành công, xác minh chữ ký APK, tải artifact IPTV-Player-1.1-APK, kiểm tra checksum.
-5. Nếu có điều kiện, kiểm thử emulator/máy thật; báo chính xác những gì chưa kiểm chứng.
-6. Bàn giao APK và cập nhật nhật ký với commit/run cuối, kết quả và vị trí file.
+2. Commit smoke script/workflow/nhật ký rồi theo dõi Build 3.
+3. Đọc log và artifact ảnh thực; sửa lỗi nếu có. Không tắt lint/tests để che lỗi.
+4. Tải artifact APK của đúng run đã kiểm thử, kiểm tra checksum và lưu bản cài đặt lâu dài.
+5. Bàn giao APK và cập nhật nhật ký với commit/run cuối, kết quả và vị trí file.
+6. Kiểm thử trên điện thoại thật bằng playlist được người dùng cấp; xác minh riêng độ phân giải và từng giao thức chưa thử.
 
 ## Ghi chú quan trọng
 

@@ -2,6 +2,8 @@
 
 IPTV Player 1.1 — ứng dụng Android tiếng Việt cho playlist của bạn, không quảng cáo, không phân tích hành vi, không máy chủ trung gian.
 
+Mốc công việc, lỗi đã sửa, kết quả xác minh và bước tiếp theo: [PROGRESS.md](PROGRESS.md). Đọc file này trước khi tiếp tục ở một phiên khác; không chỉ dựa vào lịch sử trò chuyện hay thư mục tạm.
+
 ## Nhận APK
 
 Trong GitHub, mở **Actions → Build private Android APK**, chọn lần chạy thành công, tải **IPTV-Player-1.1-APK** trong Artifacts, giải nén và mở **IPTV-Player-1.1.apk** trên Android 6.0 trở lên.
@@ -55,6 +57,8 @@ Chạy kiểm tra core không cần Android SDK:
     java -cp /tmp/iptv-core CoreCheck
 
 CoreCheck có 24 kiểm tra; bộ JUnit bao phủ parse/export, BOM, CRLF, URL tương đối, HLS, case-sensitive token, header và metadata DRM. CI còn chạy lint, build APK và xác minh chữ ký APK. Các bước này không chứng minh khả năng phát 4K hoặc truy cập một nhà cung cấp cụ thể trên điện thoại thật.
+
+Workflow còn chạy `tools/android_smoke.py` trên emulator Android 15: mở app, nhập/tìm/lọc/chọn kênh, xem URL đầy đủ, xoay màn hình, giữ playlist sau khi tiến trình khởi động lại và phát MP4/HLS/DASH tổng hợp 320×180 qua localhost. Script tự tạo video bằng FFmpeg, không dùng playlist thật; ảnh chụp và kết quả được giữ trong artifact **Android-emulator-smoke** trong 14 ngày. Xem nhật ký để biết lần chạy nào đã đạt; không suy diễn các thử nghiệm này thành kiểm chứng 4K/RTSP/RTMP/UDP.
 
 ## Nguồn kỹ thuật
 

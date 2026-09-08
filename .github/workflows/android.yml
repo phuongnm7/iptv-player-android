@@ -23,7 +23,7 @@ jobs:
   build:
     if: github.event.repository.private == true
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - name: Checkout private source
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -63,6 +63,33 @@ jobs:
           path: dist/
           retention-days: 30
           if-no-files-found: error
+      - name: Prepare synthetic playback tests
+        run: |
+          if ! command -v ffmpeg > /dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg
+          fi
+          test -e /dev/kvm
+          sudo chmod a+rw /dev/kvm
+      - name: Check app on Android 15 emulator
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          emulator-boot-timeout: 420
+          disable-animations: true
+          disable-spellchecker: true
+          script: python3 tools/android_smoke.py dist/IPTV-Player-1.1.apk
+      - name: Upload emulator evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: Android-emulator-smoke
+          path: smoke-results/
+          retention-days: 14
+          if-no-files-found: ignore
       - name: Upload test and lint reports
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
