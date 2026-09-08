@@ -1,5 +1,23 @@
 # Nhật ký tiếp tục dự án — IPTV Player Android
 
+## Tóm tắt bàn giao hiện tại — 2026-09-08 15:12 UTC
+
+- Kho chuẩn: `phuongnm7/iptv-player-android`, nhánh `main`, trạng thái **private** đã xác minh. Không đổi public và không triển khai Play Store/Sites.
+- Commit chứa mã ứng dụng 1.4: `e4d6eaf1d7b024e619ccaa16db732bb63b2eddab`. Commit checkpoint trước khi viết mục bàn giao này: `d008f35f66bcc947cb6ceb181cb410c7ca8a08cf`.
+- Build bàn giao: run `34242285983`, job `102115239390`. Compiler, 21/21 JUnit tests, lint, đóng gói, xác minh chữ ký và upload APK đã thành công.
+- Smoke Android 15 của cùng run vẫn `in_progress` tại thời điểm chốt nhật ký. Không diễn giải build thành công là bằng chứng luồng DRM thật đã phát được trên điện thoại người dùng.
+- APK bàn giao: `IPTV-Player-1.4.apk`, 6.658.988 bytes, SHA-256 `6897e461141db5398582d23aebbbf8b2edc926372bc6d5fe0bf5b66e65065939`. Artifact GitHub riêng tư: `IPTV-Player-1.4-APK`, ID `10062651950`, archive SHA-256 `1ca931361d57df280647c48d1c7fcd012bc1c521191975c8338b4685fb2481df`.
+- Lỗi máy thật gần nhất của bản 1.3: `ERROR_CODE_DRM_LICENSE_ACQUISITION_FAILED` trên kênh DASH/ClearKey. Bản 1.4 đổi cách lấy URL ClearKey động từ Media3 POST mặc định sang GET nền, sau đó chuẩn hóa JSON/JWK hoặc KID:KEY trong bộ nhớ.
+- Sửa lỗi này dựa trên metadata playlist và so sánh hành vi APK tham chiếu, nhưng chưa có xác nhận máy thật rằng đúng kênh đã phát. Không trích xuất khóa từ APK, không ghi phản hồi giấy phép vào log hoặc lưu trữ.
+
+### Việc người tiếp nhận nên làm tiếp
+
+1. Cài đúng APK 1.4 lên điện thoại thật và thử lại cùng kênh. Nếu xung đột chữ ký debug, xuất playlist trước, gỡ bản cũ rồi cài lại.
+2. Mở run `34242285983`, ghi kết quả cuối của smoke vào file này. Nếu smoke treo, đọc artifact/log emulator trước khi sửa hoặc chạy lại.
+3. Nếu DRM vẫn lỗi, lấy `adb logcat` tại lúc mở kênh, tập trung Media3/MediaDrm/HTTP status và exception chain; tuyệt đối không ghi hay commit body phản hồi, token, KID/KEY hoặc cookie.
+4. Xác minh endpoint giấy phép do playlist cung cấp trả HTTP 2xx và định dạng nào trong JSON/JWK/KID:KEY; kiểm tra yêu cầu User-Agent/Referer/header hợp lệ. Chỉ hỗ trợ giấy phép người dùng có quyền sử dụng, không vượt DRM.
+5. Mọi sửa mã tiếp theo phải tăng `versionCode`/`versionName`, chạy lại `testDebugUnitTest`, `lintDebug`, `assembleDebug`, xác minh chữ ký, tải artifact và kiểm tra `sha256sum -c` trước khi bàn giao APK mới.
+
 ## Phiên bản 1.4 — sửa lấy giấy phép ClearKey từ URL động
 
 - Ảnh máy thật của bản 1.3 báo `ERROR_CODE_DRM_LICENSE_ACQUISITION_FAILED`; nhận diện DASH đã hoạt động nhưng giấy phép chưa lấy được.
