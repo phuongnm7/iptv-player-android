@@ -8,6 +8,9 @@
 - Thêm kho tối đa 50 link playlist: đặt tên, lưu, chọn để tải, hoặc xóa. Link được lưu trong vùng app-private; tải thành công tự ghi nguồn nhưng giữ lại tên tùy chỉnh.
 - Tăng versionCode 7, versionName 1.6.0. Việc tiếp theo: build/test/lint, smoke điều hướng và bàn giao APK 1.6; repo tiếp tục private.
 - Build đầu run `34289998336`, job `102274190988`: compiler và 23 JUnit tests đạt; lint chặn đúng lỗi `MissingTvBanner` vì đã khai báo Leanback launcher. Thêm banner vector 320×180 và build lại, không tắt lint.
+- Mã cuối 1.6 ở commit `ace3b68aba1acefeb92a68b97797b0cf9484300a`. Build run `34290442421`, job `102275564081`: compiler, 23 JUnit tests, lint, đóng gói, xác minh chữ ký và upload APK đều đạt; smoke Android 15/D-pad còn chạy độc lập lúc bàn giao.
+- Artifact `IPTV-Player-1.6-APK`: ID `10081166815`, archive SHA-256 `27ed2c0f1dcb14c860030b21e241a709f2f971bd309f24b87ac9675b5a03061f`.
+- APK 1.6 đã tải, kiểm tra ZIP và `sha256sum -c` đạt: 6.679.803 bytes, SHA-256 `aae483f7e110a3440ad33cabd0cbabbd61b2271d7880ae4a8bb084ee93de74fc`; đã lưu bản bàn giao.
 
 ## Phiên bản 1.5 — giao diện kiểu thư viện Super OK
 
