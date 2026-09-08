@@ -140,3 +140,5 @@ Cập nhật: 2026-09-08. Lưu file này trong GitHub riêng tư để nối l�
 - Compile/test/lint và APK đạt; smoke đạt 2 checks rồi dừng ở tìm kiếm.
 - Đã đọc ảnh/XML: inputSearch vẫn là hint, inputUrl thành http://1Bravo. Script gửi phím trước khi focus đúng ô sau thay đổi bố cục do IME; không phải bằng chứng lỗi bộ lọc.
 - Sửa script đợi focused=true trên đúng resource, xác nhận nội dung sau nhập, dùng bàn phím cứng để tránh IME thay đổi tọa độ; cuộn hàng nút để thấy Export trên màn hình 360dp. Giữ toàn bộ assertions.
+
+- Rà soát trước khi hoàn tất Build 6: bỏ Back sau nhập liệu vì bàn phím cứng đã tắt IME; Back sẽ có thể thoát Activity. Build 6 được thay bằng lần chạy sau của bản sửa này.

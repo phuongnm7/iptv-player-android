@@ -115,7 +115,8 @@ def enter(resource, value):
         wait_for(lambda root: find(root, resource) is not None and
                  find(root, resource).get("text") == value,
                  "Input text did not match: " + resource)
-    adb("shell", "input", "keyevent", "KEYCODE_BACK")
+    # The emulator uses a hardware keyboard with the soft IME disabled.
+    # BACK here would navigate away from the activity instead of hiding an IME.
 
 
 def summary(*parts):
