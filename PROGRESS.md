@@ -7,6 +7,7 @@
 - Nút, tab và thẻ kênh có trạng thái focus viền xanh sáng; danh sách dùng selector riêng và chế độ TV tự đưa focus tới tab Tất cả để điều khiển bằng D-pad.
 - Thêm kho tối đa 50 link playlist: đặt tên, lưu, chọn để tải, hoặc xóa. Link được lưu trong vùng app-private; tải thành công tự ghi nguồn nhưng giữ lại tên tùy chỉnh.
 - Tăng versionCode 7, versionName 1.6.0. Việc tiếp theo: build/test/lint, smoke điều hướng và bàn giao APK 1.6; repo tiếp tục private.
+- Build đầu run `34289998336`, job `102274190988`: compiler và 23 JUnit tests đạt; lint chặn đúng lỗi `MissingTvBanner` vì đã khai báo Leanback launcher. Thêm banner vector 320×180 và build lại, không tắt lint.
 
 ## Phiên bản 1.5 — giao diện kiểu thư viện Super OK
 
