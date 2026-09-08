@@ -45,6 +45,12 @@ public final class CoreCheck {
         try { parser.parse("#EXTM3U\n#EXT-X-VERSION:3", ""); throw new AssertionError("Accepted local HLS"); }
         catch (IllegalArgumentException expected) { assertions++; }
         eq("#EXTM3U\n", parser.export(Collections.emptyList()));
+        eq(1, parser.parse("https://x.test/a|Cookie=a%3Db\nhttps://x.test/a|cookie=a%3Db\n", "").channels.size());
+        eq(2, parser.parse("https://x.test/a|X=a%2C%20Y%3Db\nhttps://x.test/a|X=a&Y=b\n", "").channels.size());
+        eq(2, parser.parse("#EXTM3U\n#EXTINF:-1,A\n#KODIPROP:a=a, #KODIPROP:b=b\nhttps://x.test/a\n"
+                + "#EXTINF:-1,B\n#KODIPROP:a=a\n#KODIPROP:b=b\nhttps://x.test/a\n", "").channels.size());
+        r = parser.parse("#EXTM3U\n#EXTINF:-1,A\n#EXTVLCOPT:network-caching=1000\nhttps://x.test/a\n", "");
+        eq(true, parser.export(r.channels).contains("#EXTVLCOPT:network-caching=1000\n"));
         System.out.println("PASS: " + assertions + " core assertions");
     }
     private static void eq(Object expected, Object actual) {

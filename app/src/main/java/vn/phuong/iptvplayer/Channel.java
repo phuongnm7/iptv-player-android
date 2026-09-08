@@ -65,9 +65,26 @@ public final class Channel {
 
     public String identityKey() {
         // Paths, query tokens and header values are case-sensitive.
-        Map<String, String> normalized = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        normalized.putAll(headers);
-        return url.trim() + "\n" + normalized.toString() + "\n" + options.toString();
+        Map<String, String> normalized = new TreeMap<>();
+        for (Map.Entry<String, String> header : headers.entrySet()) {
+            normalized.put(header.getKey().toLowerCase(java.util.Locale.ROOT), header.getValue());
+        }
+        // Length-prefix each field: Map/List.toString() is ambiguous when
+        // values themselves contain commas, brackets or equals signs.
+        StringBuilder key = new StringBuilder();
+        appendKeyPart(key, url.trim());
+        key.append(normalized.size()).append(':');
+        for (Map.Entry<String, String> header : normalized.entrySet()) {
+            appendKeyPart(key, header.getKey());
+            appendKeyPart(key, header.getValue());
+        }
+        key.append(options.size()).append(':');
+        for (String option : options) appendKeyPart(key, option);
+        return key.toString();
+    }
+
+    private static void appendKeyPart(StringBuilder target, String value) {
+        target.append(value.length()).append(':').append(value);
     }
 
     @Override public boolean equals(Object object) {

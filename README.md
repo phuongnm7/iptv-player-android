@@ -56,7 +56,7 @@ Chạy kiểm tra core không cần Android SDK:
     javac -d /tmp/iptv-core app/src/main/java/vn/phuong/iptvplayer/Channel.java app/src/main/java/vn/phuong/iptvplayer/M3uParser.java tools/CoreCheck.java
     java -cp /tmp/iptv-core CoreCheck
 
-CoreCheck có 24 kiểm tra; bộ JUnit bao phủ parse/export, BOM, CRLF, URL tương đối, HLS, case-sensitive token, header và metadata DRM. CI còn chạy lint, build APK và xác minh chữ ký APK. Các bước này không chứng minh khả năng phát 4K hoặc truy cập một nhà cung cấp cụ thể trên điện thoại thật.
+CoreCheck có 28 kiểm tra; 14 test JUnit bao phủ parse/export, BOM, CRLF, URL tương đối, HLS, case-sensitive token, header, chống va chạm khóa nhận dạng, tùy chọn VLC và metadata DRM. CI còn chạy lint, build APK và xác minh chữ ký APK. Các bước này không chứng minh khả năng phát 4K hoặc truy cập một nhà cung cấp cụ thể trên điện thoại thật.
 
 Workflow còn chạy `tools/android_smoke.py` trên emulator Android 15: mở app, nhập/tìm/lọc/chọn kênh, xem URL đầy đủ, xoay màn hình, giữ playlist sau khi tiến trình khởi động lại và phát MP4/HLS/DASH tổng hợp 320×180 qua localhost. Script tự tạo video bằng FFmpeg, không dùng playlist thật; ảnh chụp và kết quả được giữ trong artifact **Android-emulator-smoke** trong 14 ngày. Xem nhật ký để biết lần chạy nào đã đạt; không suy diễn các thử nghiệm này thành kiểm chứng 4K/RTSP/RTMP/UDP.
 

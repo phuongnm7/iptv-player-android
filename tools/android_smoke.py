@@ -119,6 +119,13 @@ def play_direct(path, name):
     enter("inputUrl", BASE + path)
     tap("btnPlayUrl")
     def ready(root):
+        # A fresh emulator shows Android's one-time immersive-mode tutorial.
+        # It is a system overlay, not a player error; acknowledge its button.
+        if any(n.get("resource-id") == "android:id/immersive_cling_title" for n in root.iter("node")):
+            for node in root.iter("node"):
+                if node.get("resource-id") == "android:id/ok":
+                    tap_node(node)
+                    return False
         error = find(root, "txtPlayerError")
         if error is not None:
             raise AssertionError(name + " playback error: " + error.get("text", ""))
@@ -217,6 +224,24 @@ def run_checks():
     launch()
     summary("2/2 kênh", "1 đã chọn", "1 trùng", "1 thiếu/sai")
     check("Playlist and selected channels survive process restart")
+
+    tap("btnExport")
+    def save_button(root):
+        for node in root.iter("node"):
+            if node.get("resource-id", "").endswith(":id/action_menu_save") or (
+                    node.get("text", "").upper() == "SAVE" and node.get("clickable") == "true"):
+                return node
+        return None
+    tap_node(wait_for(save_button, "Android file picker did not offer Save"))
+    wait_for(lambda root: find(root, "inputUrl"), "Export did not return to app")
+    exported = adb("shell", "cat", "/sdcard/Download/playlist-sach.m3u")
+    assert exported.startswith("#EXTM3U") and exported.count("#EXTINF:") == 1, "Export must contain one selected channel"
+    assert "Alpha" in exported and "Bravo" not in exported, "Export included an unchecked channel"
+    check("Android file picker exports only selected channel to M3U")
+    tap("btnOpenFile")
+    tap(text="playlist-sach.m3u")
+    summary("1/1 kênh", "1 đã chọn", "0 trùng", "0 thiếu/sai")
+    check("Android file picker imports the exported M3U")
 
     play_direct("/sample.mp4", "HTTP-MP4")
     play_direct("/sample.m3u8", "HLS")

@@ -2,7 +2,7 @@
 
 Cập nhật: 2026-09-08. Lưu file này trong GitHub riêng tư để nối lại dù phiên trò chuyện hoặc thư mục tạm mất.
 
-**Trạng thái hiện tại:** APK đã build thành công ở Build 2. Đang bổ sung kiểm tra hành vi trên emulator; chưa xác nhận smoke test hoặc phát trên máy thật.
+**Trạng thái hiện tại:** APK đã tạo được ở Build 2/3. Emulator đã đạt 8 kiểm tra playlist, video MP4 hiện khung hình; smoke bị hộp hướng dẫn Android che nên đang sửa script và chạy bản cuối. Chưa kiểm tra máy thật.
 
 ## Mục tiêu và quyền đã được xác nhận
 
@@ -37,12 +37,13 @@ Cập nhật: 2026-09-08. Lưu file này trong GitHub riêng tư để nối l�
 
 ## Kết quả kiểm tra đã có
 
-- CoreCheck chạy bằng Java thật: PASS 24 assertions.
-- Có 10 test JUnit; tác vụ testDebugUnitTest đã chạy thành công ở Build 2.
+- CoreCheck chạy bằng Java thật: ban đầu PASS 24 assertions; bản sửa khóa nhận dạng mới PASS 28 assertions.
+- Build 2 có 10/10 test JUnit đạt, 0 failed/ignored (đã đọc HTML report). Mã hiện có thêm 4 test hồi quy, tổng 14; chờ CI của bản sửa mới.
 - 15 XML parse hợp lệ, ID giao diện ngang/dọc khớp.
 - Workflow YAML parse hợp lệ.
+- Đã đọc XML lint Build 2: 0 errors, 24 warnings không chặn (style, autofill, target/version và bố cục).
 - Có APK debug-signed ở Build 2; chữ ký APK v1/v2 xác minh thành công.
-- Chưa kiểm thử giao diện trên emulator hoặc phát video trên điện thoại thật tại mốc ghi này.
+- Build 3 đã đạt 8 kiểm tra UI trên Android 15 emulator; đã xem ảnh dọc/ngang và ảnh video MP4 320×180. Smoke chưa chạy hết; điện thoại thật chưa thử.
 
 ## Lịch sử build
 
@@ -71,13 +72,28 @@ Cập nhật: 2026-09-08. Lưu file này trong GitHub riêng tư để nối l�
 - Android-test-reports: ID 10047595347, hết hạn 2026-09-22.
 - Còn cảnh báo compiler về annotation Scope.LIBRARY_GROUP và setup-android Node20 bị runner chuyển Node24; không có lỗi build/lint chặn.
 
-### Build 3 — bổ sung kiểm tra trên emulator
+### Build 3 — APK đạt, smoke dừng vì hộp hướng dẫn hệ thống
 
 - Script tools/android_smoke.py dùng adb và máy ảo Android 15; fixtures playlist và video MP4/HLS/DASH 320×180 được tạo cục bộ.
 - Kiểm tra import, trùng/thiếu URL, tìm/lọc/chọn, URL đầy đủ, ngang/dọc, import lỗi không làm mất dữ liệu, khôi phục sau process restart và giao thức không hỗ trợ.
 - Phát mẫu qua localhost được adb reverse; không dùng nội dung/credential của bên thứ ba.
 - Workflow đã chuẩn bị thêm action emulator pin commit a421e43855164a8197daf9d8d40fe71c6996bb0d và artifact bằng chứng riêng tư.
-- Chưa có kết quả Build 3 tại thời điểm ghi mốc này. APK được upload trước smoke test nên nếu smoke lỗi phải phân biệt lỗi hành vi với lỗi tạo APK.
+- APK được upload trước smoke test nên phải phân biệt lỗi smoke với lỗi tạo APK.
+- Commit: 85bb17ba6734daac901d9a0ad75fbcc879fe4d22; tree: 2abf5d328a5799d736922e26cdb1a3d3f3b4d2ab.
+- Run: https://github.com/phuongnm7/iptv-player-android/actions/runs/34206001050 (job 101995501939).
+- Các bước compile/test/lint, chữ ký và upload APK đã đạt. Artifact APK ID 10047824932, hết hạn 2026-10-08.
+- Smoke đã đạt 8 checks: khởi động, URL/relative/duplicate/missing, tìm/chọn, lọc nhóm, URL đầy đủ, ngang/dọc, không mất playlist khi nhập HTML lỗi, khôi phục sau process restart.
+- Smoke dừng ở HTTP-MP4: wait_for không nhìn thấy status vì Android phủ màn hình "Viewing full screen / Got it". failure.xml xác nhận android:id/immersive_cling_title và android:id/ok.
+- Đã nhìn failure.png: video màu tổng hợp đã xuất hiện, status 320×180 và timeline 00:20/00:20. Không diễn giải đây là lỗi decoder; log emulator có cảnh báo libcuda nhưng không ngăn khung hình này.
+- Artifact smoke ID 10048042342, reports ID 10048043186; hết hạn 2026-09-22. Bằng chứng tạm tại /workspace/scratch/fd876c6053ed/build3-smoke.
+
+### Bản sửa tiếp theo — tính đúng khóa trùng và bảo toàn tùy chọn
+
+- Header khác chữ hoa/thường phải được coi là cùng tên (Cookie/cookie); giá trị header vẫn phân biệt case.
+- Thay khóa Map/List.toString bằng các trường có độ dài rõ ràng, tránh loại nhầm kênh khi giá trị có dấu phẩy/dấu bằng/ký tự phân cách.
+- Giữ tùy chọn EXTVLCOPT không nhận diện (ví dụ network-caching) khi xuất; không tuyên bố Media3 áp dụng các tùy chọn này.
+- Thêm 4 test JUnit và 4 CoreCheck hồi quy; CoreCheck đã đạt 28/28. Chờ gộp với lỗi smoke (nếu có) và chạy build cuối.
+- Sửa smoke để nhấn nút Got it của hướng dẫn toàn màn hình khi nó hiện; thêm kiểm tra tạo M3U qua Android file picker và mở lại tệp.
 
 ## Làm tiếp
 

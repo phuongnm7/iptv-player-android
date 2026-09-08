@@ -58,7 +58,9 @@ public final class M3uParser {
                 continue;
             }
             if (line.regionMatches(true, 0, "#EXTVLCOPT:", 0, 11)) {
-                parseHeaderOption(line.substring(11), pendingHeaders);
+                if (!parseHeaderOption(line.substring(11), pendingHeaders) && pending != null) {
+                    pendingOptions.add(line);
+                }
                 continue;
             }
             if (line.startsWith("#")) {
@@ -133,14 +135,16 @@ public final class M3uParser {
         return -1;
     }
 
-    private void parseHeaderOption(String option, Map<String, String> headers) {
+    private boolean parseHeaderOption(String option, Map<String, String> headers) {
         int separator = option.indexOf('=');
-        if (separator < 1) return;
+        if (separator < 1) return false;
         String key = option.substring(0, separator).trim().toLowerCase(Locale.ROOT);
         String value = option.substring(separator + 1).trim();
         if (key.equals("http-user-agent")) headers.put("User-Agent", value);
-        if (key.equals("http-referrer") || key.equals("http-referer")) headers.put("Referer", value);
-        if (key.equals("http-origin")) headers.put("Origin", value);
+        else if (key.equals("http-referrer") || key.equals("http-referer")) headers.put("Referer", value);
+        else if (key.equals("http-origin")) headers.put("Origin", value);
+        else return false;
+        return true;
     }
 
     private UrlAndHeaders splitUrlAndHeaders(String input) {

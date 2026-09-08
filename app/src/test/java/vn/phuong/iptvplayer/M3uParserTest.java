@@ -98,4 +98,34 @@ public class M3uParserTest {
         assertEquals("https://example.test/ch/live.m3u8", r.channels.get(0).url());
         assertEquals("https://example.test", r.channels.get(0).headers().get("Referer"));
     }
+
+    @Test public void headerNamesAreCaseInsensitiveForDuplicates() {
+        M3uParser.Result r = new M3uParser().parse(
+                "https://example.test/a|Cookie=a%3Db\nhttps://example.test/a|cookie=a%3Db\n", "");
+        assertEquals(1, r.channels.size());
+        assertEquals(1, r.duplicateCount);
+    }
+
+    @Test public void headerValuesCannotCollideWithMapSeparators() {
+        M3uParser.Result r = new M3uParser().parse(
+                "https://example.test/a|X=a%2C%20Y%3Db\nhttps://example.test/a|X=a&Y=b\n", "");
+        assertEquals(2, r.channels.size());
+        assertEquals(0, r.duplicateCount);
+    }
+
+    @Test public void optionValuesCannotCollideWithListSeparators() {
+        M3uParser.Result r = new M3uParser().parse("#EXTM3U\n#EXTINF:-1,A\n"
+                + "#KODIPROP:a=a, #KODIPROP:b=b\nhttps://example.test/a\n"
+                + "#EXTINF:-1,B\n#KODIPROP:a=a\n#KODIPROP:b=b\nhttps://example.test/a\n", "");
+        assertEquals(2, r.channels.size());
+    }
+
+    @Test public void unknownVlcOptionsArePreservedOnExport() {
+        M3uParser parser = new M3uParser();
+        M3uParser.Result r = parser.parse("#EXTM3U\n#EXTINF:-1,A\n"
+                + "#EXTVLCOPT:network-caching=1000\nhttps://example.test/a\n", "");
+        String out = parser.export(r.channels);
+        assertTrue(out.contains("#EXTVLCOPT:network-caching=1000\n"));
+        assertEquals(r.channels.get(0).options(), parser.parse(out, "").channels.get(0).options());
+    }
 }
