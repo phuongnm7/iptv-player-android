@@ -6,7 +6,7 @@
 - Nguyên nhân trong app: Media3 không thể suy ra HLS/DASH từ đuôi `.php`; PlayerActivity chưa dùng `#KODIPROP:inputstream.adaptive.manifest_type` mà parser đã giữ lại.
 - Thêm `StreamSpec`: ưu tiên chỉ dẫn `manifest_type=hls/mpd/dash/ism`, sau đó mới suy từ đuôi hoặc query URL.
 - Thêm kiểm thử cho URL PHP không đuôi có manifest DASH/HLS; tăng versionCode 4, versionName 1.3.0.
-- Việc tiếp theo: build/test/lint, chạy smoke và bàn giao APK 1.3; repo tiếp tục để private.
+- Mã sửa đã ở commit `59913ffd05d502335a04db00903bd75db99d944d`; đang kích hoạt build/test/lint và APK 1.3; repo tiếp tục để private.
 
 ## Phiên bản 1.2 đang thực hiện — 2026-09-08
 
