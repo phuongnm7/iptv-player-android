@@ -1,7 +1,6 @@
 package vn.phuong.iptvplayer;
 
 import android.media.MediaDrm;
-import android.util.Base64;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.util.UnstableApi;
 import androidx.media3.datasource.DefaultHttpDataSource;
@@ -12,6 +11,7 @@ import androidx.media3.exoplayer.drm.LocalMediaDrmCallback;
 import androidx.media3.exoplayer.drm.MediaDrmCallback;
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Iterator;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -79,8 +79,8 @@ final class DrmPlayback {
 
     private static JSONObject jwk(byte[] kid, byte[] key) throws Exception {
         if (kid.length != 16 || key.length != 16) throw new IllegalArgumentException();
-        int flags = Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING;
-        return new JSONObject().put("kty", "oct").put("kid", Base64.encodeToString(kid, flags)).put("k", Base64.encodeToString(key, flags));
+        Base64.Encoder encoder = Base64.getUrlEncoder().withoutPadding();
+        return new JSONObject().put("kty", "oct").put("kid", encoder.encodeToString(kid)).put("k", encoder.encodeToString(key));
     }
     private static byte[] hex(String value) {
         String clean = value.trim().replace("-", "");
@@ -93,7 +93,7 @@ final class DrmPlayback {
     private static byte[] decodeKeyPart(String value) {
         String clean = value == null ? "" : value.trim();
         if (clean.replace("-", "").matches("(?i)[0-9a-f]{32}")) return hex(clean);
-        try { return Base64.decode(clean, Base64.URL_SAFE); }
+        try { return Base64.getUrlDecoder().decode(clean); }
         catch (IllegalArgumentException error) { throw new IllegalArgumentException(); }
     }
 }
