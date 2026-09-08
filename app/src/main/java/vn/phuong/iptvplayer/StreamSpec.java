@@ -6,6 +6,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.Locale;
 
+// Resolves adaptive stream types before Media3 chooses a media source factory.
 final class StreamSpec {
     private StreamSpec() { }
 
