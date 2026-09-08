@@ -1,5 +1,11 @@
 # Nhật ký tiếp tục dự án — IPTV Player Android
 
+## Phiên bản 1.6.1 — sửa focus lựa chọn nhóm trên TV
+
+- Sửa ô chọn nhóm và từng dòng trong danh sách xổ xuống: khi điều hướng bằng D-pad, mục hiện tại có nền xanh sáng, viền xanh lá 3dp và vẫn rõ ở trạng thái nhấn/chọn.
+- Áp dụng đồng nhất cho màn hình dọc và ngang; giữ thao tác cảm ứng trên mobile.
+- Tăng versionCode 8, versionName 1.6.1. Workflow riêng tư sẽ chạy compiler, JUnit, lint, đóng gói APK và smoke Android 15 trước khi bàn giao.
+
 ## Phiên bản 1.6 — Mobile/TV, D-pad và nhiều link IPTV
 
 - Thêm lựa chọn giao diện Tự động, Mobile hoặc TV. Chế độ tự động nhận diện `UI_MODE_TYPE_TELEVISION`; lựa chọn được lưu riêng trên thiết bị.

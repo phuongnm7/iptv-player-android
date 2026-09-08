@@ -1,12 +1,12 @@
 # iptv-player-android
 
-IPTV Player 1.6 — ứng dụng Android tiếng Việt cho mobile và Android TV, không quảng cáo, không phân tích hành vi, không máy chủ trung gian. Có chế độ giao diện Mobile/TV/Tự động, focus D-pad nổi bật và danh sách nhiều link IPTV để chọn nguồn.
+IPTV Player 1.6.1 — ứng dụng Android tiếng Việt cho mobile và Android TV, không quảng cáo, không phân tích hành vi, không máy chủ trung gian. Có chế độ giao diện Mobile/TV/Tự động, focus D-pad nổi bật (kể cả danh sách nhóm) và danh sách nhiều link IPTV để chọn nguồn.
 
 Mốc công việc, lỗi đã sửa, kết quả xác minh và bước tiếp theo: [PROGRESS.md](PROGRESS.md). Đọc file này trước khi tiếp tục ở một phiên khác; không chỉ dựa vào lịch sử trò chuyện hay thư mục tạm.
 
 ## Nhận APK
 
-Trong GitHub, mở **Actions → Build private Android APK**, chọn lần chạy thành công, tải **IPTV-Player-1.6-APK** trong Artifacts, giải nén và mở **IPTV-Player-1.6.apk** trên Android 6.0 trở lên.
+Trong GitHub, mở **Actions → Build private Android APK**, chọn lần chạy thành công, tải **IPTV-Player-1.6.1-APK** trong Artifacts, giải nén và mở **IPTV-Player-1.6.1.apk** trên Android 6.0 trở lên.
 
 APK dùng chữ ký debug dành cho cài thử cá nhân; không phải bản phát hành Google Play. Không tắt Play Protect. Nếu Android yêu cầu, chỉ cho phép cài APK từ ứng dụng tải tệp mà bạn tin cậy rồi tắt lại quyền đó sau khi cài.
 
