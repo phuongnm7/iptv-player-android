@@ -1,5 +1,14 @@
 # Nhật ký tiếp tục dự án — IPTV Player Android
 
+## Phiên bản 1.5 — giao diện kiểu thư viện Super OK
+
+- Người dùng đã xác nhận bản 1.4 phát được đúng nguồn trước đây lỗi DASH/ClearKey.
+- Phân tích APK tham chiếu cho thấy bố cục trọng tâm là thư viện kênh, mục Yêu thích/Gần đây, cài đặt tập trung và nhiều điều khiển khi xem. Chỉ tái tạo luồng sử dụng; không sao chép mã, tài nguyên hay thương hiệu của APK.
+- Thêm thanh Tất cả/Yêu thích/Gần đây; danh sách kênh dạng thẻ, nút sao và menu nhấn giữ để yêu thích, chọn xuất, xem URL hoặc phát.
+- Yêu thích và lịch sử được lưu riêng trên thiết bị bằng mã băm SHA-256 của định danh kênh, không lưu thêm URL/token ở kho tùy chọn.
+- Gom tùy chọn hình nền, hiện URL, mật độ hàng, FPS, đồng hồ và xóa lịch sử vào một menu. Trình phát thêm lựa chọn Fit/Zoom/Fill và đồng hồ tùy chọn; giữ nguyên luồng DRM 1.4 đã hoạt động.
+- Tăng versionCode 6, versionName 1.5.0. Việc tiếp theo: compile/test/lint, kiểm tra giao diện/smoke và bàn giao APK 1.5; repo tiếp tục private.
+
 ## Tóm tắt bàn giao hiện tại — 2026-09-08 15:12 UTC
 
 - Kho chuẩn: `phuongnm7/iptv-player-android`, nhánh `main`, trạng thái **private** đã xác minh. Không đổi public và không triển khai Play Store/Sites.

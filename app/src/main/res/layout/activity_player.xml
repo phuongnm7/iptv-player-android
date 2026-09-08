@@ -44,6 +44,14 @@
                 android:textColor="#FFFFFF"
                 android:textSize="17sp"
                 android:textStyle="bold" />
+            <TextView
+                android:id="@+id/txtClock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold" />
             <Button
                 android:id="@+id/btnRotate"
                 android:layout_width="48dp"
@@ -100,6 +108,15 @@
                 android:text="FPS: đang đo…"
                 android:textColor="#FFFFFF"
                 android:textSize="12sp" />
+            <Button
+                android:id="@+id/btnResize"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/button_secondary"
+                android:text="Khung hình"
+                android:textAllCaps="false"
+                android:textColor="@color/text_primary" />
             <Button
                 android:id="@+id/btnDrm"
                 android:layout_width="wrap_content"

@@ -272,7 +272,7 @@ def main():
             fixtures(directory)
             server = http.server.ThreadingHTTPServer(("127.0.0.1", 8765), functools.partial(Handler, directory=str(directory)))
             threading.Thread(target=server.serve_forever, daemon=True).start()
-            adb("install", "-r", sys.argv[1] if len(sys.argv) > 1 else "dist/IPTV-Player-1.4.apk", timeout=120)
+            adb("install", "-r", sys.argv[1] if len(sys.argv) > 1 else "dist/IPTV-Player-1.5.apk", timeout=120)
             adb("reverse", "tcp:8765", "tcp:8765")
             try:
                 run_checks()

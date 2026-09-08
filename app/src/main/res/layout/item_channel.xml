@@ -1,58 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:gravity="center_vertical"
-    android:minHeight="76dp"
-    android:orientation="horizontal"
-    android:paddingVertical="8dp">
-
-    <CheckBox
-        android:id="@+id/checkKeep"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:buttonTint="@color/accent"
-        android:contentDescription="Giữ kênh khi xuất playlist"
-        android:focusable="false" />
-
-    <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:orientation="vertical">
-
-        <TextView
-            android:id="@+id/txtName"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:maxLines="1"
-            android:textColor="@color/text_primary"
-            android:textSize="16sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/txtGroup"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:maxLines="1"
-            android:textColor="@color/accent"
-            android:textSize="12sp" />
-
-        <TextView
-            android:id="@+id/txtUrl"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ellipsize="middle"
-            android:maxLines="1"
-            android:textColor="@color/text_secondary"
-            android:textSize="11sp" />
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:layout_marginBottom="7dp" android:background="@drawable/channel_card"
+    android:gravity="center_vertical" android:minHeight="78dp" android:orientation="horizontal"
+    android:paddingHorizontal="9dp">
+    <TextView android:id="@+id/txtChannelBadge" android:layout_width="54dp" android:layout_height="54dp"
+        android:background="@drawable/channel_badge" android:gravity="center" android:text="TV"
+        android:textColor="@color/accent" android:textSize="22sp" android:textStyle="bold" />
+    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+        android:layout_marginStart="12dp" android:layout_weight="1" android:orientation="vertical">
+        <TextView android:id="@+id/txtName" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:ellipsize="end" android:maxLines="1" android:textColor="@color/text_primary"
+            android:textSize="16sp" android:textStyle="bold" />
+        <TextView android:id="@+id/txtGroup" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:ellipsize="end" android:maxLines="1" android:textColor="@color/accent" android:textSize="12sp" />
+        <TextView android:id="@+id/txtUrl" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:ellipsize="middle" android:maxLines="1" android:textColor="@color/text_secondary" android:textSize="10sp" />
     </LinearLayout>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:text="▶"
-        android:textColor="@color/accent"
-        android:textSize="24sp" />
+    <TextView android:id="@+id/btnFavorite" android:layout_width="46dp" android:layout_height="54dp"
+        android:contentDescription="Thêm hoặc bỏ kênh yêu thích" android:focusable="false" android:gravity="center"
+        android:text="☆" android:textColor="@color/warning" android:textSize="25sp" />
+    <CheckBox android:id="@+id/checkKeep" android:layout_width="42dp" android:layout_height="54dp"
+        android:buttonTint="@color/accent" android:contentDescription="Giữ kênh khi xuất playlist" android:focusable="false" />
+    <TextView android:layout_width="30dp" android:layout_height="54dp" android:gravity="center"
+        android:text="▶" android:textColor="@color/accent" android:textSize="19sp" />
 </LinearLayout>

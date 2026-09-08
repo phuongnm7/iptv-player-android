@@ -57,6 +57,7 @@ public final class MainActivity extends Activity {
     private boolean loading;
     private boolean importExpanded = true;
     private int wallpaperGeneration;
+    private int activeSection;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -78,12 +79,18 @@ public final class MainActivity extends Activity {
         progress = findViewById(R.id.progress);
         ListView list = findViewById(R.id.listChannels);
 
-        adapter = new ChannelAdapter(this, this::updateSummary);
+        adapter = new ChannelAdapter(this, new ChannelAdapter.Listener() {
+            @Override public void onSelectionChanged() { updateSummary(); }
+            @Override public void onFavoriteChanged(Channel channel, boolean favorite) {
+                toast(favorite ? "Đã thêm vào Yêu thích" : "Đã bỏ khỏi Yêu thích");
+                if (activeSection == 1) filter(); else adapter.notifyDataSetChanged();
+            }
+        });
         list.setAdapter(adapter);
         list.setEmptyView(txtEmpty);
         list.setOnItemClickListener((parent, view, position, id) -> play(adapter.getItem(position)));
         list.setOnItemLongClickListener((parent, view, position, id) -> {
-            showSource(adapter.getItem(position).url());
+            showChannelActions(adapter.getItem(position));
             return true;
         });
 
@@ -94,24 +101,20 @@ public final class MainActivity extends Activity {
         findViewById(R.id.btnExport).setOnClickListener(v -> exportFile());
         findViewById(R.id.btnPlayUrl).setOnClickListener(v -> playDirect());
         findViewById(R.id.btnSources).setOnClickListener(v -> setImportExpanded(!importExpanded));
-        findViewById(R.id.btnWallpaper).setOnClickListener(v -> chooseWallpaper());
+        findViewById(R.id.btnWallpaper).setOnClickListener(v -> showSettings());
+        findViewById(R.id.btnAllChannels).setOnClickListener(v -> selectSection(0));
+        findViewById(R.id.btnFavorites).setOnClickListener(v -> selectSection(1));
+        findViewById(R.id.btnRecent).setOnClickListener(v -> selectSection(2));
         findViewById(R.id.btnClearFilters).setOnClickListener(v -> {
             inputSearch.setText(""); spinnerGroup.setSelection(0); filter();
         });
-        findViewById(R.id.btnAbout).setOnClickListener(v -> new AlertDialog.Builder(this)
-                .setTitle("IPTV Player 1.4")
-                .setMessage("HLS, DASH, SmoothStreaming, RTSP unicast, HTTP/HTTPS, RTMP và UDP MPEG-TS.\n\n"
-                        + "Full HD, 2K và 4K cần nguồn phát, codec và thiết bị phù hợp. Ứng dụng không nâng độ phân giải của nguồn.\n\n"
-                        + "Widevine và ClearKey dùng cấu hình/giấy phép hợp lệ của nguồn. PlayReady cần thiết bị hỗ trợ. SRT và AceStream chưa hỗ trợ.\n\n"
-                        + "FPS đo từ khung hình được trình phát xuất ra trong mỗi 2 giây; không phải tần số quét màn hình.\n\n"
-                        + "Playlist lưu riêng trên thiết bị. Không có quảng cáo hay theo dõi. Nhấn giữ kênh để xem/copy URL đầy đủ.\n"
-                        + "Chỉ dùng nguồn mà bạn có quyền truy cập.")
-                .setPositiveButton("Đóng", null).show());
+        findViewById(R.id.btnAbout).setOnClickListener(v -> showAbout());
         txtSource.setOnClickListener(v -> showSource(currentSource));
 
         inputSearch.addTextChangedListener(new SimpleTextWatcher(this::filter));
         spinnerGroup.setOnItemSelectedListener(new SimpleItemSelectedListener(this::filter));
         setImportExpanded(allChannels.isEmpty());
+        updateSectionButtons();
     }
 
     private void restoreSession() {
@@ -138,7 +141,9 @@ public final class MainActivity extends Activity {
         String group = spinnerGroup.getSelectedItemPosition() > 0 ? spinnerGroup.getSelectedItem().toString() : "";
         boolean wasLoading = loading;
         boolean wasExpanded = importExpanded;
+        int section = activeSection;
         setupViews();
+        activeSection = section;
         rebuildGroups();
         inputUrl.setText(urlText);
         inputSearch.setText(query);
@@ -149,6 +154,7 @@ public final class MainActivity extends Activity {
         filter();
         setLoading(wasLoading);
         setImportExpanded(wasExpanded);
+        updateSectionButtons();
     }
 
     private void loadFromUrl() {
@@ -166,7 +172,7 @@ public final class MainActivity extends Activity {
                 connection.setConnectTimeout(15_000);
                 connection.setReadTimeout(20_000);
                 connection.setInstanceFollowRedirects(true);
-                connection.setRequestProperty("User-Agent", "IPTV-Player/1.4 Android");
+                connection.setRequestProperty("User-Agent", "IPTV-Player/1.5 Android");
                 int status = connection.getResponseCode();
                 if (status < 200 || status >= 300) throw new Exception("HTTP " + status);
                 String effective = connection.getURL().toString();
@@ -287,12 +293,17 @@ public final class MainActivity extends Activity {
         List<Channel> filtered = new ArrayList<>();
         for (Channel channel : allChannels) {
             boolean groupMatches = spinnerGroup.getSelectedItemPosition() <= 0 || channel.group().equals(group);
+            boolean sectionMatches = activeSection == 0
+                    || (activeSection == 1 && AppPreferences.isFavorite(this, channel))
+                    || (activeSection == 2 && AppPreferences.isRecent(this, channel));
             boolean queryMatches = query.isEmpty()
                     || channel.name().toLowerCase(Locale.ROOT).contains(query)
                     || channel.group().toLowerCase(Locale.ROOT).contains(query)
                     || channel.url().toLowerCase(Locale.ROOT).contains(query);
-            if (groupMatches && queryMatches) filtered.add(channel);
+            if (groupMatches && sectionMatches && queryMatches) filtered.add(channel);
         }
+        if (activeSection == 2) filtered.sort((left, right) -> Integer.compare(
+                AppPreferences.recentRank(this, left), AppPreferences.recentRank(this, right)));
         adapter.submit(filtered);
         updateSummary();
     }
@@ -311,6 +322,7 @@ public final class MainActivity extends Activity {
     }
 
     private void play(Channel channel) {
+        AppPreferences.recordRecent(this, channel);
         Intent intent = new Intent(this, PlayerActivity.class);
         intent.putExtra(PlayerActivity.EXTRA_NAME, channel.name());
         intent.putExtra(PlayerActivity.EXTRA_URL, channel.url());
@@ -323,6 +335,66 @@ public final class MainActivity extends Activity {
         intent.putExtra(PlayerActivity.EXTRA_MIME, channel.mimeHint());
         intent.putStringArrayListExtra(PlayerActivity.EXTRA_OPTIONS, new ArrayList<>(channel.options()));
         startActivity(intent);
+    }
+
+    private void selectSection(int section) {
+        activeSection = section;
+        updateSectionButtons();
+        filter();
+    }
+
+    private void updateSectionButtons() {
+        int[] ids = {R.id.btnAllChannels, R.id.btnFavorites, R.id.btnRecent};
+        for (int i = 0; i < ids.length; i++) {
+            View button = findViewById(ids[i]);
+            button.setAlpha(i == activeSection ? 1f : 0.62f);
+            button.setSelected(i == activeSection);
+        }
+        if (txtEmpty != null) txtEmpty.setText(activeSection == 1
+                ? "Chưa có kênh yêu thích.\nBấm ☆ trên một kênh để thêm."
+                : activeSection == 2 ? "Chưa có kênh đã xem gần đây."
+                : "Chưa có kênh phù hợp.\nMở nguồn hoặc bấm Bỏ lọc.");
+    }
+
+    private void showChannelActions(Channel channel) {
+        boolean favorite = AppPreferences.isFavorite(this, channel);
+        new AlertDialog.Builder(this).setTitle(channel.name())
+                .setItems(new String[]{favorite ? "★ Bỏ khỏi Yêu thích" : "☆ Thêm vào Yêu thích",
+                        channel.selected() ? "Bỏ chọn khi xuất" : "Giữ khi xuất", "Xem URL nguồn đầy đủ", "Phát kênh"},
+                        (dialog, which) -> {
+                            if (which == 0) {
+                                boolean added = AppPreferences.toggleFavorite(this, channel);
+                                toast(added ? "Đã thêm vào Yêu thích" : "Đã bỏ khỏi Yêu thích"); filter();
+                            } else if (which == 1) {
+                                channel.setSelected(!channel.selected()); adapter.notifyDataSetChanged(); updateSummary();
+                            } else if (which == 2) showSource(channel.url());
+                            else play(channel);
+                        }).setNegativeButton("Đóng", null).show();
+    }
+
+    private void showSettings() {
+        String urls = AppPreferences.showUrls(this) ? "Ẩn URL trong danh sách" : "Hiện URL trong danh sách";
+        String rows = AppPreferences.compactRows(this) ? "Hàng kênh thoải mái" : "Hàng kênh thu gọn";
+        String fps = AppPreferences.showFps(this) ? "Ẩn FPS khi xem" : "Hiện FPS khi xem";
+        String clock = AppPreferences.showClock(this) ? "Ẩn đồng hồ khi xem" : "Hiện đồng hồ khi xem";
+        new AlertDialog.Builder(this).setTitle("Tùy chọn ứng dụng")
+                .setItems(new String[]{"Đổi hình nền", urls, rows, fps, clock, "Xóa lịch sử Gần đây"},
+                        (dialog, which) -> {
+                            if (which == 0) chooseWallpaper();
+                            if (which == 1) { AppPreferences.setShowUrls(this, !AppPreferences.showUrls(this)); adapter.notifyDataSetChanged(); }
+                            if (which == 2) { AppPreferences.setCompactRows(this, !AppPreferences.compactRows(this)); adapter.notifyDataSetChanged(); }
+                            if (which == 3) AppPreferences.setShowFps(this, !AppPreferences.showFps(this));
+                            if (which == 4) AppPreferences.setShowClock(this, !AppPreferences.showClock(this));
+                            if (which == 5) { AppPreferences.clearRecent(this); if (activeSection == 2) filter(); toast("Đã xóa lịch sử"); }
+                        }).setNegativeButton("Đóng", null).show();
+    }
+
+    private void showAbout() {
+        new AlertDialog.Builder(this).setTitle("IPTV Player 1.5")
+                .setMessage("Giao diện thư viện kênh gồm Tất cả, Yêu thích và Gần đây; nhấn giữ kênh để mở menu.\n\n"
+                        + "HLS, DASH, SmoothStreaming, RTSP, HTTP/HTTPS, RTMP và UDP MPEG-TS. Full HD, 2K và 4K phụ thuộc nguồn, codec và thiết bị.\n\n"
+                        + "Widevine và ClearKey chỉ dùng cấu hình/giấy phép hợp lệ của nguồn. Playlist và tùy chọn lưu riêng trên thiết bị; không quảng cáo hay theo dõi.")
+                .setPositiveButton("Đóng", null).show();
     }
 
     private void playDirect() {

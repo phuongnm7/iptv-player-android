@@ -30,6 +30,7 @@ import androidx.media3.exoplayer.analytics.AnalyticsListener;
 import androidx.media3.exoplayer.rtsp.RtspMediaSource;
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.ui.PlayerView;
+import androidx.media3.ui.AspectRatioFrameLayout;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -40,6 +41,8 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 @UnstableApi
 public final class PlayerActivity extends Activity {
@@ -56,6 +59,7 @@ public final class PlayerActivity extends Activity {
     private long position;
     private boolean resumePlayback = true;
     private int quality = Integer.MAX_VALUE;
+    private int resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT;
     private WifiManager.MulticastLock multicastLock;
     private DecoderCounters videoCounters;
     private final FpsMeter fpsMeter = new FpsMeter();
@@ -63,6 +67,14 @@ public final class PlayerActivity extends Activity {
     private boolean resolvingClearKey;
     private boolean activityStarted;
     private final Handler fpsHandler = new Handler(Looper.getMainLooper());
+    private final Handler clockHandler = new Handler(Looper.getMainLooper());
+    private TextView clockView;
+    private final Runnable clockUpdate = new Runnable() {
+        @Override public void run() {
+            if (clockView != null) clockView.setText(new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date()));
+            clockHandler.postDelayed(this, 30_000);
+        }
+    };
     private final Runnable fpsUpdate = new Runnable() {
         @Override public void run() {
             if (player != null && videoCounters != null) {
@@ -93,6 +105,7 @@ public final class PlayerActivity extends Activity {
             position = state.getLong("position");
             resumePlayback = state.getBoolean("playing", true);
             quality = state.getInt("quality", Integer.MAX_VALUE);
+            resizeMode = state.getInt("resize", AspectRatioFrameLayout.RESIZE_MODE_FIT);
             mime = state.getString("mime", mime);
             drmSystem = state.getString("drm_system", drmSystem);
             drmLicense = state.getString("drm_license", drmLicense);
@@ -100,6 +113,10 @@ public final class PlayerActivity extends Activity {
         playerView = findViewById(R.id.playerView);
         status = findViewById(R.id.txtPlayerStatus);
         fpsView = findViewById(R.id.txtFps);
+        clockView = findViewById(R.id.txtClock);
+        fpsView.setVisibility(AppPreferences.showFps(this) ? View.VISIBLE : View.GONE);
+        clockView.setVisibility(AppPreferences.showClock(this) ? View.VISIBLE : View.GONE);
+        playerView.setResizeMode(resizeMode);
         ((TextView) findViewById(R.id.txtPlayerTitle)).setText(name);
         TextView source = findViewById(R.id.txtPlayerUrl);
         source.setText(url);
@@ -111,6 +128,7 @@ public final class PlayerActivity extends Activity {
         findViewById(R.id.btnFormat).setOnClickListener(v -> chooseFormat());
         findViewById(R.id.btnRotate).setOnClickListener(v -> chooseOrientation());
         findViewById(R.id.btnDrm).setOnClickListener(v -> configureDrm());
+        findViewById(R.id.btnResize).setOnClickListener(v -> chooseResizeMode());
         findViewById(R.id.btnRetry).setOnClickListener(v -> { position = 0; resumePlayback = true; releasePlayer(); startPlayer(); });
     }
 
@@ -118,6 +136,7 @@ public final class PlayerActivity extends Activity {
         super.onStart();
         activityStarted = true;
         fpsHandler.post(fpsUpdate);
+        clockHandler.post(clockUpdate);
         startPlayer();
     }
 
@@ -135,7 +154,7 @@ public final class PlayerActivity extends Activity {
                 String value = bundle.getString(key);
                 if (value != null) headers.put(key, value);
             }
-            String ua = headers.containsKey("User-Agent") ? headers.get("User-Agent") : "IPTV-Player/1.4 Android";
+            String ua = headers.containsKey("User-Agent") ? headers.get("User-Agent") : "IPTV-Player/1.5 Android";
             DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory()
                     .setUserAgent(ua).setConnectTimeoutMs(15000).setReadTimeoutMs(20000)
                     .setDefaultRequestProperties(headers);
@@ -279,6 +298,17 @@ public final class PlayerActivity extends Activity {
                 .setNegativeButton("Đóng", null).show();
     }
 
+    private void chooseResizeMode() {
+        String[] labels = {"Vừa màn hình (Fit)", "Phóng đầy màn hình (Zoom)", "Kéo đầy khung (Fill)"};
+        int[] values = {AspectRatioFrameLayout.RESIZE_MODE_FIT, AspectRatioFrameLayout.RESIZE_MODE_ZOOM,
+                AspectRatioFrameLayout.RESIZE_MODE_FILL};
+        new AlertDialog.Builder(this).setTitle("Tỷ lệ và khung hình")
+                .setItems(labels, (dialog, which) -> {
+                    resizeMode = values[which];
+                    playerView.setResizeMode(resizeMode);
+                }).setNegativeButton("Đóng", null).show();
+    }
+
     private void configureDrm() {
         LinearLayout form = new LinearLayout(this);
         form.setOrientation(LinearLayout.VERTICAL); form.setPadding(32, 8, 32, 0);
@@ -342,6 +372,7 @@ public final class PlayerActivity extends Activity {
         out.putLong("position", position);
         out.putBoolean("playing", resumePlayback);
         out.putInt("quality", quality);
+        out.putInt("resize", resizeMode);
         out.putString("mime", mime);
         super.onSaveInstanceState(out);
     }
@@ -349,6 +380,7 @@ public final class PlayerActivity extends Activity {
     @Override protected void onStop() {
         activityStarted = false;
         fpsHandler.removeCallbacks(fpsUpdate);
+        clockHandler.removeCallbacks(clockUpdate);
         rememberPosition();
         releasePlayer();
         super.onStop();
