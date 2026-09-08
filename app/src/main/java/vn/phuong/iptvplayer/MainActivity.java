@@ -37,6 +37,7 @@ import java.util.concurrent.ExecutorService;
 public final class MainActivity extends Activity {
     private static final int OPEN_M3U = 101;
     private static final int SAVE_M3U = 102;
+    private static final int PICK_WALLPAPER = 103;
     private static final int MAX_PLAYLIST_BYTES = 8 * 1024 * 1024;
 
     private final ExecutorService io = SessionStore.IO;
@@ -54,6 +55,8 @@ public final class MainActivity extends Activity {
     private int missingUrlCount;
     private String currentSource = "";
     private boolean loading;
+    private boolean importExpanded = true;
+    private int wallpaperGeneration;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -64,6 +67,7 @@ public final class MainActivity extends Activity {
     private void setupViews() {
         setContentView(R.layout.activity_main);
         Insets.apply(findViewById(R.id.mainRoot));
+        applyWallpaper();
 
         inputUrl = findViewById(R.id.inputUrl);
         inputSearch = findViewById(R.id.inputSearch);
@@ -89,11 +93,17 @@ public final class MainActivity extends Activity {
         findViewById(R.id.btnSelectNone).setOnClickListener(v -> setVisibleSelection(false));
         findViewById(R.id.btnExport).setOnClickListener(v -> exportFile());
         findViewById(R.id.btnPlayUrl).setOnClickListener(v -> playDirect());
+        findViewById(R.id.btnSources).setOnClickListener(v -> setImportExpanded(!importExpanded));
+        findViewById(R.id.btnWallpaper).setOnClickListener(v -> chooseWallpaper());
+        findViewById(R.id.btnClearFilters).setOnClickListener(v -> {
+            inputSearch.setText(""); spinnerGroup.setSelection(0); filter();
+        });
         findViewById(R.id.btnAbout).setOnClickListener(v -> new AlertDialog.Builder(this)
-                .setTitle("IPTV Player 1.1")
+                .setTitle("IPTV Player 1.2")
                 .setMessage("HLS, DASH, SmoothStreaming, RTSP unicast, HTTP/HTTPS, RTMP và UDP MPEG-TS.\n\n"
                         + "Full HD, 2K và 4K cần nguồn phát, codec và thiết bị phù hợp. Ứng dụng không nâng độ phân giải của nguồn.\n\n"
-                        + "SRT, AceStream và DRM chưa có cấu hình giấy phép không được hỗ trợ. UDP cần mạng cho phép multicast.\n\n"
+                        + "Widevine và ClearKey dùng cấu hình/giấy phép hợp lệ của nguồn. PlayReady cần thiết bị hỗ trợ. SRT và AceStream chưa hỗ trợ.\n\n"
+                        + "FPS đo từ khung hình được trình phát xuất ra trong mỗi 2 giây; không phải tần số quét màn hình.\n\n"
                         + "Playlist lưu riêng trên thiết bị. Không có quảng cáo hay theo dõi. Nhấn giữ kênh để xem/copy URL đầy đủ.\n"
                         + "Chỉ dùng nguồn mà bạn có quyền truy cập.")
                 .setPositiveButton("Đóng", null).show());
@@ -101,6 +111,7 @@ public final class MainActivity extends Activity {
 
         inputSearch.addTextChangedListener(new SimpleTextWatcher(this::filter));
         spinnerGroup.setOnItemSelectedListener(new SimpleItemSelectedListener(this::filter));
+        setImportExpanded(allChannels.isEmpty());
     }
 
     private void restoreSession() {
@@ -126,6 +137,7 @@ public final class MainActivity extends Activity {
         String urlText = inputUrl.getText().toString(), query = inputSearch.getText().toString();
         String group = spinnerGroup.getSelectedItemPosition() > 0 ? spinnerGroup.getSelectedItem().toString() : "";
         boolean wasLoading = loading;
+        boolean wasExpanded = importExpanded;
         setupViews();
         rebuildGroups();
         inputUrl.setText(urlText);
@@ -136,6 +148,7 @@ public final class MainActivity extends Activity {
         }
         filter();
         setLoading(wasLoading);
+        setImportExpanded(wasExpanded);
     }
 
     private void loadFromUrl() {
@@ -153,7 +166,7 @@ public final class MainActivity extends Activity {
                 connection.setConnectTimeout(15_000);
                 connection.setReadTimeout(20_000);
                 connection.setInstanceFollowRedirects(true);
-                connection.setRequestProperty("User-Agent", "IPTV-Player/1.0 Android");
+                connection.setRequestProperty("User-Agent", "IPTV-Player/1.2 Android");
                 int status = connection.getResponseCode();
                 if (status < 200 || status >= 300) throw new Exception("HTTP " + status);
                 String effective = connection.getURL().toString();
@@ -194,6 +207,14 @@ public final class MainActivity extends Activity {
         Uri uri = data.getData();
         if (requestCode == OPEN_M3U) readLocalFile(uri);
         if (requestCode == SAVE_M3U) writeExport(uri);
+        if (requestCode == PICK_WALLPAPER) {
+            io.execute(() -> {
+                try {
+                    WallpaperStore.importPhoto(getApplicationContext(), uri);
+                    ui(() -> { applyWallpaper(); toast("Đã đổi hình nền"); });
+                } catch (Exception error) { ui(() -> toast("Không mở được hình nền: " + readable(error))); }
+            });
+        }
     }
 
     private void readLocalFile(Uri uri) {
@@ -238,9 +259,11 @@ public final class MainActivity extends Activity {
         missingUrlCount = result.missingUrlCount;
         currentSource = source;
         txtSource.setText("Nguồn: " + source);
+        inputSearch.setText("");
         rebuildGroups();
         filter();
         setLoading(false);
+        setImportExpanded(false);
         saveSession();
     }
 
@@ -288,12 +311,6 @@ public final class MainActivity extends Activity {
     }
 
     private void play(Channel channel) {
-        if (channel.needsDrm()) {
-            new AlertDialog.Builder(this).setTitle("Nguồn cần DRM")
-                    .setMessage("Bản này chưa cấu hình giấy phép DRM. Các thuộc tính gốc vẫn được giữ khi xuất M3U.")
-                    .setPositiveButton("Đóng", null).show();
-            return;
-        }
         Intent intent = new Intent(this, PlayerActivity.class);
         intent.putExtra(PlayerActivity.EXTRA_NAME, channel.name());
         intent.putExtra(PlayerActivity.EXTRA_URL, channel.url());
@@ -304,6 +321,7 @@ public final class MainActivity extends Activity {
         for (java.util.Map.Entry<String, String> entry : channel.headers().entrySet()) headers.putString(entry.getKey(), entry.getValue());
         intent.putExtra(PlayerActivity.EXTRA_HEADERS, headers);
         intent.putExtra(PlayerActivity.EXTRA_MIME, channel.mimeHint());
+        intent.putStringArrayListExtra(PlayerActivity.EXTRA_OPTIONS, new ArrayList<>(channel.options()));
         startActivity(intent);
     }
 
@@ -399,6 +417,31 @@ public final class MainActivity extends Activity {
         io.execute(() -> {
             try { SessionStore.save(getApplicationContext(), snapshot, source, duplicateSnapshot, missingSnapshot); }
             catch (Exception ignored) { ui(() -> toast("Không lưu được phiên; hãy xuất M3U để giữ playlist.")); }
+        });
+    }
+
+    private void setImportExpanded(boolean expanded) {
+        importExpanded = expanded;
+        findViewById(R.id.importPanel).setVisibility(expanded ? View.VISIBLE : View.GONE);
+        ((Button) findViewById(R.id.btnSources)).setText(expanded ? "Thu gọn" : "+ Nguồn");
+    }
+
+    private void chooseWallpaper() {
+        new AlertDialog.Builder(this).setTitle("Hình nền")
+                .setItems(new String[]{"Xanh đêm", "Biển sâu", "Tím", "Chọn ảnh trên máy"}, (dialog, which) -> {
+                    if (which == 3) {
+                        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                        intent.addCategory(Intent.CATEGORY_OPENABLE); intent.setType("image/*");
+                        startActivityForResult(intent, PICK_WALLPAPER);
+                    } else { WallpaperStore.setStyle(this, which); applyWallpaper(); }
+                }).setNegativeButton("Đóng", null).show();
+    }
+
+    private void applyWallpaper() {
+        int generation = ++wallpaperGeneration;
+        io.execute(() -> {
+            android.graphics.drawable.Drawable background = WallpaperStore.load(getApplicationContext());
+            ui(() -> { if (generation == wallpaperGeneration) findViewById(R.id.mainRoot).setBackground(background); });
         });
     }
 

@@ -1,10 +1,22 @@
 # Nhật ký tiếp tục dự án — IPTV Player Android
 
+## Phiên bản 1.2 đang thực hiện — 2026-09-08
+
+- Yêu cầu mới từ ảnh điện thoại: bỏ việc chặn chung mọi kênh DRM; thêm xoay khi xem, hình nền tùy chọn, FPS thực tế và làm danh sách kênh nổi bật ở màn hình chính.
+- Đã xác minh repo vẫn private; HEAD trước khi sửa: e6054675dcc08f165d90a3f1411b7ad10dcdd8d7, tree dab57f21659b56a73424a6af7316669abab7f60a.
+- Đã khôi phục đủ 35 file từ GitHub vì thư mục làm việc tạm không còn source; không phụ thuộc bản APK/zip cũ.
+- Thêm DrmSpec/DrmPlayback: Widevine, ClearKey và PlayReady bằng Media3/MediaDrm; đọc KODIPROP license_type/license_key và header URL-encoded. Không tự tìm hay vượt DRM; thiếu giấy phép thì báo phần thiếu và cho nhập cấu hình hợp lệ.
+- Thêm FpsMeter: lấy chênh lệch renderedOutputBufferCount theo thời gian thực, cập nhật mỗi 2 giây; không hiển thị FPS khai báo hay tần số quét màn hình.
+- Thêm nút xoay tự động/ngang/dọc trong PlayerActivity; bỏ ép sensorLandscape trong manifest.
+- Thêm WallpaperStore: 3 nền màu và ảnh do người dùng chọn, giới hạn 32 MB/1600 px, sửa EXIF, lưu JPEG trong vùng app-private.
+- Viết lại màn hình chính một cột thích ứng dọc/ngang: danh sách kênh luôn chiếm vùng co giãn; bảng nguồn tự thu gọn sau khi tải; bộ lọc và nút xuất luôn thấy.
+- Tăng versionCode 3, versionName 1.2.0; artifact đổi thành IPTV-Player-1.2-APK.
+- Kiểm tra cục bộ hiện tại: PASS 36 core assertions; 15 XML hợp lệ; tổng 18 JUnit tests trong source. Chưa có kết quả Android compiler/build 1.2 tại mốc này.
+- Việc tiếp theo: commit bản 1.2, chạy testDebugUnitTest/lintDebug/assembleDebug; sửa lỗi compile thực; tải và lưu APK mới; cập nhật run/SHA tại đây.
+
 Cập nhật: 2026-09-08. Lưu file này trong GitHub riêng tư để nối lại dù phiên trò chuyện hoặc thư mục tạm mất.
 
-**Trạng thái tiếp tục 2026-09-08:** Đã đọc kết quả cuối Build 4: workflow failure ở smoke, 10 checks đạt, gồm xuất/nhập lại M3U. failure.xml và ảnh xác nhận Android hiện “Process system isn't responding” trong lúc video đã có hình; chưa kết luận lỗi decoder. Đang sửa cấu hình máy ảo và phân loại lỗi hệ thống; APK đã giao giữ nguyên.
-
-**Trạng thái bàn giao trước đó:** Đã tạo, tải về, kiểm tra checksum và lưu APK 1.1 từ Build 4. Compiler/test/lint, chữ ký và upload APK đều đạt. Theo yêu cầu làm nhanh, bàn giao APK trước khi smoke mở rộng chạy hết. Không coi toàn bộ workflow hoặc máy thật là đã kiểm tra thành công; mở run Build 4 bên dưới để lấy kết quả mới nhất.
+**Trạng thái bàn giao:** Đã tạo, tải về, kiểm tra checksum và lưu APK 1.1 từ Build 4. Compiler/test/lint, chữ ký và upload APK đều đạt. Theo yêu cầu làm nhanh, bàn giao APK trước khi smoke mở rộng chạy hết. Không coi toàn bộ workflow hoặc máy thật là đã kiểm tra thành công; mở run Build 4 bên dưới để lấy kết quả mới nhất.
 
 ## Mục tiêu và quyền đã được xác nhận
 
@@ -123,30 +135,3 @@ Cập nhật: 2026-09-08. Lưu file này trong GitHub riêng tư để nối l�
 - Các runner khác nhau có thể sinh debug keystore khác; trước khi gỡ bản cũ để cài bản có chữ ký khác, phải xuất playlist.
 - EPG toàn playlist, Xtream login, SRT/RTP URL/RTMPS, DRM và TV launcher chưa hỗ trợ.
 - Không coi việc biên dịch thành công là chứng minh phát 4K/mọi luồng. Không lưu secret trong nhật ký hoặc source.
-
-## Phiên tiếp tục 2026-09-08 — kiểm tra kết quả Build 4
-
-- Xác minh repository private; HEAD e6054675dcc08f165d90a3f1411b7ad10dcdd8d7, chỉ thêm nhật ký sau d2a21c0.
-- Đã tải và đối chiếu SHA-256 artifact smoke 10048583658 và reports 10048584164 với digest GitHub; đều khớp.
-- result.json: passed=false, 10 checks đạt; export một kênh đã chọn và import lại bằng Android file picker đều đạt.
-- failure.xml: android:id/alertTitle = Process system isn't responding, có aerr_wait/aerr_close. Đã xem failure.png: video màu tổng hợp xuất hiện phía sau hộp ANR hệ thống. HLS/DASH chưa chạy tới.
-- Báo cáo unit test: 14 tests, 0 failures, 0 ignored. Lint: 0 errors, 24 warnings.
-- Sửa riêng hạ tầng kiểm thử: máy ảo 720x1280/density 320, RAM 2048M, heap 256M, tắt camera; giữ Android 15 và toàn bộ checks. Phát hiện ANR hệ thống báo failure_kind=emulator_system và vẫn fail, không đóng hộp thoại để che lỗi.
-- Không sửa mã ứng dụng/version/APK đã giao. Cần đọc kết quả lần chạy mới trước khi công bố hoàn tất smoke; máy thật/nguồn của người dùng vẫn chưa được kiểm thử.
-
-### Build 5 — phát hiện race focus trong script
-
-- Commit efad25bf087f5d0c85753c672e55c043c8c6b513; run https://github.com/phuongnm7/iptv-player-android/actions/runs/34214394771.
-- Compile/test/lint và APK đạt; smoke đạt 2 checks rồi dừng ở tìm kiếm.
-- Đã đọc ảnh/XML: inputSearch vẫn là hint, inputUrl thành http://1Bravo. Script gửi phím trước khi focus đúng ô sau thay đổi bố cục do IME; không phải bằng chứng lỗi bộ lọc.
-- Sửa script đợi focused=true trên đúng resource, xác nhận nội dung sau nhập, dùng bàn phím cứng để tránh IME thay đổi tọa độ; cuộn hàng nút để thấy Export trên màn hình 360dp. Giữ toàn bộ assertions.
-
-- Rà soát trước khi hoàn tất Build 6: bỏ Back sau nhập liệu vì bàn phím cứng đã tắt IME; Back sẽ có thể thoát Activity. Build 6 được thay bằng lần chạy sau của bản sửa này.
-
-### Build 7 — focus đã đạt, sửa cử chỉ cuộn
-
-- Commit ceac85066a38251b6347a835f0149a84f782f713; run https://github.com/phuongnm7/iptv-player-android/actions/runs/34215388133.
-- Compile/test/lint/APK đạt. Smoke 8 checks đạt, gồm search/select; dừng ở btnExport.
-- Đã xem failure.png và result.json: máy ảo quay về launcher sau vuốt sát mép phải; Android coi là Back. Sửa vuốt từ 75% tới 25% chiều rộng hàng nút, tối đa 3 lần, kiểm tra nút có mặt trước khi tap.
-- Kiểm tra playlist người dùng cục bộ bằng M3uParser.java/Channel.java thật: 256 kênh, 14 nhóm, duplicateCount=1, missingUrlCount=5, 23 kênh có header, needsDrm=0. Export/import giữ nguyên số lượng và identityKey từng kênh. Không lưu URL/nội dung/token playlist vào repo.
-- CoreCheck cục bộ: 28/28 assertions. Probe mạng 6 host đại diện: 4 trả dữ liệu HLS/TS, 1 HTML, 1 lỗi kết nối. Không coi đây là bằng chứng giải mã trên thiết bị.

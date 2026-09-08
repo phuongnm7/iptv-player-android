@@ -2,12 +2,17 @@ package vn.phuong.iptvplayer;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.pm.ActivityInfo;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
+import android.widget.EditText;
+import android.widget.LinearLayout;
 import androidx.media3.common.AudioAttributes;
 import androidx.media3.common.C;
 import androidx.media3.common.MediaItem;
@@ -20,26 +25,45 @@ import androidx.media3.datasource.DefaultDataSource;
 import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.exoplayer.DefaultRenderersFactory;
 import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.DecoderCounters;
+import androidx.media3.exoplayer.analytics.AnalyticsListener;
 import androidx.media3.exoplayer.rtsp.RtspMediaSource;
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.ui.PlayerView;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.ArrayList;
 
 @UnstableApi
 public final class PlayerActivity extends Activity {
     public static final String EXTRA_NAME = "name", EXTRA_URL = "url";
     public static final String EXTRA_USER_AGENT = "user_agent", EXTRA_REFERER = "referer", EXTRA_ORIGIN = "origin";
-    public static final String EXTRA_HEADERS = "headers", EXTRA_MIME = "mime";
+    public static final String EXTRA_HEADERS = "headers", EXTRA_MIME = "mime", EXTRA_OPTIONS = "options";
     private ExoPlayer player;
     private PlayerView playerView;
     private TextView status;
+    private TextView fpsView;
     private String url, name, mime;
+    private String drmSystem = "", drmLicense = "";
+    private ArrayList<String> options = new ArrayList<>();
     private long position;
     private boolean resumePlayback = true;
     private int quality = Integer.MAX_VALUE;
     private WifiManager.MulticastLock multicastLock;
+    private DecoderCounters videoCounters;
+    private final FpsMeter fpsMeter = new FpsMeter();
+    private final Handler fpsHandler = new Handler(Looper.getMainLooper());
+    private final Runnable fpsUpdate = new Runnable() {
+        @Override public void run() {
+            if (player != null && videoCounters != null) {
+                double fps = fpsMeter.sample(android.os.SystemClock.elapsedRealtime(),
+                        videoCounters.renderedOutputBufferCount, player.isPlaying());
+                fpsView.setText(Double.isNaN(fps) ? "FPS: đang đo…" : String.format(Locale.ROOT, "FPS thực tế: %.1f", fps));
+            } else fpsView.setText("FPS: chưa có hình");
+            fpsHandler.postDelayed(this, 2000);
+        }
+    };
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -51,14 +75,22 @@ public final class PlayerActivity extends Activity {
         url = value(EXTRA_URL);
         name = value(EXTRA_NAME);
         mime = value(EXTRA_MIME);
+        ArrayList<String> passedOptions = getIntent().getStringArrayListExtra(EXTRA_OPTIONS);
+        if (passedOptions != null) options = passedOptions;
+        DrmSpec initialDrm = DrmSpec.fromOptions(options);
+        drmSystem = initialDrm.system;
+        drmLicense = initialDrm.license;
         if (state != null) {
             position = state.getLong("position");
             resumePlayback = state.getBoolean("playing", true);
             quality = state.getInt("quality", Integer.MAX_VALUE);
             mime = state.getString("mime", mime);
+            drmSystem = state.getString("drm_system", drmSystem);
+            drmLicense = state.getString("drm_license", drmLicense);
         }
         playerView = findViewById(R.id.playerView);
         status = findViewById(R.id.txtPlayerStatus);
+        fpsView = findViewById(R.id.txtFps);
         ((TextView) findViewById(R.id.txtPlayerTitle)).setText(name);
         TextView source = findViewById(R.id.txtPlayerUrl);
         source.setText(url);
@@ -68,11 +100,14 @@ public final class PlayerActivity extends Activity {
         findViewById(R.id.btnBack).setOnClickListener(v -> finish());
         findViewById(R.id.btnQuality).setOnClickListener(v -> chooseQuality());
         findViewById(R.id.btnFormat).setOnClickListener(v -> chooseFormat());
+        findViewById(R.id.btnRotate).setOnClickListener(v -> chooseOrientation());
+        findViewById(R.id.btnDrm).setOnClickListener(v -> configureDrm());
         findViewById(R.id.btnRetry).setOnClickListener(v -> { position = 0; resumePlayback = true; releasePlayer(); startPlayer(); });
     }
 
     @Override protected void onStart() {
         super.onStart();
+        fpsHandler.post(fpsUpdate);
         startPlayer();
     }
 
@@ -90,17 +125,29 @@ public final class PlayerActivity extends Activity {
                 String value = bundle.getString(key);
                 if (value != null) headers.put(key, value);
             }
-            String ua = headers.containsKey("User-Agent") ? headers.get("User-Agent") : "IPTV-Player/1.1 Android";
+            String ua = headers.containsKey("User-Agent") ? headers.get("User-Agent") : "IPTV-Player/1.2 Android";
             DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory()
                     .setUserAgent(ua).setConnectTimeoutMs(15000).setReadTimeoutMs(20000)
                     .setDefaultRequestProperties(headers);
             DefaultDataSource.Factory data = new DefaultDataSource.Factory(this, http);
+            DefaultMediaSourceFactory mediaFactory = new DefaultMediaSourceFactory(data);
+            MediaItem.Builder builder = new MediaItem.Builder().setUri(url);
+            String inferred = mime.isEmpty() ? inferMime(url) : mime;
+            if (inferred != null && !inferred.isEmpty()) builder.setMimeType(inferred);
+            DrmSpec drm = DrmSpec.create(drmSystem, drmLicense);
+            DrmPlayback.configure(drm, builder, mediaFactory);
+            findViewById(R.id.btnDrm).setVisibility(drm.hasDrm() || !options.isEmpty() ? View.VISIBLE : View.GONE);
             player = new ExoPlayer.Builder(this, new DefaultRenderersFactory(this).setEnableDecoderFallback(true))
-                    .setMediaSourceFactory(new DefaultMediaSourceFactory(data)).build();
+                    .setMediaSourceFactory(mediaFactory).build();
             player.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA)
                     .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(), true);
             player.setHandleAudioBecomingNoisy(true);
             playerView.setPlayer(player);
+            player.addAnalyticsListener(new AnalyticsListener() {
+                @Override public void onVideoEnabled(EventTime eventTime, DecoderCounters counters) {
+                    videoCounters = counters; fpsMeter.reset();
+                }
+            });
             applyQuality();
             player.addListener(new Player.Listener() {
                 @Override public void onPlayerError(PlaybackException error) {
@@ -118,9 +165,6 @@ public final class PlayerActivity extends Activity {
                     }
                 }
             });
-            MediaItem.Builder builder = new MediaItem.Builder().setUri(url);
-            String inferred = mime.isEmpty() ? inferMime(url) : mime;
-            if (inferred != null && !inferred.isEmpty()) builder.setMimeType(inferred);
             MediaItem item = builder.build();
             if ("rtsp".equalsIgnoreCase(scheme)) {
                 player.setMediaSource(new RtspMediaSource.Factory().setForceUseRtpTcp(true).setUserAgent(ua).createMediaSource(item));
@@ -133,7 +177,8 @@ public final class PlayerActivity extends Activity {
             player.setPlayWhenReady(resumePlayback);
         } catch (Exception error) {
             releasePlayer();
-            showError("Không mở được nguồn phát: " + error.getClass().getSimpleName());
+            String message = error.getMessage();
+            showError(message == null ? "Không mở được nguồn phát: " + error.getClass().getSimpleName() : message);
         }
     }
 
@@ -160,6 +205,38 @@ public final class PlayerActivity extends Activity {
                 .setItems(labels, (dialog, index) -> {
                     mime = types[index]; position = 0; resumePlayback = true;
                     releasePlayer(); startPlayer();
+                }).setNegativeButton("Đóng", null).show();
+    }
+
+    private void chooseOrientation() {
+        String[] labels = {"Tự động theo điện thoại", "Màn hình ngang", "Màn hình dọc"};
+        int[] values = {ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR,
+                ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE, ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT};
+        new AlertDialog.Builder(this).setTitle("Xoay màn hình khi xem")
+                .setItems(labels, (dialog, which) -> setRequestedOrientation(values[which]))
+                .setNegativeButton("Đóng", null).show();
+    }
+
+    private void configureDrm() {
+        LinearLayout form = new LinearLayout(this);
+        form.setOrientation(LinearLayout.VERTICAL); form.setPadding(32, 8, 32, 0);
+        android.widget.Spinner type = new android.widget.Spinner(this);
+        String[] values = {"Widevine", "ClearKey", "PlayReady (Android TV)"};
+        type.setAdapter(new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, values));
+        if ("clearkey".equals(drmSystem)) type.setSelection(1);
+        if ("playready".equals(drmSystem)) type.setSelection(2);
+        EditText license = new EditText(this);
+        license.setHint("URL giấy phép hoặc ClearKey KID:KEY");
+        license.setSingleLine(false); license.setMaxLines(4); license.setText(drmLicense);
+        form.addView(type); form.addView(license);
+        new AlertDialog.Builder(this).setTitle("DRM do nhà cung cấp cấp")
+                .setMessage("Không nhập khóa hoặc giấy phép bạn không có quyền sử dụng. Dữ liệu này chỉ giữ trong màn hình phát hiện tại.")
+                .setView(form).setPositiveButton("Áp dụng", (dialog, which) -> {
+                    drmSystem = new String[]{"widevine", "clearkey", "playready"}[type.getSelectedItemPosition()];
+                    drmLicense = license.getText().toString().trim();
+                    position = 0; resumePlayback = true; releasePlayer(); startPlayer();
+                }).setNeutralButton("Tắt DRM", (dialog, which) -> {
+                    drmSystem = ""; drmLicense = ""; releasePlayer(); startPlayer();
                 }).setNegativeButton("Đóng", null).show();
     }
 
@@ -213,10 +290,13 @@ public final class PlayerActivity extends Activity {
         out.putBoolean("playing", resumePlayback);
         out.putInt("quality", quality);
         out.putString("mime", mime);
+        out.putString("drm_system", drmSystem);
+        out.putString("drm_license", drmLicense);
         super.onSaveInstanceState(out);
     }
 
     @Override protected void onStop() {
+        fpsHandler.removeCallbacks(fpsUpdate);
         rememberPosition();
         releasePlayer();
         super.onStop();
@@ -224,6 +304,7 @@ public final class PlayerActivity extends Activity {
 
     private void releasePlayer() {
         if (player != null) { playerView.setPlayer(null); player.release(); player = null; }
+        videoCounters = null; fpsMeter.reset();
         if (multicastLock != null) {
             if (multicastLock.isHeld()) multicastLock.release();
             multicastLock = null;

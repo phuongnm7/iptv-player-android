@@ -1,5 +1,7 @@
 import vn.phuong.iptvplayer.Channel;
 import vn.phuong.iptvplayer.M3uParser;
+import vn.phuong.iptvplayer.DrmSpec;
+import vn.phuong.iptvplayer.FpsMeter;
 import java.util.Collections;
 
 /** Lightweight real-Java checks; does not replace Android build/device tests. */
@@ -51,6 +53,16 @@ public final class CoreCheck {
                 + "#EXTINF:-1,B\n#KODIPROP:a=a\n#KODIPROP:b=b\nhttps://x.test/a\n", "").channels.size());
         r = parser.parse("#EXTM3U\n#EXTINF:-1,A\n#EXTVLCOPT:network-caching=1000\nhttps://x.test/a\n", "");
         eq(true, parser.export(r.channels).contains("#EXTVLCOPT:network-caching=1000\n"));
+        DrmSpec drm = DrmSpec.fromOptions(java.util.Arrays.asList(
+                "#KODIPROP:inputstream.adaptive.license_type=com.widevine.alpha",
+                "#KODIPROP:inputstream.adaptive.license_key=https://license.test/wv|Authorization=Bearer%20demo|R{SSM}|"));
+        eq("widevine", drm.system); eq("https://license.test/wv", drm.license);
+        eq("Bearer demo", drm.headers.get("Authorization")); eq("", drm.problem);
+        eq(true, DrmSpec.create("clearkey", "00112233445566778899aabbccddeeff:ffeeddccbbaa99887766554433221100").localClearKey());
+        eq(true, !DrmSpec.create("widevine", "").problem.isEmpty());
+        FpsMeter meter = new FpsMeter();
+        eq(true, Double.isNaN(meter.sample(1000, 1, true)));
+        eq(true, Math.abs(30.0 - meter.sample(3000, 61, true)) < 0.001);
         System.out.println("PASS: " + assertions + " core assertions");
     }
     private static void eq(Object expected, Object actual) {

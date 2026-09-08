@@ -52,14 +52,14 @@ jobs:
       - name: Verify and package APK
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk dist/IPTV-Player-1.1.apk
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs dist/IPTV-Player-1.1.apk
+          cp app/build/outputs/apk/debug/app-debug.apk dist/IPTV-Player-1.2.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs dist/IPTV-Player-1.2.apk
           cd dist
-          sha256sum IPTV-Player-1.1.apk | tee SHA256SUMS.txt
+          sha256sum IPTV-Player-1.2.apk | tee SHA256SUMS.txt
       - name: Upload installable APK (private artifact)
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: IPTV-Player-1.1-APK
+          name: IPTV-Player-1.2-APK
           path: dist/
           retention-days: 30
           if-no-files-found: error
@@ -78,17 +78,10 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_2
-          cores: 2
-          ram-size: 2048M
-          heap-size: 256M
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none -skin 720x1280
           emulator-boot-timeout: 420
-          enable-hw-keyboard: true
           disable-animations: true
           disable-spellchecker: true
-          script: |
-            adb shell wm density 320
-            python3 tools/android_smoke.py dist/IPTV-Player-1.1.apk
+          script: python3 tools/android_smoke.py dist/IPTV-Player-1.2.apk
       - name: Upload emulator evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

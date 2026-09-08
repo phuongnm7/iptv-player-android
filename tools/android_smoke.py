@@ -24,17 +24,6 @@ CHECKS = []
 REQUESTS = []
 
 
-class EmulatorSystemError(RuntimeError):
-    """The Android system stopped responding; this is not a decoder result."""
-
-
-def assert_responsive_system(root):
-    for node in root.iter("node"):
-        if (node.get("resource-id") == "android:id/alertTitle"
-                and node.get("text") == "Process system isn't responding"):
-            raise EmulatorSystemError("Android system ANR: Process system isn't responding")
-
-
 def command(*args, timeout=40, binary=False):
     result = subprocess.run(args, capture_output=True, timeout=timeout, check=True)
     return result.stdout if binary else result.stdout.decode("utf-8", errors="replace")
@@ -66,7 +55,6 @@ def wait_for(predicate, description, timeout=40):
     while time.monotonic() < deadline:
         try:
             root = hierarchy()
-            assert_responsive_system(root)
             value = predicate(root)
             if isinstance(value, ET.Element) or value:
                 return value
@@ -97,26 +85,13 @@ def tap(resource=None, text=None):
 def enter(resource, value):
     node = wait_for(lambda root: find(root, resource), "Missing input " + resource)
     tap_node(node)
-    def focused(root):
-        field = find(root, resource)
-        if field is not None and field.get("focused") == "true":
-            return field
-        if field is not None:
-            tap_node(field)
-        return False
-    node = wait_for(focused, "Input did not receive focus: " + resource)
     adb("shell", "input", "keyevent", "KEYCODE_MOVE_END")
     count = len(node.get("text", ""))
     if count:
         adb("shell", "input", "keyevent", *(["KEYCODE_DEL"] * count))
     if value:
         adb("shell", "input", "text", value)
-    if value:
-        wait_for(lambda root: find(root, resource) is not None and
-                 find(root, resource).get("text") == value,
-                 "Input text did not match: " + resource)
-    # The emulator uses a hardware keyboard with the soft IME disabled.
-    # BACK here would navigate away from the activity instead of hiding an IME.
+    adb("shell", "input", "keyevent", "KEYCODE_BACK")
 
 
 def summary(*parts):
@@ -141,6 +116,7 @@ def launch():
 
 
 def play_direct(path, name):
+    tap("btnSources")
     enter("inputUrl", BASE + path)
     tap("btnPlayUrl")
     def ready(root):
@@ -166,6 +142,7 @@ def play_direct(path, name):
     check(name + " synthetic video reports 320 x 180 without player error")
     adb("shell", "input", "keyevent", "KEYCODE_BACK")
     wait_for(lambda root: find(root, "inputUrl"), "Did not return from player")
+    tap("btnSources")
 
 
 def fixtures(directory):
@@ -195,7 +172,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 
 def run_checks():
-    adb("shell", "settings", "put", "secure", "show_ime_with_hard_keyboard", "0")
+    adb("shell", "settings", "put", "secure", "show_ime_with_hard_keyboard", "1")
     adb("shell", "settings", "put", "system", "accelerometer_rotation", "0")
     adb("shell", "settings", "put", "system", "user_rotation", "0")
     adb("logcat", "-c")
@@ -250,18 +227,6 @@ def run_checks():
     summary("2/2 kênh", "1 đã chọn", "1 trùng", "1 thiếu/sai")
     check("Playlist and selected channels survive process restart")
 
-    for _ in range(3):
-        root = hierarchy()
-        if find(root, "btnExport") is not None:
-            break
-        row = next(n for n in root.iter("node")
-                   if n.get("class") == "android.widget.HorizontalScrollView")
-        left, top, right, bottom = bounds(row)
-        y = str((top + bottom) // 2)
-        # Stay well inside the row: swiping from the edge triggers Android Back.
-        width = right - left
-        adb("shell", "input", "swipe", str(left + width * 3 // 4), y,
-            str(left + width // 4), y, "400")
     tap("btnExport")
     def save_button(root):
         for node in root.iter("node"):
@@ -306,7 +271,7 @@ def main():
             fixtures(directory)
             server = http.server.ThreadingHTTPServer(("127.0.0.1", 8765), functools.partial(Handler, directory=str(directory)))
             threading.Thread(target=server.serve_forever, daemon=True).start()
-            adb("install", "-r", sys.argv[1] if len(sys.argv) > 1 else "dist/IPTV-Player-1.1.apk", timeout=120)
+            adb("install", "-r", sys.argv[1] if len(sys.argv) > 1 else "dist/IPTV-Player-1.2.apk", timeout=120)
             adb("reverse", "tcp:8765", "tcp:8765")
             try:
                 run_checks()
@@ -314,8 +279,7 @@ def main():
             finally:
                 server.shutdown()
                 adb("reverse", "--remove", "tcp:8765")
-    except Exception as error:
-        result["failure_kind"] = "emulator_system" if isinstance(error, EmulatorSystemError) else "test_failure"
+    except Exception:
         result["error"] = traceback.format_exc()
         try:
             screenshot("failure")

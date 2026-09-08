@@ -1,197 +1,80 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/mainRoot"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/navy"
-    android:orientation="vertical"
-    android:padding="16dp">
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="IPTV Player"
-        android:textColor="@color/text_primary"
-        android:textSize="26sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:id="@+id/txtSummary"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="Mở playlist để bắt đầu"
-        android:textColor="@color/text_secondary"
-        android:textSize="13sp" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="14dp"
-        android:background="@drawable/panel"
-        android:orientation="vertical"
-        android:padding="12dp">
-
-        <EditText
-            android:id="@+id/inputUrl"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:backgroundTint="@color/accent"
-            android:hint="@string/playlist_url_hint"
-            android:inputType="textUri"
-            android:maxLines="2"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_secondary" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/btnLoadUrl"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:layout_weight="1"
-                android:background="@drawable/button_primary"
-                android:text="@string/load_url"
-                android:textAllCaps="false"
-                android:textColor="@color/navy"
-                android:textStyle="bold" />
-
-            <Button
-                android:id="@+id/btnOpenFile"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:layout_weight="1"
-                android:background="@drawable/button_secondary"
-                android:text="@string/open_file"
-                android:textAllCaps="false"
-                android:textColor="@color/text_primary" />
-        </LinearLayout>
-
-        <Button
-            android:id="@+id/btnPlayUrl"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginTop="8dp"
-            android:background="@drawable/button_secondary"
-            android:text="▶ Phát URL trực tiếp"
-            android:textAllCaps="false"
-            android:textColor="@color/accent" />
-
-        <TextView
-            android:id="@+id/txtSource"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="9dp"
-            android:maxLines="2"
-            android:ellipsize="middle"
-            android:text="@string/source_none"
-            android:textColor="@color/text_secondary"
-            android:textSize="12sp" />
+    android:id="@+id/mainRoot" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:padding="12dp" android:background="@color/navy">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="48dp" android:gravity="center_vertical">
+        <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+            android:text="IPTV Player" android:textSize="20sp" android:textStyle="bold" android:maxLines="1"
+            android:textColor="@color/text_primary" android:ellipsize="end" />
+        <Button android:id="@+id/btnSources" android:layout_width="76dp" android:layout_height="44dp"
+            android:background="@drawable/button_secondary" android:text="+ Nguồn" android:textAllCaps="false"
+            android:textSize="12sp" android:textColor="@color/accent" />
+        <Button android:id="@+id/btnWallpaper" android:layout_width="52dp" android:layout_height="44dp"
+            android:layout_marginStart="6dp" android:background="@drawable/button_secondary" android:text="Nền"
+            android:textAllCaps="false" android:textSize="12sp" android:textColor="@color/text_primary" />
+        <Button android:id="@+id/btnAbout" android:layout_width="44dp" android:layout_height="44dp"
+            android:layout_marginStart="6dp" android:background="@drawable/button_secondary" android:text="ⓘ"
+            android:contentDescription="Thông tin hỗ trợ" android:textColor="@color/text_primary" />
     </LinearLayout>
-
-    <EditText
-        android:id="@+id/inputSearch"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:backgroundTint="@color/accent"
-        android:hint="@string/search_hint"
-        android:singleLine="true"
-        android:textColor="@color/text_primary"
-        android:textColorHint="@color/text_secondary" />
-
-    <Spinner
-        android:id="@+id/spinnerGroup"
-        android:layout_width="match_parent"
-        android:layout_height="44dp"
-        android:backgroundTint="@color/accent"
-        android:popupBackground="@color/surface_alt" />
-
-    <HorizontalScrollView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:scrollbars="none">
-
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/btnAbout"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_marginEnd="6dp"
-                android:background="@drawable/button_secondary"
-                android:text="ⓘ"
-                android:contentDescription="Thông tin và giới hạn hỗ trợ"
-                android:textColor="@color/text_primary" />
-
-            <Button
-                android:id="@+id/btnSelectAll"
-                android:layout_width="wrap_content"
-                android:layout_height="48dp"
-                android:layout_marginEnd="6dp"
-                android:background="@drawable/button_secondary"
-                android:text="@string/select_all"
-                android:textAllCaps="false"
-                android:textColor="@color/text_primary" />
-
-            <Button
-                android:id="@+id/btnSelectNone"
-                android:layout_width="wrap_content"
-                android:layout_height="48dp"
-                android:layout_marginHorizontal="6dp"
-                android:background="@drawable/button_secondary"
-                android:text="@string/select_none"
-                android:textAllCaps="false"
-                android:textColor="@color/text_primary" />
-
-            <Button
-                android:id="@+id/btnExport"
-                android:layout_width="wrap_content"
-                android:layout_height="48dp"
-                android:layout_marginStart="6dp"
-                android:background="@drawable/button_primary"
-                android:text="@string/export_clean"
-                android:textAllCaps="false"
-                android:textColor="@color/navy"
-                android:textStyle="bold" />
+    <TextView android:id="@+id/txtSummary" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="5dp" android:text="Mở playlist để bắt đầu" android:textSize="12sp" android:textColor="@color/text_secondary" />
+    <TextView android:id="@+id/txtSource" android:layout_width="match_parent" android:layout_height="28dp"
+        android:gravity="center_vertical" android:maxLines="1" android:ellipsize="middle"
+        android:text="@string/source_none" android:textSize="11sp" android:textColor="@color/text_secondary" />
+    <ScrollView android:id="@+id/importPanel" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:fillViewport="false" android:background="@drawable/panel">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:padding="10dp" android:orientation="vertical">
+            <EditText android:id="@+id/inputUrl" android:layout_width="match_parent" android:layout_height="48dp"
+                android:inputType="textUri" android:singleLine="true" android:importantForAutofill="no"
+                android:hint="@string/playlist_url_hint" android:textSize="14sp" android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_secondary" android:backgroundTint="@color/accent" />
+            <LinearLayout android:layout_width="match_parent" android:layout_height="44dp" android:layout_marginTop="6dp">
+                <Button android:id="@+id/btnLoadUrl" android:layout_width="0dp" android:layout_weight="1"
+                    android:layout_height="match_parent" android:layout_marginEnd="4dp"
+                    android:background="@drawable/button_primary" android:text="@string/load_url"
+                    android:textAllCaps="false" android:textColor="@color/navy" />
+                <Button android:id="@+id/btnOpenFile" android:layout_width="0dp" android:layout_weight="1"
+                    android:layout_height="match_parent" android:layout_marginStart="4dp"
+                    android:background="@drawable/button_secondary" android:text="@string/open_file"
+                    android:textAllCaps="false" android:textColor="@color/text_primary" />
+            </LinearLayout>
+            <Button android:id="@+id/btnPlayUrl" android:layout_width="match_parent" android:layout_height="44dp"
+                android:layout_marginTop="6dp" android:background="@drawable/button_secondary"
+                android:text="▶ Phát URL trực tiếp" android:textAllCaps="false" android:textColor="@color/accent" />
         </LinearLayout>
-    </HorizontalScrollView>
-
-    <ProgressBar
-        android:id="@+id/progress"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="match_parent"
-        android:layout_height="3dp"
-        android:indeterminate="true"
-        android:indeterminateTint="@color/accent"
-        android:visibility="gone" />
-
-    <ListView
-        android:id="@+id/listChannels"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_marginTop="6dp"
-        android:layout_weight="1"
-        android:divider="#1E344D"
-        android:dividerHeight="1dp"
-        android:listSelector="#2137D6A6" />
-
-    <TextView
-        android:id="@+id/txtEmpty"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:padding="24dp"
-        android:text="Không có kênh phù hợp"
-        android:textColor="@color/text_secondary"
-        android:visibility="gone" />
+    </ScrollView>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="4dp">
+        <EditText android:id="@+id/inputSearch" android:layout_width="0dp" android:layout_weight="1"
+            android:layout_height="match_parent" android:inputType="text" android:singleLine="true"
+            android:importantForAutofill="no" android:hint="Tìm kênh, nhóm hoặc URL…" android:textSize="14sp"
+            android:textColor="@color/text_primary" android:textColorHint="@color/text_secondary"
+            android:backgroundTint="@color/accent" />
+        <Button android:id="@+id/btnClearFilters" android:layout_width="68dp" android:layout_height="44dp"
+            android:layout_marginStart="6dp" android:background="@drawable/button_secondary" android:text="Bỏ lọc"
+            android:textSize="12sp" android:textAllCaps="false" android:textColor="@color/text_primary" />
+    </LinearLayout>
+    <Spinner android:id="@+id/spinnerGroup" android:layout_width="match_parent" android:layout_height="40dp"
+        android:backgroundTint="@color/accent" android:popupBackground="@color/surface_alt" />
+    <ProgressBar android:id="@+id/progress" style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent" android:layout_height="3dp" android:indeterminate="true"
+        android:indeterminateTint="@color/accent" android:visibility="gone" />
+    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <ListView android:id="@+id/listChannels" android:layout_width="match_parent" android:layout_height="match_parent"
+            android:divider="#30405D" android:dividerHeight="1dp" android:listSelector="#3037D6A6" />
+        <TextView android:id="@+id/txtEmpty" android:layout_width="match_parent" android:layout_height="match_parent"
+            android:gravity="center" android:padding="20dp" android:text="Chưa có kênh phù hợp.\nMở nguồn hoặc bấm Bỏ lọc."
+            android:textColor="@color/text_secondary" android:visibility="gone" />
+    </FrameLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="6dp">
+        <Button android:id="@+id/btnSelectAll" android:layout_width="0dp" android:layout_weight="1"
+            android:layout_height="match_parent" android:background="@drawable/button_secondary"
+            android:text="Chọn đang lọc" android:textSize="12sp" android:textAllCaps="false" android:textColor="@color/text_primary" />
+        <Button android:id="@+id/btnSelectNone" android:layout_width="0dp" android:layout_weight="1"
+            android:layout_height="match_parent" android:layout_marginHorizontal="6dp" android:background="@drawable/button_secondary"
+            android:text="Bỏ chọn" android:textSize="12sp" android:textAllCaps="false" android:textColor="@color/text_primary" />
+        <Button android:id="@+id/btnExport" android:layout_width="0dp" android:layout_weight="1.1"
+            android:layout_height="match_parent" android:background="@drawable/button_primary"
+            android:text="Xuất M3U" android:textStyle="bold" android:textAllCaps="false" android:textColor="@color/navy" />
+    </LinearLayout>
 </LinearLayout>
