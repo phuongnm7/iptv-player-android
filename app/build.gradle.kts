@@ -46,5 +46,6 @@ dependencies {
     implementation("androidx.media3:media3-ui:$media3Version")
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }
