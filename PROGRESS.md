@@ -1,5 +1,13 @@
 # Nhật ký tiếp tục dự án — IPTV Player Android
 
+## Phiên bản 1.6 — Mobile/TV, D-pad và nhiều link IPTV
+
+- Thêm lựa chọn giao diện Tự động, Mobile hoặc TV. Chế độ tự động nhận diện `UI_MODE_TYPE_TELEVISION`; lựa chọn được lưu riêng trên thiết bị.
+- Thêm launcher `LEANBACK_LAUNCHER`, khai báo TV/touchscreen không bắt buộc và hỗ trợ activity co giãn để APK có thể cài/chạy trên Android TV lẫn điện thoại.
+- Nút, tab và thẻ kênh có trạng thái focus viền xanh sáng; danh sách dùng selector riêng và chế độ TV tự đưa focus tới tab Tất cả để điều khiển bằng D-pad.
+- Thêm kho tối đa 50 link playlist: đặt tên, lưu, chọn để tải, hoặc xóa. Link được lưu trong vùng app-private; tải thành công tự ghi nguồn nhưng giữ lại tên tùy chỉnh.
+- Tăng versionCode 7, versionName 1.6.0. Việc tiếp theo: build/test/lint, smoke điều hướng và bàn giao APK 1.6; repo tiếp tục private.
+
 ## Phiên bản 1.5 — giao diện kiểu thư viện Super OK
 
 - Người dùng đã xác nhận bản 1.4 phát được đúng nguồn trước đây lỗi DASH/ClearKey.

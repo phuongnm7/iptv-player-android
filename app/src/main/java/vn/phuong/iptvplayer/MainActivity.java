@@ -14,6 +14,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -87,6 +88,7 @@ public final class MainActivity extends Activity {
             }
         });
         list.setAdapter(adapter);
+        list.setItemsCanFocus(false);
         list.setEmptyView(txtEmpty);
         list.setOnItemClickListener((parent, view, position, id) -> play(adapter.getItem(position)));
         list.setOnItemLongClickListener((parent, view, position, id) -> {
@@ -101,6 +103,7 @@ public final class MainActivity extends Activity {
         findViewById(R.id.btnExport).setOnClickListener(v -> exportFile());
         findViewById(R.id.btnPlayUrl).setOnClickListener(v -> playDirect());
         findViewById(R.id.btnSources).setOnClickListener(v -> setImportExpanded(!importExpanded));
+        findViewById(R.id.btnPlaylists).setOnClickListener(v -> showPlaylistSources());
         findViewById(R.id.btnWallpaper).setOnClickListener(v -> showSettings());
         findViewById(R.id.btnAllChannels).setOnClickListener(v -> selectSection(0));
         findViewById(R.id.btnFavorites).setOnClickListener(v -> selectSection(1));
@@ -115,6 +118,7 @@ public final class MainActivity extends Activity {
         spinnerGroup.setOnItemSelectedListener(new SimpleItemSelectedListener(this::filter));
         setImportExpanded(allChannels.isEmpty());
         updateSectionButtons();
+        applyInterfaceMode(list);
     }
 
     private void restoreSession() {
@@ -172,7 +176,7 @@ public final class MainActivity extends Activity {
                 connection.setConnectTimeout(15_000);
                 connection.setReadTimeout(20_000);
                 connection.setInstanceFollowRedirects(true);
-                connection.setRequestProperty("User-Agent", "IPTV-Player/1.5 Android");
+                connection.setRequestProperty("User-Agent", "IPTV-Player/1.6 Android");
                 int status = connection.getResponseCode();
                 if (status < 200 || status >= 300) throw new Exception("HTTP " + status);
                 String effective = connection.getURL().toString();
@@ -271,6 +275,10 @@ public final class MainActivity extends Activity {
         setLoading(false);
         setImportExpanded(false);
         saveSession();
+        String firstSource = source.split("\\n", 2)[0];
+        if (firstSource.startsWith("http://") || firstSource.startsWith("https://")) {
+            try { PlaylistSourceStore.add(this, "", firstSource); } catch (Exception ignored) { }
+        }
     }
 
     private void rebuildGroups() {
@@ -373,24 +381,94 @@ public final class MainActivity extends Activity {
     }
 
     private void showSettings() {
+        String mode = AppPreferences.interfaceMode(this);
+        String modeLabel = "tv".equals(mode) ? "TV" : "mobile".equals(mode) ? "Mobile" : "Tự động";
         String urls = AppPreferences.showUrls(this) ? "Ẩn URL trong danh sách" : "Hiện URL trong danh sách";
         String rows = AppPreferences.compactRows(this) ? "Hàng kênh thoải mái" : "Hàng kênh thu gọn";
         String fps = AppPreferences.showFps(this) ? "Ẩn FPS khi xem" : "Hiện FPS khi xem";
         String clock = AppPreferences.showClock(this) ? "Ẩn đồng hồ khi xem" : "Hiện đồng hồ khi xem";
         new AlertDialog.Builder(this).setTitle("Tùy chọn ứng dụng")
-                .setItems(new String[]{"Đổi hình nền", urls, rows, fps, clock, "Xóa lịch sử Gần đây"},
+                .setItems(new String[]{"Giao diện: " + modeLabel, "Đổi hình nền", urls, rows, fps, clock,
+                                "Xóa lịch sử Gần đây", "Thông tin ứng dụng"},
                         (dialog, which) -> {
-                            if (which == 0) chooseWallpaper();
-                            if (which == 1) { AppPreferences.setShowUrls(this, !AppPreferences.showUrls(this)); adapter.notifyDataSetChanged(); }
-                            if (which == 2) { AppPreferences.setCompactRows(this, !AppPreferences.compactRows(this)); adapter.notifyDataSetChanged(); }
-                            if (which == 3) AppPreferences.setShowFps(this, !AppPreferences.showFps(this));
-                            if (which == 4) AppPreferences.setShowClock(this, !AppPreferences.showClock(this));
-                            if (which == 5) { AppPreferences.clearRecent(this); if (activeSection == 2) filter(); toast("Đã xóa lịch sử"); }
+                            if (which == 0) chooseInterfaceMode();
+                            if (which == 1) chooseWallpaper();
+                            if (which == 2) { AppPreferences.setShowUrls(this, !AppPreferences.showUrls(this)); adapter.notifyDataSetChanged(); }
+                            if (which == 3) { AppPreferences.setCompactRows(this, !AppPreferences.compactRows(this)); adapter.notifyDataSetChanged(); }
+                            if (which == 4) AppPreferences.setShowFps(this, !AppPreferences.showFps(this));
+                            if (which == 5) AppPreferences.setShowClock(this, !AppPreferences.showClock(this));
+                            if (which == 6) { AppPreferences.clearRecent(this); if (activeSection == 2) filter(); toast("Đã xóa lịch sử"); }
+                            if (which == 7) showAbout();
                         }).setNegativeButton("Đóng", null).show();
     }
 
+    private void chooseInterfaceMode() {
+        String[] labels = {"Tự động theo thiết bị", "Mobile — cảm ứng", "TV — điều khiển D-pad"};
+        String[] values = {"auto", "mobile", "tv"};
+        new AlertDialog.Builder(this).setTitle("Chọn giao diện")
+                .setSingleChoiceItems(labels, java.util.Arrays.asList(values).indexOf(AppPreferences.interfaceMode(this)),
+                        (dialog, which) -> {
+                            AppPreferences.setInterfaceMode(this, values[which]);
+                            dialog.dismiss(); recreate();
+                        }).setNegativeButton("Đóng", null).show();
+    }
+
+    private void applyInterfaceMode(ListView list) {
+        boolean tv = AppPreferences.isTvInterface(this);
+        list.setDividerHeight(dp(tv ? 9 : 5));
+        if (tv) findViewById(R.id.btnAllChannels).post(() -> findViewById(R.id.btnAllChannels).requestFocus());
+    }
+
+    private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
+
+    private void showPlaylistSources() {
+        List<PlaylistSourceStore.Source> values = PlaylistSourceStore.load(this);
+        String[] labels = new String[values.size()];
+        for (int i = 0; i < values.size(); i++) labels[i] = "▶  " + values.get(i).name;
+        AlertDialog.Builder dialog = new AlertDialog.Builder(this).setTitle("Các link IPTV đã lưu")
+                .setItems(labels, (ignored, which) -> {
+                    inputUrl.setText(values.get(which).url);
+                    setImportExpanded(true);
+                    loadFromUrl();
+                }).setPositiveButton("Thêm link", (ignored, which) -> showAddPlaylistSource())
+                .setNegativeButton("Đóng", null);
+        if (!values.isEmpty()) dialog.setNeutralButton("Xóa link", (ignored, which) -> showDeletePlaylistSource());
+        dialog.setMessage(values.isEmpty() ? "Chưa có link. Chọn Thêm link để lưu nguồn M3U đầu tiên." : null).show();
+    }
+
+    private void showAddPlaylistSource() {
+        LinearLayout form = new LinearLayout(this);
+        form.setOrientation(LinearLayout.VERTICAL); form.setPadding(dp(24), dp(4), dp(24), 0);
+        EditText name = new EditText(this); name.setHint("Tên nguồn, ví dụ: Thể thao"); name.setSingleLine(true);
+        EditText link = new EditText(this); link.setHint("https://.../playlist.m3u"); link.setSingleLine(true);
+        link.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_URI);
+        String current = inputUrl.getText().toString().trim();
+        if (current.startsWith("http://") || current.startsWith("https://")) link.setText(current);
+        form.addView(name); form.addView(link);
+        new AlertDialog.Builder(this).setTitle("Thêm link IPTV").setView(form)
+                .setPositiveButton("Lưu và mở", (dialog, which) -> {
+                    try {
+                        PlaylistSourceStore.add(this, name.getText().toString(), link.getText().toString());
+                        inputUrl.setText(link.getText().toString().trim()); setImportExpanded(true); loadFromUrl();
+                    } catch (Exception error) { toast(error.getMessage()); }
+                }).setNeutralButton("Chỉ lưu", (dialog, which) -> {
+                    try { PlaylistSourceStore.add(this, name.getText().toString(), link.getText().toString()); toast("Đã lưu link"); }
+                    catch (Exception error) { toast(error.getMessage()); }
+                }).setNegativeButton("Đóng", null).show();
+    }
+
+    private void showDeletePlaylistSource() {
+        List<PlaylistSourceStore.Source> values = PlaylistSourceStore.load(this);
+        String[] labels = new String[values.size()];
+        for (int i = 0; i < values.size(); i++) labels[i] = values.get(i).name;
+        new AlertDialog.Builder(this).setTitle("Chọn link cần xóa").setItems(labels, (dialog, which) -> {
+            try { PlaylistSourceStore.remove(this, which); toast("Đã xóa link"); }
+            catch (Exception error) { toast("Không xóa được link"); }
+        }).setNegativeButton("Đóng", null).show();
+    }
+
     private void showAbout() {
-        new AlertDialog.Builder(this).setTitle("IPTV Player 1.5")
+        new AlertDialog.Builder(this).setTitle("IPTV Player 1.6")
                 .setMessage("Giao diện thư viện kênh gồm Tất cả, Yêu thích và Gần đây; nhấn giữ kênh để mở menu.\n\n"
                         + "HLS, DASH, SmoothStreaming, RTSP, HTTP/HTTPS, RTMP và UDP MPEG-TS. Full HD, 2K và 4K phụ thuộc nguồn, codec và thiết bị.\n\n"
                         + "Widevine và ClearKey chỉ dùng cấu hình/giấy phép hợp lệ của nguồn. Playlist và tùy chọn lưu riêng trên thiết bị; không quảng cáo hay theo dõi.")

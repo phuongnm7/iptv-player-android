@@ -178,11 +178,21 @@ def run_checks():
     adb("logcat", "-c")
     launch()
     check("Application launches")
+    tap("btnWallpaper")
+    tap(text="Giao diện: Tự động")
+    tap(text="TV — điều khiển D-pad")
+    wait_for(lambda root: (lambda n: n is not None and n.get("focused") == "true")(
+        find(root, "btnAllChannels")), "TV mode did not place D-pad focus on the channel tab")
+    check("TV interface exposes a visible D-pad focus target")
     enter("inputUrl", BASE + "/playlist.m3u")
     tap("btnLoadUrl")
     summary("2/2 kênh", "2 đã chọn", "1 trùng", "1 thiếu/sai")
     screenshot("playlist-portrait")
     check("URL import resolves relative channels, removes duplicate and counts missing URL")
+    tap("btnPlaylists")
+    wait_for(lambda root: find(root, text="▶  127.0.0.1"), "Imported URL was not saved in the source chooser")
+    check("Multiple-link source chooser contains the imported playlist")
+    adb("shell", "input", "keyevent", "KEYCODE_BACK")
 
     enter("inputSearch", "Bravo")
     summary("1/2 kênh", "2 đã chọn")
@@ -196,6 +206,7 @@ def run_checks():
     check("Group filtering")
 
     tap_node(wait_for(lambda root: find(root, "txtName", "Alpha"), "Missing Alpha"), long_press=True)
+    tap(text="Xem URL nguồn đầy đủ")
     wait_for(lambda root: find(root, text=BASE + "/sample.m3u8"), "Full source URL not displayed")
     check("Full channel URL is visible in source dialog")
     adb("shell", "input", "keyevent", "KEYCODE_BACK")
@@ -272,7 +283,7 @@ def main():
             fixtures(directory)
             server = http.server.ThreadingHTTPServer(("127.0.0.1", 8765), functools.partial(Handler, directory=str(directory)))
             threading.Thread(target=server.serve_forever, daemon=True).start()
-            adb("install", "-r", sys.argv[1] if len(sys.argv) > 1 else "dist/IPTV-Player-1.5.apk", timeout=120)
+            adb("install", "-r", sys.argv[1] if len(sys.argv) > 1 else "dist/IPTV-Player-1.6.apk", timeout=120)
             adb("reverse", "tcp:8765", "tcp:8765")
             try:
                 run_checks()

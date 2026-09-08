@@ -58,7 +58,7 @@ public final class ChannelAdapter extends BaseAdapter {
             holder.favorite.setText(favorite ? "★" : "☆");
             listener.onFavoriteChanged(channel, favorite);
         });
-        int vertical = dp(AppPreferences.compactRows(context) ? 3 : 8);
+        int vertical = dp(AppPreferences.isTvInterface(context) ? 10 : (AppPreferences.compactRows(context) ? 3 : 8));
         convertView.setPadding(0, vertical, 0, vertical);
         holder.keep.setOnCheckedChangeListener(null);
         holder.keep.setChecked(channel.selected());

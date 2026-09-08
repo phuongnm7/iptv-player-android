@@ -2,6 +2,8 @@ package vn.phuong.iptvplayer;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.app.UiModeManager;
+import android.content.res.Configuration;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
@@ -74,4 +76,13 @@ final class AppPreferences {
     static void setShowFps(Context context, boolean value) { prefs(context).edit().putBoolean("show_fps", value).apply(); }
     static boolean showClock(Context context) { return prefs(context).getBoolean("show_clock", true); }
     static void setShowClock(Context context, boolean value) { prefs(context).edit().putBoolean("show_clock", value).apply(); }
+    static String interfaceMode(Context context) { return prefs(context).getString("interface_mode", "auto"); }
+    static void setInterfaceMode(Context context, String value) { prefs(context).edit().putString("interface_mode", value).apply(); }
+    static boolean isTvInterface(Context context) {
+        String value = interfaceMode(context);
+        if ("tv".equals(value)) return true;
+        if ("mobile".equals(value)) return false;
+        UiModeManager manager = (UiModeManager) context.getSystemService(Context.UI_MODE_SERVICE);
+        return manager != null && manager.getCurrentModeType() == Configuration.UI_MODE_TYPE_TELEVISION;
+    }
 }

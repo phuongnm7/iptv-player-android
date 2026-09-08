@@ -154,7 +154,7 @@ public final class PlayerActivity extends Activity {
                 String value = bundle.getString(key);
                 if (value != null) headers.put(key, value);
             }
-            String ua = headers.containsKey("User-Agent") ? headers.get("User-Agent") : "IPTV-Player/1.5 Android";
+            String ua = headers.containsKey("User-Agent") ? headers.get("User-Agent") : "IPTV-Player/1.6 Android";
             DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory()
                     .setUserAgent(ua).setConnectTimeoutMs(15000).setReadTimeoutMs(20000)
                     .setDefaultRequestProperties(headers);
