@@ -250,13 +250,18 @@ def run_checks():
     summary("2/2 kênh", "1 đã chọn", "1 trùng", "1 thiếu/sai")
     check("Playlist and selected channels survive process restart")
 
-    root = hierarchy()
-    if find(root, "btnExport") is None:
+    for _ in range(3):
+        root = hierarchy()
+        if find(root, "btnExport") is not None:
+            break
         row = next(n for n in root.iter("node")
                    if n.get("class") == "android.widget.HorizontalScrollView")
         left, top, right, bottom = bounds(row)
         y = str((top + bottom) // 2)
-        adb("shell", "input", "swipe", str(right - 10), y, str(left + 10), y, "400")
+        # Stay well inside the row: swiping from the edge triggers Android Back.
+        width = right - left
+        adb("shell", "input", "swipe", str(left + width * 3 // 4), y,
+            str(left + width // 4), y, "400")
     tap("btnExport")
     def save_button(root):
         for node in root.iter("node"):

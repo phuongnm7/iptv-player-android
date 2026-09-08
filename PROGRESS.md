@@ -142,3 +142,11 @@ Cập nhật: 2026-09-08. Lưu file này trong GitHub riêng tư để nối l�
 - Sửa script đợi focused=true trên đúng resource, xác nhận nội dung sau nhập, dùng bàn phím cứng để tránh IME thay đổi tọa độ; cuộn hàng nút để thấy Export trên màn hình 360dp. Giữ toàn bộ assertions.
 
 - Rà soát trước khi hoàn tất Build 6: bỏ Back sau nhập liệu vì bàn phím cứng đã tắt IME; Back sẽ có thể thoát Activity. Build 6 được thay bằng lần chạy sau của bản sửa này.
+
+### Build 7 — focus đã đạt, sửa cử chỉ cuộn
+
+- Commit ceac85066a38251b6347a835f0149a84f782f713; run https://github.com/phuongnm7/iptv-player-android/actions/runs/34215388133.
+- Compile/test/lint/APK đạt. Smoke 8 checks đạt, gồm search/select; dừng ở btnExport.
+- Đã xem failure.png và result.json: máy ảo quay về launcher sau vuốt sát mép phải; Android coi là Back. Sửa vuốt từ 75% tới 25% chiều rộng hàng nút, tối đa 3 lần, kiểm tra nút có mặt trước khi tap.
+- Kiểm tra playlist người dùng cục bộ bằng M3uParser.java/Channel.java thật: 256 kênh, 14 nhóm, duplicateCount=1, missingUrlCount=5, 23 kênh có header, needsDrm=0. Export/import giữ nguyên số lượng và identityKey từng kênh. Không lưu URL/nội dung/token playlist vào repo.
+- CoreCheck cục bộ: 28/28 assertions. Probe mạng 6 host đại diện: 4 trả dữ liệu HLS/TS, 1 HTML, 1 lỗi kết nối. Không coi đây là bằng chứng giải mã trên thiết bị.
