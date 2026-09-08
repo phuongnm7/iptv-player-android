@@ -24,6 +24,17 @@ CHECKS = []
 REQUESTS = []
 
 
+class EmulatorSystemError(RuntimeError):
+    """The Android system stopped responding; this is not a decoder result."""
+
+
+def assert_responsive_system(root):
+    for node in root.iter("node"):
+        if (node.get("resource-id") == "android:id/alertTitle"
+                and node.get("text") == "Process system isn't responding"):
+            raise EmulatorSystemError("Android system ANR: Process system isn't responding")
+
+
 def command(*args, timeout=40, binary=False):
     result = subprocess.run(args, capture_output=True, timeout=timeout, check=True)
     return result.stdout if binary else result.stdout.decode("utf-8", errors="replace")
@@ -55,6 +66,7 @@ def wait_for(predicate, description, timeout=40):
     while time.monotonic() < deadline:
         try:
             root = hierarchy()
+            assert_responsive_system(root)
             value = predicate(root)
             if isinstance(value, ET.Element) or value:
                 return value
@@ -277,7 +289,8 @@ def main():
             finally:
                 server.shutdown()
                 adb("reverse", "--remove", "tcp:8765")
-    except Exception:
+    except Exception as error:
+        result["failure_kind"] = "emulator_system" if isinstance(error, EmulatorSystemError) else "test_failure"
         result["error"] = traceback.format_exc()
         try:
             screenshot("failure")

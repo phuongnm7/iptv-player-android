@@ -2,7 +2,9 @@
 
 Cập nhật: 2026-09-08. Lưu file này trong GitHub riêng tư để nối lại dù phiên trò chuyện hoặc thư mục tạm mất.
 
-**Trạng thái bàn giao:** Đã tạo, tải về, kiểm tra checksum và lưu APK 1.1 từ Build 4. Compiler/test/lint, chữ ký và upload APK đều đạt. Theo yêu cầu làm nhanh, bàn giao APK trước khi smoke mở rộng chạy hết. Không coi toàn bộ workflow hoặc máy thật là đã kiểm tra thành công; mở run Build 4 bên dưới để lấy kết quả mới nhất.
+**Trạng thái tiếp tục 2026-09-08:** Đã đọc kết quả cuối Build 4: workflow failure ở smoke, 10 checks đạt, gồm xuất/nhập lại M3U. failure.xml và ảnh xác nhận Android hiện “Process system isn't responding” trong lúc video đã có hình; chưa kết luận lỗi decoder. Đang sửa cấu hình máy ảo và phân loại lỗi hệ thống; APK đã giao giữ nguyên.
+
+**Trạng thái bàn giao trước đó:** Đã tạo, tải về, kiểm tra checksum và lưu APK 1.1 từ Build 4. Compiler/test/lint, chữ ký và upload APK đều đạt. Theo yêu cầu làm nhanh, bàn giao APK trước khi smoke mở rộng chạy hết. Không coi toàn bộ workflow hoặc máy thật là đã kiểm tra thành công; mở run Build 4 bên dưới để lấy kết quả mới nhất.
 
 ## Mục tiêu và quyền đã được xác nhận
 
@@ -121,3 +123,13 @@ Cập nhật: 2026-09-08. Lưu file này trong GitHub riêng tư để nối l�
 - Các runner khác nhau có thể sinh debug keystore khác; trước khi gỡ bản cũ để cài bản có chữ ký khác, phải xuất playlist.
 - EPG toàn playlist, Xtream login, SRT/RTP URL/RTMPS, DRM và TV launcher chưa hỗ trợ.
 - Không coi việc biên dịch thành công là chứng minh phát 4K/mọi luồng. Không lưu secret trong nhật ký hoặc source.
+
+## Phiên tiếp tục 2026-09-08 — kiểm tra kết quả Build 4
+
+- Xác minh repository private; HEAD e6054675dcc08f165d90a3f1411b7ad10dcdd8d7, chỉ thêm nhật ký sau d2a21c0.
+- Đã tải và đối chiếu SHA-256 artifact smoke 10048583658 và reports 10048584164 với digest GitHub; đều khớp.
+- result.json: passed=false, 10 checks đạt; export một kênh đã chọn và import lại bằng Android file picker đều đạt.
+- failure.xml: android:id/alertTitle = Process system isn't responding, có aerr_wait/aerr_close. Đã xem failure.png: video màu tổng hợp xuất hiện phía sau hộp ANR hệ thống. HLS/DASH chưa chạy tới.
+- Báo cáo unit test: 14 tests, 0 failures, 0 ignored. Lint: 0 errors, 24 warnings.
+- Sửa riêng hạ tầng kiểm thử: máy ảo 720x1280/density 320, RAM 2048M, heap 256M, tắt camera; giữ Android 15 và toàn bộ checks. Phát hiện ANR hệ thống báo failure_kind=emulator_system và vẫn fail, không đóng hộp thoại để che lỗi.
+- Không sửa mã ứng dụng/version/APK đã giao. Cần đọc kết quả lần chạy mới trước khi công bố hoàn tất smoke; máy thật/nguồn của người dùng vẫn chưa được kiểm thử.
