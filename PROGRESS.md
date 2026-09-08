@@ -8,6 +8,9 @@
 - Yêu thích và lịch sử được lưu riêng trên thiết bị bằng mã băm SHA-256 của định danh kênh, không lưu thêm URL/token ở kho tùy chọn.
 - Gom tùy chọn hình nền, hiện URL, mật độ hàng, FPS, đồng hồ và xóa lịch sử vào một menu. Trình phát thêm lựa chọn Fit/Zoom/Fill và đồng hồ tùy chọn; giữ nguyên luồng DRM 1.4 đã hoạt động.
 - Tăng versionCode 6, versionName 1.5.0. Việc tiếp theo: compile/test/lint, kiểm tra giao diện/smoke và bàn giao APK 1.5; repo tiếp tục private.
+- Mã 1.5 đã commit tại `c6baa1dd4d8cb73ee142f276ef0de398018d0248`. Build run `34287894390`, job `102267591874`: compiler, 22 JUnit tests, lint, đóng gói, kiểm tra chữ ký và upload APK đều đạt; smoke Android 15 còn chạy độc lập lúc bàn giao.
+- Artifact `IPTV-Player-1.5-APK`: ID `10080288540`, archive SHA-256 `1a91c5050fa21d6d63cd549fc9512bbc0d9d6babdac112da6fb1a44a1e2e4a90`.
+- APK 1.5 đã tải, kiểm tra ZIP và `sha256sum -c` đạt: 6.677.638 bytes, SHA-256 `fe28cef7341d82cfde0de8121e2a4e34b7194fbd0eefdf979e8d697f92bce50b`; đã lưu bản bàn giao.
 
 ## Tóm tắt bàn giao hiện tại — 2026-09-08 15:12 UTC
 
