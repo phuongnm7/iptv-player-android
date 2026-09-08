@@ -135,8 +135,8 @@ public final class PlayerActivity extends Activity {
             String inferred = mime.isEmpty() ? inferMime(url) : mime;
             if (inferred != null && !inferred.isEmpty()) builder.setMimeType(inferred);
             DrmSpec drm = DrmSpec.create(drmSystem, drmLicense);
+            findViewById(R.id.btnDrm).setVisibility(drm.hasDrm() ? View.VISIBLE : View.GONE);
             DrmPlayback.configure(drm, builder, mediaFactory);
-            findViewById(R.id.btnDrm).setVisibility(drm.hasDrm() || !options.isEmpty() ? View.VISIBLE : View.GONE);
             player = new ExoPlayer.Builder(this, new DefaultRenderersFactory(this).setEnableDecoderFallback(true))
                     .setMediaSourceFactory(mediaFactory).build();
             player.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA)
@@ -290,8 +290,6 @@ public final class PlayerActivity extends Activity {
         out.putBoolean("playing", resumePlayback);
         out.putInt("quality", quality);
         out.putString("mime", mime);
-        out.putString("drm_system", drmSystem);
-        out.putString("drm_license", drmLicense);
         super.onSaveInstanceState(out);
     }
 
