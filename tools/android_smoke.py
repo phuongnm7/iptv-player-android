@@ -97,12 +97,24 @@ def tap(resource=None, text=None):
 def enter(resource, value):
     node = wait_for(lambda root: find(root, resource), "Missing input " + resource)
     tap_node(node)
+    def focused(root):
+        field = find(root, resource)
+        if field is not None and field.get("focused") == "true":
+            return field
+        if field is not None:
+            tap_node(field)
+        return False
+    node = wait_for(focused, "Input did not receive focus: " + resource)
     adb("shell", "input", "keyevent", "KEYCODE_MOVE_END")
     count = len(node.get("text", ""))
     if count:
         adb("shell", "input", "keyevent", *(["KEYCODE_DEL"] * count))
     if value:
         adb("shell", "input", "text", value)
+    if value:
+        wait_for(lambda root: find(root, resource) is not None and
+                 find(root, resource).get("text") == value,
+                 "Input text did not match: " + resource)
     adb("shell", "input", "keyevent", "KEYCODE_BACK")
 
 
@@ -182,7 +194,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 
 def run_checks():
-    adb("shell", "settings", "put", "secure", "show_ime_with_hard_keyboard", "1")
+    adb("shell", "settings", "put", "secure", "show_ime_with_hard_keyboard", "0")
     adb("shell", "settings", "put", "system", "accelerometer_rotation", "0")
     adb("shell", "settings", "put", "system", "user_rotation", "0")
     adb("logcat", "-c")
@@ -237,6 +249,13 @@ def run_checks():
     summary("2/2 kênh", "1 đã chọn", "1 trùng", "1 thiếu/sai")
     check("Playlist and selected channels survive process restart")
 
+    root = hierarchy()
+    if find(root, "btnExport") is None:
+        row = next(n for n in root.iter("node")
+                   if n.get("class") == "android.widget.HorizontalScrollView")
+        left, top, right, bottom = bounds(row)
+        y = str((top + bottom) // 2)
+        adb("shell", "input", "swipe", str(right - 10), y, str(left + 10), y, "400")
     tap("btnExport")
     def save_button(root):
         for node in root.iter("node"):

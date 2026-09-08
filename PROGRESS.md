@@ -133,3 +133,10 @@ Cập nhật: 2026-09-08. Lưu file này trong GitHub riêng tư để nối l�
 - Báo cáo unit test: 14 tests, 0 failures, 0 ignored. Lint: 0 errors, 24 warnings.
 - Sửa riêng hạ tầng kiểm thử: máy ảo 720x1280/density 320, RAM 2048M, heap 256M, tắt camera; giữ Android 15 và toàn bộ checks. Phát hiện ANR hệ thống báo failure_kind=emulator_system và vẫn fail, không đóng hộp thoại để che lỗi.
 - Không sửa mã ứng dụng/version/APK đã giao. Cần đọc kết quả lần chạy mới trước khi công bố hoàn tất smoke; máy thật/nguồn của người dùng vẫn chưa được kiểm thử.
+
+### Build 5 — phát hiện race focus trong script
+
+- Commit efad25bf087f5d0c85753c672e55c043c8c6b513; run https://github.com/phuongnm7/iptv-player-android/actions/runs/34214394771.
+- Compile/test/lint và APK đạt; smoke đạt 2 checks rồi dừng ở tìm kiếm.
+- Đã đọc ảnh/XML: inputSearch vẫn là hint, inputUrl thành http://1Bravo. Script gửi phím trước khi focus đúng ô sau thay đổi bố cục do IME; không phải bằng chứng lỗi bộ lọc.
+- Sửa script đợi focused=true trên đúng resource, xác nhận nội dung sau nhập, dùng bàn phím cứng để tránh IME thay đổi tọa độ; cuộn hàng nút để thấy Export trên màn hình 360dp. Giữ toàn bộ assertions.

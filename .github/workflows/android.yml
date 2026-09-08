@@ -83,6 +83,7 @@ jobs:
           heap-size: 256M
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none -skin 720x1280
           emulator-boot-timeout: 420
+          enable-hw-keyboard: true
           disable-animations: true
           disable-spellchecker: true
           script: |
