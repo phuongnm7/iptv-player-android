@@ -40,6 +40,17 @@ public class DrmAndFpsTest {
         assertEquals("unknown", DrmSpec.normalizeSystem("made-up-drm"));
     }
 
+    @Test public void clearKeyUrlAndGetJsonAreRecognized() throws Exception {
+        DrmSpec remote = DrmSpec.create("clearkey", "https://license.test/key.php?id=1");
+        assertTrue(remote.remoteClearKey());
+        assertFalse(remote.localClearKey());
+        String response = new String(DrmPlayback.clearKeyResponse(
+                "{\"kid\":\"00112233445566778899aabbccddeeff\",\"key\":\"ffeeddccbbaa99887766554433221100\"}"),
+                java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue(response.contains("\"keys\""));
+        assertTrue(response.contains("\"type\":\"temporary\""));
+    }
+
     @Test public void rejectsUnsafeLicenseHeadersAndCustomTemplates() {
         assertFalse(DrmSpec.create("widevine", "https://license.test|Bad%0AName=x").problem.isEmpty());
         assertFalse(DrmSpec.create("widevine", "https://license.test||CUSTOM{SSM}|").problem.isEmpty());

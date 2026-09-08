@@ -34,6 +34,12 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.ArrayList;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @UnstableApi
 public final class PlayerActivity extends Activity {
@@ -53,6 +59,9 @@ public final class PlayerActivity extends Activity {
     private WifiManager.MulticastLock multicastLock;
     private DecoderCounters videoCounters;
     private final FpsMeter fpsMeter = new FpsMeter();
+    private final ExecutorService drmIo = Executors.newSingleThreadExecutor();
+    private boolean resolvingClearKey;
+    private boolean activityStarted;
     private final Handler fpsHandler = new Handler(Looper.getMainLooper());
     private final Runnable fpsUpdate = new Runnable() {
         @Override public void run() {
@@ -107,6 +116,7 @@ public final class PlayerActivity extends Activity {
 
     @Override protected void onStart() {
         super.onStart();
+        activityStarted = true;
         fpsHandler.post(fpsUpdate);
         startPlayer();
     }
@@ -125,7 +135,7 @@ public final class PlayerActivity extends Activity {
                 String value = bundle.getString(key);
                 if (value != null) headers.put(key, value);
             }
-            String ua = headers.containsKey("User-Agent") ? headers.get("User-Agent") : "IPTV-Player/1.3 Android";
+            String ua = headers.containsKey("User-Agent") ? headers.get("User-Agent") : "IPTV-Player/1.4 Android";
             DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory()
                     .setUserAgent(ua).setConnectTimeoutMs(15000).setReadTimeoutMs(20000)
                     .setDefaultRequestProperties(headers);
@@ -136,6 +146,10 @@ public final class PlayerActivity extends Activity {
             if (inferred != null && !inferred.isEmpty()) builder.setMimeType(inferred);
             DrmSpec drm = DrmSpec.create(drmSystem, drmLicense);
             findViewById(R.id.btnDrm).setVisibility(drm.hasDrm() ? View.VISIBLE : View.GONE);
+            if (drm.remoteClearKey()) {
+                resolveRemoteClearKey(drm, headers);
+                return;
+            }
             DrmPlayback.configure(drm, builder, mediaFactory);
             player = new ExoPlayer.Builder(this, new DefaultRenderersFactory(this).setEnableDecoderFallback(true))
                     .setMediaSourceFactory(mediaFactory).build();
@@ -180,6 +194,54 @@ public final class PlayerActivity extends Activity {
             String message = error.getMessage();
             showError(message == null ? "Không mở được nguồn phát: " + error.getClass().getSimpleName() : message);
         }
+    }
+
+    private void resolveRemoteClearKey(DrmSpec drm, Map<String, String> streamHeaders) {
+        if (resolvingClearKey) return;
+        resolvingClearKey = true;
+        status.setText("Đang lấy giấy phép ClearKey…");
+        drmIo.execute(() -> {
+            HttpURLConnection connection = null;
+            try {
+                connection = (HttpURLConnection) new URL(drm.license).openConnection();
+                connection.setConnectTimeout(15000); connection.setReadTimeout(20000);
+                connection.setInstanceFollowRedirects(true); connection.setRequestMethod("GET");
+                for (Map.Entry<String, String> entry : drm.headers.entrySet())
+                    connection.setRequestProperty(entry.getKey(), entry.getValue());
+                String streamHost = Uri.parse(url).getHost(), licenseHost = Uri.parse(drm.license).getHost();
+                if (streamHost != null && streamHost.equalsIgnoreCase(licenseHost)) {
+                    for (String name : new String[]{"User-Agent", "Referer", "Origin", "Cookie"}) {
+                        String value = streamHeaders.get(name);
+                        if (value != null && !value.isEmpty() && !drm.headers.containsKey(name))
+                            connection.setRequestProperty(name, value);
+                    }
+                }
+                if (connection.getRequestProperty("User-Agent") == null)
+                    connection.setRequestProperty("User-Agent", "Dalvik/2.1.0");
+                int code = connection.getResponseCode();
+                if (code < 200 || code >= 300) throw new IllegalArgumentException("HTTP " + code);
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                try (InputStream in = connection.getInputStream()) {
+                    byte[] buffer = new byte[4096]; int count, total = 0;
+                    while ((count = in.read(buffer)) >= 0) {
+                        total += count; if (total > 65536) throw new IllegalArgumentException("phản hồi quá lớn");
+                        out.write(buffer, 0, count);
+                    }
+                }
+                String response = out.toString("UTF-8").trim();
+                DrmPlayback.clearKeyResponse(response);
+                runOnUiThread(() -> {
+                    resolvingClearKey = false;
+                    drmLicense = response;
+                    if (activityStarted && !isFinishing() && !isDestroyed()) startPlayer();
+                });
+            } catch (Exception error) {
+                runOnUiThread(() -> {
+                    resolvingClearKey = false;
+                    showError("Không lấy được giấy phép ClearKey bằng GET. Kiểm tra token hoặc quyền truy cập nguồn.");
+                });
+            } finally { if (connection != null) connection.disconnect(); }
+        });
     }
 
     private void chooseQuality() {
@@ -285,6 +347,7 @@ public final class PlayerActivity extends Activity {
     }
 
     @Override protected void onStop() {
+        activityStarted = false;
         fpsHandler.removeCallbacks(fpsUpdate);
         rememberPosition();
         releasePlayer();
@@ -301,6 +364,7 @@ public final class PlayerActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        drmIo.shutdownNow();
         releasePlayer();
         super.onDestroy();
     }

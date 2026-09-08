@@ -31,7 +31,7 @@ final class DrmPlayback {
             config.setLicenseUri(spec.license).setLicenseRequestHeaders(spec.headers);
             // Stream cookies are intentionally not forwarded to another license host.
             callback = new HttpMediaDrmCallback(spec.license, true, new DefaultHttpDataSource.Factory()
-                    .setUserAgent("IPTV-Player/1.3 Android").setConnectTimeoutMs(15000)
+                    .setUserAgent("IPTV-Player/1.4 Android").setConnectTimeoutMs(15000)
                     .setReadTimeoutMs(20000).setDefaultRequestProperties(spec.headers));
         }
         DefaultDrmSessionManager manager = new DefaultDrmSessionManager.Builder()
@@ -52,9 +52,13 @@ final class DrmPlayback {
                         JSONObject key = array.getJSONObject(i);
                         if (!key.optString("kty", "oct").equals("oct")) throw new IllegalArgumentException();
                         String kid = key.getString("kid"), value = key.getString("k");
-                        if (!kid.matches("[A-Za-z0-9_-]{22}={0,2}") || !value.matches("[A-Za-z0-9_-]{22}={0,2}")) throw new IllegalArgumentException();
-                        keys.put(jwk(Base64.decode(kid, Base64.URL_SAFE), Base64.decode(value, Base64.URL_SAFE)));
+                        keys.put(jwk(decodeKeyPart(kid), decodeKeyPart(value)));
                     }
+                } else if (input.has("kid") && input.has("key")) {
+                    keys.put(jwk(decodeKeyPart(input.getString("kid")), decodeKeyPart(input.getString("key"))));
+                } else if (input.has("data") && input.get("data") instanceof JSONObject) {
+                    JSONObject data = input.getJSONObject("data");
+                    keys.put(jwk(decodeKeyPart(data.getString("kid")), decodeKeyPart(data.getString("key"))));
                 } else {
                     Iterator<String> names = input.keys();
                     while (names.hasNext()) { String kid = names.next(); keys.put(jwk(hex(kid), hex(input.getString(kid)))); }
@@ -84,5 +88,12 @@ final class DrmPlayback {
         byte[] bytes = new byte[16];
         for (int i = 0; i < bytes.length; i++) bytes[i] = (byte) Integer.parseInt(clean.substring(i * 2, i * 2 + 2), 16);
         return bytes;
+    }
+
+    private static byte[] decodeKeyPart(String value) {
+        String clean = value == null ? "" : value.trim();
+        if (clean.replace("-", "").matches("(?i)[0-9a-f]{32}")) return hex(clean);
+        try { return Base64.decode(clean, Base64.URL_SAFE); }
+        catch (IllegalArgumentException error) { throw new IllegalArgumentException(); }
     }
 }

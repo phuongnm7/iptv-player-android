@@ -1,12 +1,12 @@
 # iptv-player-android
 
-IPTV Player 1.3 — ứng dụng Android tiếng Việt cho playlist của bạn, không quảng cáo, không phân tích hành vi, không máy chủ trung gian. URL động như `.php` được nhận diện theo `inputstream.adaptive.manifest_type` trong M3U để không đọc nhầm HLS/DASH thành container video thông thường.
+IPTV Player 1.4 — ứng dụng Android tiếng Việt cho playlist của bạn, không quảng cáo, không phân tích hành vi, không máy chủ trung gian. URL động như `.php` được nhận diện theo metadata; URL ClearKey do playlist cung cấp được gọi bằng GET rồi chuẩn hóa trong bộ nhớ cho Media3.
 
 Mốc công việc, lỗi đã sửa, kết quả xác minh và bước tiếp theo: [PROGRESS.md](PROGRESS.md). Đọc file này trước khi tiếp tục ở một phiên khác; không chỉ dựa vào lịch sử trò chuyện hay thư mục tạm.
 
 ## Nhận APK
 
-Trong GitHub, mở **Actions → Build private Android APK**, chọn lần chạy thành công, tải **IPTV-Player-1.3-APK** trong Artifacts, giải nén và mở **IPTV-Player-1.3.apk** trên Android 6.0 trở lên.
+Trong GitHub, mở **Actions → Build private Android APK**, chọn lần chạy thành công, tải **IPTV-Player-1.4-APK** trong Artifacts, giải nén và mở **IPTV-Player-1.4.apk** trên Android 6.0 trở lên.
 
 APK dùng chữ ký debug dành cho cài thử cá nhân; không phải bản phát hành Google Play. Không tắt Play Protect. Nếu Android yêu cầu, chỉ cho phép cài APK từ ứng dụng tải tệp mà bạn tin cậy rồi tắt lại quyền đó sau khi cài.
 

@@ -1,12 +1,21 @@
 # Nhật ký tiếp tục dự án — IPTV Player Android
 
+## Phiên bản 1.4 — sửa lấy giấy phép ClearKey từ URL động
+
+- Ảnh máy thật của bản 1.3 báo `ERROR_CODE_DRM_LICENSE_ACQUISITION_FAILED`; nhận diện DASH đã hoạt động nhưng giấy phép chưa lấy được.
+- Đã phân tích APK tham chiếu do người dùng cung cấp (SHA-256 `701a66c7ff6e901313bf6c1260003f7ffe3ddb2fe05028610c2b82e33f70398d`): app này có trình IPTV tùy biến, bộ phát hiện luồng và các thư viện phát bổ sung. Không sao chép mã hay trích xuất khóa từ APK.
+- Nguyên nhân trong app: Media3 mặc định gửi challenge bằng POST tới mọi URL giấy phép, trong khi playlist này khai báo ClearKey qua endpoint HTTP động trả KID/KEY bằng GET.
+- Bản sửa gọi GET ở luồng nền, giới hạn phản hồi 64 KiB, chỉ chuyển tiếp User-Agent/Referer/Origin/Cookie khi máy chủ luồng và giấy phép cùng host, rồi chuẩn hóa JSON/JWK hoặc KID:KEY cho Media3.
+- Dữ liệu ClearKey chỉ giữ trong bộ nhớ của màn hình phát, không ghi log, không lưu vào playlist hay trạng thái ứng dụng; không tự tìm hoặc vượt DRM.
+- Thêm kiểm thử URL ClearKey từ xa và JSON GET; tăng versionCode 5, versionName 1.4.0. Việc tiếp theo: build/test/lint, tải và bàn giao APK 1.4; repo tiếp tục để private.
+
 ## Phiên bản 1.3 — sửa URL `.php` báo container không hỗ trợ
 
 - Ảnh máy thật báo `ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED` ở URL `tv360.php?...`.
 - Nguyên nhân trong app: Media3 không thể suy ra HLS/DASH từ đuôi `.php`; PlayerActivity chưa dùng `#KODIPROP:inputstream.adaptive.manifest_type` mà parser đã giữ lại.
 - Thêm `StreamSpec`: ưu tiên chỉ dẫn `manifest_type=hls/mpd/dash/ism`, sau đó mới suy từ đuôi hoặc query URL.
 - Thêm kiểm thử cho URL PHP không đuôi có manifest DASH/HLS; tăng versionCode 4, versionName 1.3.0.
-- Mã sửa đã ở commit `59913ffd05d502335a04db00903bd75db99d944d`; đang kích hoạt build/test/lint và APK 1.3; repo tiếp tục để private.
+- Việc tiếp theo: build/test/lint, chạy smoke và bàn giao APK 1.3; repo tiếp tục để private.
 - Build cuối dùng commit `aa17f50c4cd948cfb539c3bff0c6081240e54753`: run 34238328861, job 102102081333. Compile, 20 JUnit tests, lint, đóng gói, chữ ký và upload APK đã đạt.
 - Artifact `IPTV-Player-1.3-APK`: ID 10061032953, archive SHA-256 `7bed40d9dcb6431262d7b961d9f07cb811179b31b3aa039701a86d1768d40fe7`.
 - APK đã tải và `sha256sum -c` đạt: 6.658.989 bytes, SHA-256 `99bef991708137b3fdb527a7797de2f2a354192d23d34c4900a236e24ecd0e01`; đã lưu bản bàn giao. Smoke Android 15 vẫn chạy độc lập.

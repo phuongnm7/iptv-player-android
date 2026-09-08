@@ -73,6 +73,7 @@ public final class DrmSpec {
 
     public boolean hasDrm() { return !system.isEmpty() || !license.isEmpty(); }
     public boolean localClearKey() { return system.equals("clearkey") && !isHttp(license); }
+    public boolean remoteClearKey() { return system.equals("clearkey") && isHttp(license); }
     public UUID uuid() {
         if (system.equals("widevine")) return UUID.fromString("edef8ba9-79d6-4ace-a3c8-27dcd51d21ed");
         if (system.equals("clearkey")) return UUID.fromString("e2719d58-a985-b3c9-781a-b030af78d30e");
