@@ -1,1 +1,65 @@
 # iptv-player-android
+
+IPTV Player 1.1 — ứng dụng Android tiếng Việt cho playlist của bạn, không quảng cáo, không phân tích hành vi, không máy chủ trung gian.
+
+## Nhận APK
+
+Trong GitHub, mở **Actions → Build private Android APK**, chọn lần chạy thành công, tải **IPTV-Player-1.1-APK** trong Artifacts, giải nén và mở **IPTV-Player-1.1.apk** trên Android 6.0 trở lên.
+
+APK dùng chữ ký debug dành cho cài thử cá nhân; không phải bản phát hành Google Play. Không tắt Play Protect. Nếu Android yêu cầu, chỉ cho phép cài APK từ ứng dụng tải tệp mà bạn tin cậy rồi tắt lại quyền đó sau khi cài.
+
+Mỗi máy build có thể sinh khóa debug khác nhau. Nếu Android báo chữ ký không khớp ở lần cài sau, hãy xuất playlist trước khi gỡ bản cũ (gỡ ứng dụng sẽ xóa dữ liệu cục bộ). Bản phát hành cập nhật lâu dài cần khóa ký ổn định lưu trong GitHub Secrets, không đưa khóa vào mã nguồn.
+
+Workflow chỉ chạy khi kho riêng tư; không tạo GitHub Pages hoặc release công khai. APK artifact giữ 30 ngày, báo cáo test giữ 14 ngày. Việc lưu bản APK riêng bên ngoài GitHub không phụ thuộc thời hạn artifact.
+
+## Sử dụng
+
+- Dán URL playlist rồi chọn **Tải URL**, hoặc **Mở tệp** M3U UTF-8 (tối đa 8 MB).
+- Với link luồng phát trực tiếp, dán vào cùng ô rồi bấm **Phát URL trực tiếp**.
+- Tìm tên/nhóm/URL, lọc nhóm. Chạm kênh để phát; nhấn giữ kênh để xem/copy URL đầy đủ.
+- Bật/tắt ô chọn, dùng **Chọn đang lọc** hoặc **Bỏ chọn đang lọc**, rồi **Xuất M3U sạch**.
+- Mục trùng đúng URL, header và thuộc tính phát bị bỏ; tên đường dẫn, query token và giá trị header giữ nguyên chữ hoa/thường. Mục thiếu/sai URL được đếm và bỏ.
+- Header HTTP (User-Agent, Referer, Origin, Cookie…), EXTINF gốc và các tùy chọn kênh được giữ khi xuất. Thuộc tính EPG toàn playlist chưa được quản lý trong bản này.
+- Trong trình phát: **Định dạng** dùng khi máy chủ không có đuôi .m3u8/.mpd; **Chất lượng** đặt trần chất lượng; bộ điều khiển Media3 có chọn âm thanh/phụ đề nếu luồng cung cấp.
+- Playlist và lựa chọn lưu trong vùng riêng của ứng dụng trên thiết bị. Android backup và chuyển dữ liệu hệ thống bị loại trừ. Không có playlist hay thông tin đăng nhập cá nhân được đóng gói vào APK.
+
+## Hỗ trợ và giới hạn
+
+| Nguồn | Mức hỗ trợ |
+| --- | --- |
+| HLS / M3U8, DASH / MPD, SmoothStreaming | Media3, tùy container/codec |
+| HTTP / HTTPS (MPEG-TS, MP4, MKV…) | Tùy định dạng Media3 và decoder thiết bị |
+| RTSP | RTP qua TCP, các codec RTSP Media3 hỗ trợ |
+| RTMP | Qua module RTMP Media3; RTMPS chưa bật |
+| UDP MPEG-TS | Cần mạng cho phép unicast/multicast; có Wi-Fi multicast lock |
+| Full HD / QHD 1440p / 4K UHD 2160p | Cần nguồn có độ phân giải đó, băng thông và decoder phù hợp |
+| SRT, RTP URL trần, AceStream/SopCast, giao thức riêng | Chưa hỗ trợ |
+| DRM / license riêng | Chưa cấu hình; nhận diện tùy chọn DRM để thông báo, giữ nguyên khi xuất |
+| EPG, catch-up, tài khoản Xtream, Android TV launcher | Chưa có trong bản tối thiểu này |
+
+Ứng dụng không đảm bảo mọi giao thức/codec và không nâng một nguồn HD thành 4K. HTTPS không tự chuyển xuống HTTP; nguồn HTTP trực tiếp được cho phép vì IPTV cũ thường cần. Đừng chia sẻ URL có token hoặc mật khẩu.
+
+## Build và kiểm thử
+
+Yêu cầu JDK 17, Gradle 8.13, Android SDK 36, Build Tools 36.0.0. Android Gradle Plugin 8.13.2, Media3 1.11.0. Phiên bản được cố định; GitHub Actions được ghim theo commit.
+
+Lệnh build khi các công cụ đã có trong PATH:
+
+    gradle --no-daemon testDebugUnitTest lintDebug assembleDebug
+
+Dự án chưa kèm Gradle wrapper JAR. GitHub Actions tự cài Gradle và các gói SDK nên không cần Android Studio trên máy của bạn. Khi mở trong Android Studio, cấu hình bản Gradle 8.13 đã cài hoặc tạo wrapper bằng Gradle; không chỉ tải lại dự án rồi kỳ vọng wrapper tự xuất hiện.
+
+Chạy kiểm tra core không cần Android SDK:
+
+    javac -d /tmp/iptv-core app/src/main/java/vn/phuong/iptvplayer/Channel.java app/src/main/java/vn/phuong/iptvplayer/M3uParser.java tools/CoreCheck.java
+    java -cp /tmp/iptv-core CoreCheck
+
+CoreCheck có 24 kiểm tra; bộ JUnit bao phủ parse/export, BOM, CRLF, URL tương đối, HLS, case-sensitive token, header và metadata DRM. CI còn chạy lint, build APK và xác minh chữ ký APK. Các bước này không chứng minh khả năng phát 4K hoặc truy cập một nhà cung cấp cụ thể trên điện thoại thật.
+
+## Nguồn kỹ thuật
+
+- AndroidX Media3: https://developer.android.com/media/media3/exoplayer/supported-formats
+- Media3 release: https://developer.android.com/jetpack/androidx/releases/media3
+- Media3 RTSP: https://developer.android.com/media/media3/exoplayer/rtsp
+
+Chỉ dùng playlist và nội dung bạn có quyền truy cập.
