@@ -1,10 +1,26 @@
 package vn.phuong.iptvplayer;
 
+import androidx.media3.common.MimeTypes;
 import java.util.Arrays;
+import java.util.Collections;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class DrmAndFpsTest {
+    @Test public void streamMimeUsesKodiManifestHintForExtensionlessPhpUrl() {
+        assertEquals(MimeTypes.APPLICATION_MPD, StreamSpec.inferMime(
+                "https://example.test/tv360.php?id=1", Arrays.asList(
+                        "#KODIPROP:inputstream.adaptive.manifest_type=mpd")));
+        assertEquals(MimeTypes.APPLICATION_M3U8, StreamSpec.inferMime(
+                "https://example.test/live.php", Arrays.asList(
+                        "#KODIPROP:inputstream.adaptive.manifest_type=hls")));
+    }
+
+    @Test public void streamMimeCanUseUrlAndLeavesUnknownPhpAutomatic() {
+        assertEquals(MimeTypes.APPLICATION_M3U8,
+                StreamSpec.inferMime("https://example.test/live.m3u8?token=x", Collections.emptyList()));
+        assertNull(StreamSpec.inferMime("https://example.test/live.php?id=1", Collections.emptyList()));
+    }
     @Test public void parsesWidevineLicenseAndHeaders() {
         DrmSpec spec = DrmSpec.fromOptions(Arrays.asList(
                 "#KODIPROP:inputstream.adaptive.license_type=com.widevine.alpha",

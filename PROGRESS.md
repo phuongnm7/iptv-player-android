@@ -1,5 +1,13 @@
 # Nhật ký tiếp tục dự án — IPTV Player Android
 
+## Phiên bản 1.3 — sửa URL `.php` báo container không hỗ trợ
+
+- Ảnh máy thật báo `ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED` ở URL `tv360.php?...`.
+- Nguyên nhân trong app: Media3 không thể suy ra HLS/DASH từ đuôi `.php`; PlayerActivity chưa dùng `#KODIPROP:inputstream.adaptive.manifest_type` mà parser đã giữ lại.
+- Thêm `StreamSpec`: ưu tiên chỉ dẫn `manifest_type=hls/mpd/dash/ism`, sau đó mới suy từ đuôi hoặc query URL.
+- Thêm kiểm thử cho URL PHP không đuôi có manifest DASH/HLS; tăng versionCode 4, versionName 1.3.0.
+- Việc tiếp theo: build/test/lint, chạy smoke và bàn giao APK 1.3; repo tiếp tục để private.
+
 ## Phiên bản 1.2 đang thực hiện — 2026-09-08
 
 - Yêu cầu mới từ ảnh điện thoại: bỏ việc chặn chung mọi kênh DRM; thêm xoay khi xem, hình nền tùy chọn, FPS thực tế và làm danh sách kênh nổi bật ở màn hình chính.

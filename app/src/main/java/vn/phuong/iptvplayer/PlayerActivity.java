@@ -125,14 +125,14 @@ public final class PlayerActivity extends Activity {
                 String value = bundle.getString(key);
                 if (value != null) headers.put(key, value);
             }
-            String ua = headers.containsKey("User-Agent") ? headers.get("User-Agent") : "IPTV-Player/1.2 Android";
+            String ua = headers.containsKey("User-Agent") ? headers.get("User-Agent") : "IPTV-Player/1.3 Android";
             DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory()
                     .setUserAgent(ua).setConnectTimeoutMs(15000).setReadTimeoutMs(20000)
                     .setDefaultRequestProperties(headers);
             DefaultDataSource.Factory data = new DefaultDataSource.Factory(this, http);
             DefaultMediaSourceFactory mediaFactory = new DefaultMediaSourceFactory(data);
             MediaItem.Builder builder = new MediaItem.Builder().setUri(url);
-            String inferred = mime.isEmpty() ? inferMime(url) : mime;
+            String inferred = mime.isEmpty() ? StreamSpec.inferMime(url, options) : mime;
             if (inferred != null && !inferred.isEmpty()) builder.setMimeType(inferred);
             DrmSpec drm = DrmSpec.create(drmSystem, drmLicense);
             findViewById(R.id.btnDrm).setVisibility(drm.hasDrm() ? View.VISIBLE : View.GONE);
@@ -261,15 +261,6 @@ public final class PlayerActivity extends Activity {
         findViewById(R.id.playerError).setVisibility(View.VISIBLE);
         ((TextView) findViewById(R.id.txtPlayerError)).setText(message);
         playerView.showController();
-    }
-
-    private String inferMime(String value) {
-        String path = Uri.parse(value).getPath();
-        String lower = path == null ? "" : path.toLowerCase(Locale.ROOT);
-        if (lower.endsWith(".m3u8") || lower.endsWith(".m3u")) return MimeTypes.APPLICATION_M3U8;
-        if (lower.endsWith(".mpd")) return MimeTypes.APPLICATION_MPD;
-        if (lower.contains(".ism/manifest") || lower.contains(".isml/manifest")) return MimeTypes.APPLICATION_SS;
-        return null;
     }
 
     private String value(String key) {

@@ -31,7 +31,7 @@ final class DrmPlayback {
             config.setLicenseUri(spec.license).setLicenseRequestHeaders(spec.headers);
             // Stream cookies are intentionally not forwarded to another license host.
             callback = new HttpMediaDrmCallback(spec.license, true, new DefaultHttpDataSource.Factory()
-                    .setUserAgent("IPTV-Player/1.2 Android").setConnectTimeoutMs(15000)
+                    .setUserAgent("IPTV-Player/1.3 Android").setConnectTimeoutMs(15000)
                     .setReadTimeoutMs(20000).setDefaultRequestProperties(spec.headers));
         }
         DefaultDrmSessionManager manager = new DefaultDrmSessionManager.Builder()

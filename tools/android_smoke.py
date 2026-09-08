@@ -212,6 +212,7 @@ def run_checks():
         bounds(find(root, "mainRoot"))) if find(root, "mainRoot") is not None else False,
         "Main screen did not return to portrait")
 
+    tap("btnSources")
     enter("inputUrl", BASE + "/invalid.html")
     tap("btnLoadUrl")
     wait_for(lambda root: "/invalid.html" in REQUESTS and
@@ -271,7 +272,7 @@ def main():
             fixtures(directory)
             server = http.server.ThreadingHTTPServer(("127.0.0.1", 8765), functools.partial(Handler, directory=str(directory)))
             threading.Thread(target=server.serve_forever, daemon=True).start()
-            adb("install", "-r", sys.argv[1] if len(sys.argv) > 1 else "dist/IPTV-Player-1.2.apk", timeout=120)
+            adb("install", "-r", sys.argv[1] if len(sys.argv) > 1 else "dist/IPTV-Player-1.3.apk", timeout=120)
             adb("reverse", "tcp:8765", "tcp:8765")
             try:
                 run_checks()

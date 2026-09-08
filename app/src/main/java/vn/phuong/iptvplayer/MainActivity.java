@@ -99,7 +99,7 @@ public final class MainActivity extends Activity {
             inputSearch.setText(""); spinnerGroup.setSelection(0); filter();
         });
         findViewById(R.id.btnAbout).setOnClickListener(v -> new AlertDialog.Builder(this)
-                .setTitle("IPTV Player 1.2")
+                .setTitle("IPTV Player 1.3")
                 .setMessage("HLS, DASH, SmoothStreaming, RTSP unicast, HTTP/HTTPS, RTMP và UDP MPEG-TS.\n\n"
                         + "Full HD, 2K và 4K cần nguồn phát, codec và thiết bị phù hợp. Ứng dụng không nâng độ phân giải của nguồn.\n\n"
                         + "Widevine và ClearKey dùng cấu hình/giấy phép hợp lệ của nguồn. PlayReady cần thiết bị hỗ trợ. SRT và AceStream chưa hỗ trợ.\n\n"
@@ -166,7 +166,7 @@ public final class MainActivity extends Activity {
                 connection.setConnectTimeout(15_000);
                 connection.setReadTimeout(20_000);
                 connection.setInstanceFollowRedirects(true);
-                connection.setRequestProperty("User-Agent", "IPTV-Player/1.2 Android");
+                connection.setRequestProperty("User-Agent", "IPTV-Player/1.3 Android");
                 int status = connection.getResponseCode();
                 if (status < 200 || status >= 300) throw new Exception("HTTP " + status);
                 String effective = connection.getURL().toString();
