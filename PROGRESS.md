@@ -10,6 +10,9 @@
 - Thêm kiểm thử URL ClearKey từ xa và JSON GET; tăng versionCode 5, versionName 1.4.0. Việc tiếp theo: build/test/lint, tải và bàn giao APK 1.4; repo tiếp tục để private.
 - Build đầu của 1.4: run 34241384570, job 102112137194. Java app đã biên dịch; 20/21 test đạt. Test JSON ClearKey thất bại vì `android.util.Base64` là stub trong JVM test. Đang thay bằng `java.util.Base64` (core-library desugaring đã bật) để cùng mã chạy được trên Android 6+ và trong kiểm thử, không bỏ test.
 - Build thứ hai: run 34241952754, job 102114101849. Java app tiếp tục biên dịch nhưng cùng test bị chặn bởi `org.json` stub của Android SDK trong JVM. Bổ sung `org.json` chỉ ở `testImplementation`; không đưa thêm thư viện này vào APK runtime.
+- Build bàn giao dùng commit `e4d6eaf1d7b024e619ccaa16db732bb63b2eddab`: run 34242285983, job 102115239390. Compiler, 21 JUnit tests, lint, đóng gói, kiểm tra chữ ký và upload APK đều đạt; smoke Android 15 tiếp tục chạy độc lập.
+- Artifact `IPTV-Player-1.4-APK`: ID 10062651950, archive SHA-256 `1ca931361d57df280647c48d1c7fcd012bc1c521191975c8338b4685fb2481df`.
+- APK 1.4 đã tải, kiểm tra ZIP và `sha256sum -c` đạt: 6.658.988 bytes, SHA-256 `6897e461141db5398582d23aebbbf8b2edc926372bc6d5fe0bf5b66e65065939`; đã lưu bản bàn giao.
 
 ## Phiên bản 1.3 — sửa URL `.php` báo container không hỗ trợ
 
