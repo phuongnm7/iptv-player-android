@@ -5,6 +5,9 @@
 - Sửa ô chọn nhóm và từng dòng trong danh sách xổ xuống: khi điều hướng bằng D-pad, mục hiện tại có nền xanh sáng, viền xanh lá 3dp và vẫn rõ ở trạng thái nhấn/chọn.
 - Áp dụng đồng nhất cho màn hình dọc và ngang; giữ thao tác cảm ứng trên mobile.
 - Tăng versionCode 8, versionName 1.6.1. Workflow riêng tư sẽ chạy compiler, JUnit, lint, đóng gói APK và smoke Android 15 trước khi bàn giao.
+- Mã bản vá ở commit `be021b23bebe0aad3ebb7baf7750625180a98c9e`. Build run `34292430994`, job `102281669427`: compiler, 23 JUnit tests, lint, xác minh chữ ký và upload APK đều đạt; smoke Android 15 đang chạy độc lập lúc lưu checkpoint.
+- Artifact `IPTV-Player-1.6.1-APK`: ID `10081938250`, archive SHA-256 `eb7393b119089cbe3e75ddd89002927c8374c1c06543f8ea65ec2d12c601e354`.
+- APK 1.6.1 đã tải và kiểm tra `sha256sum -c` đạt: 6.681.741 bytes, SHA-256 `aaaaf42c1b30634c6572fd92b4d43574a362b8641c64232cfc09832410f1309f`; đã lưu bản bàn giao.
 
 ## Phiên bản 1.6 — Mobile/TV, D-pad và nhiều link IPTV
 
