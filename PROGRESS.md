@@ -2,7 +2,7 @@
 
 Cập nhật: 2026-09-08. Lưu file này trong GitHub riêng tư để nối lại dù phiên trò chuyện hoặc thư mục tạm mất.
 
-**Trạng thái hiện tại:** APK đã tạo được ở Build 2/3. Emulator đã đạt 8 kiểm tra playlist, video MP4 hiện khung hình; smoke bị hộp hướng dẫn Android che nên đang sửa script và chạy bản cuối. Chưa kiểm tra máy thật.
+**Trạng thái bàn giao:** Đã tạo, tải về, kiểm tra checksum và lưu APK 1.1 từ Build 4. Compiler/test/lint, chữ ký và upload APK đều đạt. Theo yêu cầu làm nhanh, bàn giao APK trước khi smoke mở rộng chạy hết. Không coi toàn bộ workflow hoặc máy thật là đã kiểm tra thành công; mở run Build 4 bên dưới để lấy kết quả mới nhất.
 
 ## Mục tiêu và quyền đã được xác nhận
 
@@ -38,7 +38,7 @@ Cập nhật: 2026-09-08. Lưu file này trong GitHub riêng tư để nối l�
 ## Kết quả kiểm tra đã có
 
 - CoreCheck chạy bằng Java thật: ban đầu PASS 24 assertions; bản sửa khóa nhận dạng mới PASS 28 assertions.
-- Build 2 có 10/10 test JUnit đạt, 0 failed/ignored (đã đọc HTML report). Mã hiện có thêm 4 test hồi quy, tổng 14; chờ CI của bản sửa mới.
+- Build 2 có 10/10 test JUnit đạt, 0 failed/ignored (đã đọc HTML report). Build 4 có 14 test trong source và tác vụ testDebugUnitTest đã đạt; report chi tiết sẽ upload sau bước emulator.
 - 15 XML parse hợp lệ, ID giao diện ngang/dọc khớp.
 - Workflow YAML parse hợp lệ.
 - Đã đọc XML lint Build 2: 0 errors, 24 warnings không chặn (style, autofill, target/version và bố cục).
@@ -87,22 +87,31 @@ Cập nhật: 2026-09-08. Lưu file này trong GitHub riêng tư để nối l�
 - Đã nhìn failure.png: video màu tổng hợp đã xuất hiện, status 320×180 và timeline 00:20/00:20. Không diễn giải đây là lỗi decoder; log emulator có cảnh báo libcuda nhưng không ngăn khung hình này.
 - Artifact smoke ID 10048042342, reports ID 10048043186; hết hạn 2026-09-22. Bằng chứng tạm tại /workspace/scratch/fd876c6053ed/build3-smoke.
 
-### Bản sửa tiếp theo — tính đúng khóa trùng và bảo toàn tùy chọn
+### Build 4 — bản giao, khóa trùng an toàn và bảo toàn tùy chọn
 
 - Header khác chữ hoa/thường phải được coi là cùng tên (Cookie/cookie); giá trị header vẫn phân biệt case.
 - Thay khóa Map/List.toString bằng các trường có độ dài rõ ràng, tránh loại nhầm kênh khi giá trị có dấu phẩy/dấu bằng/ký tự phân cách.
 - Giữ tùy chọn EXTVLCOPT không nhận diện (ví dụ network-caching) khi xuất; không tuyên bố Media3 áp dụng các tùy chọn này.
-- Thêm 4 test JUnit và 4 CoreCheck hồi quy; CoreCheck đã đạt 28/28. Chờ gộp với lỗi smoke (nếu có) và chạy build cuối.
+- Thêm 4 test JUnit và 4 CoreCheck hồi quy; CoreCheck đã đạt 28/28, bước compile/test/lint của Build 4 đã đạt.
 - Sửa smoke để nhấn nút Got it của hướng dẫn toàn màn hình khi nó hiện; thêm kiểm tra tạo M3U qua Android file picker và mở lại tệp.
+- Commit mã của APK: d2a21c03077ed9b563d1a1d388e7832d6c89cb51; tree: b04d8b4c8e18540ca775d1053c091737f344d8fb.
+- Run: https://github.com/phuongnm7/iptv-player-android/actions/runs/34207283159 (job 101999650047).
+- Đã kiểm tra trạng thái bước: Compile, test and lint = success; Verify and package APK = success; Upload installable APK = success.
+- Khi bàn giao, Check app on Android 15 emulator còn in_progress. Chưa xác nhận đầy đủ HLS/DASH, file picker và tổng số smoke checks.
+- APK artifact: ID 10048330039, hết hạn 2026-10-08. Archive SHA-256: 0312fa353c5e029500cce62962603c44706a567e4d8f62af47cd68f92b57b34c (tải về khớp digest GitHub).
+- File bàn giao: IPTV-Player-1.1.apk, 6.641.439 bytes; đã lưu cho người dùng, không chỉ giữ trong artifact có hạn.
+- SHA-256 APK: f98188e0f2a05405d6f2236d271a542255e5412c18ebd4f10d46a05c7c958032. sha256sum -c SHA256SUMS.txt = OK.
+- Bản cài đặt là debug-signed cá nhân, chưa phát hành Play Store. Kho vẫn private khi kiểm tra lúc bàn giao.
+- Đường dẫn làm việc lúc giao: /workspace/scratch/fd876c6053ed/deliverables/IPTV-Player-1.1.apk. Nếu scratch mất, tìm bản đã lưu theo tên/SHA hoặc tải lại artifact của đúng run.
 
 ## Làm tiếp
 
 1. Xác minh repo còn private và HEAD hiện tại để không ghi đè thay đổi của người dùng.
-2. Commit smoke script/workflow/nhật ký rồi theo dõi Build 3.
-3. Đọc log và artifact ảnh thực; sửa lỗi nếu có. Không tắt lint/tests để che lỗi.
-4. Tải artifact APK của đúng run đã kiểm thử, kiểm tra checksum và lưu bản cài đặt lâu dài.
-5. Bàn giao APK và cập nhật nhật ký với commit/run cuối, kết quả và vị trí file.
-6. Kiểm thử trên điện thoại thật bằng playlist được người dùng cấp; xác minh riêng độ phân giải và từng giao thức chưa thử.
+2. Mở run Build 4 (34207283159), lấy trạng thái cuối và artifact Android-emulator-smoke/Android-test-reports. Không chạy lại build trước khi đọc kết quả hiện có.
+3. Đọc result.json, log và ảnh thực. Cập nhật file nhật ký này; sửa nếu có lỗi thật. Không tắt test để che lỗi, không coi hộp hướng dẫn hệ thống là lỗi decoder.
+4. APK đã giao là bản từ commit d2a21c0; nếu sửa mã ứng dụng, tăng versionCode và build/kiểm tra lại trước khi thay bản giao.
+5. Kiểm thử trên điện thoại thật bằng playlist được người dùng cấp; xác minh riêng Full HD/1440p/4K và RTSP/RTMP/UDP. Không lấy playlist lạ thay cho nguồn của người dùng.
+6. Nếu muốn cập nhật lâu dài không phải gỡ app, thống nhất khóa ký ổn định và lưu bằng secret, không commit khóa hoặc mật khẩu.
 
 ## Ghi chú quan trọng
 
