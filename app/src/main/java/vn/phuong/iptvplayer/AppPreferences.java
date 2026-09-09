@@ -63,6 +63,8 @@ final class AppPreferences {
         // immediate process restart, so persist it synchronously.
         prefs(context).edit().putBoolean("show_player_source", value).commit();
     }
+    static boolean backgroundPlayback(Context context) { return prefs(context).getBoolean("background_playback", false); }
+    static void setBackgroundPlayback(Context context, boolean value) { prefs(context).edit().putBoolean("background_playback", value).apply(); }
     static String interfaceMode(Context context) { return prefs(context).getString("interface_mode", "auto"); }
     static void setInterfaceMode(Context context, String value) { prefs(context).edit().putString("interface_mode", value).apply(); }
     static boolean isTvInterface(Context context) {
