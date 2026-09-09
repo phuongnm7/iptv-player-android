@@ -90,7 +90,46 @@ public final class MainActivity extends Activity {
     private void saveSession(){try{SessionStore.save(getApplicationContext(),SessionStore.snapshot(allChannels),currentSource,duplicateCount,missingUrlCount);}catch(Exception ignored){}}
     private void setLoading(boolean v){loading=v;if(progress!=null)progress.setVisibility(v?View.VISIBLE:View.GONE);}
     private void setImportExpanded(boolean expanded){importExpanded=expanded;View section=findViewById(R.id.importPanel);if(section!=null)section.setVisibility(expanded?View.VISIBLE:View.GONE);}
-    private void showPlaylistSources(){List<PlaylistSourceStore.Source> sources=PlaylistSourceStore.load(this);String[] labels=new String[sources.size()];for(int i=0;i<sources.size();i++)labels[i]=sources.get(i).name;new AlertDialog.Builder(this).setTitle("Nguồn IPTV").setItems(labels,(d,w)->{inputUrl.setText(sources.get(w).url);loadFromUrl();}).setNegativeButton("Đóng",null).show();}
+    private void showPlaylistSources(){
+        List<PlaylistSourceStore.Source> sources=PlaylistSourceStore.load(this);
+        String[] labels=new String[sources.size()];
+        for(int i=0;i<sources.size();i++)labels[i]=sources.get(i).name+"\n"+sources.get(i).url;
+        new AlertDialog.Builder(this).setTitle("Quản lý nguồn IPTV")
+                .setItems(labels,(d,w)->showSourceActions(sources.get(w),w))
+                .setPositiveButton("Thêm nguồn",(d,w)->showSourceEditor(null,-1))
+                .setNegativeButton("Đóng",null).show();
+    }
+    private void showSourceActions(PlaylistSourceStore.Source source,int index){
+        new AlertDialog.Builder(this).setTitle(source.name).setMessage(source.url)
+                .setItems(new String[]{"Tải nguồn","Chỉnh sửa","Xóa"},(d,w)->{
+                    if(w==0){inputUrl.setText(source.url);loadFromUrl();}
+                    if(w==1)showSourceEditor(source,index);
+                    if(w==2)confirmDeleteSource(source,index);
+                }).setNegativeButton("Đóng",null).show();
+    }
+    private void showSourceEditor(PlaylistSourceStore.Source source,int index){
+        LinearLayout form=new LinearLayout(this);form.setOrientation(LinearLayout.VERTICAL);form.setPadding(dp(22),dp(8),dp(22),0);
+        EditText nameInput=new EditText(this);nameInput.setHint("Tên nguồn (có thể để trống)");nameInput.setSingleLine(true);
+        EditText urlInput=new EditText(this);urlInput.setHint("https://.../playlist.m3u");urlInput.setSingleLine(true);urlInput.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_VARIATION_URI);
+        if(source!=null){nameInput.setText(source.name);urlInput.setText(source.url);}
+        form.addView(nameInput,new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,LinearLayout.LayoutParams.WRAP_CONTENT));
+        form.addView(urlInput,new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,LinearLayout.LayoutParams.WRAP_CONTENT));
+        AlertDialog dialog=new AlertDialog.Builder(this).setTitle(source==null?"Thêm nguồn IPTV":"Chỉnh sửa nguồn IPTV").setView(form)
+                .setPositiveButton("Lưu",null).setNegativeButton("Hủy",null).create();
+        dialog.setOnShowListener(v->dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(button->{
+            try{
+                String name=nameInput.getText().toString(),url=urlInput.getText().toString();
+                if(source==null)PlaylistSourceStore.add(this,name,url);else PlaylistSourceStore.update(this,index,name,url);
+                dialog.dismiss();toast(source==null?"Đã thêm nguồn":"Đã cập nhật nguồn");showPlaylistSources();
+            }catch(Exception e){urlInput.setError(readable(e));urlInput.requestFocus();}
+        }));
+        dialog.show();
+    }
+    private void confirmDeleteSource(PlaylistSourceStore.Source source,int index){
+        new AlertDialog.Builder(this).setTitle("Xóa nguồn IPTV?").setMessage(source.name+"\n"+source.url)
+                .setPositiveButton("Xóa",(d,w)->{try{PlaylistSourceStore.remove(this,index);toast("Đã xóa nguồn");showPlaylistSources();}catch(Exception e){showError("Không xóa được nguồn: "+readable(e));}})
+                .setNegativeButton("Hủy",null).show();
+    }
     private void playDirect(){String source=inputUrl.getText().toString().trim();if(source.isEmpty()){toast("Nhập URL để phát");return;}Channel c=new Channel("URL trực tiếp","Trực tiếp",source,"","",java.util.Collections.emptyMap());play(c);}
     private void showSettings(){
         boolean tv=AppPreferences.isTvInterface(this);

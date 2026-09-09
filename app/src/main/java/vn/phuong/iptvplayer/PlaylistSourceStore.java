@@ -22,15 +22,17 @@ final class PlaylistSourceStore {
 
     static List<Source> load(Context context) {
         List<Source> result = new ArrayList<>();
+        android.content.SharedPreferences preferences = context.getSharedPreferences(FILE, Context.MODE_PRIVATE);
+        boolean initialized = preferences.contains(KEY);
         try {
-            JSONArray values = new JSONArray(context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getString(KEY, "[]"));
+            JSONArray values = new JSONArray(preferences.getString(KEY, "[]"));
             for (int i = 0; i < values.length() && result.size() < MAX_SOURCES; i++) {
                 JSONObject item = values.getJSONObject(i);
                 String url = item.optString("url", "").trim();
                 if (isValid(url)) result.add(new Source(cleanName(item.optString("name"), url), url));
             }
         } catch (Exception ignored) { }
-        if (result.isEmpty()) result.add(new Source(DEFAULT_NAME, DEFAULT_URL));
+        if (result.isEmpty() && !initialized) result.add(new Source(DEFAULT_NAME, DEFAULT_URL));
         return result;
     }
 
@@ -51,6 +53,17 @@ final class PlaylistSourceStore {
     static void remove(Context context, int index) throws Exception {
         List<Source> values = new ArrayList<>(load(context));
         if (index >= 0 && index < values.size()) { values.remove(index); save(context, values); }
+    }
+
+    static void update(Context context, int index, String name, String url) throws Exception {
+        String cleanUrl = url == null ? "" : url.trim();
+        if (!isValid(cleanUrl)) throw new IllegalArgumentException("Link playlist phải bắt đầu bằng http:// hoặc https://");
+        List<Source> values = new ArrayList<>(load(context));
+        if (index < 0 || index >= values.size()) throw new IllegalArgumentException("Nguồn IPTV không còn tồn tại");
+        values.remove(index);
+        for (int i = values.size() - 1; i >= 0; i--) if (values.get(i).url.equals(cleanUrl)) values.remove(i);
+        values.add(Math.min(index, values.size()), new Source(cleanName(name, cleanUrl), cleanUrl));
+        save(context, values);
     }
 
     private static void save(Context context, List<Source> values) throws Exception {
