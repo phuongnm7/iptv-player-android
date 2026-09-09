@@ -200,10 +200,25 @@ def run_checks():
     summary("1/2 kênh", "1 đã chọn")
     check("Search and per-channel selection")
     enter("inputSearch", "")
-    tap("spinnerGroup")
     tap(text="News")
     summary("1/2 kênh", "1 đã chọn")
-    check("Group filtering")
+    check("Horizontal group filtering")
+
+    tap(resource="txtName", text="Alpha")
+    wait_for(lambda root: (lambda n: n is not None and "320 × 180" in n.get("text", ""))(
+        find(root, "txtPlayerStatus")), "Alpha did not start before quick channel test", timeout=50)
+    adb("shell", "input", "keyevent", "KEYCODE_DPAD_LEFT")
+    wait_for(lambda root: find(root, "quickChannelPanel") is not None and
+        find(root, "txtQuickName", "Bravo") is not None,
+        "D-pad Left did not open the quick channel panel")
+    check("D-pad Left opens quick channel panel over active playback")
+    tap(resource="txtQuickName", text="Bravo")
+    wait_for(lambda root: find(root, "txtPlayerTitle", "Bravo") is not None and
+        (lambda n: n is not None and "320 × 180" in n.get("text", ""))(find(root, "txtPlayerStatus")),
+        "Quick selection did not switch to Bravo", timeout=50)
+    check("Quick channel panel switches channel without returning to main screen")
+    adb("shell", "input", "keyevent", "KEYCODE_BACK")
+    wait_for(lambda root: find(root, "inputUrl") is not None, "Did not return from quick channel test")
 
     tap_node(wait_for(lambda root: find(root, "txtName", "Alpha"), "Missing Alpha"), long_press=True)
     tap(text="Xem URL nguồn đầy đủ")
@@ -283,7 +298,7 @@ def main():
             fixtures(directory)
             server = http.server.ThreadingHTTPServer(("127.0.0.1", 8765), functools.partial(Handler, directory=str(directory)))
             threading.Thread(target=server.serve_forever, daemon=True).start()
-            adb("install", "-r", sys.argv[1] if len(sys.argv) > 1 else "dist/IPTV-Player-1.6.apk", timeout=120)
+            adb("install", "-r", sys.argv[1] if len(sys.argv) > 1 else "dist/Nm7-IPTV-1.7.apk", timeout=120)
             adb("reverse", "tcp:8765", "tcp:8765")
             try:
                 run_checks()

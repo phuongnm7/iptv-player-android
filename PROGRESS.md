@@ -1,5 +1,13 @@
 # Nhật ký tiếp tục dự án — IPTV Player Android
 
+## Phiên bản 1.7 — Nm7 IPTV và chọn kênh nhanh trên TV
+
+- Đổi tên hiển thị ứng dụng thành `Nm7 IPTV`; giữ nguyên applicationId để tương thích dữ liệu/cài đặt hiện có khi chữ ký cài đặt khớp.
+- Màn hình chính thay ô chọn nhóm xổ xuống bằng thanh nút nhóm cuộn ngang. Chọn một nhóm sẽ hiển thị ngay danh sách kênh thuộc nhóm; từng nút có focus D-pad rõ ràng.
+- Trên giao diện TV, khi đang xem bấm phím Trái sẽ mở bảng nhóm/kênh nhanh bên trái. Luồng hiện tại tiếp tục phát phía sau; chọn kênh khác mới chuyển nguồn, Back đóng bảng.
+- Bảng kênh nhanh đọc playlist đã lưu trong vùng riêng của ứng dụng, giữ URL/header/DRM hợp lệ của từng kênh và đánh dấu kênh đang xem.
+- Tăng versionCode 9, versionName 1.7.0; đổi artifact thành `Nm7-IPTV-1.7-APK`. Việc tiếp theo: compiler, JUnit, lint, smoke Android 15/D-pad và bàn giao APK.
+
 ## Phiên bản 1.6.1 — sửa focus lựa chọn nhóm trên TV
 
 - Sửa ô chọn nhóm và từng dòng trong danh sách xổ xuống: khi điều hướng bằng D-pad, mục hiện tại có nền xanh sáng, viền xanh lá 3dp và vẫn rõ ở trạng thái nhấn/chọn.

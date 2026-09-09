@@ -10,13 +10,11 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -47,7 +45,7 @@ public final class MainActivity extends Activity {
     private ChannelAdapter adapter;
     private EditText inputUrl;
     private EditText inputSearch;
-    private Spinner spinnerGroup;
+    private LinearLayout groupRow;
     private TextView txtSource;
     private TextView txtSummary;
     private TextView txtEmpty;
@@ -59,6 +57,7 @@ public final class MainActivity extends Activity {
     private boolean importExpanded = true;
     private int wallpaperGeneration;
     private int activeSection;
+    private String selectedGroup = "";
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -73,7 +72,7 @@ public final class MainActivity extends Activity {
 
         inputUrl = findViewById(R.id.inputUrl);
         inputSearch = findViewById(R.id.inputSearch);
-        spinnerGroup = findViewById(R.id.spinnerGroup);
+        groupRow = findViewById(R.id.groupRow);
         txtSource = findViewById(R.id.txtSource);
         txtSummary = findViewById(R.id.txtSummary);
         txtEmpty = findViewById(R.id.txtEmpty);
@@ -109,13 +108,13 @@ public final class MainActivity extends Activity {
         findViewById(R.id.btnFavorites).setOnClickListener(v -> selectSection(1));
         findViewById(R.id.btnRecent).setOnClickListener(v -> selectSection(2));
         findViewById(R.id.btnClearFilters).setOnClickListener(v -> {
-            inputSearch.setText(""); spinnerGroup.setSelection(0); filter();
+            inputSearch.setText(""); selectedGroup = ""; updateGroupButtons(); filter();
         });
         findViewById(R.id.btnAbout).setOnClickListener(v -> showAbout());
         txtSource.setOnClickListener(v -> showSource(currentSource));
 
         inputSearch.addTextChangedListener(new SimpleTextWatcher(this::filter));
-        spinnerGroup.setOnItemSelectedListener(new SimpleItemSelectedListener(this::filter));
+        rebuildGroups();
         setImportExpanded(allChannels.isEmpty());
         updateSectionButtons();
         applyInterfaceMode(list);
@@ -142,19 +141,17 @@ public final class MainActivity extends Activity {
     @Override public void onConfigurationChanged(android.content.res.Configuration config) {
         super.onConfigurationChanged(config);
         String urlText = inputUrl.getText().toString(), query = inputSearch.getText().toString();
-        String group = spinnerGroup.getSelectedItemPosition() > 0 ? spinnerGroup.getSelectedItem().toString() : "";
+        String group = selectedGroup;
         boolean wasLoading = loading;
         boolean wasExpanded = importExpanded;
         int section = activeSection;
         setupViews();
         activeSection = section;
+        selectedGroup = group;
         rebuildGroups();
         inputUrl.setText(urlText);
         inputSearch.setText(query);
         txtSource.setText(currentSource.isEmpty() ? getString(R.string.source_none) : "Nguồn: " + currentSource);
-        for (int i = 1; i < spinnerGroup.getCount(); i++) {
-            if (spinnerGroup.getItemAtPosition(i).toString().equals(group)) { spinnerGroup.setSelection(i); break; }
-        }
         filter();
         setLoading(wasLoading);
         setImportExpanded(wasExpanded);
@@ -176,7 +173,7 @@ public final class MainActivity extends Activity {
                 connection.setConnectTimeout(15_000);
                 connection.setReadTimeout(20_000);
                 connection.setInstanceFollowRedirects(true);
-                connection.setRequestProperty("User-Agent", "IPTV-Player/1.6 Android");
+                connection.setRequestProperty("User-Agent", "Nm7-IPTV/1.7 Android");
                 int status = connection.getResponseCode();
                 if (status < 200 || status >= 300) throw new Exception("HTTP " + status);
                 String effective = connection.getURL().toString();
@@ -270,6 +267,7 @@ public final class MainActivity extends Activity {
         currentSource = source;
         txtSource.setText("Nguồn: " + source);
         inputSearch.setText("");
+        selectedGroup = "";
         rebuildGroups();
         filter();
         setLoading(false);
@@ -282,25 +280,58 @@ public final class MainActivity extends Activity {
     }
 
     private void rebuildGroups() {
-        String all = getString(R.string.all_groups);
         Set<String> unique = new LinkedHashSet<>();
         for (Channel channel : allChannels) unique.add(channel.group());
         List<String> groups = new ArrayList<>(unique);
         groups.sort(String.CASE_INSENSITIVE_ORDER);
-        groups.add(0, all);
-        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(this, R.layout.spinner_item, groups);
-        spinnerAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item);
-        spinnerGroup.setAdapter(spinnerAdapter);
+        if (!selectedGroup.isEmpty() && !unique.contains(selectedGroup)) selectedGroup = "";
+        groupRow.removeAllViews();
+        addGroupButton(getString(R.string.all_groups), "");
+        for (String group : groups) {
+            addGroupButton(group, group);
+        }
+        updateGroupButtons();
+    }
+
+    private void addGroupButton(String label, String value) {
+        Button button = new Button(this);
+        button.setTag(value);
+        button.setText(label);
+        button.setTextSize(13);
+        button.setTextAllCaps(false);
+        button.setSingleLine(true);
+        button.setFocusable(true);
+        button.setFocusableInTouchMode(false);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, dp(46));
+        params.setMarginEnd(dp(8));
+        groupRow.addView(button, params);
+        button.setOnClickListener(v -> {
+            selectedGroup = (String) v.getTag();
+            updateGroupButtons();
+            filter();
+            findViewById(R.id.listChannels).requestFocus();
+        });
+    }
+
+    private void updateGroupButtons() {
+        if (groupRow == null) return;
+        for (int i = 0; i < groupRow.getChildCount(); i++) {
+            View child = groupRow.getChildAt(i);
+            boolean active = selectedGroup.equals(child.getTag());
+            child.setSelected(active);
+            child.setBackgroundResource(active ? R.drawable.button_primary : R.drawable.button_secondary);
+            if (child instanceof Button) ((Button) child).setTextColor(getColor(
+                    active ? R.color.navy : R.color.text_primary));
+        }
     }
 
     private void filter() {
         if (adapter == null) return;
         String query = inputSearch.getText().toString().trim().toLowerCase(Locale.ROOT);
-        String group = spinnerGroup.getSelectedItem() == null
-                ? getString(R.string.all_groups) : spinnerGroup.getSelectedItem().toString();
         List<Channel> filtered = new ArrayList<>();
         for (Channel channel : allChannels) {
-            boolean groupMatches = spinnerGroup.getSelectedItemPosition() <= 0 || channel.group().equals(group);
+            boolean groupMatches = selectedGroup.isEmpty() || channel.group().equals(selectedGroup);
             boolean sectionMatches = activeSection == 0
                     || (activeSection == 1 && AppPreferences.isFavorite(this, channel))
                     || (activeSection == 2 && AppPreferences.isRecent(this, channel));
@@ -468,8 +499,9 @@ public final class MainActivity extends Activity {
     }
 
     private void showAbout() {
-        new AlertDialog.Builder(this).setTitle("IPTV Player 1.6")
-                .setMessage("Giao diện thư viện kênh gồm Tất cả, Yêu thích và Gần đây; nhấn giữ kênh để mở menu.\n\n"
+        new AlertDialog.Builder(this).setTitle("Nm7 IPTV 1.7")
+                .setMessage("Giao diện thư viện kênh gồm Tất cả, Yêu thích, Gần đây và thanh nhóm kênh cuộn ngang; nhấn giữ kênh để mở menu.\n\n"
+                        + "Trên TV, khi đang xem hãy bấm phím Trái để mở danh sách kênh nhanh mà không dừng hình.\n\n"
                         + "HLS, DASH, SmoothStreaming, RTSP, HTTP/HTTPS, RTMP và UDP MPEG-TS. Full HD, 2K và 4K phụ thuộc nguồn, codec và thiết bị.\n\n"
                         + "Widevine và ClearKey chỉ dùng cấu hình/giấy phép hợp lệ của nguồn. Playlist và tùy chọn lưu riêng trên thiết bị; không quảng cáo hay theo dõi.")
                 .setPositiveButton("Đóng", null).show();

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">IPTV Player</string>
+    <string name="app_name">Nm7 IPTV</string>
     <string name="playlist_url_hint">Dán URL playlist hoặc luồng phát</string>
     <string name="load_url">Tải URL</string>
     <string name="open_file">Mở tệp</string>

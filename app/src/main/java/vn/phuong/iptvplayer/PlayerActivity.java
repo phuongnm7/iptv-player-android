@@ -9,9 +9,12 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
+import android.view.KeyEvent;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.EditText;
+import android.widget.ListView;
 import android.widget.LinearLayout;
 import androidx.media3.common.AudioAttributes;
 import androidx.media3.common.C;
@@ -35,6 +38,9 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -56,6 +62,7 @@ public final class PlayerActivity extends Activity {
     private String url, name, mime;
     private String drmSystem = "", drmLicense = "";
     private ArrayList<String> options = new ArrayList<>();
+    private Bundle currentHeaders = new Bundle();
     private long position;
     private boolean resumePlayback = true;
     private int quality = Integer.MAX_VALUE;
@@ -69,6 +76,13 @@ public final class PlayerActivity extends Activity {
     private final Handler fpsHandler = new Handler(Looper.getMainLooper());
     private final Handler clockHandler = new Handler(Looper.getMainLooper());
     private TextView clockView;
+    private View quickPanel;
+    private LinearLayout quickGroupRow;
+    private ListView quickChannelList;
+    private TextView quickEmpty;
+    private QuickChannelAdapter quickAdapter;
+    private final List<Channel> quickChannels = new ArrayList<>();
+    private String quickGroup = "";
     private final Runnable clockUpdate = new Runnable() {
         @Override public void run() {
             if (clockView != null) clockView.setText(new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date()));
@@ -98,6 +112,8 @@ public final class PlayerActivity extends Activity {
         mime = value(EXTRA_MIME);
         ArrayList<String> passedOptions = getIntent().getStringArrayListExtra(EXTRA_OPTIONS);
         if (passedOptions != null) options = passedOptions;
+        Bundle passedHeaders = getIntent().getBundleExtra(EXTRA_HEADERS);
+        if (passedHeaders != null) currentHeaders = passedHeaders;
         DrmSpec initialDrm = DrmSpec.fromOptions(options);
         drmSystem = initialDrm.system;
         drmLicense = initialDrm.license;
@@ -114,6 +130,15 @@ public final class PlayerActivity extends Activity {
         status = findViewById(R.id.txtPlayerStatus);
         fpsView = findViewById(R.id.txtFps);
         clockView = findViewById(R.id.txtClock);
+        quickPanel = findViewById(R.id.quickChannelPanel);
+        quickGroupRow = findViewById(R.id.quickGroupRow);
+        quickChannelList = findViewById(R.id.quickChannelList);
+        quickEmpty = findViewById(R.id.txtQuickEmpty);
+        quickAdapter = new QuickChannelAdapter(this);
+        quickChannelList.setAdapter(quickAdapter);
+        quickChannelList.setEmptyView(quickEmpty);
+        quickChannelList.setOnItemClickListener((parent, view, position1, id) ->
+                switchChannel(quickAdapter.getItem(position1)));
         fpsView.setVisibility(AppPreferences.showFps(this) ? View.VISIBLE : View.GONE);
         clockView.setVisibility(AppPreferences.showClock(this) ? View.VISIBLE : View.GONE);
         playerView.setResizeMode(resizeMode);
@@ -130,6 +155,7 @@ public final class PlayerActivity extends Activity {
         findViewById(R.id.btnDrm).setOnClickListener(v -> configureDrm());
         findViewById(R.id.btnResize).setOnClickListener(v -> chooseResizeMode());
         findViewById(R.id.btnRetry).setOnClickListener(v -> { position = 0; resumePlayback = true; releasePlayer(); startPlayer(); });
+        loadQuickChannels();
     }
 
     @Override protected void onStart() {
@@ -149,12 +175,12 @@ public final class PlayerActivity extends Activity {
         }
         try {
             Map<String, String> headers = new LinkedHashMap<>();
-            Bundle bundle = getIntent().getBundleExtra(EXTRA_HEADERS);
+            Bundle bundle = currentHeaders;
             if (bundle != null) for (String key : bundle.keySet()) {
                 String value = bundle.getString(key);
                 if (value != null) headers.put(key, value);
             }
-            String ua = headers.containsKey("User-Agent") ? headers.get("User-Agent") : "IPTV-Player/1.6 Android";
+            String ua = headers.containsKey("User-Agent") ? headers.get("User-Agent") : "Nm7-IPTV/1.7 Android";
             DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory()
                     .setUserAgent(ua).setConnectTimeoutMs(15000).setReadTimeoutMs(20000)
                     .setDefaultRequestProperties(headers);
@@ -330,6 +356,161 @@ public final class PlayerActivity extends Activity {
                 }).setNeutralButton("Tắt DRM", (dialog, which) -> {
                     drmSystem = ""; drmLicense = ""; releasePlayer(); startPlayer();
                 }).setNegativeButton("Đóng", null).show();
+    }
+
+    private void loadQuickChannels() {
+        SessionStore.IO.execute(() -> {
+            try {
+                SessionStore.State saved = SessionStore.load(getApplicationContext());
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    quickChannels.clear();
+                    if (saved != null) quickChannels.addAll(saved.result.channels);
+                    rebuildQuickGroups();
+                    filterQuickChannels();
+                });
+            } catch (Exception ignored) {
+                runOnUiThread(() -> {
+                    if (!isFinishing() && !isDestroyed()) filterQuickChannels();
+                });
+            }
+        });
+    }
+
+    private void rebuildQuickGroups() {
+        Set<String> unique = new LinkedHashSet<>();
+        for (Channel channel : quickChannels) unique.add(channel.group());
+        List<String> groups = new ArrayList<>(unique);
+        groups.sort(String.CASE_INSENSITIVE_ORDER);
+        if (!quickGroup.isEmpty() && !unique.contains(quickGroup)) quickGroup = "";
+        quickGroupRow.removeAllViews();
+        addQuickGroup("Tất cả", "");
+        for (String group : groups) addQuickGroup(group, group);
+        updateQuickGroupButtons();
+    }
+
+    private void addQuickGroup(String label, String value) {
+        Button button = new Button(this);
+        button.setTag(value);
+        button.setText(label);
+        button.setTextAllCaps(false);
+        button.setTextSize(12);
+        button.setSingleLine(true);
+        button.setFocusable(true);
+        button.setFocusableInTouchMode(false);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, dp(44));
+        params.setMarginEnd(dp(7));
+        quickGroupRow.addView(button, params);
+        button.setOnClickListener(v -> {
+            quickGroup = (String) v.getTag();
+            updateQuickGroupButtons();
+            filterQuickChannels();
+            if (quickAdapter.getCount() > 0) quickChannelList.requestFocus();
+        });
+    }
+
+    private void updateQuickGroupButtons() {
+        for (int i = 0; i < quickGroupRow.getChildCount(); i++) {
+            View child = quickGroupRow.getChildAt(i);
+            boolean active = quickGroup.equals(child.getTag());
+            child.setSelected(active);
+            child.setBackgroundResource(active ? R.drawable.button_primary : R.drawable.button_secondary);
+            if (child instanceof Button) ((Button) child).setTextColor(getColor(
+                    active ? R.color.navy : R.color.text_primary));
+        }
+    }
+
+    private void filterQuickChannels() {
+        List<Channel> filtered = new ArrayList<>();
+        for (Channel channel : quickChannels)
+            if (quickGroup.isEmpty() || quickGroup.equals(channel.group())) filtered.add(channel);
+        String currentId = currentChannelId();
+        quickAdapter.submit(filtered, currentId);
+        int current = 0;
+        for (int i = 0; i < filtered.size(); i++) {
+            if (AppPreferences.id(filtered.get(i)).equals(currentId)) { current = i; break; }
+        }
+        if (!filtered.isEmpty()) quickChannelList.setSelection(current);
+    }
+
+    private String currentChannelId() {
+        for (Channel channel : quickChannels) if (isCurrentChannel(channel)) return AppPreferences.id(channel);
+        return "";
+    }
+
+    private boolean isCurrentChannel(Channel channel) {
+        if (!channel.url().equals(url) || !channel.options().equals(options)) return false;
+        if (currentHeaders.size() != channel.headers().size()) return false;
+        for (Map.Entry<String, String> entry : channel.headers().entrySet())
+            if (!entry.getValue().equals(currentHeaders.getString(entry.getKey()))) return false;
+        return true;
+    }
+
+    private void showQuickChannels() {
+        quickPanel.setVisibility(View.VISIBLE);
+        filterQuickChannels();
+        if (quickAdapter.getCount() > 0) quickChannelList.post(() -> quickChannelList.requestFocus());
+        else if (quickGroupRow.getChildCount() > 0) quickGroupRow.getChildAt(0).requestFocus();
+    }
+
+    private void hideQuickChannels() {
+        quickPanel.setVisibility(View.GONE);
+        playerView.requestFocus();
+    }
+
+    private void switchChannel(Channel channel) {
+        if (channel == null) return;
+        hideQuickChannels();
+        if (isCurrentChannel(channel)) return;
+        name = channel.name();
+        url = channel.url();
+        mime = channel.mimeHint();
+        options = new ArrayList<>(channel.options());
+        DrmSpec drm = DrmSpec.fromOptions(options);
+        drmSystem = drm.system;
+        drmLicense = drm.license;
+        currentHeaders = new Bundle();
+        for (Map.Entry<String, String> entry : channel.headers().entrySet())
+            currentHeaders.putString(entry.getKey(), entry.getValue());
+        getIntent().putExtra(EXTRA_NAME, name);
+        getIntent().putExtra(EXTRA_URL, url);
+        getIntent().putExtra(EXTRA_HEADERS, currentHeaders);
+        getIntent().putExtra(EXTRA_MIME, mime);
+        getIntent().putStringArrayListExtra(EXTRA_OPTIONS, options);
+        ((TextView) findViewById(R.id.txtPlayerTitle)).setText(name);
+        ((TextView) findViewById(R.id.txtPlayerUrl)).setText(url);
+        findViewById(R.id.playerError).setVisibility(View.GONE);
+        AppPreferences.recordRecent(this, channel);
+        position = 0;
+        resumePlayback = true;
+        resolvingClearKey = false;
+        releasePlayer();
+        filterQuickChannels();
+        startPlayer();
+    }
+
+    @Override public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event.getAction() == KeyEvent.ACTION_DOWN
+                && event.getKeyCode() == KeyEvent.KEYCODE_DPAD_LEFT
+                && AppPreferences.isTvInterface(this)
+                && quickPanel != null && quickPanel.getVisibility() != View.VISIBLE) {
+            showQuickChannels();
+            return true;
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override public void onBackPressed() {
+        if (quickPanel != null && quickPanel.getVisibility() == View.VISIBLE) {
+            hideQuickChannels();
+            return;
+        }
+        super.onBackPressed();
+    }
+
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
     private void acquireMulticast() {
