@@ -4,36 +4,54 @@ _Cập nhật: 09/09/2026_
 
 ## Trạng thái bàn giao
 
-Nhánh làm việc: `main`  
-Bản gần nhất trước đợt sửa này: commit `fc95f13`.
+Nhánh làm việc: `main`.
 
-### Đã hoàn thành
+### Đã hoàn thành trước đợt hiện tại
 - Ẩn/hiện URL nguồn phát bằng Settings; mặc định URL nguồn phát bị ẩn.
 - Điều hướng remote trong danh sách nhanh và chuyển kênh UP/DOWN khi controller đang ẩn.
 - Sửa lưu đồng bộ tùy chọn hiển thị nguồn phát để chịu được khởi động lại tiến trình ngay sau khi đổi Settings.
-- Build, unit test và lint của bản trước đã chạy thành công; APK được tạo bởi GitHub Actions.
+- Bản trước đã qua build, unit test và lint; APK được tạo bởi GitHub Actions.
 
-### Vấn đề còn tồn tại được người dùng báo
-1. Trong khi xem kênh, phím LEFT luôn mở danh sách kênh nên không thể tua ngược.
-2. Cần hành vi remote rõ ràng: `OK` mở controller; khi controller đang mở, `LEFT` tua ngược và `RIGHT` tua tới. Khi controller ẩn, `LEFT` mở danh sách nhanh; `UP/DOWN` chuyển kênh.
-3. Danh sách chính chưa hiển thị logo/icon kênh dù parser đã lưu `tvg-logo` vào `Channel.logo()`.
-4. Cần bỏ hoàn toàn chức năng xuất M3U và các nút dưới giao diện chính: `Chọn đang lọc`, `Bỏ chọn`, `Xuất M3U`.
-5. Cần có nguồn IPTV mặc định khi cài app lần đầu:
-   `https://iptv-live-merge.phuongnm7-iptv.workers.dev/playlist.m3u`
-   Người dùng vẫn có thể thêm nguồn khác thủ công.
+## Thay đổi đã đưa lên main trong đợt này
+- `74b4213`: tạo file `progress.md` để bàn giao dự án.
+- `b22d8ea`: thêm nguồn IPTV mặc định vào `PlaylistSourceStore`:
+  `https://iptv-live-merge.phuongnm7-iptv.workers.dev/playlist.m3u`
+  Khi chưa có nguồn người dùng, danh sách nguồn hiển thị nguồn mặc định; người dùng vẫn có thể thêm URL thủ công.
+- `47da7f6` + `bb00dee`: thêm `ImageView` và tải bất đồng bộ logo từ `Channel.logo()` (`tvg-logo`), có fallback chữ khi logo không tải được.
+- `b039cfe`: bỏ ba nút `Chọn đang lọc`, `Bỏ chọn`, `Xuất M3U` khỏi giao diện chính. Các ID được giữ ẩn tạm thời để mã cũ không bị crash trong lúc xóa logic export theo từng bước.
 
-## Đợt sửa hiện tại
-Đang thực hiện các thay đổi trên trực tiếp trên `main`. Sau khi commit, cần theo dõi GitHub Actions và xác minh đặc biệt:
-- `OK -> LEFT/RIGHT` hoạt động tua seek trên nguồn có seek window; với live stream không có DVR, player không thể tua ngoài cửa sổ thời gian mà nguồn cung cấp.
-- `LEFT` chỉ mở danh sách nhanh khi controller đang ẩn.
-- Logo kênh tải được và có fallback chữ khi URL logo lỗi.
-- Không còn nút/chức năng export M3U ở giao diện chính.
-- Cài mới app tự tải playlist mặc định, nhưng không tự ghi đè nguồn người dùng đã thêm hoặc phiên đã lưu.
+## Việc bắt buộc còn lại
+### 1. Sửa remote seek — ưu tiên cao
+Trong `PlayerActivity.dispatchKeyEvent()`, hiện `KEYCODE_DPAD_LEFT` bị chặn vô điều kiện để mở danh sách nhanh. Cần đổi thứ tự xử lý thành:
 
-## Gợi ý cho người tiếp nhận
-Các file chính:
+- `OK` / `DPAD_CENTER` khi controller ẩn: gọi `playerView.showController()`.
+- Khi controller **đang hiện**: không chặn `DPAD_LEFT` hoặc `DPAD_RIGHT`; trả cho `PlayerView`/Media3 để thực hiện seek backward/forward.
+- Khi controller **ẩn**: `DPAD_LEFT` mở danh sách nhanh.
+- Khi controller ẩn: `DPAD_UP/DOWN` chuyển kênh như hiện tại.
+
+Lưu ý: với live stream không có DVR/seek window, không thể tua ngược vượt ra ngoài dữ liệu mà nguồn cung cấp.
+
+### 2. Tự tải nguồn mặc định khi cài mới
+Hiện nguồn mặc định đã xuất hiện trong danh sách nguồn, nhưng `MainActivity.restoreSession()` vẫn chỉ khôi phục phiên cũ. Cần bổ sung: nếu `SessionStore.load()` trả về `null`, đặt `inputUrl` thành `PlaylistSourceStore.DEFAULT_URL` và tự gọi luồng tải playlist một lần. Không ghi đè phiên đã lưu.
+
+### 3. Xóa sạch logic export M3U
+Giao diện đã bỏ các nút, nhưng `MainActivity` vẫn còn các hằng `SAVE_M3U`, listener và các phương thức export cũ. Sau khi smoke test ổn định, xóa hoàn toàn:
+- `SAVE_M3U`
+- listener `btnSelectAll`, `btnSelectNone`, `btnExport`
+- `setVisibleSelection`, `exportFile`, `writeExport` và import/output không còn dùng.
+
+## Kiểm tra trước khi bàn giao APK
+- Build + unit test + lint PASS.
+- Smoke test Android 15.
+- Test remote: phát nguồn có DVR/seek -> `OK` -> `LEFT` tua ngược -> `RIGHT` tua tới; controller ẩn -> `LEFT` mở danh sách nhanh.
+- Test logo URL hợp lệ và URL lỗi.
+- Cài mới app -> tự tải playlist mặc định.
+- Người dùng thêm playlist thứ hai -> không bị nguồn mặc định ghi đè.
+- Không còn nút export/chọn lọc ở giao diện chính.
+
+## File chính
 - `PlayerActivity.java`: remote, controller, phát và danh sách nhanh.
-- `MainActivity.java`: tải nguồn, danh sách chính và phiên làm việc.
-- `ChannelAdapter.java` + `item_channel.xml`: hiển thị từng kênh/logo.
-- `PlaylistSourceStore.java`: nguồn playlist mặc định và nguồn do người dùng thêm.
-- `progress.md`: nhật ký bàn giao này.
+- `MainActivity.java`: tải nguồn, danh sách chính, phiên và logic export cũ.
+- `ChannelAdapter.java` + `item_channel.xml`: logo kênh.
+- `PlaylistSourceStore.java`: nguồn mặc định và nguồn người dùng.
+- `progress.md`: nhật ký bàn giao.
