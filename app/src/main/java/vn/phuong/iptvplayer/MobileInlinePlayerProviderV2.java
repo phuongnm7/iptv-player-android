@@ -46,12 +46,14 @@ import androidx.media3.common.util.UnstableApi;
 import androidx.media3.datasource.DefaultDataSource;
 import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.datasource.HttpDataSource;
+import androidx.media3.exoplayer.DefaultLoadControl;
 import androidx.media3.exoplayer.DefaultRenderersFactory;
 import androidx.media3.exoplayer.DecoderCounters;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.exoplayer.analytics.AnalyticsListener;
 import androidx.media3.exoplayer.rtsp.RtspMediaSource;
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
+import androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy;
 import androidx.media3.ui.AspectRatioFrameLayout;
 import androidx.media3.ui.PlayerView;
 
@@ -162,8 +164,6 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         videoContainer.addView(playerView, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
 
-        // Keep Media3's native play/pause + TimeBar so DVR/catch-up streams can be dragged precisely.
-        // Remove only the skip/10-second controls that made the live-TV overlay too busy.
         hideControllerView("exo_prev");
         hideControllerView("exo_next");
         hideControllerView("exo_rew");
@@ -360,11 +360,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         Window window = currentActivity.getWindow();
         window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
         if (Build.VERSION.SDK_INT >= 30) {
-            android.view.WindowInsetsController controller = window.getInsetsController();
-            if (controller != null) {
-                controller.hide(android.view.WindowInsets.Type.statusBars() | android.view.WindowInsets.Type.navigationBars());
-                controller.setSystemBarsBehavior(android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
-            }
+            Api30Insets.hide(window);
         } else {
             window.getDecorView().setSystemUiVisibility(
                     View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
@@ -379,11 +375,17 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         Window window = currentActivity.getWindow();
         window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
         if (Build.VERSION.SDK_INT >= 30) {
-            android.view.WindowInsetsController controller = window.getInsetsController();
-            if (controller != null) controller.show(android.view.WindowInsets.Type.statusBars() | android.view.WindowInsets.Type.navigationBars());
+            Api30Insets.show(window);
         } else {
             window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
         }
+    }
+
+    private static DefaultLoadControl stableLoadControl() {
+        return new DefaultLoadControl.Builder()
+                .setBufferDurationsMs(12_000, 45_000, 750, 2_000)
+                .setPrioritizeTimeOverSizeThresholds(true)
+                .build();
     }
 
     private void playInline(Channel channel) {
@@ -419,12 +421,16 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         if (currentActivity == null || currentChannel != channel || generation != playGeneration) return;
         try {
             Map<String, String> headers = new LinkedHashMap<>(channel.headers());
-            String ua = headers.containsKey("User-Agent") ? headers.get("User-Agent") : "Nm7-IPTV/1.10.6 Android";
+            String ua = headers.containsKey("User-Agent") ? headers.get("User-Agent") : "Nm7-IPTV/1.10.8 Android";
             DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory()
-                    .setUserAgent(ua).setConnectTimeoutMs(15_000).setReadTimeoutMs(20_000)
+                    .setUserAgent(ua)
+                    .setConnectTimeoutMs(20_000)
+                    .setReadTimeoutMs(35_000)
+                    .setAllowCrossProtocolRedirects(true)
                     .setDefaultRequestProperties(headers);
             DefaultDataSource.Factory data = new DefaultDataSource.Factory(currentActivity, http);
-            DefaultMediaSourceFactory mediaFactory = new DefaultMediaSourceFactory(data);
+            DefaultMediaSourceFactory mediaFactory = new DefaultMediaSourceFactory(data)
+                    .setLoadErrorHandlingPolicy(new DefaultLoadErrorHandlingPolicy(6));
 
             MediaItem.Builder media = new MediaItem.Builder().setUri(channel.url());
             String mime = forcedMime;
@@ -435,6 +441,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
 
             ExoPlayer next = new ExoPlayer.Builder(currentActivity,
                     new DefaultRenderersFactory(currentActivity).setEnableDecoderFallback(true))
+                    .setLoadControl(stableLoadControl())
                     .setMediaSourceFactory(mediaFactory).build();
             next.setAudioAttributes(new AudioAttributes.Builder()
                     .setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(), true);
@@ -463,7 +470,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
                         keepScreenAwake(true);
                         mainHandler.postDelayed(() -> {
                             if (generation == playGeneration && next == player && next.isPlaying()) recoveryAttempts = 0;
-                        }, 5000);
+                        }, 8000);
                     }
                 }
                 @Override public void onIsPlayingChanged(boolean isPlaying) {
@@ -515,11 +522,35 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
             return;
         }
         boolean drmSystem = error.errorCode == PlaybackException.ERROR_CODE_DRM_SYSTEM_ERROR;
-        if ((drmSystem || isTransientPlaybackError(error)) && recoveryAttempts < 3) {
+        boolean transientError = isTransientPlaybackError(error);
+        if (transientError && recoveryAttempts < 4) {
             int attempt = ++recoveryAttempts;
-            long delay = drmSystem ? (attempt == 1 ? 450 : attempt == 2 ? 1000 : 1800)
-                    : (attempt == 1 ? 600 : attempt == 2 ? 1400 : 2500);
-            programme.setText(drmSystem ? "DRM đang khởi tạo lại…" : "Luồng tạm gián đoạn, đang thử lại…");
+            long delay = attempt == 1 ? 350 : attempt == 2 ? 800 : attempt == 3 ? 1800 : 3500;
+            programme.setText("Luồng tạm gián đoạn, đang giữ phiên và thử lại…");
+            ExoPlayer retryPlayer = player;
+            if (attempt <= 2 && retryPlayer != null) {
+                mainHandler.postDelayed(() -> {
+                    if (generation != playGeneration || currentChannel != channel || player != retryPlayer) return;
+                    try {
+                        retryPlayer.prepare();
+                        retryPlayer.play();
+                    } catch (RuntimeException ignored) {
+                        releasePlayer();
+                        startInlinePlayer(channel, drm, generation, forcedMime);
+                    }
+                }, delay);
+            } else {
+                releasePlayer();
+                mainHandler.postDelayed(() -> {
+                    if (generation == playGeneration && currentChannel == channel) startInlinePlayer(channel, drm, generation, forcedMime);
+                }, delay);
+            }
+            return;
+        }
+        if (drmSystem && recoveryAttempts < 3) {
+            int attempt = ++recoveryAttempts;
+            long delay = attempt == 1 ? 450 : attempt == 2 ? 1000 : 1800;
+            programme.setText("DRM đang khởi tạo lại…");
             releasePlayer();
             mainHandler.postDelayed(() -> {
                 if (generation == playGeneration && currentChannel == channel) startInlinePlayer(channel, drm, generation, forcedMime);
@@ -558,7 +589,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
                         connection.setInstanceFollowRedirects(false);
                         connection.setRequestMethod("GET");
                         for (Map.Entry<String, String> header : headers.entrySet()) connection.setRequestProperty(header.getKey(), header.getValue());
-                        if (!headers.containsKey("User-Agent")) connection.setRequestProperty("User-Agent", "Nm7-IPTV/1.10.6 Android");
+                        if (!headers.containsKey("User-Agent")) connection.setRequestProperty("User-Agent", "Nm7-IPTV/1.10.8 Android");
                         int code = connection.getResponseCode();
                         if (code >= 300 && code < 400) {
                             String location = connection.getHeaderField("Location");
@@ -784,6 +815,21 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
 
     private static int dp(Activity activity, int value) {
         return Math.round(value * activity.getResources().getDisplayMetrics().density);
+    }
+
+    @TargetApi(30)
+    private static final class Api30Insets {
+        static void hide(Window window) {
+            android.view.WindowInsetsController controller = window.getInsetsController();
+            if (controller != null) {
+                controller.hide(android.view.WindowInsets.Type.statusBars() | android.view.WindowInsets.Type.navigationBars());
+                controller.setSystemBarsBehavior(android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            }
+        }
+        static void show(Window window) {
+            android.view.WindowInsetsController controller = window.getInsetsController();
+            if (controller != null) controller.show(android.view.WindowInsets.Type.statusBars() | android.view.WindowInsets.Type.navigationBars());
+        }
     }
 
     @TargetApi(33)
