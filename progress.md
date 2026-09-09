@@ -2,82 +2,74 @@
 
 _Cập nhật: 09/09/2026_
 
-## Trạng thái hiện tại: BẢN 1.7.3 ĐÃ ĐƯỢC NGƯỜI DÙNG XÁC NHẬN OK
+## Trạng thái hiện tại: Android hoàn tất, Samsung Tizen tạm dừng
 
-- Repository: `phuongnm7/iptv-player-android`
-- Branch: `main`
-- Commit hiện tại: `f03cf8447a8d6a3c2a56db879b1e74bc2ca00fd4`
-- Version: `versionCode 12`, `versionName 1.7.3`
-- GitHub Actions: **Build #57**, run ID `34321819246`
-- Kết quả workflow: **PASS toàn bộ**
-- Artifact APK: `Nm7-IPTV-1.7.3-APK`
-- Artifact ID: `10092247830`
-- Archive SHA-256: `4478d1618f973f428136b7ee7d1f8f12ab38a0edc06b161db36a506982978f78`
-- Artifact hết hạn: 09/10/2026
-- Người dùng đã cài/thử và xác nhận: **“bản này đã ok”**.
+### Android
 
-## Các thay đổi đã hoàn thành trong 1.7.3
+- Bản ổn định hiện tại: **Nm7 IPTV 1.7.3**.
+- Version: `versionCode 12`, `versionName 1.7.3`.
+- GitHub Actions: **Build #57**, run ID `34321819246`; compile, unit test, lint, ký APK và smoke test Android 15 đều PASS.
+- Artifact: `Nm7-IPTV-1.7.3-APK`, ID `10092247830`.
+- Người dùng đã cài/thử và xác nhận bản Android hoạt động OK.
 
-- Bỏ khối chữ thống kê số kênh, số kênh trùng và URL thiếu/sai khỏi màn hình chính.
-- Bỏ dòng `Nguồn: …` khỏi màn hình chính.
-- Khi bấm `+ Nguồn`, bảng nhập nguồn mở ra với ô URL trống và được focus.
-- Sửa lỗi `ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED` đối với URL không có đuôi nhưng chuyển hướng sang HLS/DASH.
-- Trình phát tự kiểm tra địa chỉ chuyển hướng và chọn đúng định dạng HLS hoặc DASH; không cần chọn thủ công.
+### Samsung Tizen TV
 
-## Các thay đổi kế thừa từ 1.7.2
+- Trạng thái: **TẠM DỪNG theo yêu cầu người dùng vì hiện chưa có TV Samsung để kết nối và thử**.
+- Mục tiêu: TV Samsung đời 2015–2020, Tizen 2.3–5.5.
+- Phiên bản mã nguồn hiện tại: `0.1.0`, nằm trong thư mục `tizen/`.
+- Commit mã/CI đã kiểm tra: `9350de76338aca53d4e33c49a605a090235269cb`.
+- GitHub Actions Tizen: **Build #2**, run ID `34323731285`, PASS.
+- Artifact nguồn: `Nm7-IPTV-Tizen-0.1.0-source`, ID `10092880456`.
+- Đây chưa phải gói `.wgt` có thể cài lên TV thật.
 
-- Tự nối lại khi playlist đi đến trạng thái kết thúc.
-- Tự nối lại đối với lỗi mạng tạm thời và HTTP 408/429/5xx.
-- Giới hạn tối đa 4 lần thử với thời gian chờ tăng dần; lỗi quyền truy cập, DRM và codec không bị lặp vô hạn.
-- Trên TV, khi bảng điều khiển trình phát đang hiện:
-  - Back lần đầu: ẩn bảng điều khiển/tùy chọn.
-  - Back lần tiếp theo: rời màn hình phát.
+## Phần Tizen đã hoàn thành
 
-## Các thay đổi kế thừa từ 1.7.1
+- Tizen Web App dùng JavaScript ES5 để tương thích TV đời cũ.
+- Phát HLS/DASH bằng Samsung Product AVPlay.
+- Tải và ghi nhớ playlist M3U.
+- Parser M3U hỗ trợ logo, nhóm, User-Agent và Referer.
+- Danh sách kênh, nhóm, tìm kiếm, Yêu thích và Gần đây.
+- Điều khiển D-pad, danh sách nhanh và hành vi Back hai bước trong màn hình phát.
+- Tự nối lại luồng tối đa 4 lần.
+- Cài đặt cơ bản và icon Nm7.
+- CI kiểm tra cú pháp JavaScript, unit test parser, XML cấu hình, tệp bắt buộc và đóng gói nguồn.
 
-- Xóa các nút `Chọn đang lọc`, `Bỏ chọn`, `Xuất M3U` khỏi giao diện Mobile và TV.
-- Khôi phục menu Cài đặt với lựa chọn giao diện, hình nền, URL, mật độ hàng, FPS, đồng hồ, nguồn phát, lịch sử và thông tin ứng dụng.
-- Thêm launcher icon và TV banner từ ảnh `nm7 IPTV` do người dùng cung cấp.
-- Build #49 / run ID `34315634209` đã PASS toàn bộ.
+## Môi trường trên máy Windows đã chuẩn bị
 
-## Kết quả kiểm tra Build #57
+- Đã cài Tizen Studio Web CLI/SDK 10.0.
+- Đã sửa Package Manager repository sang:
+  `https://download.tizen.org/sdk/tizenstudio`
+- Đã cài `TV Extensions-10.0`.
+- Đã cài `Web app. development`.
+- Đã cài `Samsung Certificate Extension`.
+- `Samsung Wearable Extension` cũng được cài nhưng không ảnh hưởng dự án.
 
-- PASS: Compile Android.
-- PASS: Unit test.
-- PASS: Lint.
-- PASS: Verify và đóng gói APK.
-- PASS: Upload APK artifact.
-- PASS: Chuẩn bị Android 15 emulator.
-- PASS: Smoke test ứng dụng trên Android 15.
-- PASS: Upload báo cáo kiểm thử/lint.
+## Bước tiếp tục khi có TV Samsung
 
-## Chức năng và điều khiển hiện tại
+1. Cho TV và máy tính kết nối cùng mạng Wi-Fi/LAN.
+2. Trên máy tính chạy `ipconfig` và lấy IPv4.
+3. Trên TV mở Apps, bấm `1 2 3 4 5`, bật Developer Mode và nhập IPv4 của máy tính.
+4. Khởi động lại TV.
+5. Mở Tizen Device Manager, kết nối tới IP của TV qua cổng 26101.
+6. Mở Samsung Certificate Manager, tạo Samsung TV Certificate Profile và thêm DUID của TV.
+7. Import artifact nguồn Tizen vào Tizen Studio.
+8. Build và ký gói `.wgt`.
+9. Cài gói lên TV qua mạng bằng Tizen Studio/Device Manager.
+10. Chạy smoke test thực tế: tải playlist, điều khiển remote, phát HLS/DASH, chuyển kênh, Back hai bước và tự nối lại.
+11. Ghi nhận lỗi theo từng đời TV rồi mới đánh dấu bản Tizen hoàn tất.
 
-- Tự tải playlist mặc định khi chưa có phiên hợp lệ.
-- Khôi phục playlist của phiên trước khi có dữ liệu hợp lệ.
-- Hỗ trợ thêm/chọn nguồn IPTV khác, mở file và phát URL trực tiếp.
-- Có logo kênh, Yêu thích, Gần đây, lọc nhóm và tìm kiếm.
-- Controller ẩn trên TV:
-  - `OK`: hiện controller.
-  - `LEFT`: mở danh sách kênh nhanh.
-  - `UP/DOWN`: đổi kênh.
-- Controller hiện:
-  - `BACK`: ẩn controller.
-  - `LEFT/RIGHT`: Media3 xử lý tua nếu nguồn có DVR/seek window.
+## Những thay đổi chính của Android 1.7.3
 
-## Mốc tiếp tục trong tương lai
+- Bỏ thống kê và dòng nguồn khỏi màn hình chính.
+- Ô URL trống khi bấm `+ Nguồn`.
+- Tự nhận diện HLS/DASH sau chuyển hướng.
+- Tự nối lại khi playlist kết thúc hoặc gặp lỗi mạng tạm thời.
+- Trên TV/Android: Back lần đầu ẩn controller, lần tiếp theo rời màn hình phát.
+- Đã bỏ các nút `Chọn đang lọc`, `Bỏ chọn`, `Xuất M3U`.
+- Khôi phục menu cài đặt và thêm icon/banner Nm7.
 
-Tiếp tục từ commit `f03cf8447a8d6a3c2a56db879b1e74bc2ca00fd4`, Build #57, phiên bản 1.7.3. Đây là bản hiện tại đã PASS CI trên Android 15 và được người dùng xác nhận hoạt động ổn.
+## Mốc tiếp tục
 
-
-## Samsung Tizen TV — bản 0.1.0 (đang chờ ký và thử trên TV thật)
-
-- Mục tiêu tương thích: TV Samsung đời 2015–2020, Tizen 2.3–5.5.
-- Mã nguồn: thư mục `tizen/`.
-- Trình phát: Samsung Product AVPlay, hỗ trợ HLS/DASH theo khả năng từng đời TV.
-- Đã có: tải/ghi nhớ nguồn M3U, parser M3U và header, nhóm kênh, tìm kiếm, Yêu thích, Gần đây, danh sách nhanh, D-pad/Back, tự nối lại tối đa 4 lần, cài đặt cơ bản và icon Nm7.
-- Back trong màn hình phát: lần đầu ẩn bảng điều khiển; lần tiếp theo rời trình phát.
-- GitHub Actions Tizen Build #2, run ID `34323731285`: **PASS** kiểm tra cú pháp JavaScript, unit test parser, XML, tệp bắt buộc và đóng gói nguồn.
-- Commit đã kiểm tra: `9350de76338aca53d4e33c49a605a090235269cb`.
-- Artifact: `Nm7-IPTV-Tizen-0.1.0-source`, ID `10092880456`.
-- Trạng thái: chưa thể gọi là bản cài đặt hoàn chỉnh cho TV thật cho đến khi tạo Samsung Certificate Profile có DUID của TV, ký gói `.wgt`, cài và chạy smoke test trên TV.
+- Android: giữ nguyên bản ổn định 1.7.3 / Build #57.
+- Tizen: tiếp tục từ commit `9350de76338aca53d4e33c49a605a090235269cb`, Build #2.
+- Điều kiện mở lại phần Tizen: có TV Samsung thật tại chỗ để lấy IP/DUID, ký, cài và kiểm thử.
