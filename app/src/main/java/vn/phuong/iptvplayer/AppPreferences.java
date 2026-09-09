@@ -3,6 +3,7 @@ package vn.phuong.iptvplayer;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.app.UiModeManager;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -67,8 +68,23 @@ final class AppPreferences {
     static void setBackgroundPlayback(Context context, boolean value) { prefs(context).edit().putBoolean("background_playback", value).apply(); }
     static String interfaceMode(Context context) { return prefs(context).getString("interface_mode", "auto"); }
     static void setInterfaceMode(Context context, String value) { prefs(context).edit().putString("interface_mode", value).apply(); }
+
+    /** Hardware/OS level TV detection. Physical TVs always use the TV-safe path. */
+    static boolean isPhysicalTv(Context context) {
+        UiModeManager manager = (UiModeManager) context.getSystemService(Context.UI_MODE_SERVICE);
+        if (manager != null && manager.getCurrentModeType() == Configuration.UI_MODE_TYPE_TELEVISION) return true;
+        PackageManager pm = context.getPackageManager();
+        return pm != null && (pm.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
+                || pm.hasSystemFeature("android.software.leanback_only"));
+    }
+
     static boolean isTvInterface(Context context) {
-        String value = interfaceMode(context); if ("tv".equals(value)) return true; if ("mobile".equals(value)) return false;
+        // Never run the touch/mobile player stack on a real Android TV, even if an
+        // old installation previously persisted "mobile" as its interface mode.
+        if (isPhysicalTv(context)) return true;
+        String value = interfaceMode(context);
+        if ("tv".equals(value)) return true;
+        if ("mobile".equals(value)) return false;
         UiModeManager manager = (UiModeManager) context.getSystemService(Context.UI_MODE_SERVICE);
         return manager != null && manager.getCurrentModeType() == Configuration.UI_MODE_TYPE_TELEVISION;
     }
