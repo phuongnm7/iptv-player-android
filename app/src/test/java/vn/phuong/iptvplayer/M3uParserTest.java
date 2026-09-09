@@ -128,4 +128,16 @@ public class M3uParserTest {
         assertTrue(out.contains("#EXTVLCOPT:network-caching=1000\n"));
         assertEquals(r.channels.get(0).options(), parser.parse(out, "").channels.get(0).options());
     }
+
+    @Test public void preservesPlaylistChannelAndGroupEncounterOrder() {
+        M3uParser.Result r = new M3uParser().parse("#EXTM3U\n"
+                + "#EXTINF:-1 group-title=\"Nhóm B\",Kênh B1\nhttps://example.test/b1\n"
+                + "#EXTINF:-1 group-title=\"Nhóm A\",Kênh A1\nhttps://example.test/a1\n"
+                + "#EXTINF:-1 group-title=\"Nhóm B\",Kênh B2\nhttps://example.test/b2\n", "");
+        assertEquals("Kênh B1", r.channels.get(0).name());
+        assertEquals("Nhóm B", r.channels.get(0).group());
+        assertEquals("Kênh A1", r.channels.get(1).name());
+        assertEquals("Kênh B2", r.channels.get(2).name());
+    }
 }
+

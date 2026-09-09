@@ -90,6 +90,10 @@ public final class PlayerActivity extends Activity {
     private QuickChannelAdapter quickAdapter;
     private final List<Channel> quickChannels = new ArrayList<>();
     private String quickGroup = "";
+    private TextView gestureFeedback;
+    private android.media.AudioManager audioManager;
+    private float gestureStartY, gestureStartBrightness;
+    private int gestureMode, gestureStartVolume;
     private int consumedRemoteKey = KeyEvent.KEYCODE_UNKNOWN;
     private final Runnable clockUpdate = new Runnable() {
         @Override public void run() {
@@ -136,7 +140,7 @@ public final class PlayerActivity extends Activity {
         findViewById(R.id.btnBack).setOnClickListener(v -> finish()); findViewById(R.id.btnQuality).setOnClickListener(v -> chooseQuality());
         findViewById(R.id.btnFormat).setOnClickListener(v -> chooseFormat()); findViewById(R.id.btnRotate).setOnClickListener(v -> chooseOrientation());
         findViewById(R.id.btnDrm).setOnClickListener(v -> configureDrm()); findViewById(R.id.btnResize).setOnClickListener(v -> chooseResizeMode());
-        findViewById(R.id.btnRetry).setOnClickListener(v -> { position = 0; resumePlayback = true; releasePlayer(); startPlayer(); }); loadQuickChannels();
+        findViewById(R.id.btnRetry).setOnClickListener(v -> { position = 0; resumePlayback = true; releasePlayer(); startPlayer(); }); setupMobileEdgeGestures(); loadQuickChannels();
     }
     @Override protected void onStart() { super.onStart(); activityStarted = true; stopService(new android.content.Intent(this,BackgroundPlaybackService.class)); backgroundPlaybackActive=false; fpsHandler.post(fpsUpdate); clockHandler.post(clockUpdate); startPlayer(); }
     @Override protected void onResume(){super.onResume();if(player!=null)player.setWakeMode(C.WAKE_MODE_NONE);}
@@ -222,7 +226,36 @@ public final class PlayerActivity extends Activity {
     private void chooseResizeMode(){String[] l={"Vừa màn hình (Fit)","Phóng đầy màn hình (Zoom)","Kéo đầy khung (Fill)"};int[] v={AspectRatioFrameLayout.RESIZE_MODE_FIT,AspectRatioFrameLayout.RESIZE_MODE_ZOOM,AspectRatioFrameLayout.RESIZE_MODE_FILL};new AlertDialog.Builder(this).setTitle("Tỷ lệ và khung hình").setItems(l,(d,i)->{resizeMode=v[i];playerView.setResizeMode(resizeMode);}).setNegativeButton("Đóng",null).show();}
     private void configureDrm(){LinearLayout f=new LinearLayout(this);f.setOrientation(LinearLayout.VERTICAL);f.setPadding(32,8,32,0);android.widget.Spinner type=new android.widget.Spinner(this);String[] values={"Widevine","ClearKey","PlayReady (Android TV)"};type.setAdapter(new android.widget.ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,values));if("clearkey".equals(drmSystem))type.setSelection(1);if("playready".equals(drmSystem))type.setSelection(2);EditText license=new EditText(this);license.setHint("URL giấy phép hoặc ClearKey KID:KEY");license.setSingleLine(false);license.setMaxLines(4);license.setText(drmLicense);f.addView(type);f.addView(license);new AlertDialog.Builder(this).setTitle("DRM do nhà cung cấp cấp").setMessage("Không nhập khóa hoặc giấy phép bạn không có quyền sử dụng. Dữ liệu này chỉ giữ trong màn hình phát hiện tại.").setView(f).setPositiveButton("Áp dụng",(d,w)->{drmSystem=new String[]{"widevine","clearkey","playready"}[type.getSelectedItemPosition()];drmLicense=license.getText().toString().trim();position=0;resumePlayback=true;releasePlayer();startPlayer();}).setNeutralButton("Tắt DRM",(d,w)->{drmSystem="";drmLicense="";releasePlayer();startPlayer();}).setNegativeButton("Đóng",null).show();}
     private void loadQuickChannels(){SessionStore.IO.execute(()->{try{SessionStore.State s=SessionStore.load(getApplicationContext());runOnUiThread(()->{if(isFinishing()||isDestroyed())return;quickChannels.clear();if(s!=null)quickChannels.addAll(s.result.channels);rebuildQuickGroups();filterQuickChannels();});}catch(Exception ignored){runOnUiThread(()->{if(!isFinishing()&&!isDestroyed())filterQuickChannels();});}});}
-    private void rebuildQuickGroups(){Set<String> u=new LinkedHashSet<>();for(Channel c:quickChannels)u.add(c.group());List<String> g=new ArrayList<>(u);g.sort(String.CASE_INSENSITIVE_ORDER);if(!quickGroup.isEmpty()&&!u.contains(quickGroup))quickGroup="";quickGroupRow.removeAllViews();addQuickGroup("Tất cả","");for(String x:g)addQuickGroup(x,x);updateQuickGroupButtons();}
+    private void rebuildQuickGroups(){Set<String> u=new LinkedHashSet<>();for(Channel c:quickChannels)u.add(c.group());List<String> g=new ArrayList<>(u);if(!quickGroup.isEmpty()&&!u.contains(quickGroup))quickGroup="";quickGroupRow.removeAllViews();addQuickGroup("Tất cả","");for(String x:g)addQuickGroup(x,x);updateQuickGroupButtons();}
+
+    private void setupMobileEdgeGestures(){
+        if(AppPreferences.isTvInterface(this))return;
+        audioManager=(android.media.AudioManager)getSystemService(AUDIO_SERVICE);
+        gestureFeedback=new TextView(this);gestureFeedback.setTextColor(android.graphics.Color.WHITE);gestureFeedback.setTextSize(18);gestureFeedback.setGravity(android.view.Gravity.CENTER);gestureFeedback.setPadding(dp(20),dp(12),dp(20),dp(12));gestureFeedback.setBackgroundResource(R.drawable.panel);gestureFeedback.setVisibility(View.GONE);gestureFeedback.setElevation(dp(20));
+        android.widget.FrameLayout root=findViewById(R.id.playerRoot);android.widget.FrameLayout.LayoutParams feedbackParams=new android.widget.FrameLayout.LayoutParams(android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,android.view.Gravity.CENTER);root.addView(gestureFeedback,feedbackParams);
+        playerView.setOnTouchListener((view,event)->{
+            int action=event.getActionMasked();
+            if(action==android.view.MotionEvent.ACTION_DOWN){
+                if(quickPanel!=null&&quickPanel.getVisibility()==View.VISIBLE)return false;
+                float x=event.getX(),width=Math.max(1f,view.getWidth());gestureMode=x<width*.3f?1:x>width*.7f?2:0;if(gestureMode==0)return false;
+                gestureStartY=event.getY();
+                if(gestureMode==1){float current=getWindow().getAttributes().screenBrightness;gestureStartBrightness=current<0?0.5f:current;}
+                else gestureStartVolume=audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC);
+                return true;
+            }
+            if(gestureMode==0)return false;
+            if(action==android.view.MotionEvent.ACTION_MOVE){
+                float delta=(gestureStartY-event.getY())/Math.max(1f,view.getHeight())*1.35f;
+                if(gestureMode==1){float value=Math.max(.05f,Math.min(1f,gestureStartBrightness+delta));WindowManager.LayoutParams params=getWindow().getAttributes();params.screenBrightness=value;getWindow().setAttributes(params);showGestureFeedback("☀  Độ sáng "+Math.round(value*100)+"%");}
+                else{int max=audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC);int value=Math.max(0,Math.min(max,Math.round(gestureStartVolume+delta*max)));audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC,value,0);showGestureFeedback("🔊  Âm lượng "+Math.round(value*100f/Math.max(1,max))+"%");}
+                return true;
+            }
+            if(action==android.view.MotionEvent.ACTION_UP||action==android.view.MotionEvent.ACTION_CANCEL){gestureMode=0;gestureFeedback.removeCallbacks(hideGestureFeedback);gestureFeedback.postDelayed(hideGestureFeedback,650);return true;}
+            return true;
+        });
+    }
+    private final Runnable hideGestureFeedback=()->{if(gestureFeedback!=null)gestureFeedback.setVisibility(View.GONE);};
+    private void showGestureFeedback(String text){gestureFeedback.removeCallbacks(hideGestureFeedback);gestureFeedback.setText(text);gestureFeedback.setVisibility(View.VISIBLE);}
     private void addQuickGroup(String l,String v){Button b=new Button(this);b.setTag(v);b.setText(l);b.setAllCaps(false);b.setTextSize(12);b.setSingleLine(true);b.setFocusable(true);b.setFocusableInTouchMode(false);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,dp(44));p.setMarginEnd(dp(7));quickGroupRow.addView(b,p);b.setOnClickListener(x->{quickGroup=(String)v;updateQuickGroupButtons();filterQuickChannels();if(quickAdapter.getCount()>0)quickChannelList.requestFocus();});}
     private void updateQuickGroupButtons(){for(int i=0;i<quickGroupRow.getChildCount();i++){View c=quickGroupRow.getChildAt(i);boolean a=quickGroup.equals(c.getTag());c.setSelected(a);c.setBackgroundResource(a?R.drawable.button_primary:R.drawable.button_secondary);if(c instanceof Button)((Button)c).setTextColor(getColor(a?R.color.navy:R.color.text_primary));}}
     private void filterQuickChannels(){List<Channel> f=new ArrayList<>();for(Channel c:quickChannels)if(quickGroup.isEmpty()||quickGroup.equals(c.group()))f.add(c);String id=currentChannelId();quickAdapter.submit(f,id);int cur=0;for(int i=0;i<f.size();i++)if(AppPreferences.id(f.get(i)).equals(id)){cur=i;break;}if(!f.isEmpty())quickChannelList.setSelection(cur);}
