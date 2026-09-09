@@ -44,6 +44,39 @@ def has_id(root, name):
     return any(n.get("resource-id") == PACKAGE + ":id/" + name for n in root.iter("node"))
 
 
+def has_android_id(root, name):
+    return any(n.get("resource-id") == "android:id/" + name for n in root.iter("node"))
+
+
+def dismiss_expected_playlist_error(root):
+    """Dismiss only the handled network error shown when CI cannot resolve the default playlist."""
+    title = next(
+        (
+            n.get("text", "")
+            for n in root.iter("node")
+            if n.get("resource-id") == "android:id/alertTitle"
+        ),
+        "",
+    )
+    message = next(
+        (
+            n.get("text", "")
+            for n in root.iter("node")
+            if n.get("resource-id") == "android:id/message"
+        ),
+        "",
+    )
+    if (
+        title == "Lỗi"
+        and message.startswith("Không tải được playlist:")
+        and has_android_id(root, "button1")
+    ):
+        print("INFO: default playlist is unavailable in CI; dismissing handled network error")
+        adb("shell", "input", "keyevent", "KEYCODE_BACK")
+        return True
+    return False
+
+
 def print_diagnostics():
     print("\n===== NM7 SMOKE DIAGNOSTICS =====", file=sys.stderr)
     commands = [
@@ -73,20 +106,24 @@ def print_diagnostics():
             print(result.stderr, file=sys.stderr)
 
 
-def wait_for(predicate, message, timeout=30):
+def wait_for_main_screen(timeout=45):
     end = time.monotonic() + timeout
     last_error = None
     while time.monotonic() < end:
         try:
             root = hierarchy()
-            if predicate(root):
+            if has_id(root, "mainRoot"):
                 return root
+            if dismiss_expected_playlist_error(root):
+                time.sleep(.5)
+                continue
         except Exception as error:
             last_error = error
         time.sleep(.4)
     print_diagnostics()
+    message = "Main screen did not open"
     if last_error is not None:
-        raise AssertionError(f"{message}; last UI dump error: {last_error}")
+        message += f"; last UI dump error: {last_error}"
     raise AssertionError(message)
 
 
@@ -107,7 +144,7 @@ launch = run_adb(
 print(launch.stdout)
 if launch.stderr:
     print(launch.stderr, file=sys.stderr)
-root = wait_for(lambda r: has_id(r, "mainRoot"), "Main screen did not open")
+root = wait_for_main_screen()
 required = ["btnSources", "btnPlaylists", "btnAllChannels", "btnFavorites", "btnRecent", "listChannels"]
 missing = [name for name in required if not has_id(root, name)]
 if missing:
