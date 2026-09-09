@@ -34,10 +34,4 @@
         <ListView android:id="@+id/listChannels" android:layout_width="match_parent" android:layout_height="match_parent" android:divider="@android:color/transparent" android:dividerHeight="5dp" android:listSelector="@drawable/list_focus" />
         <TextView android:id="@+id/txtEmpty" android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center" android:padding="20dp" android:text="Chưa có kênh phù hợp." android:textColor="@color/text_secondary" android:visibility="gone" />
     </FrameLayout>
-    <!-- Deprecated export controls retained only as invisible IDs while legacy code is removed. -->
-    <LinearLayout android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone">
-        <Button android:id="@+id/btnSelectAll" android:layout_width="1dp" android:layout_height="1dp" />
-        <Button android:id="@+id/btnSelectNone" android:layout_width="1dp" android:layout_height="1dp" />
-        <Button android:id="@+id/btnExport" android:layout_width="1dp" android:layout_height="1dp" />
-    </LinearLayout>
 </LinearLayout>

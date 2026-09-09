@@ -47,11 +47,12 @@ public final class MainActivity extends Activity {
     private int duplicateCount, missingUrlCount, activeSection;
     private String currentSource = "", selectedGroup = "";
     private boolean loading, importExpanded = true;
+    private int wallpaperGeneration;
 
     @Override protected void onCreate(Bundle savedInstanceState) { super.onCreate(savedInstanceState); setupViews(); restoreSession(); }
 
     private void setupViews() {
-        setContentView(R.layout.activity_main); Insets.apply(findViewById(R.id.mainRoot));
+        setContentView(R.layout.activity_main); Insets.apply(findViewById(R.id.mainRoot)); applyWallpaper();
         inputUrl=findViewById(R.id.inputUrl); inputSearch=findViewById(R.id.inputSearch); groupRow=findViewById(R.id.groupRow);
         txtSource=findViewById(R.id.txtSource); txtSummary=findViewById(R.id.txtSummary); txtEmpty=findViewById(R.id.txtEmpty); progress=findViewById(R.id.progress);
         ListView list=findViewById(R.id.listChannels);
@@ -61,7 +62,7 @@ public final class MainActivity extends Activity {
         findViewById(R.id.btnPlayUrl).setOnClickListener(v->playDirect()); findViewById(R.id.btnSources).setOnClickListener(v->setImportExpanded(!importExpanded)); findViewById(R.id.btnPlaylists).setOnClickListener(v->showPlaylistSources()); findViewById(R.id.btnWallpaper).setOnClickListener(v->showSettings());
         findViewById(R.id.btnAllChannels).setOnClickListener(v->selectSection(0)); findViewById(R.id.btnFavorites).setOnClickListener(v->selectSection(1)); findViewById(R.id.btnRecent).setOnClickListener(v->selectSection(2)); findViewById(R.id.btnClearFilters).setOnClickListener(v->{inputSearch.setText("");selectedGroup="";updateGroupButtons();filter();}); findViewById(R.id.btnAbout).setOnClickListener(v->showAbout()); txtSource.setOnClickListener(v->showSource(currentSource));
         inputSearch.addTextChangedListener(new TextWatcher(){@Override public void beforeTextChanged(CharSequence s,int st,int c,int a){}@Override public void onTextChanged(CharSequence s,int st,int b,int c){filter();}@Override public void afterTextChanged(Editable e){}});
-        rebuildGroups(); setImportExpanded(allChannels.isEmpty()); updateSectionButtons();
+        rebuildGroups(); setImportExpanded(allChannels.isEmpty()); updateSectionButtons(); applyInterfaceMode(list);
     }
 
     private void restoreSession() {
@@ -74,7 +75,7 @@ public final class MainActivity extends Activity {
     private void loadFromUrl(){String source=inputUrl.getText().toString().trim();if(!M3uParser.isNetworkUrl(source)||!(source.startsWith("http://")||source.startsWith("https://"))){toast("URL phải bắt đầu bằng http:// hoặc https://");setLoading(false);return;}setLoading(true);io.execute(()->{HttpURLConnection c=null;try{c=(HttpURLConnection)new URL(source).openConnection();c.setConnectTimeout(15000);c.setReadTimeout(20000);c.setInstanceFollowRedirects(true);c.setRequestProperty("User-Agent","Nm7-IPTV/1.7 Android");int status=c.getResponseCode();if(status<200||status>=300)throw new Exception("HTTP "+status);String effective=c.getURL().toString(),type=c.getContentType(),description=source.equals(effective)?source:source+"\nChuyển hướng: "+effective;if(type!=null&&(type.startsWith("video/")||type.contains("dash+xml"))){Channel direct=new Channel("Luồng trực tiếp","Phát trực tiếp",effective,"","",java.util.Collections.emptyMap());if(type.contains("dash+xml"))direct.options().add("#KODIPROP:inputstream.adaptive.manifest_type=mpd");ui(()->showPlaylist(new M3uParser.Result(java.util.Collections.singletonList(direct),0,0),description));return;}String content;try(InputStream s=new BufferedInputStream(c.getInputStream())){content=readText(s);}M3uParser.Result result=parser.parse(content,effective);ui(()->showPlaylist(result,description));}catch(Exception e){ui(()->showError("Không tải được playlist: "+readable(e)));}finally{if(c!=null)c.disconnect();}});}
 
     private void openFilePicker(){Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("*/*");startActivityForResult(i,OPEN_M3U);}
-    @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(result!=RESULT_OK||data==null||data.getData()==null)return;Uri uri=data.getData();if(request==OPEN_M3U)readLocalFile(uri);if(request==PICK_WALLPAPER){toast("Tính năng hình nền không khả dụng trong bản rút gọn này");}}
+    @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(result!=RESULT_OK||data==null||data.getData()==null)return;Uri uri=data.getData();if(request==OPEN_M3U)readLocalFile(uri);if(request==PICK_WALLPAPER){io.execute(()->{try{WallpaperStore.importPhoto(getApplicationContext(),uri);ui(()->{applyWallpaper();toast("Đã đổi hình nền");});}catch(Exception e){ui(()->toast("Không mở được hình nền: "+readable(e)));}});}}
     private void readLocalFile(Uri uri){setLoading(true);io.execute(()->{try(InputStream s=getContentResolver().openInputStream(uri)){if(s==null)throw new Exception("Không thể mở tệp");M3uParser.Result r=parser.parse(readText(s),"");ui(()->showPlaylist(r,uri.toString()));}catch(Exception e){ui(()->showError("Không đọc được tệp: "+readable(e)));}});}
     private String readText(InputStream s)throws Exception{ByteArrayOutputStream b=new ByteArrayOutputStream();byte[] chunk=new byte[8192];int total=0,n;while((n=s.read(chunk))!=-1){total+=n;if(total>MAX_PLAYLIST_BYTES)throw new Exception("Playlist lớn hơn 8 MB. Với link video, dùng Phát URL.");b.write(chunk,0,n);}return b.toString(StandardCharsets.UTF_8.name());}
     private void showPlaylist(M3uParser.Result r,String source){if(r.channels.isEmpty()){setLoading(false);new AlertDialog.Builder(this).setTitle("Không có kênh hợp lệ").setMessage("Không thay thế playlist đang mở.").setPositiveButton("Đóng",null).show();return;}allChannels.clear();allChannels.addAll(r.channels);duplicateCount=r.duplicateCount;missingUrlCount=r.missingUrlCount;currentSource=source;txtSource.setText("Nguồn: "+source);inputSearch.setText("");selectedGroup="";rebuildGroups();filter();setLoading(false);setImportExpanded(false);saveSession();String first=source.split("\\n",2)[0];if(first.startsWith("http://")||first.startsWith("https://"))try{PlaylistSourceStore.add(this,"",first);}catch(Exception ignored){}}
@@ -91,7 +92,51 @@ public final class MainActivity extends Activity {
     private void setImportExpanded(boolean expanded){importExpanded=expanded;View section=findViewById(R.id.importPanel);if(section!=null)section.setVisibility(expanded?View.VISIBLE:View.GONE);}
     private void showPlaylistSources(){List<PlaylistSourceStore.Source> sources=PlaylistSourceStore.load(this);String[] labels=new String[sources.size()];for(int i=0;i<sources.size();i++)labels[i]=sources.get(i).name;new AlertDialog.Builder(this).setTitle("Nguồn IPTV").setItems(labels,(d,w)->{inputUrl.setText(sources.get(w).url);loadFromUrl();}).setNegativeButton("Đóng",null).show();}
     private void playDirect(){String source=inputUrl.getText().toString().trim();if(source.isEmpty()){toast("Nhập URL để phát");return;}Channel c=new Channel("URL trực tiếp","Trực tiếp",source,"","",java.util.Collections.emptyMap());play(c);}
-    private void showSettings(){new AlertDialog.Builder(this).setTitle("Cài đặt").setMessage("Tùy chọn nguồn phát và giao diện có thể được cấu hình trong ứng dụng.").setPositiveButton("Đóng",null).show();}
+    private void showSettings(){
+        String mode=AppPreferences.interfaceMode(this);
+        String modeLabel="tv".equals(mode)?"TV":"mobile".equals(mode)?"Mobile":"Tự động";
+        String urls=AppPreferences.showUrls(this)?"Ẩn URL trong danh sách":"Hiện URL trong danh sách";
+        String rows=AppPreferences.compactRows(this)?"Hàng kênh thoải mái":"Hàng kênh thu gọn";
+        String fps=AppPreferences.showFps(this)?"Ẩn FPS khi xem":"Hiện FPS khi xem";
+        String clock=AppPreferences.showClock(this)?"Ẩn đồng hồ khi xem":"Hiện đồng hồ khi xem";
+        String playerSource=AppPreferences.showPlayerSource(this)?"Ẩn nguồn phát khi xem":"Hiện nguồn phát khi xem";
+        new AlertDialog.Builder(this).setTitle("Tùy chọn ứng dụng")
+                .setItems(new String[]{"Giao diện: "+modeLabel,"Đổi hình nền",urls,rows,fps,clock,playerSource,"Xóa lịch sử Gần đây","Thông tin ứng dụng"},(dialog,which)->{
+                    if(which==0)chooseInterfaceMode();
+                    if(which==1)chooseWallpaper();
+                    if(which==2){AppPreferences.setShowUrls(this,!AppPreferences.showUrls(this));adapter.notifyDataSetChanged();}
+                    if(which==3){AppPreferences.setCompactRows(this,!AppPreferences.compactRows(this));adapter.notifyDataSetChanged();}
+                    if(which==4)AppPreferences.setShowFps(this,!AppPreferences.showFps(this));
+                    if(which==5)AppPreferences.setShowClock(this,!AppPreferences.showClock(this));
+                    if(which==6)AppPreferences.setShowPlayerSource(this,!AppPreferences.showPlayerSource(this));
+                    if(which==7){AppPreferences.clearRecent(this);if(activeSection==2)filter();toast("Đã xóa lịch sử");}
+                    if(which==8)showAbout();
+                }).setNegativeButton("Đóng",null).show();
+    }
+    private void chooseInterfaceMode(){
+        String[] labels={"Tự động theo thiết bị","Mobile — cảm ứng","TV — điều khiển D-pad"};
+        String[] values={"auto","mobile","tv"};
+        new AlertDialog.Builder(this).setTitle("Chọn giao diện")
+                .setSingleChoiceItems(labels,java.util.Arrays.asList(values).indexOf(AppPreferences.interfaceMode(this)),(dialog,which)->{
+                    AppPreferences.setInterfaceMode(this,values[which]);dialog.dismiss();recreate();
+                }).setNegativeButton("Đóng",null).show();
+    }
+    private void applyInterfaceMode(ListView list){
+        boolean tv=AppPreferences.isTvInterface(this);
+        list.setDividerHeight(dp(tv?9:5));
+        if(tv)findViewById(R.id.btnAllChannels).post(()->findViewById(R.id.btnAllChannels).requestFocus());
+    }
+    private void chooseWallpaper(){
+        new AlertDialog.Builder(this).setTitle("Hình nền")
+                .setItems(new String[]{"Xanh đêm","Biển sâu","Tím","Chọn ảnh trên máy"},(dialog,which)->{
+                    if(which==3){Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT);intent.addCategory(Intent.CATEGORY_OPENABLE);intent.setType("image/*");startActivityForResult(intent,PICK_WALLPAPER);}
+                    else{WallpaperStore.setStyle(this,which);applyWallpaper();}
+                }).setNegativeButton("Đóng",null).show();
+    }
+    private void applyWallpaper(){
+        int generation=++wallpaperGeneration;
+        io.execute(()->{android.graphics.drawable.Drawable background=WallpaperStore.load(getApplicationContext());ui(()->{if(generation==wallpaperGeneration)findViewById(R.id.mainRoot).setBackground(background);});});
+    }
     private void showAbout(){new AlertDialog.Builder(this).setTitle("Nm7 IPTV Player").setMessage("Trình phát IPTV cho Android.").setPositiveButton("Đóng",null).show();}
     private void showSource(String source){TextView v=new TextView(this);v.setText(source);v.setTextIsSelectable(true);v.setPadding(dp(20),dp(20),dp(20),dp(20));new AlertDialog.Builder(this).setTitle("Nguồn hiện tại").setView(v).setPositiveButton("Đóng",null).show();}
     private void showChannelActions(Channel c){new AlertDialog.Builder(this).setTitle(c.name()).setItems(new String[]{AppPreferences.isFavorite(this,c)?"Bỏ Yêu thích":"Thêm vào Yêu thích","Phát"},(d,w)->{if(w==0){AppPreferences.toggleFavorite(this,c);filter();}else play(c);}).show();}
