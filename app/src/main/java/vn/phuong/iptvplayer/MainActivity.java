@@ -93,6 +93,7 @@ public final class MainActivity extends Activity {
     private void showPlaylistSources(){List<PlaylistSourceStore.Source> sources=PlaylistSourceStore.load(this);String[] labels=new String[sources.size()];for(int i=0;i<sources.size();i++)labels[i]=sources.get(i).name;new AlertDialog.Builder(this).setTitle("Nguồn IPTV").setItems(labels,(d,w)->{inputUrl.setText(sources.get(w).url);loadFromUrl();}).setNegativeButton("Đóng",null).show();}
     private void playDirect(){String source=inputUrl.getText().toString().trim();if(source.isEmpty()){toast("Nhập URL để phát");return;}Channel c=new Channel("URL trực tiếp","Trực tiếp",source,"","",java.util.Collections.emptyMap());play(c);}
     private void showSettings(){
+        boolean tv=AppPreferences.isTvInterface(this);
         String mode=AppPreferences.interfaceMode(this);
         String modeLabel="tv".equals(mode)?"TV":"mobile".equals(mode)?"Mobile":"Tự động";
         String urls=AppPreferences.showUrls(this)?"Ẩn URL trong danh sách":"Hiện URL trong danh sách";
@@ -100,8 +101,13 @@ public final class MainActivity extends Activity {
         String fps=AppPreferences.showFps(this)?"Ẩn FPS khi xem":"Hiện FPS khi xem";
         String clock=AppPreferences.showClock(this)?"Ẩn đồng hồ khi xem":"Hiện đồng hồ khi xem";
         String playerSource=AppPreferences.showPlayerSource(this)?"Ẩn nguồn phát khi xem":"Hiện nguồn phát khi xem";
+        String background=AppPreferences.backgroundPlayback(this)?"Tắt phát nền khi khóa màn hình/nhấn Home":"Bật phát nền khi khóa màn hình/nhấn Home";
+        List<String> items=new ArrayList<>(java.util.Arrays.asList("Giao diện: "+modeLabel,"Đổi hình nền",urls,rows,fps,clock,playerSource));
+        final int backgroundIndex;if(tv)backgroundIndex=-1;else{backgroundIndex=items.size();items.add(background);}
+        final int recentIndex=items.size();items.add("Xóa lịch sử Gần đây");
+        final int aboutIndex=items.size();items.add("Thông tin ứng dụng");
         new AlertDialog.Builder(this).setTitle("Tùy chọn ứng dụng")
-                .setItems(new String[]{"Giao diện: "+modeLabel,"Đổi hình nền",urls,rows,fps,clock,playerSource,"Xóa lịch sử Gần đây","Thông tin ứng dụng"},(dialog,which)->{
+                .setItems(items.toArray(new String[0]),(dialog,which)->{
                     if(which==0)chooseInterfaceMode();
                     if(which==1)chooseWallpaper();
                     if(which==2){AppPreferences.setShowUrls(this,!AppPreferences.showUrls(this));adapter.notifyDataSetChanged();}
@@ -109,8 +115,9 @@ public final class MainActivity extends Activity {
                     if(which==4)AppPreferences.setShowFps(this,!AppPreferences.showFps(this));
                     if(which==5)AppPreferences.setShowClock(this,!AppPreferences.showClock(this));
                     if(which==6)AppPreferences.setShowPlayerSource(this,!AppPreferences.showPlayerSource(this));
-                    if(which==7){AppPreferences.clearRecent(this);if(activeSection==2)filter();toast("Đã xóa lịch sử");}
-                    if(which==8)showAbout();
+                    if(which==backgroundIndex){boolean enabled=!AppPreferences.backgroundPlayback(this);AppPreferences.setBackgroundPlayback(this,enabled);if(!enabled)stopService(new Intent(this,BackgroundPlaybackService.class));if(enabled&&android.os.Build.VERSION.SDK_INT>=33)requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS},104);toast(enabled?"Đã bật phát nền":"Đã tắt phát nền");}
+                    if(which==recentIndex){AppPreferences.clearRecent(this);if(activeSection==2)filter();toast("Đã xóa lịch sử");}
+                    if(which==aboutIndex)showAbout();
                 }).setNegativeButton("Đóng",null).show();
     }
     private void chooseInterfaceMode(){
