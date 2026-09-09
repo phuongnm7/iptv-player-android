@@ -75,6 +75,7 @@ public final class PlayerActivity extends Activity {
     private boolean resolvingClearKey;
     private boolean resolvingStreamMime;
     private boolean activityStarted;
+    private boolean backgroundPlaybackActive;
     private final Handler fpsHandler = new Handler(Looper.getMainLooper());
     private final Handler clockHandler = new Handler(Looper.getMainLooper());
     private final Handler recoveryHandler = new Handler(Looper.getMainLooper());
@@ -137,7 +138,11 @@ public final class PlayerActivity extends Activity {
         findViewById(R.id.btnDrm).setOnClickListener(v -> configureDrm()); findViewById(R.id.btnResize).setOnClickListener(v -> chooseResizeMode());
         findViewById(R.id.btnRetry).setOnClickListener(v -> { position = 0; resumePlayback = true; releasePlayer(); startPlayer(); }); loadQuickChannels();
     }
-    @Override protected void onStart() { super.onStart(); activityStarted = true; fpsHandler.post(fpsUpdate); clockHandler.post(clockUpdate); startPlayer(); }
+    @Override protected void onStart() { super.onStart(); activityStarted = true; stopService(new android.content.Intent(this,BackgroundPlaybackService.class)); backgroundPlaybackActive=false; fpsHandler.post(fpsUpdate); clockHandler.post(clockUpdate); startPlayer(); }
+    @Override protected void onResume(){super.onResume();if(player!=null)player.setWakeMode(C.WAKE_MODE_NONE);}
+    @Override protected void onPause(){if(shouldUseBackgroundPlayback()&&!isFinishing()&&player!=null){backgroundPlaybackActive=true;player.setWakeMode(C.WAKE_MODE_NETWORK);android.content.Intent service=new android.content.Intent(this,BackgroundPlaybackService.class).putExtra(BackgroundPlaybackService.EXTRA_CHANNEL_NAME,name);if(android.os.Build.VERSION.SDK_INT>=26)startForegroundService(service);else startService(service);}super.onPause();}
+    private boolean shouldUseBackgroundPlayback(){return !AppPreferences.isTvInterface(this)&&AppPreferences.backgroundPlayback(this);}
+    private boolean playbackContextActive(){return activityStarted||backgroundPlaybackActive;}
     private void startPlayer() {
         if (player != null) return; String scheme = Uri.parse(url).getScheme();
         if (scheme == null || !(scheme.matches("(?i)https?|rtsp|udp|rtmp"))) { showError("Bản này chưa hỗ trợ giao thức " + scheme + ". Không thể bảo đảm mọi giao thức IPTV."); return; }
@@ -199,16 +204,16 @@ public final class PlayerActivity extends Activity {
                 }
             }catch(Exception ignored){}
             String resolvedMime=detected;
-            runOnUiThread(()->{resolvingStreamMime=false;if(!resolvedMime.isEmpty()&&activityStarted&&!isFinishing()&&!isDestroyed()){mime=resolvedMime;position=0;resumePlayback=true;releasePlayer();startPlayer();}else showError(originalError.getErrorCodeName()+"\nKhông tự nhận diện được định dạng sau chuyển hướng.");});
+            runOnUiThread(()->{resolvingStreamMime=false;if(!resolvedMime.isEmpty()&&playbackContextActive()&&!isFinishing()&&!isDestroyed()){mime=resolvedMime;position=0;resumePlayback=true;releasePlayer();startPlayer();}else showError(originalError.getErrorCodeName()+"\nKhông tự nhận diện được định dạng sau chuyển hướng.");});
         });
     }
     private void scheduleRecovery(String reason,boolean fromEnd){
-        if(!activityStarted||isFinishing()||isDestroyed())return;
+        if(!playbackContextActive()||isFinishing()||isDestroyed())return;
         recoveryHandler.removeCallbacks(resetRecoveryAttempts);
         if(recoveryAttempts>=MAX_RECOVERY_ATTEMPTS){showError(reason+". Đã thử nối lại "+MAX_RECOVERY_ATTEMPTS+" lần.\nBấm thử lại để tiếp tục.");return;}
         recoveryAttempts++;if(fromEnd)position=0;else rememberPosition();resumePlayback=true;
         long delay=Math.min(8_000L,1_000L<<(recoveryAttempts-1));status.setText(reason+" • nối lại lần "+recoveryAttempts+"…");
-        recoveryHandler.removeCallbacksAndMessages(null);recoveryHandler.postDelayed(()->{if(activityStarted&&!isFinishing()&&!isDestroyed()){releasePlayer();startPlayer();}},delay);
+        recoveryHandler.removeCallbacksAndMessages(null);recoveryHandler.postDelayed(()->{if(playbackContextActive()&&!isFinishing()&&!isDestroyed()){releasePlayer();startPlayer();}},delay);
     }
     private void chooseQuality(){String[] l={"Tự động / tối đa theo thiết bị","Full HD — tối đa 1080p","2K/QHD — tối đa 1440p","4K UHD — tối đa 2160p"};int[] h={Integer.MAX_VALUE,1080,1440,2160};new AlertDialog.Builder(this).setTitle("Giới hạn chất lượng").setItems(l,(d,i)->{quality=h[i];applyQuality();}).setNegativeButton("Đóng",null).show();}
     private void applyQuality(){if(player==null)return;int w=quality==Integer.MAX_VALUE?Integer.MAX_VALUE:quality*16/9;player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon().setViewportSize(Integer.MAX_VALUE,Integer.MAX_VALUE,true).setMaxVideoSize(w,quality).build());}
@@ -232,6 +237,6 @@ public final class PlayerActivity extends Activity {
     private void showSource(){TextView v=new TextView(this);v.setText(url);v.setTextIsSelectable(true);v.setPadding(24,16,24,16);android.widget.ScrollView s=new android.widget.ScrollView(this);s.addView(v);new AlertDialog.Builder(this).setTitle("URL nguồn").setView(s).setPositiveButton("Đóng",null).show();}
     private void showError(String m){findViewById(R.id.playerError).setVisibility(View.VISIBLE);((TextView)findViewById(R.id.txtPlayerError)).setText(m);playerView.showController();} private String value(String k){String v=getIntent().getStringExtra(k);return v==null?"":v;}
     private void rememberPosition(){if(player!=null){position=player.isCurrentMediaItemLive()?0:player.getCurrentPosition();resumePlayback=player.getPlayWhenReady();}}
-    @Override protected void onSaveInstanceState(Bundle out){rememberPosition();out.putLong("position",position);out.putBoolean("playing",resumePlayback);out.putInt("quality",quality);out.putInt("resize",resizeMode);out.putString("mime",mime);super.onSaveInstanceState(out);} @Override protected void onStop(){activityStarted=false;fpsHandler.removeCallbacks(fpsUpdate);clockHandler.removeCallbacks(clockUpdate);recoveryHandler.removeCallbacksAndMessages(null);rememberPosition();releasePlayer();super.onStop();}
-    private void releasePlayer(){if(player!=null){playerView.setPlayer(null);player.release();player=null;}videoCounters=null;fpsMeter.reset();if(multicastLock!=null){if(multicastLock.isHeld())multicastLock.release();multicastLock=null;}} @Override protected void onDestroy(){drmIo.shutdownNow();releasePlayer();super.onDestroy();}
+    @Override protected void onSaveInstanceState(Bundle out){rememberPosition();out.putLong("position",position);out.putBoolean("playing",resumePlayback);out.putInt("quality",quality);out.putInt("resize",resizeMode);out.putString("mime",mime);super.onSaveInstanceState(out);} @Override protected void onStop(){activityStarted=false;fpsHandler.removeCallbacks(fpsUpdate);clockHandler.removeCallbacks(clockUpdate);rememberPosition();if(!backgroundPlaybackActive){recoveryHandler.removeCallbacksAndMessages(null);releasePlayer();}super.onStop();}
+    private void releasePlayer(){if(player!=null){playerView.setPlayer(null);player.release();player=null;}videoCounters=null;fpsMeter.reset();if(multicastLock!=null){if(multicastLock.isHeld())multicastLock.release();multicastLock=null;}} @Override protected void onDestroy(){drmIo.shutdownNow();if(isFinishing()||!backgroundPlaybackActive){stopService(new android.content.Intent(this,BackgroundPlaybackService.class));releasePlayer();}super.onDestroy();}
 }
