@@ -8,8 +8,10 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.Build;
 import android.os.IBinder;
+import androidx.media3.common.util.UnstableApi;
 
 /** Keeps the mobile player process foreground while PlayerActivity is stopped by Home/lock. */
+@UnstableApi
 public final class BackgroundPlaybackService extends Service {
     static final String EXTRA_CHANNEL_NAME = "channel_name";
     private static final String CHANNEL_ID = "background_playback";
