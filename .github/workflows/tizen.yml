@@ -26,7 +26,7 @@ jobs:
           node --check tizen/js/m3u.js
           node tizen/tests/m3u.test.js
       - name: Validate Tizen config
-        run: xmllint --noout tizen/config.xml
+        run: python3 -c "import xml.etree.ElementTree as E; E.parse('tizen/config.xml')"
       - name: Reuse Nm7 application icon
         run: cp app/src/main/res/mipmap-xxxhdpi/ic_launcher.png tizen/icon.png
       - name: Check required application files
