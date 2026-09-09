@@ -4,10 +4,12 @@ _Cập nhật: 10/09/2026_
 
 ## Trạng thái hiện tại
 
-- Android đang triển khai: **Nm7 IPTV 1.10.6** (`versionCode 23`).
+- Android hiện tại: **Nm7 IPTV 1.10.6** (`versionCode 23`).
 - Nhánh: `main`.
 - Commit kích hoạt build 1.10.6: `3fc8bf33c3a94f9d22c22c1c2816fd53896c23af`.
-- GitHub Actions hiện tại: **Build #88**, run ID `34382403385`.
+- GitHub Actions: **Build #88**, run ID `34382403385` — **PASS toàn bộ**.
+- Artifact APK: `Nm7-IPTV-1.10.6-APK`, artifact ID `10116564840`.
+- SHA-256 APK: `b240fa504923c0709985966c2f30405f5c708f9e0dc1f9ec1cd8210c08478b7e`.
 - Samsung Tizen vẫn **tạm dừng** cho tới khi có TV Samsung thật để kết nối, ký và kiểm thử.
 
 ## Các phần Android đã hoàn thành tới 1.10.5
@@ -24,7 +26,7 @@ _Cập nhật: 10/09/2026_
 - Có fullscreen ngang và quay về dọc.
 - Media3 TimeBar/seek hiển thị với nguồn thực sự hỗ trợ tua/DVR.
 
-## Thay đổi đang triển khai trong Android 1.10.6
+## Thay đổi hoàn thành trong Android 1.10.6
 
 - Khi vừa mở kênh, bộ điều khiển phát mặc định **ẩn hoàn toàn**; chỉ hiện khi người dùng chạm vào video.
 - `PlayerView` tắt `controllerAutoShow` để không tự bật nút Pause/seek sau khi bắt đầu phát hoặc đổi kênh.
@@ -45,10 +47,11 @@ _Cập nhật: 10/09/2026_
 - `app/src/main/res/drawable/ic_nm7_fullscreen_exit.xml`
 - `app/build.gradle.kts`
 - `.github/workflows/android.yml`
+- `progress.md`
 
-## Kiểm thử / Build
+## Kiểm thử / Build #88
 
-Pipeline Android chạy các bước:
+Các bước sau đều **PASS**:
 1. Compile.
 2. Unit test.
 3. Android lint.
@@ -57,9 +60,8 @@ Pipeline Android chạy các bước:
 6. Đóng gói artifact.
 7. Android 15 emulator smoke test.
 
-Build đang theo dõi: **#88 / run `34382403385`**. Nếu build lỗi sẽ đọc log và sửa ngay; khi PASS sẽ tải artifact `Nm7-IPTV-1.10.6-APK` và bàn giao APK để cài thử.
-
 ## Mốc tiếp tục
 
-- Android: tiếp tục từ **1.10.6**, tập trung hoàn thiện trải nghiệm điều khiển video Mobile theo phản hồi thực tế.
+- Android: **1.10.6 / Build #88** là mốc hiện tại để tiếp tục kiểm thử thực tế trên điện thoại.
+- Tập trung phản hồi tiếp theo vào trải nghiệm controller Mobile, DVR/seek và fullscreen/phóng to-thu nhỏ.
 - Tizen: giữ nguyên trạng thái tạm dừng cho tới khi có TV thật.
