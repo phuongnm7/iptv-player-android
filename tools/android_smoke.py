@@ -353,6 +353,7 @@ def run_checks():
     assert exported.startswith("#EXTM3U") and exported.count("#EXTINF:") == 1, "Export must contain one selected channel"
     assert "Alpha" in exported and "Bravo" not in exported, "Export included an unchecked channel"
     check("Android file picker exports only selected channel to M3U")
+    tap("btnSources")
     tap("btnOpenFile")
     tap(text="playlist-sach.m3u")
     summary("1/1 kênh", "1 đã chọn", "0 trùng", "0 thiếu/sai")
@@ -364,6 +365,7 @@ def run_checks():
     play_direct("/sample.m3u8", "HLS")
     play_direct("/sample.mpd", "DASH")
 
+    tap("btnSources")
     enter("inputUrl", "srt://127.0.0.1:9999")
     tap("btnPlayUrl")
     wait_for(lambda root: (lambda n: n is not None and "chưa hỗ trợ" in n.get("text", ""))(
