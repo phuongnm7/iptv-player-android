@@ -2,15 +2,16 @@
 
 _Cập nhật: 09/09/2026_
 
-## Trạng thái hiện tại: Android hoàn tất, Samsung Tizen tạm dừng
+## Trạng thái hiện tại: Android 1.8.0 chờ kiểm thử thực tế, Samsung Tizen tạm dừng
 
 ### Android
 
-- Bản ổn định hiện tại: **Nm7 IPTV 1.7.3**.
-- Version: `versionCode 12`, `versionName 1.7.3`.
-- GitHub Actions: **Build #57**, run ID `34321819246`; compile, unit test, lint, ký APK và smoke test Android 15 đều PASS.
-- Artifact: `Nm7-IPTV-1.7.3-APK`, ID `10092247830`.
-- Người dùng đã cài/thử và xác nhận bản Android hoạt động OK.
+- Bản ổn định đã được người dùng xác nhận: **Nm7 IPTV 1.7.3** (`versionCode 12`).
+- Bản thử nghiệm mới: **Nm7 IPTV 1.8.0** (`versionCode 13`).
+- GitHub Actions 1.8.0: **Build #65**, run ID `34328275563`; compile, unit test, lint, ký APK và smoke test Android 15 đều PASS.
+- Artifact 1.8.0: `Nm7-IPTV-1.8.0-APK`, ID `10094710182`.
+- Commit hoàn tất build: `397204f42e5a787770c02b784aa5802ce93beaec`.
+- Cần kiểm thử trên điện thoại thật: bật tùy chọn, phát kênh, nhấn Home, khóa/mở màn hình, quay lại ứng dụng và kiểm tra việc dừng dịch vụ khi tắt tùy chọn.
 
 ### Samsung Tizen TV
 
@@ -58,6 +59,14 @@ _Cập nhật: 09/09/2026_
 10. Chạy smoke test thực tế: tải playlist, điều khiển remote, phát HLS/DASH, chuyển kênh, Back hai bước và tự nối lại.
 11. Ghi nhận lỗi theo từng đời TV rồi mới đánh dấu bản Tizen hoàn tất.
 
+## Những thay đổi mới của Android 1.8.0
+
+- Thêm lựa chọn bật/tắt phát nền khi khóa màn hình hoặc nhấn Home; mặc định **tắt**.
+- Tùy chọn chỉ xuất hiện trên giao diện Mobile, không xuất hiện và không chạy trên giao diện TV.
+- Khi bật, ứng dụng dùng foreground service có thông báo và giữ kết nối mạng để tiếp tục phát.
+- Khi quay lại trình phát hoặc tắt tùy chọn, dịch vụ chạy nền được dừng.
+- Android 13 trở lên yêu cầu quyền thông báo khi bật tính năng.
+
 ## Những thay đổi chính của Android 1.7.3
 
 - Bỏ thống kê và dòng nguồn khỏi màn hình chính.
@@ -70,6 +79,6 @@ _Cập nhật: 09/09/2026_
 
 ## Mốc tiếp tục
 
-- Android: giữ nguyên bản ổn định 1.7.3 / Build #57.
+- Android: 1.7.3 / Build #57 vẫn là mốc ổn định; tiếp tục kiểm thử 1.8.0 / Build #65 trên điện thoại thật trước khi xác nhận ổn định.
 - Tizen: tiếp tục từ commit `9350de76338aca53d4e33c49a605a090235269cb`, Build #2.
 - Điều kiện mở lại phần Tizen: có TV Samsung thật tại chỗ để lấy IP/DUID, ký, cài và kiểm thử.
