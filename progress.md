@@ -2,16 +2,16 @@
 
 _Cập nhật: 09/09/2026_
 
-## Trạng thái hiện tại: Android 1.8.0 ổn định, Android 1.8.2 chờ kiểm thử quản lý nguồn; Samsung Tizen tạm dừng
+## Trạng thái hiện tại: Android 1.8.2 ổn định; Samsung Tizen tạm dừng
 
 ### Android
 
-- Bản ổn định đã được người dùng xác nhận: **Nm7 IPTV 1.8.0** (`versionCode 13`), gồm tính năng phát nền trên Mobile.
-- Bản thử nghiệm mới: **Nm7 IPTV 1.8.2** (`versionCode 15`), sửa giao diện quản lý nguồn với nút thao tác hiển thị trực tiếp.
+- Bản ổn định hiện tại đã được người dùng xác nhận: **Nm7 IPTV 1.8.2** (`versionCode 15`).
+- Tính năng phát nền trên Mobile và quản lý nguồn IPTV đều hoạt động OK trên thiết bị thực.
 - GitHub Actions 1.8.2: **Build #67**, run ID `34332032653`; compile, unit test, lint, ký APK và smoke test Android 15 đều PASS.
 - Artifact 1.8.2: `Nm7-IPTV-1.8.2-APK`, ID `10096242357`.
 - Commit tính năng: `2b5cf3fa1d09a3f31db76ac414046134e053eb65`.
-- Cần kiểm thử thực tế các thao tác: thêm nguồn, sửa tên/URL, tải nguồn, xóa một nguồn và xóa nguồn cuối cùng.
+- Người dùng đã kiểm thử và xác nhận các thao tác quản lý nguồn hoạt động OK: thêm, sửa, chọn và xóa nguồn.
 
 ### Samsung Tizen TV
 
@@ -95,6 +95,6 @@ _Cập nhật: 09/09/2026_
 
 ## Mốc tiếp tục
 
-- Android: 1.8.0 / Build #65 là mốc ổn định; tiếp tục kiểm thử quản lý nguồn trên 1.8.2 / Build #67.
+- Android: tiếp tục từ bản ổn định 1.8.2 / Build #67, commit `2b5cf3fa1d09a3f31db76ac414046134e053eb65`.
 - Tizen: tiếp tục từ commit `9350de76338aca53d4e33c49a605a090235269cb`, Build #2.
 - Điều kiện mở lại phần Tizen: có TV Samsung thật tại chỗ để lấy IP/DUID, ký, cài và kiểm thử.
