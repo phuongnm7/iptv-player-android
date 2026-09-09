@@ -2,25 +2,45 @@
 
 _Cập nhật: 09/09/2026_
 
-## Phiên bản 1.7.1 — sửa giao diện TV, khôi phục Cài đặt và icon mới
-
-- Commit mã đã kiểm thử: `7baa5941426fbf7919179c7eba7d7ed0340b7e88`.
-- GitHub Actions: **Build #49**, run ID `34315634209`; compile, unit test, lint, đóng gói APK và smoke test Android 15 đều PASS.
-- Đã xóa hoàn toàn các nút `Chọn đang lọc`, `Bỏ chọn`, `Xuất M3U` khỏi cả bố cục dọc và bố cục ngang/TV.
-- Khôi phục menu Cài đặt: chọn giao diện Tự động/Mobile/TV, đổi hình nền, hiện/ẩn URL, mật độ hàng, FPS, đồng hồ, nguồn phát, xóa lịch sử và thông tin ứng dụng.
-- Thêm launcher icon và TV banner mới dựa trên ảnh `nm7 IPTV` người dùng cung cấp.
-- Version: `versionCode 10`, `versionName 1.7.1`.
-- Artifact: `Nm7-IPTV-1.7.1-APK`, ID `10090014404`, archive SHA-256 `d863c81a4d18a0d0ac3b6fe7d794c99205f0ab140a3b6e8a8df82509f767ec9a`.
-
-## Trạng thái hiện tại: HOÀN TẤT CI
+## Trạng thái hiện tại: BẢN 1.7.3 ĐÃ ĐƯỢC NGƯỜI DÙNG XÁC NHẬN OK
 
 - Repository: `phuongnm7/iptv-player-android`
 - Branch: `main`
-- Commit đã kiểm thử: `df3576c53e2ff14455e6a33ffe69aa1c71fe82cb`
-- GitHub Actions: **Build #47**, run ID `34312750176`
+- Commit hiện tại: `f03cf8447a8d6a3c2a56db879b1e74bc2ca00fd4`
+- Version: `versionCode 12`, `versionName 1.7.3`
+- GitHub Actions: **Build #57**, run ID `34321819246`
 - Kết quả workflow: **PASS toàn bộ**
+- Artifact APK: `Nm7-IPTV-1.7.3-APK`
+- Artifact ID: `10092247830`
+- Archive SHA-256: `4478d1618f973f428136b7ee7d1f8f12ab38a0edc06b161db36a506982978f78`
+- Artifact hết hạn: 09/10/2026
+- Người dùng đã cài/thử và xác nhận: **“bản này đã ok”**.
 
-### Kết quả Build #47
+## Các thay đổi đã hoàn thành trong 1.7.3
+
+- Bỏ khối chữ thống kê số kênh, số kênh trùng và URL thiếu/sai khỏi màn hình chính.
+- Bỏ dòng `Nguồn: …` khỏi màn hình chính.
+- Khi bấm `+ Nguồn`, bảng nhập nguồn mở ra với ô URL trống và được focus.
+- Sửa lỗi `ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED` đối với URL không có đuôi nhưng chuyển hướng sang HLS/DASH.
+- Trình phát tự kiểm tra địa chỉ chuyển hướng và chọn đúng định dạng HLS hoặc DASH; không cần chọn thủ công.
+
+## Các thay đổi kế thừa từ 1.7.2
+
+- Tự nối lại khi playlist đi đến trạng thái kết thúc.
+- Tự nối lại đối với lỗi mạng tạm thời và HTTP 408/429/5xx.
+- Giới hạn tối đa 4 lần thử với thời gian chờ tăng dần; lỗi quyền truy cập, DRM và codec không bị lặp vô hạn.
+- Trên TV, khi bảng điều khiển trình phát đang hiện:
+  - Back lần đầu: ẩn bảng điều khiển/tùy chọn.
+  - Back lần tiếp theo: rời màn hình phát.
+
+## Các thay đổi kế thừa từ 1.7.1
+
+- Xóa các nút `Chọn đang lọc`, `Bỏ chọn`, `Xuất M3U` khỏi giao diện Mobile và TV.
+- Khôi phục menu Cài đặt với lựa chọn giao diện, hình nền, URL, mật độ hàng, FPS, đồng hồ, nguồn phát, lịch sử và thông tin ứng dụng.
+- Thêm launcher icon và TV banner từ ảnh `nm7 IPTV` do người dùng cung cấp.
+- Build #49 / run ID `34315634209` đã PASS toàn bộ.
+
+## Kết quả kiểm tra Build #57
 
 - PASS: Compile Android.
 - PASS: Unit test.
@@ -31,54 +51,20 @@ _Cập nhật: 09/09/2026_
 - PASS: Smoke test ứng dụng trên Android 15.
 - PASS: Upload báo cáo kiểm thử/lint.
 
-## APK đã xác nhận
+## Chức năng và điều khiển hiện tại
 
-- Tên file: `Nm7-IPTV-1.7.apk`
-- Artifact: `Nm7-IPTV-1.7-APK`
-- Artifact ID: `10089006618`
-- Thời hạn artifact trên GitHub: 09/10/2026.
-- SHA-256: `1b9429d4b1eb977617dd5a4a6ffaaeb69a9de48fdd7d6f566eff048cdd990cc1`
-
-Đây là APK đầu tiên sau mốc bàn giao Build #44 đã PASS toàn bộ workflow, bao gồm kiểm tra chạy ứng dụng trên Android 15.
-
-## Nguyên nhân lỗi Build #44–#46 và cách xử lý
-
-### Build #44
-
-Smoke test báo `Main screen did not open` nhưng log chưa đủ dữ liệu để phân biệt lỗi ứng dụng và lỗi môi trường.
-
-### Build #45
-
-Đã bổ sung chẩn đoán: kết quả xác nhận `MainActivity` vẫn chạy bình thường. Emulator CI không phân giải được hostname của playlist mặc định, ứng dụng hiển thị hộp thoại lỗi mạng và hộp thoại này che cây giao diện.
-
-### Build #46
-
-Smoke test đã đóng riêng hộp thoại lỗi tải playlist và xác nhận màn hình chính xuất hiện. Lỗi còn lại là khi playlist rỗng, Android UI Automator hiển thị `txtEmpty` thay cho `listChannels`.
-
-### Build #47
-
-Smoke test chấp nhận đúng hai trạng thái hợp lệ của vùng nội dung: danh sách kênh `listChannels` hoặc trạng thái rỗng `txtEmpty`. Các nút chính vẫn bắt buộc đầy đủ và các control M3U đã loại bỏ vẫn bắt buộc không xuất hiện. Workflow PASS toàn bộ.
-
-## Các chức năng hiện có
-
-- Cài mới hoặc không có phiên hợp lệ: tự tải nguồn IPTV mặc định:
-  `https://iptv-live-merge.phuongnm7-iptv.workers.dev/playlist.m3u`
-- Có phiên hợp lệ: khôi phục playlist trước đó, không ghi đè.
-- Có thể thêm và chọn nguồn IPTV khác thủ công.
-- Có logo/icon kênh.
-- Đã loại bỏ nút Chọn đang lọc, Bỏ chọn và Xuất M3U khỏi giao diện chính.
-
-## Điều khiển remote
-
-- Controller ẩn:
+- Tự tải playlist mặc định khi chưa có phiên hợp lệ.
+- Khôi phục playlist của phiên trước khi có dữ liệu hợp lệ.
+- Hỗ trợ thêm/chọn nguồn IPTV khác, mở file và phát URL trực tiếp.
+- Có logo kênh, Yêu thích, Gần đây, lọc nhóm và tìm kiếm.
+- Controller ẩn trên TV:
   - `OK`: hiện controller.
   - `LEFT`: mở danh sách kênh nhanh.
   - `UP/DOWN`: đổi kênh.
 - Controller hiện:
-  - `LEFT`: Media3 xử lý tua ngược.
-  - `RIGHT`: Media3 xử lý tua tới.
-- Khả năng tua phụ thuộc nguồn phát có DVR hoặc seek window.
+  - `BACK`: ẩn controller.
+  - `LEFT/RIGHT`: Media3 xử lý tua nếu nguồn có DVR/seek window.
 
 ## Mốc tiếp tục trong tương lai
 
-Bắt đầu từ commit `df3576c53e2ff14455e6a33ffe69aa1c71fe82cb` và Build #47. APK của Build #47 là bản hiện tại đã được CI xác nhận trên Android 15.
+Tiếp tục từ commit `f03cf8447a8d6a3c2a56db879b1e74bc2ca00fd4`, Build #57, phiên bản 1.7.3. Đây là bản hiện tại đã PASS CI trên Android 15 và được người dùng xác nhận hoạt động ổn.
