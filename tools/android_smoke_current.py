@@ -145,7 +145,7 @@ print(launch.stdout)
 if launch.stderr:
     print(launch.stderr, file=sys.stderr)
 root = wait_for_main_screen()
-required = ["btnSources", "btnPlaylists", "btnAllChannels", "btnFavorites", "btnRecent"]
+required = ["btnWallpaper", "btnAllChannels", "btnFavorites", "btnRecent"]
 missing = [name for name in required if not has_id(root, name)]
 if missing:
     print_diagnostics()
@@ -153,10 +153,10 @@ if missing:
 if not (has_id(root, "listChannels") or has_id(root, "txtEmpty")):
     print_diagnostics()
     raise AssertionError("Neither the channel list nor its empty state is available")
-removed = ["btnSelectAll", "btnSelectNone", "btnExport"]
+removed = ["btnSources", "btnPlaylists", "btnAbout", "btnSelectAll", "btnSelectNone", "btnExport"]
 present = [name for name in removed if has_id(root, name)]
 if present:
     print_diagnostics()
-    raise AssertionError("Removed M3U controls are still visible: " + ", ".join(present))
+    raise AssertionError("Controls that should be consolidated or removed are still visible: " + ", ".join(present))
 print("PASS: application launches and current IPTV interface is available")
-print("PASS: removed M3U export controls are absent")
+print("PASS: Link, source and about controls are consolidated into app options")
