@@ -17,7 +17,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.ActionMode;
-import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.KeyboardShortcutGroup;
 import android.view.Menu;
@@ -30,8 +29,8 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 import android.widget.AdapterView;
-import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -68,7 +67,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/** Mobile inline player with DVR seekbar, reliable full-screen rotation and background playback. */
+/** Mobile inline player with DVR seekbar, clean tap controls, fullscreen icons and background playback. */
 @UnstableApi
 public final class MobileInlinePlayerProviderV2 extends ContentProvider implements Application.ActivityLifecycleCallbacks {
     private MainActivity currentActivity;
@@ -80,7 +79,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
     private TextView title;
     private TextView programme;
     private TextView stats;
-    private Button rotateButton;
+    private ImageButton fullscreenButton;
     private ListView channelList;
     private AdapterView.OnItemClickListener originalClick;
     private Channel currentChannel;
@@ -154,7 +153,8 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
 
         playerView = new PlayerView(activity);
         playerView.setUseController(true);
-        playerView.setControllerAutoShow(true);
+        playerView.setControllerAutoShow(false);
+        playerView.setControllerHideOnTouch(true);
         playerView.setControllerShowTimeoutMs(4500);
         playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FIT);
         playerView.setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING);
@@ -162,29 +162,19 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         videoContainer.addView(playerView, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
 
-        // Use Media3's native play/pause + TimeBar so DVR/catch-up streams can be dragged precisely.
+        // Keep Media3's native play/pause + TimeBar so DVR/catch-up streams can be dragged precisely.
         // Remove only the skip/10-second controls that made the live-TV overlay too busy.
         hideControllerView("exo_prev");
         hideControllerView("exo_next");
         hideControllerView("exo_rew");
         hideControllerView("exo_ffwd");
-
-        rotateButton = new Button(activity);
-        rotateButton.setAllCaps(false);
-        rotateButton.setTextSize(12);
-        rotateButton.setText("Toàn màn hình");
-        rotateButton.setVisibility(View.GONE);
-        rotateButton.setOnClickListener(v -> rotateScreen());
-        FrameLayout.LayoutParams rotateParams = new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.WRAP_CONTENT, dp(activity, 44), Gravity.TOP | Gravity.END);
-        rotateParams.setMargins(dp(activity, 8), dp(activity, 8), dp(activity, 8), 0);
-        videoContainer.addView(rotateButton, rotateParams);
+        installFullscreenButton(activity);
 
         playerView.setControllerVisibilityListener((PlayerView.ControllerVisibilityListener) visibility -> {
-            if (rotateButton != null) {
-                rotateButton.setVisibility(fullscreen || visibility == View.VISIBLE ? View.VISIBLE : View.GONE);
+            if (visibility == View.VISIBLE) {
+                updateSeekUi();
+                updateFullscreenIcon();
             }
-            if (visibility == View.VISIBLE) updateSeekUi();
         });
 
         int videoHeight = calculateVideoHeight(activity, activity.getResources().getDisplayMetrics().widthPixels);
@@ -264,6 +254,38 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         }
     }
 
+    private void installFullscreenButton(Activity activity) {
+        if (playerView == null) return;
+        int settingsId = activity.getResources().getIdentifier("exo_settings", "id", activity.getPackageName());
+        if (settingsId == 0) return;
+        View settings = playerView.findViewById(settingsId);
+        if (settings == null || !(settings.getParent() instanceof ViewGroup)) return;
+        ViewGroup parent = (ViewGroup) settings.getParent();
+
+        fullscreenButton = new ImageButton(activity);
+        fullscreenButton.setBackgroundColor(Color.TRANSPARENT);
+        fullscreenButton.setImageResource(R.drawable.ic_nm7_fullscreen);
+        fullscreenButton.setColorFilter(Color.WHITE);
+        fullscreenButton.setContentDescription("Toàn màn hình");
+        fullscreenButton.setPadding(dp(activity, 11), dp(activity, 11), dp(activity, 11), dp(activity, 11));
+        fullscreenButton.setOnClickListener(v -> rotateScreen());
+
+        ViewGroup.LayoutParams params;
+        if (parent instanceof LinearLayout) {
+            params = new LinearLayout.LayoutParams(dp(activity, 48), dp(activity, 48));
+        } else {
+            params = new ViewGroup.LayoutParams(dp(activity, 48), dp(activity, 48));
+        }
+        int index = parent.indexOfChild(settings);
+        parent.addView(fullscreenButton, Math.max(0, index), params);
+    }
+
+    private void updateFullscreenIcon() {
+        if (fullscreenButton == null) return;
+        fullscreenButton.setImageResource(fullscreen ? R.drawable.ic_nm7_fullscreen_exit : R.drawable.ic_nm7_fullscreen);
+        fullscreenButton.setContentDescription(fullscreen ? "Thu nhỏ" : "Toàn màn hình");
+    }
+
     private void updateSeekUi() {
         boolean seekable = player != null
                 && player.isCommandAvailable(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
@@ -293,8 +315,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         fullscreenHost.addView(videoContainer, full);
         videoContainer.bringToFront();
         hideSystemBars();
-        updateRotateButton();
-        if (playerView != null) playerView.showController();
+        updateFullscreenIcon();
         if (requestLandscape) currentActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
     }
 
@@ -307,7 +328,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         panel.addView(videoContainer, 0, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, calculateVideoHeight(currentActivity, width)));
         showSystemBars();
-        updateRotateButton();
+        updateFullscreenIcon();
         videoContainer.post(() -> {
             if (videoContainer == null || fullscreen) return;
             int actualWidth = videoContainer.getWidth();
@@ -318,7 +339,6 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
                 videoContainer.setLayoutParams(params);
             }
         });
-        if (playerView != null) playerView.showController();
         if (requestPortrait) currentActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
@@ -331,13 +351,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
                 && currentActivity.getRequestedOrientation() != ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
             exitFullscreen(false);
         }
-        updateRotateButton();
-    }
-
-    private void updateRotateButton() {
-        if (rotateButton == null) return;
-        rotateButton.setText(fullscreen ? "Xoay dọc" : "Toàn màn hình");
-        if (fullscreen) rotateButton.setVisibility(View.VISIBLE);
+        updateFullscreenIcon();
     }
 
     @SuppressWarnings("deprecation")
@@ -380,6 +394,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         releasePlayer();
         currentChannel = channel;
         panel.setVisibility(View.VISIBLE);
+        playerView.hideController();
         title.setText(channel.name());
         resolutionText = "Độ phân giải: —";
         if (stats != null) stats.setText("Độ phân giải: —  •  FPS: —");
@@ -404,7 +419,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         if (currentActivity == null || currentChannel != channel || generation != playGeneration) return;
         try {
             Map<String, String> headers = new LinkedHashMap<>(channel.headers());
-            String ua = headers.containsKey("User-Agent") ? headers.get("User-Agent") : "Nm7-IPTV/1.10.5 Android";
+            String ua = headers.containsKey("User-Agent") ? headers.get("User-Agent") : "Nm7-IPTV/1.10.6 Android";
             DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory()
                     .setUserAgent(ua).setConnectTimeoutMs(15_000).setReadTimeoutMs(20_000)
                     .setDefaultRequestProperties(headers);
@@ -484,8 +499,8 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
             next.play();
             mainHandler.removeCallbacks(statsTick);
             mainHandler.post(statsTick);
-            playerView.showController();
-            updateRotateButton();
+            playerView.hideController();
+            updateFullscreenIcon();
         } catch (Exception error) {
             releasePlayer();
             programme.setText("Không phát được kênh này • " + readable(error));
@@ -543,7 +558,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
                         connection.setInstanceFollowRedirects(false);
                         connection.setRequestMethod("GET");
                         for (Map.Entry<String, String> header : headers.entrySet()) connection.setRequestProperty(header.getKey(), header.getValue());
-                        if (!headers.containsKey("User-Agent")) connection.setRequestProperty("User-Agent", "Nm7-IPTV/1.10.5 Android");
+                        if (!headers.containsKey("User-Agent")) connection.setRequestProperty("User-Agent", "Nm7-IPTV/1.10.6 Android");
                         int code = connection.getResponseCode();
                         if (code >= 300 && code < 400) {
                             String location = connection.getHeaderField("Location");
@@ -752,7 +767,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         videoContainer = null;
         fullscreenHost = null;
         playerView = null;
-        rotateButton = null;
+        fullscreenButton = null;
         title = null;
         programme = null;
         stats = null;
