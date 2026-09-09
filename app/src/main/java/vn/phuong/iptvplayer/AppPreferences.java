@@ -58,7 +58,11 @@ final class AppPreferences {
     static boolean showClock(Context context) { return prefs(context).getBoolean("show_clock", true); }
     static void setShowClock(Context context, boolean value) { prefs(context).edit().putBoolean("show_clock", value).apply(); }
     static boolean showPlayerSource(Context context) { return prefs(context).getBoolean("show_player_source", false); }
-    static void setShowPlayerSource(Context context, boolean value) { prefs(context).edit().putBoolean("show_player_source", value).apply(); }
+    static void setShowPlayerSource(Context context, boolean value) {
+        // This preference controls the player UI and is expected to survive an
+        // immediate process restart, so persist it synchronously.
+        prefs(context).edit().putBoolean("show_player_source", value).commit();
+    }
     static String interfaceMode(Context context) { return prefs(context).getString("interface_mode", "auto"); }
     static void setInterfaceMode(Context context, String value) { prefs(context).edit().putString("interface_mode", value).apply(); }
     static boolean isTvInterface(Context context) {
