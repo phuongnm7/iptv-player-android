@@ -492,6 +492,12 @@ public final class PlayerActivity extends Activity {
 
     @Override public boolean dispatchKeyEvent(KeyEvent event) {
         if (event.getAction() == KeyEvent.ACTION_DOWN
+                && event.getKeyCode() == KeyEvent.KEYCODE_BACK
+                && quickPanel != null && quickPanel.getVisibility() == View.VISIBLE) {
+            hideQuickChannels();
+            return true;
+        }
+        if (event.getAction() == KeyEvent.ACTION_DOWN
                 && event.getKeyCode() == KeyEvent.KEYCODE_DPAD_LEFT
                 && AppPreferences.isTvInterface(this)
                 && quickPanel != null && quickPanel.getVisibility() != View.VISIBLE) {
@@ -499,14 +505,6 @@ public final class PlayerActivity extends Activity {
             return true;
         }
         return super.dispatchKeyEvent(event);
-    }
-
-    @Override public void onBackPressed() {
-        if (quickPanel != null && quickPanel.getVisibility() == View.VISIBLE) {
-            hideQuickChannels();
-            return;
-        }
-        super.onBackPressed();
     }
 
     private int dp(int value) {
