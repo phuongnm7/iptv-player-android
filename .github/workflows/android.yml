@@ -63,15 +63,11 @@ jobs:
           path: dist/
           retention-days: 30
           if-no-files-found: error
-      - name: Prepare synthetic playback tests
+      - name: Prepare Android emulator
         run: |
-          if ! command -v ffmpeg > /dev/null; then
-            sudo apt-get update
-            sudo apt-get install -y ffmpeg
-          fi
           test -e /dev/kvm
           sudo chmod a+rw /dev/kvm
-      - name: Check app on Android 15 emulator
+      - name: Check current app on Android 15 emulator
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
           api-level: 35
@@ -81,15 +77,7 @@ jobs:
           emulator-boot-timeout: 420
           disable-animations: true
           disable-spellchecker: true
-          script: python3 tools/android_smoke.py dist/Nm7-IPTV-1.7.apk
-      - name: Upload emulator evidence
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: Android-emulator-smoke
-          path: smoke-results/
-          retention-days: 14
-          if-no-files-found: ignore
+          script: python3 tools/android_smoke_current.py dist/Nm7-IPTV-1.7.apk
       - name: Upload test and lint reports
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
