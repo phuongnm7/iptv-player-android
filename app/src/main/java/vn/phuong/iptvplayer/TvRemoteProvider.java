@@ -11,6 +11,7 @@ import android.view.KeyEvent;
 import android.view.Window;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.media3.common.util.UnstableApi;
 import androidx.media3.ui.PlayerView;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -18,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** TV remote additions kept separate from the player core so 1.7 playback behaviour stays intact. */
+@UnstableApi
 public final class TvRemoteProvider extends ContentProvider implements Application.ActivityLifecycleCallbacks {
     @Override public boolean onCreate() {
         if (getContext() != null) ((Application) getContext().getApplicationContext()).registerActivityLifecycleCallbacks(this);
@@ -49,8 +51,9 @@ public final class TvRemoteProvider extends ContentProvider implements Applicati
                     PlayerView view = activity.findViewById(R.id.playerView);
                     if (view != null) { view.showController(); view.requestFocus(); return true; }
                 }
-                if (key == KeyEvent.KEYCODE_DPAD_UP) { if (switchRelative(-1)) return true; }
-                if (key == KeyEvent.KEYCODE_DPAD_DOWN) { if (switchRelative(1)) return true; }
+                // Requested TV mapping: UP = next channel, DOWN = previous channel.
+                if (key == KeyEvent.KEYCODE_DPAD_UP) { if (switchRelative(1)) return true; }
+                if (key == KeyEvent.KEYCODE_DPAD_DOWN) { if (switchRelative(-1)) return true; }
                 if (key == KeyEvent.KEYCODE_MENU) {
                     AppPreferences.setShowPlayerSource(activity, !AppPreferences.showPlayerSource(activity));
                     applySourceVisibility(activity);
@@ -61,23 +64,34 @@ public final class TvRemoteProvider extends ContentProvider implements Applicati
             return base.dispatchKeyEvent(event);
         }
 
+        @SuppressWarnings("unchecked")
         private boolean switchRelative(int delta) {
             try {
-                Field panelField = PlayerActivity.class.getDeclaredField("quickPanel"); panelField.setAccessible(true);
+                Field panelField = PlayerActivity.class.getDeclaredField("quickPanel");
+                panelField.setAccessible(true);
                 android.view.View panel = (android.view.View) panelField.get(activity);
                 if (panel != null && panel.getVisibility() == android.view.View.VISIBLE) return false;
-                Field urlField = PlayerActivity.class.getDeclaredField("url"); urlField.setAccessible(true);
-                String currentUrl = (String) urlField.get(activity);
-                SessionStore.State state = SessionStore.load(activity.getApplicationContext());
-                if (state == null || state.result.channels.isEmpty()) return false;
-                List<Channel> channels = new ArrayList<>(state.result.channels);
+
+                Field channelsField = PlayerActivity.class.getDeclaredField("quickChannels");
+                channelsField.setAccessible(true);
+                List<Channel> loaded = (List<Channel>) channelsField.get(activity);
+                if (loaded == null || loaded.isEmpty()) return false;
+                List<Channel> channels = new ArrayList<>(loaded);
+
+                Method isCurrent = PlayerActivity.class.getDeclaredMethod("isCurrentChannel", Channel.class);
+                isCurrent.setAccessible(true);
                 int current = -1;
-                for (int i = 0; i < channels.size(); i++) if (channels.get(i).url().equals(currentUrl)) { current = i; break; }
+                for (int i = 0; i < channels.size(); i++) {
+                    if (Boolean.TRUE.equals(isCurrent.invoke(activity, channels.get(i)))) { current = i; break; }
+                }
                 if (current < 0) return false;
+
                 int next = (current + delta + channels.size()) % channels.size();
-                Method method = PlayerActivity.class.getDeclaredMethod("switchChannel", Channel.class); method.setAccessible(true);
-                method.invoke(activity, channels.get(next));
-                PlayerView view = activity.findViewById(R.id.playerView); if (view != null) view.hideController();
+                Method switchChannel = PlayerActivity.class.getDeclaredMethod("switchChannel", Channel.class);
+                switchChannel.setAccessible(true);
+                switchChannel.invoke(activity, channels.get(next));
+                PlayerView view = activity.findViewById(R.id.playerView);
+                if (view != null) view.hideController();
                 return true;
             } catch (Exception ignored) { return false; }
         }
