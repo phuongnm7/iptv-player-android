@@ -7,8 +7,10 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
-/** User-managed playlist URLs, stored only in app-private preferences on the device. */
+/** Playlist URLs. A trusted default is available on a clean install; user sources stay device-local. */
 final class PlaylistSourceStore {
+    static final String DEFAULT_URL = "https://iptv-live-merge.phuongnm7-iptv.workers.dev/playlist.m3u";
+    private static final String DEFAULT_NAME = "Nguồn IPTV mặc định";
     private static final String FILE = "playlist-sources";
     private static final String KEY = "sources";
     private static final int MAX_SOURCES = 50;
@@ -28,13 +30,14 @@ final class PlaylistSourceStore {
                 if (isValid(url)) result.add(new Source(cleanName(item.optString("name"), url), url));
             }
         } catch (Exception ignored) { }
+        if (result.isEmpty()) result.add(new Source(DEFAULT_NAME, DEFAULT_URL));
         return result;
     }
 
     static void add(Context context, String name, String url) throws Exception {
         String cleanUrl = url == null ? "" : url.trim();
         if (!isValid(cleanUrl)) throw new IllegalArgumentException("Link playlist phải bắt đầu bằng http:// hoặc https://");
-        List<Source> values = load(context);
+        List<Source> values = new ArrayList<>(load(context));
         String requestedName = name == null ? "" : name.trim();
         for (int i = values.size() - 1; i >= 0; i--) if (values.get(i).url.equals(cleanUrl)) {
             if (requestedName.isEmpty()) requestedName = values.get(i).name;
@@ -46,7 +49,7 @@ final class PlaylistSourceStore {
     }
 
     static void remove(Context context, int index) throws Exception {
-        List<Source> values = load(context);
+        List<Source> values = new ArrayList<>(load(context));
         if (index >= 0 && index < values.size()) { values.remove(index); save(context, values); }
     }
 
