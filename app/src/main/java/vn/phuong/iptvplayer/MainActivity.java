@@ -92,20 +92,32 @@ public final class MainActivity extends Activity {
     private void setImportExpanded(boolean expanded){importExpanded=expanded;View section=findViewById(R.id.importPanel);if(section!=null)section.setVisibility(expanded?View.VISIBLE:View.GONE);}
     private void showPlaylistSources(){
         List<PlaylistSourceStore.Source> sources=PlaylistSourceStore.load(this);
-        String[] labels=new String[sources.size()];
-        for(int i=0;i<sources.size();i++)labels[i]=sources.get(i).name+"\n"+sources.get(i).url;
-        new AlertDialog.Builder(this).setTitle("Quản lý nguồn IPTV")
-                .setItems(labels,(d,w)->showSourceActions(sources.get(w),w))
+        LinearLayout rows=new LinearLayout(this);rows.setOrientation(LinearLayout.VERTICAL);rows.setPadding(dp(12),dp(4),dp(12),dp(8));
+        android.widget.ScrollView scroll=new android.widget.ScrollView(this);scroll.addView(rows,new android.widget.ScrollView.LayoutParams(android.widget.ScrollView.LayoutParams.MATCH_PARENT,android.widget.ScrollView.LayoutParams.WRAP_CONTENT));
+        final AlertDialog[] holder=new AlertDialog[1];
+        if(sources.isEmpty()){
+            TextView empty=new TextView(this);empty.setText("Chưa có nguồn IPTV. Bấm THÊM NGUỒN để tạo nguồn mới.");empty.setTextSize(16);empty.setPadding(dp(8),dp(18),dp(8),dp(18));rows.addView(empty);
+        }
+        for(int i=0;i<sources.size();i++){
+            final int index=i;PlaylistSourceStore.Source source=sources.get(i);
+            LinearLayout row=new LinearLayout(this);row.setOrientation(LinearLayout.VERTICAL);row.setPadding(dp(6),dp(10),dp(6),dp(10));
+            TextView nameView=new TextView(this);nameView.setText(source.name);nameView.setTextSize(18);nameView.setTextColor(getColor(R.color.text_primary));
+            TextView urlView=new TextView(this);urlView.setText(source.url);urlView.setTextSize(13);urlView.setTextColor(getColor(R.color.text_secondary));urlView.setMaxLines(2);
+            LinearLayout actions=new LinearLayout(this);actions.setOrientation(LinearLayout.HORIZONTAL);actions.setPadding(0,dp(6),0,0);
+            Button select=new Button(this);select.setText("Chọn");select.setAllCaps(false);
+            Button edit=new Button(this);edit.setText("Sửa");edit.setAllCaps(false);
+            Button remove=new Button(this);remove.setText("Xóa");remove.setAllCaps(false);
+            LinearLayout.LayoutParams actionParams=new LinearLayout.LayoutParams(0,dp(46),1f);actionParams.setMarginEnd(dp(6));
+            actions.addView(select,actionParams);actions.addView(edit,actionParams);LinearLayout.LayoutParams lastParams=new LinearLayout.LayoutParams(0,dp(46),1f);actions.addView(remove,lastParams);
+            row.addView(nameView);row.addView(urlView);row.addView(actions);rows.addView(row,new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,LinearLayout.LayoutParams.WRAP_CONTENT));
+            select.setOnClickListener(v->{holder[0].dismiss();inputUrl.setText(source.url);loadFromUrl();});
+            edit.setOnClickListener(v->{holder[0].dismiss();showSourceEditor(source,index);});
+            remove.setOnClickListener(v->{holder[0].dismiss();confirmDeleteSource(source,index);});
+        }
+        holder[0]=new AlertDialog.Builder(this).setTitle("Quản lý nguồn IPTV").setView(scroll)
                 .setPositiveButton("Thêm nguồn",(d,w)->showSourceEditor(null,-1))
-                .setNegativeButton("Đóng",null).show();
-    }
-    private void showSourceActions(PlaylistSourceStore.Source source,int index){
-        new AlertDialog.Builder(this).setTitle(source.name).setMessage(source.url)
-                .setItems(new String[]{"Tải nguồn","Chỉnh sửa","Xóa"},(d,w)->{
-                    if(w==0){inputUrl.setText(source.url);loadFromUrl();}
-                    if(w==1)showSourceEditor(source,index);
-                    if(w==2)confirmDeleteSource(source,index);
-                }).setNegativeButton("Đóng",null).show();
+                .setNegativeButton("Đóng",null).create();
+        holder[0].show();
     }
     private void showSourceEditor(PlaylistSourceStore.Source source,int index){
         LinearLayout form=new LinearLayout(this);form.setOrientation(LinearLayout.VERTICAL);form.setPadding(dp(22),dp(8),dp(22),0);
