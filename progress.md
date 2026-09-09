@@ -2,6 +2,16 @@
 
 _Cập nhật: 09/09/2026_
 
+## Phiên bản 1.7.1 — sửa giao diện TV, khôi phục Cài đặt và icon mới
+
+- Commit mã đã kiểm thử: `7baa5941426fbf7919179c7eba7d7ed0340b7e88`.
+- GitHub Actions: **Build #49**, run ID `34315634209`; compile, unit test, lint, đóng gói APK và smoke test Android 15 đều PASS.
+- Đã xóa hoàn toàn các nút `Chọn đang lọc`, `Bỏ chọn`, `Xuất M3U` khỏi cả bố cục dọc và bố cục ngang/TV.
+- Khôi phục menu Cài đặt: chọn giao diện Tự động/Mobile/TV, đổi hình nền, hiện/ẩn URL, mật độ hàng, FPS, đồng hồ, nguồn phát, xóa lịch sử và thông tin ứng dụng.
+- Thêm launcher icon và TV banner mới dựa trên ảnh `nm7 IPTV` người dùng cung cấp.
+- Version: `versionCode 10`, `versionName 1.7.1`.
+- Artifact: `Nm7-IPTV-1.7.1-APK`, ID `10090014404`, archive SHA-256 `d863c81a4d18a0d0ac3b6fe7d794c99205f0ab140a3b6e8a8df82509f767ec9a`.
+
 ## Trạng thái hiện tại: HOÀN TẤT CI
 
 - Repository: `phuongnm7/iptv-player-android`
