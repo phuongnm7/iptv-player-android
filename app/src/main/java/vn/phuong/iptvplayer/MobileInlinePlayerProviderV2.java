@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.database.Cursor;
+import android.graphics.Color;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.os.Build;
@@ -24,6 +25,7 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.SearchEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
@@ -33,7 +35,6 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.media3.common.AudioAttributes;
 import androidx.media3.common.C;
@@ -67,19 +68,19 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/** Mobile inline player: edge-to-edge video, tap controls, resilient switching and background playback. */
+/** Mobile inline player with DVR seekbar, reliable full-screen rotation and background playback. */
 @UnstableApi
 public final class MobileInlinePlayerProviderV2 extends ContentProvider implements Application.ActivityLifecycleCallbacks {
     private MainActivity currentActivity;
     private ExoPlayer player;
     private PlayerView playerView;
     private FrameLayout videoContainer;
-    private LinearLayout controlsOverlay;
+    private FrameLayout fullscreenHost;
     private LinearLayout panel;
     private TextView title;
     private TextView programme;
     private TextView stats;
-    private Button pauseButton;
+    private Button rotateButton;
     private ListView channelList;
     private AdapterView.OnItemClickListener originalClick;
     private Channel currentChannel;
@@ -95,16 +96,15 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
     private Window.Callback originalWindowCallback;
     private Object backDispatcher33;
     private Object backCallback33;
-    private boolean userPaused;
     private boolean backgroundActive;
-
-    private final Runnable hideControls = () -> {
-        if (controlsOverlay != null) controlsOverlay.setVisibility(View.GONE);
-    };
+    private boolean resumeAfterLifecyclePause;
+    private boolean fullscreen;
+    private View.OnLayoutChangeListener rootLayoutListener;
 
     private final Runnable statsTick = new Runnable() {
         @Override public void run() {
             updateStatsNow();
+            updateSeekUi();
             if (player != null) mainHandler.postDelayed(this, 2000);
         }
     };
@@ -128,10 +128,11 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         backgroundActive = false;
         if (player != null) {
             player.setWakeMode(C.WAKE_MODE_NONE);
-            if (!userPaused) player.play();
+            if (resumeAfterLifecyclePause) player.play();
         }
+        resumeAfterLifecyclePause = false;
         if (panel != null && panel.getVisibility() == View.VISIBLE) keepScreenAwake(true);
-        updatePauseButton();
+        mainHandler.post(this::syncOrientationUi);
     }
 
     private void attach(MainActivity activity) {
@@ -139,7 +140,8 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         currentActivity = activity;
         LinearLayout root = activity.findViewById(R.id.mainRoot);
         channelList = activity.findViewById(R.id.listChannels);
-        if (root == null || channelList == null) return;
+        fullscreenHost = activity.findViewById(android.R.id.content);
+        if (root == null || channelList == null || fullscreenHost == null) return;
 
         panel = new LinearLayout(activity);
         panel.setOrientation(LinearLayout.VERTICAL);
@@ -148,53 +150,52 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         panel.setPadding(0, 0, 0, dp(activity, 7));
 
         videoContainer = new FrameLayout(activity);
+        videoContainer.setBackgroundColor(Color.BLACK);
+
         playerView = new PlayerView(activity);
-        playerView.setUseController(false);
-        playerView.setControllerAutoShow(false);
+        playerView.setUseController(true);
+        playerView.setControllerAutoShow(true);
+        playerView.setControllerShowTimeoutMs(4500);
         playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FIT);
         playerView.setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING);
         playerView.setKeepContentOnPlayerReset(true);
-        playerView.setClickable(true);
-        playerView.setOnClickListener(v -> toggleControls());
         videoContainer.addView(playerView, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
 
-        controlsOverlay = new LinearLayout(activity);
-        controlsOverlay.setOrientation(LinearLayout.HORIZONTAL);
-        controlsOverlay.setGravity(Gravity.CENTER);
-        controlsOverlay.setPadding(dp(activity, 6), dp(activity, 6), dp(activity, 6), dp(activity, 6));
-        controlsOverlay.setBackgroundColor(0x99000000);
-        controlsOverlay.setVisibility(View.GONE);
+        // Use Media3's native play/pause + TimeBar so DVR/catch-up streams can be dragged precisely.
+        // Remove only the skip/10-second controls that made the live-TV overlay too busy.
+        hideControllerView("exo_prev");
+        hideControllerView("exo_next");
+        hideControllerView("exo_rew");
+        hideControllerView("exo_ffwd");
 
-        Button rewind = controlButton(activity, "↶ 10s");
-        pauseButton = controlButton(activity, "Tạm dừng");
-        Button forward = controlButton(activity, "10s ↷");
-        Button rotate = controlButton(activity, "Xoay");
-        LinearLayout.LayoutParams controlParams = new LinearLayout.LayoutParams(0, dp(activity, 48), 1f);
-        controlParams.setMarginStart(dp(activity, 2));
-        controlParams.setMarginEnd(dp(activity, 2));
-        controlsOverlay.addView(rewind, controlParams);
-        controlsOverlay.addView(pauseButton, controlParams);
-        controlsOverlay.addView(forward, controlParams);
-        controlsOverlay.addView(rotate, controlParams);
+        rotateButton = new Button(activity);
+        rotateButton.setAllCaps(false);
+        rotateButton.setTextSize(12);
+        rotateButton.setText("Toàn màn hình");
+        rotateButton.setVisibility(View.GONE);
+        rotateButton.setOnClickListener(v -> rotateScreen());
+        FrameLayout.LayoutParams rotateParams = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT, dp(activity, 44), Gravity.TOP | Gravity.END);
+        rotateParams.setMargins(dp(activity, 8), dp(activity, 8), dp(activity, 8), 0);
+        videoContainer.addView(rotateButton, rotateParams);
 
-        rewind.setOnClickListener(v -> seekBy(-10_000));
-        pauseButton.setOnClickListener(v -> togglePause());
-        forward.setOnClickListener(v -> seekBy(10_000));
-        rotate.setOnClickListener(v -> rotateScreen());
-
-        FrameLayout.LayoutParams overlayParams = new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
-        videoContainer.addView(controlsOverlay, overlayParams);
+        playerView.setControllerVisibilityListener((PlayerView.ControllerVisibilityListener) visibility -> {
+            if (rotateButton != null) {
+                rotateButton.setVisibility(fullscreen || visibility == View.VISIBLE ? View.VISIBLE : View.GONE);
+            }
+            if (visibility == View.VISIBLE) updateSeekUi();
+        });
 
         int videoHeight = calculateVideoHeight(activity, activity.getResources().getDisplayMetrics().widthPixels);
         panel.addView(videoContainer, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, videoHeight));
         videoContainer.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            if (fullscreen) return;
             int width = right - left;
             if (width <= 0) return;
             int wanted = calculateVideoHeight(activity, width);
-            android.view.ViewGroup.LayoutParams params = videoContainer.getLayoutParams();
+            ViewGroup.LayoutParams params = videoContainer.getLayoutParams();
             if (params != null && params.height != wanted) {
                 params.height = wanted;
                 videoContainer.setLayoutParams(params);
@@ -238,87 +239,144 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
             if (item instanceof Channel) playInline((Channel) item);
             else if (originalClick != null) originalClick.onItemClick(parent, view, position, id);
         });
+
+        rootLayoutListener = (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) ->
+                mainHandler.post(this::syncOrientationUi);
+        fullscreenHost.addOnLayoutChangeListener(rootLayoutListener);
         installBackHandling(activity);
     }
 
-    private Button controlButton(Activity activity, String text) {
-        Button button = new Button(activity);
-        button.setText(text);
-        button.setAllCaps(false);
-        button.setTextSize(13);
-        button.setSingleLine(true);
-        return button;
+    private void hideControllerView(String resourceName) {
+        if (currentActivity == null || playerView == null) return;
+        int id = currentActivity.getResources().getIdentifier(resourceName, "id", currentActivity.getPackageName());
+        if (id != 0) {
+            View view = playerView.findViewById(id);
+            if (view != null) view.setVisibility(View.GONE);
+        }
+    }
+
+    private void setControllerViewVisible(String resourceName, boolean visible) {
+        if (currentActivity == null || playerView == null) return;
+        int id = currentActivity.getResources().getIdentifier(resourceName, "id", currentActivity.getPackageName());
+        if (id != 0) {
+            View view = playerView.findViewById(id);
+            if (view != null) view.setVisibility(visible ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    private void updateSeekUi() {
+        boolean seekable = player != null
+                && player.isCommandAvailable(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
+                && player.isCurrentMediaItemSeekable();
+        setControllerViewVisible("exo_progress", seekable);
+        setControllerViewVisible("exo_position", seekable);
+        setControllerViewVisible("exo_duration", seekable);
     }
 
     private int calculateVideoHeight(Activity activity, int width) {
-        int height = width * 9 / 16;
-        int screenHeight = activity.getResources().getDisplayMetrics().heightPixels;
-        return Math.max(dp(activity, 180), Math.min(height, screenHeight));
-    }
-
-    private void toggleControls() {
-        if (controlsOverlay == null) return;
-        if (controlsOverlay.getVisibility() == View.VISIBLE) {
-            mainHandler.removeCallbacks(hideControls);
-            controlsOverlay.setVisibility(View.GONE);
-        } else showControlsTemporarily();
-    }
-
-    private void showControlsTemporarily() {
-        if (controlsOverlay == null) return;
-        controlsOverlay.setVisibility(View.VISIBLE);
-        updatePauseButton();
-        mainHandler.removeCallbacks(hideControls);
-        mainHandler.postDelayed(hideControls, 4500);
-    }
-
-    private void togglePause() {
-        if (player == null) return;
-        userPaused = !userPaused;
-        if (userPaused) player.pause(); else player.play();
-        updatePauseButton();
-        showControlsTemporarily();
-    }
-
-    private void updatePauseButton() {
-        if (pauseButton != null) pauseButton.setText(userPaused ? "Phát" : "Tạm dừng");
-    }
-
-    private void seekBy(long deltaMs) {
-        if (player == null) return;
-        if (!player.isCommandAvailable(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)) {
-            Toast.makeText(currentActivity, "Kênh trực tiếp này không hỗ trợ tua", Toast.LENGTH_SHORT).show();
-            showControlsTemporarily();
-            return;
-        }
-        long position = Math.max(0, player.getCurrentPosition() + deltaMs);
-        player.seekTo(position);
-        showControlsTemporarily();
+        return Math.max(dp(activity, 180), width * 9 / 16);
     }
 
     private void rotateScreen() {
-        if (currentActivity == null) return;
-        int orientation = currentActivity.getResources().getConfiguration().orientation;
-        currentActivity.setRequestedOrientation(orientation == Configuration.ORIENTATION_LANDSCAPE
-                ? ActivityInfo.SCREEN_ORIENTATION_PORTRAIT : ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-        showControlsTemporarily();
-        mainHandler.postDelayed(() -> {
-            if (videoContainer == null || currentActivity == null) return;
-            int width = videoContainer.getWidth();
-            if (width <= 0) width = currentActivity.getResources().getDisplayMetrics().widthPixels;
-            android.view.ViewGroup.LayoutParams params = videoContainer.getLayoutParams();
+        if (currentActivity == null || videoContainer == null) return;
+        if (fullscreen) exitFullscreen(true);
+        else enterFullscreen(true);
+    }
+
+    private void enterFullscreen(boolean requestLandscape) {
+        if (currentActivity == null || videoContainer == null || fullscreenHost == null || fullscreen) return;
+        ViewGroup parent = (ViewGroup) videoContainer.getParent();
+        if (parent != null) parent.removeView(videoContainer);
+        fullscreen = true;
+        FrameLayout.LayoutParams full = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);
+        fullscreenHost.addView(videoContainer, full);
+        videoContainer.bringToFront();
+        hideSystemBars();
+        updateRotateButton();
+        if (playerView != null) playerView.showController();
+        if (requestLandscape) currentActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+    }
+
+    private void exitFullscreen(boolean requestPortrait) {
+        if (currentActivity == null || videoContainer == null || panel == null || !fullscreen) return;
+        ViewGroup parent = (ViewGroup) videoContainer.getParent();
+        if (parent != null) parent.removeView(videoContainer);
+        fullscreen = false;
+        int width = currentActivity.getResources().getDisplayMetrics().widthPixels;
+        panel.addView(videoContainer, 0, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, calculateVideoHeight(currentActivity, width)));
+        showSystemBars();
+        updateRotateButton();
+        videoContainer.post(() -> {
+            if (videoContainer == null || fullscreen) return;
+            int actualWidth = videoContainer.getWidth();
+            if (actualWidth <= 0) return;
+            ViewGroup.LayoutParams params = videoContainer.getLayoutParams();
             if (params != null) {
-                params.height = calculateVideoHeight(currentActivity, width);
+                params.height = calculateVideoHeight(currentActivity, actualWidth);
                 videoContainer.setLayoutParams(params);
             }
-        }, 350);
+        });
+        if (playerView != null) playerView.showController();
+        if (requestPortrait) currentActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+    }
+
+    private void syncOrientationUi() {
+        if (currentActivity == null || panel == null || panel.getVisibility() != View.VISIBLE) return;
+        int orientation = currentActivity.getResources().getConfiguration().orientation;
+        if (orientation == Configuration.ORIENTATION_LANDSCAPE && !fullscreen) {
+            enterFullscreen(false);
+        } else if (orientation == Configuration.ORIENTATION_PORTRAIT && fullscreen
+                && currentActivity.getRequestedOrientation() != ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
+            exitFullscreen(false);
+        }
+        updateRotateButton();
+    }
+
+    private void updateRotateButton() {
+        if (rotateButton == null) return;
+        rotateButton.setText(fullscreen ? "Xoay dọc" : "Toàn màn hình");
+        if (fullscreen) rotateButton.setVisibility(View.VISIBLE);
+    }
+
+    @SuppressWarnings("deprecation")
+    private void hideSystemBars() {
+        if (currentActivity == null) return;
+        Window window = currentActivity.getWindow();
+        window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        if (Build.VERSION.SDK_INT >= 30) {
+            android.view.WindowInsetsController controller = window.getInsetsController();
+            if (controller != null) {
+                controller.hide(android.view.WindowInsets.Type.statusBars() | android.view.WindowInsets.Type.navigationBars());
+                controller.setSystemBarsBehavior(android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            }
+        } else {
+            window.getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    private void showSystemBars() {
+        if (currentActivity == null) return;
+        Window window = currentActivity.getWindow();
+        window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        if (Build.VERSION.SDK_INT >= 30) {
+            android.view.WindowInsetsController controller = window.getInsetsController();
+            if (controller != null) controller.show(android.view.WindowInsets.Type.statusBars() | android.view.WindowInsets.Type.navigationBars());
+        } else {
+            window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
+        }
     }
 
     private void playInline(Channel channel) {
         if (currentActivity == null || playerView == null) return;
         int generation = ++playGeneration;
         recoveryAttempts = 0;
-        userPaused = false;
+        resumeAfterLifecyclePause = false;
         releasePlayer();
         currentChannel = channel;
         panel.setVisibility(View.VISIBLE);
@@ -328,6 +386,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         updateProgramme(channel);
         AppPreferences.recordRecent(currentActivity, channel);
         keepScreenAwake(true);
+        mainHandler.post(this::syncOrientationUi);
 
         String scheme = Uri.parse(channel.url()).getScheme();
         if (scheme == null || !scheme.matches("(?i)https?|rtsp|udp|rtmp")) {
@@ -345,7 +404,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         if (currentActivity == null || currentChannel != channel || generation != playGeneration) return;
         try {
             Map<String, String> headers = new LinkedHashMap<>(channel.headers());
-            String ua = headers.containsKey("User-Agent") ? headers.get("User-Agent") : "Nm7-IPTV/1.10.4 Android";
+            String ua = headers.containsKey("User-Agent") ? headers.get("User-Agent") : "Nm7-IPTV/1.10.5 Android";
             DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory()
                     .setUserAgent(ua).setConnectTimeoutMs(15_000).setReadTimeoutMs(20_000)
                     .setDefaultRequestProperties(headers);
@@ -370,6 +429,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
             playerView.setPlayer(next);
             videoCounters = null;
             fpsMeter.reset();
+            updateSeekUi();
 
             next.addAnalyticsListener(new AnalyticsListener() {
                 @Override public void onVideoEnabled(EventTime eventTime, DecoderCounters counters) {
@@ -384,6 +444,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
                     if (state == Player.STATE_BUFFERING) programme.setText("Đang tải luồng…");
                     if (state == Player.STATE_READY) {
                         updateProgramme(channel);
+                        updateSeekUi();
                         keepScreenAwake(true);
                         mainHandler.postDelayed(() -> {
                             if (generation == playGeneration && next == player && next.isPlaying()) recoveryAttempts = 0;
@@ -392,8 +453,11 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
                 }
                 @Override public void onIsPlayingChanged(boolean isPlaying) {
                     if (generation != playGeneration || next != player) return;
-                    updatePauseButton();
                     if (isPlaying && !backgroundActive) keepScreenAwake(true);
+                }
+                @Override public void onAvailableCommandsChanged(Player.Commands availableCommands) {
+                    if (generation != playGeneration || next != player) return;
+                    updateSeekUi();
                 }
                 @Override public void onVideoSizeChanged(VideoSize size) {
                     if (generation != playGeneration || next != player) return;
@@ -420,7 +484,8 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
             next.play();
             mainHandler.removeCallbacks(statsTick);
             mainHandler.post(statsTick);
-            showControlsTemporarily();
+            playerView.showController();
+            updateRotateButton();
         } catch (Exception error) {
             releasePlayer();
             programme.setText("Không phát được kênh này • " + readable(error));
@@ -478,7 +543,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
                         connection.setInstanceFollowRedirects(false);
                         connection.setRequestMethod("GET");
                         for (Map.Entry<String, String> header : headers.entrySet()) connection.setRequestProperty(header.getKey(), header.getValue());
-                        if (!headers.containsKey("User-Agent")) connection.setRequestProperty("User-Agent", "Nm7-IPTV/1.10.4 Android");
+                        if (!headers.containsKey("User-Agent")) connection.setRequestProperty("User-Agent", "Nm7-IPTV/1.10.5 Android");
                         int code = connection.getResponseCode();
                         if (code >= 300 && code < 400) {
                             String location = connection.getHeaderField("Location");
@@ -601,12 +666,16 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
     }
 
     private boolean consumeBack() {
+        if (fullscreen) {
+            exitFullscreen(true);
+            return true;
+        }
         if (panel == null || panel.getVisibility() != View.VISIBLE) return false;
         ++playGeneration;
         releasePlayer();
         currentChannel = null;
-        userPaused = false;
         backgroundActive = false;
+        resumeAfterLifecyclePause = false;
         panel.setVisibility(View.GONE);
         keepScreenAwake(false);
         if (currentActivity != null) stopBackgroundService(currentActivity);
@@ -644,10 +713,8 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
 
     private void releasePlayer() {
         mainHandler.removeCallbacks(statsTick);
-        mainHandler.removeCallbacks(hideControls);
         videoCounters = null;
         fpsMeter.reset();
-        if (controlsOverlay != null) controlsOverlay.setVisibility(View.GONE);
         if (player != null) {
             ExoPlayer old = player;
             player = null;
@@ -656,6 +723,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
             if (playerView != null) playerView.setPlayer(null);
             old.release();
         }
+        updateSeekUi();
         if (multicastLock != null) {
             try { if (multicastLock.isHeld()) multicastLock.release(); } catch (RuntimeException ignored) { }
             multicastLock = null;
@@ -664,10 +732,16 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
 
     private void detach() {
         ++playGeneration;
+        if (fullscreen && currentActivity != null && videoContainer != null && panel != null) exitFullscreen(false);
         keepScreenAwake(false);
-        if (currentActivity != null) stopBackgroundService(currentActivity);
+        if (currentActivity != null) {
+            stopBackgroundService(currentActivity);
+            showSystemBars();
+            currentActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+        }
         releasePlayer();
         uninstallBackHandling();
+        if (fullscreenHost != null && rootLayoutListener != null) fullscreenHost.removeOnLayoutChangeListener(rootLayoutListener);
         if (channelList != null && originalClick != null) channelList.setOnItemClickListener(originalClick);
         if (panel != null && panel.getParent() instanceof LinearLayout) ((LinearLayout) panel.getParent()).removeView(panel);
         currentActivity = null;
@@ -676,14 +750,16 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         originalClick = null;
         panel = null;
         videoContainer = null;
+        fullscreenHost = null;
         playerView = null;
-        controlsOverlay = null;
-        pauseButton = null;
+        rotateButton = null;
         title = null;
         programme = null;
         stats = null;
-        userPaused = false;
         backgroundActive = false;
+        resumeAfterLifecyclePause = false;
+        fullscreen = false;
+        rootLayoutListener = null;
     }
 
     private static String readable(Exception error) {
@@ -758,13 +834,17 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
     @Override public void onActivityStarted(Activity a) { }
     @Override public void onActivityPaused(Activity a) {
         if (a != currentActivity || player == null) return;
-        if (AppPreferences.backgroundPlayback(a) && !userPaused && currentChannel != null
+        boolean wantedPlayback = player.getPlayWhenReady();
+        if (AppPreferences.backgroundPlayback(a) && wantedPlayback && currentChannel != null
                 && panel != null && panel.getVisibility() == View.VISIBLE) {
             backgroundActive = true;
+            resumeAfterLifecyclePause = false;
+            keepScreenAwake(false);
             player.setWakeMode(C.WAKE_MODE_NETWORK);
             startBackgroundService(a);
         } else {
             backgroundActive = false;
+            resumeAfterLifecyclePause = wantedPlayback;
             player.pause();
         }
     }
