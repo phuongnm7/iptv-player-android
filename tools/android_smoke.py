@@ -112,7 +112,7 @@ def screenshot(name):
 
 def launch():
     adb("shell", "am", "start", "-W", "-n", PACKAGE + "/.MainActivity")
-    wait_for(lambda root: find(root, "inputUrl"), "App did not open")
+    wait_for(lambda root: find(root, "mainRoot"), "App did not open")
 
 
 def wait_playing(name, title=None):
@@ -145,7 +145,7 @@ def play_direct(path, name):
     screenshot("player-" + name.lower())
     check(name + " synthetic video reports 320 x 180 without player error")
     adb("shell", "input", "keyevent", "KEYCODE_BACK")
-    wait_for(lambda root: find(root, "inputUrl"), "Did not return from player")
+    wait_for(lambda root: find(root, "mainRoot"), "Did not return from player")
     tap("btnSources")
 
 
@@ -215,7 +215,7 @@ def remote_checks():
     check_source(True)
     check("Settings shows the player source and persists across process restart")
     adb("shell", "input", "keyevent", "KEYCODE_BACK")
-    wait_for(lambda root: find(root, "inputUrl"), "Did not return to Settings")
+    wait_for(lambda root: find(root, "mainRoot"), "Did not return to Settings")
     tap("btnWallpaper")
     tap(text="Ẩn nguồn phát khi xem")
     tap(resource="txtName", text="Alpha")
@@ -255,7 +255,7 @@ def remote_checks():
     check("LEFT opens quick list; DOWN and OK select a channel using only the remote")
     screenshot("remote-controls")
     adb("shell", "input", "keyevent", "KEYCODE_BACK")
-    wait_for(lambda root: find(root, "inputUrl"), "Did not return from remote checks")
+    wait_for(lambda root: find(root, "mainRoot"), "Did not return from remote checks")
 
 
 def run_checks():
@@ -304,7 +304,7 @@ def run_checks():
     wait_playing("Bravo", "Bravo")
     check("Quick channel panel switches channel without returning to main screen")
     adb("shell", "input", "keyevent", "KEYCODE_BACK")
-    wait_for(lambda root: find(root, "inputUrl") is not None, "Did not return from quick channel test")
+    wait_for(lambda root: find(root, "mainRoot") is not None, "Did not return from quick channel test")
 
     tap_node(wait_for(lambda root: find(root, "txtName", "Alpha"), "Missing Alpha"), long_press=True)
     tap(text="Xem URL nguồn đầy đủ")
@@ -348,7 +348,7 @@ def run_checks():
                 return node
         return None
     tap_node(wait_for(save_button, "Android file picker did not offer Save"))
-    wait_for(lambda root: find(root, "inputUrl"), "Export did not return to app")
+    wait_for(lambda root: find(root, "mainRoot"), "Export did not return to app")
     exported = adb("shell", "cat", "/sdcard/Download/playlist-sach.m3u")
     assert exported.startswith("#EXTM3U") and exported.count("#EXTINF:") == 1, "Export must contain one selected channel"
     assert "Alpha" in exported and "Bravo" not in exported, "Export included an unchecked channel"
@@ -398,7 +398,9 @@ def main():
         result["error"] = traceback.format_exc()
         try:
             screenshot("failure")
-            (REPORT / "failure.xml").write_text(ET.tostring(hierarchy(), encoding="unicode"), encoding="utf-8")
+            failure_xml = ET.tostring(hierarchy(), encoding="unicode")
+            (REPORT / "failure.xml").write_text(failure_xml, encoding="utf-8")
+            print("Failure UI: " + failure_xml, flush=True)
             (REPORT / "logcat.txt").write_text(adb("logcat", "-d", "-t", "800"), encoding="utf-8")
         except Exception:
             pass
