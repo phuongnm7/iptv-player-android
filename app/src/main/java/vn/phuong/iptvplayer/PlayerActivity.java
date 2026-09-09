@@ -27,12 +27,14 @@ import androidx.media3.common.util.UnstableApi;
 import androidx.media3.datasource.DefaultDataSource;
 import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.datasource.HttpDataSource;
+import androidx.media3.exoplayer.DefaultLoadControl;
 import androidx.media3.exoplayer.DefaultRenderersFactory;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.exoplayer.DecoderCounters;
 import androidx.media3.exoplayer.analytics.AnalyticsListener;
 import androidx.media3.exoplayer.rtsp.RtspMediaSource;
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
+import androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy;
 import androidx.media3.ui.PlayerView;
 import androidx.media3.ui.AspectRatioFrameLayout;
 import java.util.LinkedHashMap;
@@ -147,17 +149,18 @@ public final class PlayerActivity extends Activity {
     @Override protected void onPause(){if(shouldUseBackgroundPlayback()&&!isFinishing()&&player!=null){backgroundPlaybackActive=true;player.setWakeMode(C.WAKE_MODE_NETWORK);android.content.Intent service=new android.content.Intent(this,BackgroundPlaybackService.class).putExtra(BackgroundPlaybackService.EXTRA_CHANNEL_NAME,name);if(android.os.Build.VERSION.SDK_INT>=26)startForegroundService(service);else startService(service);}super.onPause();}
     private boolean shouldUseBackgroundPlayback(){return !AppPreferences.isTvInterface(this)&&AppPreferences.backgroundPlayback(this);}
     private boolean playbackContextActive(){return activityStarted||backgroundPlaybackActive;}
+    private static DefaultLoadControl stableLoadControl(){return new DefaultLoadControl.Builder().setBufferDurationsMs(12_000,45_000,750,2_000).setPrioritizeTimeOverSizeThresholds(true).build();}
     private void startPlayer() {
         if (player != null) return; String scheme = Uri.parse(url).getScheme();
         if (scheme == null || !(scheme.matches("(?i)https?|rtsp|udp|rtmp"))) { showError("Bản này chưa hỗ trợ giao thức " + scheme + ". Không thể bảo đảm mọi giao thức IPTV."); return; }
         try {
             Map<String,String> headers = new LinkedHashMap<>(); if (currentHeaders != null) for (String key : currentHeaders.keySet()) { String v=currentHeaders.getString(key); if(v!=null) headers.put(key,v); }
-            String ua=headers.containsKey("User-Agent")?headers.get("User-Agent"):"Nm7-IPTV/1.7 Android";
-            DefaultHttpDataSource.Factory http=new DefaultHttpDataSource.Factory().setUserAgent(ua).setConnectTimeoutMs(15000).setReadTimeoutMs(20000).setDefaultRequestProperties(headers);
-            DefaultDataSource.Factory data=new DefaultDataSource.Factory(this,http); DefaultMediaSourceFactory mediaFactory=new DefaultMediaSourceFactory(data);
+            String ua=headers.containsKey("User-Agent")?headers.get("User-Agent"):"Nm7-IPTV/1.10.8 Android";
+            DefaultHttpDataSource.Factory http=new DefaultHttpDataSource.Factory().setUserAgent(ua).setConnectTimeoutMs(20_000).setReadTimeoutMs(35_000).setAllowCrossProtocolRedirects(true).setDefaultRequestProperties(headers);
+            DefaultDataSource.Factory data=new DefaultDataSource.Factory(this,http); DefaultMediaSourceFactory mediaFactory=new DefaultMediaSourceFactory(data).setLoadErrorHandlingPolicy(new DefaultLoadErrorHandlingPolicy(6));
             MediaItem.Builder builder=new MediaItem.Builder().setUri(url); String inferred=mime.isEmpty()?StreamSpec.inferMime(url,options):mime; if(inferred!=null&&!inferred.isEmpty()) builder.setMimeType(inferred);
             DrmSpec drm=DrmSpec.create(drmSystem,drmLicense); findViewById(R.id.btnDrm).setVisibility(drm.hasDrm()?View.VISIBLE:View.GONE); if(drm.remoteClearKey()){resolveRemoteClearKey(drm,headers);return;} DrmPlayback.configure(drm,builder,mediaFactory);
-            player=new ExoPlayer.Builder(this,new DefaultRenderersFactory(this).setEnableDecoderFallback(true)).setMediaSourceFactory(mediaFactory).build();
+            player=new ExoPlayer.Builder(this,new DefaultRenderersFactory(this).setEnableDecoderFallback(true)).setLoadControl(stableLoadControl()).setMediaSourceFactory(mediaFactory).build();
             player.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),true); player.setHandleAudioBecomingNoisy(true); playerView.setPlayer(player);
             player.addAnalyticsListener(new AnalyticsListener(){@Override public void onVideoEnabled(EventTime e,DecoderCounters c){videoCounters=c;fpsMeter.reset();}}); applyQuality();
             player.addListener(new Player.Listener(){
@@ -197,7 +200,7 @@ public final class PlayerActivity extends Activity {
                     try{
                         connection.setConnectTimeout(10_000);connection.setReadTimeout(10_000);connection.setInstanceFollowRedirects(false);connection.setRequestMethod("GET");
                         for(Map.Entry<String,String> header:headers.entrySet())connection.setRequestProperty(header.getKey(),header.getValue());
-                        if(!headers.containsKey("User-Agent"))connection.setRequestProperty("User-Agent","Nm7-IPTV/1.7 Android");
+                        if(!headers.containsKey("User-Agent"))connection.setRequestProperty("User-Agent","Nm7-IPTV/1.10.8 Android");
                         int code=connection.getResponseCode();
                         if(code>=300&&code<400){
                             String location=connection.getHeaderField("Location");if(location==null||location.isEmpty())break;
@@ -215,9 +218,25 @@ public final class PlayerActivity extends Activity {
         if(!playbackContextActive()||isFinishing()||isDestroyed())return;
         recoveryHandler.removeCallbacks(resetRecoveryAttempts);
         if(recoveryAttempts>=MAX_RECOVERY_ATTEMPTS){showError(reason+". Đã thử nối lại "+MAX_RECOVERY_ATTEMPTS+" lần.\nBấm thử lại để tiếp tục.");return;}
-        recoveryAttempts++;if(fromEnd)position=0;else rememberPosition();resumePlayback=true;
-        long delay=Math.min(8_000L,1_000L<<(recoveryAttempts-1));status.setText(reason+" • nối lại lần "+recoveryAttempts+"…");
-        recoveryHandler.removeCallbacksAndMessages(null);recoveryHandler.postDelayed(()->{if(playbackContextActive()&&!isFinishing()&&!isDestroyed()){releasePlayer();startPlayer();}},delay);
+        int attempt=++recoveryAttempts;
+        if(fromEnd)position=0;else rememberPosition();
+        resumePlayback=true;
+        long delay=attempt==1?350L:attempt==2?800L:attempt==3?1800L:3500L;
+        status.setText(reason+" • đang giữ phiên, thử lại lần "+attempt+"…");
+        recoveryHandler.removeCallbacksAndMessages(null);
+        recoveryHandler.postDelayed(()->{
+            if(!playbackContextActive()||isFinishing()||isDestroyed())return;
+            ExoPlayer active=player;
+            if(attempt<=2&&active!=null){
+                try{
+                    if(fromEnd)active.seekToDefaultPosition();
+                    active.prepare();
+                    active.play();
+                    return;
+                }catch(RuntimeException ignored){}
+            }
+            releasePlayer();startPlayer();
+        },delay);
     }
     private void chooseQuality(){String[] l={"Tự động / tối đa theo thiết bị","Full HD — tối đa 1080p","2K/QHD — tối đa 1440p","4K UHD — tối đa 2160p"};int[] h={Integer.MAX_VALUE,1080,1440,2160};new AlertDialog.Builder(this).setTitle("Giới hạn chất lượng").setItems(l,(d,i)->{quality=h[i];applyQuality();}).setNegativeButton("Đóng",null).show();}
     private void applyQuality(){if(player==null)return;int w=quality==Integer.MAX_VALUE?Integer.MAX_VALUE:quality*16/9;player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon().setViewportSize(Integer.MAX_VALUE,Integer.MAX_VALUE,true).setMaxVideoSize(w,quality).build());}
