@@ -2,86 +2,73 @@
 
 _Cập nhật: 09/09/2026_
 
-## Trạng thái bàn giao hiện tại
+## Trạng thái hiện tại: HOÀN TẤT CI
 
-### Mã nguồn mới nhất
-- Commit chức năng/smoke test hiện tại: `7d2444b01012e6f2858e413e9b5627ac33da7c7d`.
-- Commit này sửa smoke test Android để chờ các thành phần giao diện ổn định thay vì yêu cầu danh sách kênh xuất hiện ngay khi khởi động.
-- Workflow GitHub Actions: **Build #44**, run ID `34309525888`.
+- Repository: `phuongnm7/iptv-player-android`
+- Branch: `main`
+- Commit đã kiểm thử: `df3576c53e2ff14455e6a33ffe69aa1c71fe82cb`
+- GitHub Actions: **Build #47**, run ID `34312750176`
+- Kết quả workflow: **PASS toàn bộ**
 
-### Kết quả cuối cùng của Build #44
+### Kết quả Build #47
+
 - PASS: Compile Android.
 - PASS: Unit test.
 - PASS: Lint.
 - PASS: Verify và đóng gói APK.
 - PASS: Upload APK artifact.
 - PASS: Chuẩn bị Android 15 emulator.
-- FAIL: `Check current app on Android 15 emulator` (smoke test).
-- Vì smoke test thất bại, toàn bộ workflow có trạng thái **FAILED**.
+- PASS: Smoke test ứng dụng trên Android 15.
+- PASS: Upload báo cáo kiểm thử/lint.
 
-## APK hiện tại
-- APK của Build #44 đã được tạo thành công và upload dưới dạng GitHub Actions artifact.
-- APK có thể được cài thử, nhưng **chưa được xác nhận là bản hoàn chỉnh** vì smoke test Android 15 chưa PASS.
-- Không bàn giao APK này như bản phát hành cuối cùng cho đến khi lỗi smoke test được xác minh và một lượt build mới PASS toàn bộ.
+## APK đã xác nhận
 
-## Các lỗi đã xử lý trước đó
+- Tên file: `Nm7-IPTV-1.7.apk`
+- Artifact: `Nm7-IPTV-1.7-APK`
+- Artifact ID: `10089006618`
+- Thời hạn artifact trên GitHub: 09/10/2026.
+- SHA-256: `1b9429d4b1eb977617dd5a4a6ffaaeb69a9de48fdd7d6f566eff048cdd990cc1`
 
-### Build #41
-- `MainActivity.java` có lỗi biên dịch.
-- Đã sửa `TextWatcher`, lời gọi `SessionStore.save`, snapshot danh sách kênh và ID panel.
+Đây là APK đầu tiên sau mốc bàn giao Build #44 đã PASS toàn bộ workflow, bao gồm kiểm tra chạy ứng dụng trên Android 15.
 
-### Build #43
-- APK build thành công nhưng smoke test tìm `listChannels` ngay khi khởi động.
-- Trên lần mở đầu, danh sách kênh có thể chưa phải thành phần phù hợp để kiểm tra ngay.
+## Nguyên nhân lỗi Build #44–#46 và cách xử lý
 
 ### Build #44
-- Smoke test đã được sửa để:
-  1. Khởi động `MainActivity`.
-  2. Chờ `mainRoot` xuất hiện.
-  3. Kiểm tra các control ổn định `btnSources` và `btnAllChannels`.
-- Tuy nhiên job smoke test cuối cùng vẫn FAIL. Người tiếp tục cần đọc log đầy đủ của job `Check current app on Android 15 emulator` để xác định chính xác control hoặc thao tác nào còn gây lỗi; không nên tiếp tục giả định nguyên nhân.
 
-## Các chức năng đã thay đổi
+Smoke test báo `Main screen did not open` nhưng log chưa đủ dữ liệu để phân biệt lỗi ứng dụng và lỗi môi trường.
+
+### Build #45
+
+Đã bổ sung chẩn đoán: kết quả xác nhận `MainActivity` vẫn chạy bình thường. Emulator CI không phân giải được hostname của playlist mặc định, ứng dụng hiển thị hộp thoại lỗi mạng và hộp thoại này che cây giao diện.
+
+### Build #46
+
+Smoke test đã đóng riêng hộp thoại lỗi tải playlist và xác nhận màn hình chính xuất hiện. Lỗi còn lại là khi playlist rỗng, Android UI Automator hiển thị `txtEmpty` thay cho `listChannels`.
+
+### Build #47
+
+Smoke test chấp nhận đúng hai trạng thái hợp lệ của vùng nội dung: danh sách kênh `listChannels` hoặc trạng thái rỗng `txtEmpty`. Các nút chính vẫn bắt buộc đầy đủ và các control M3U đã loại bỏ vẫn bắt buộc không xuất hiện. Workflow PASS toàn bộ.
+
+## Các chức năng hiện có
+
 - Cài mới hoặc không có phiên hợp lệ: tự tải nguồn IPTV mặc định:
   `https://iptv-live-merge.phuongnm7-iptv.workers.dev/playlist.m3u`
 - Có phiên hợp lệ: khôi phục playlist trước đó, không ghi đè.
-- Người dùng vẫn có thể thêm và chọn nguồn IPTV khác thủ công.
-- Logo/icon kênh đã được thêm ở các thay đổi trước.
-- Đã loại bỏ các chức năng/nút Chọn đang lọc, Bỏ chọn và Xuất M3U khỏi giao diện chính.
+- Có thể thêm và chọn nguồn IPTV khác thủ công.
+- Có logo/icon kênh.
+- Đã loại bỏ nút Chọn đang lọc, Bỏ chọn và Xuất M3U khỏi giao diện chính.
 
 ## Điều khiển remote
+
 - Controller ẩn:
   - `OK`: hiện controller.
   - `LEFT`: mở danh sách kênh nhanh.
   - `UP/DOWN`: đổi kênh.
 - Controller hiện:
-  - `LEFT`: để Media3 xử lý tua ngược.
-  - `RIGHT`: để Media3 xử lý tua tới.
-- Khả năng tua thực tế phụ thuộc nguồn phát có DVR hoặc seek window.
+  - `LEFT`: Media3 xử lý tua ngược.
+  - `RIGHT`: Media3 xử lý tua tới.
+- Khả năng tua phụ thuộc nguồn phát có DVR hoặc seek window.
 
-## Việc cần làm tiếp theo
+## Mốc tiếp tục trong tương lai
 
-### Ưu tiên 1: Phân tích lỗi Build #44
-1. Tải/đọc log đầy đủ của job `Check current app on Android 15 emulator`.
-2. Xác định đây là lỗi ứng dụng, lỗi emulator hay lỗi smoke test.
-3. Sửa đúng nguyên nhân; không chỉ làm test dễ hơn để bỏ qua lỗi ứng dụng.
-
-### Ưu tiên 2: Chạy lại toàn bộ CI
-1. Đẩy commit sửa lỗi.
-2. Xác nhận Compile PASS.
-3. Xác nhận Unit test PASS.
-4. Xác nhận Lint PASS.
-5. Xác nhận APK được đóng gói thành công.
-6. Xác nhận smoke test Android 15 PASS.
-
-### Ưu tiên 3: Bàn giao
-Chỉ sau khi workflow PASS toàn bộ mới tải APK artifact của lượt build cuối và gửi trực tiếp file `.apk` cho người dùng.
-
-## Mốc bàn giao
-Người tiếp tục dự án nên bắt đầu từ:
-- Repository: `phuongnm7/iptv-player-android`
-- Branch: `main`
-- Commit chức năng/smoke test gần nhất: `7d2444b01012e6f2858e413e9b5627ac33da7c7d`
-- Workflow cần điều tra: Build #44 / run ID `34309525888`
-
-**Lưu ý:** `progress.md` này phản ánh kết quả cuối cùng đã biết của Build #44. Trạng thái hiện tại là APK build thành công nhưng workflow FAILED do smoke test Android 15, nên chưa có bản phát hành hoàn chỉnh.
+Bắt đầu từ commit `df3576c53e2ff14455e6a33ffe69aa1c71fe82cb` và Build #47. APK của Build #47 là bản hiện tại đã được CI xác nhận trên Android 15.
