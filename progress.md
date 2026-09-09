@@ -68,3 +68,16 @@ _Cập nhật: 09/09/2026_
 ## Mốc tiếp tục trong tương lai
 
 Tiếp tục từ commit `f03cf8447a8d6a3c2a56db879b1e74bc2ca00fd4`, Build #57, phiên bản 1.7.3. Đây là bản hiện tại đã PASS CI trên Android 15 và được người dùng xác nhận hoạt động ổn.
+
+
+## Samsung Tizen TV — bản 0.1.0 (đang chờ ký và thử trên TV thật)
+
+- Mục tiêu tương thích: TV Samsung đời 2015–2020, Tizen 2.3–5.5.
+- Mã nguồn: thư mục `tizen/`.
+- Trình phát: Samsung Product AVPlay, hỗ trợ HLS/DASH theo khả năng từng đời TV.
+- Đã có: tải/ghi nhớ nguồn M3U, parser M3U và header, nhóm kênh, tìm kiếm, Yêu thích, Gần đây, danh sách nhanh, D-pad/Back, tự nối lại tối đa 4 lần, cài đặt cơ bản và icon Nm7.
+- Back trong màn hình phát: lần đầu ẩn bảng điều khiển; lần tiếp theo rời trình phát.
+- GitHub Actions Tizen Build #2, run ID `34323731285`: **PASS** kiểm tra cú pháp JavaScript, unit test parser, XML, tệp bắt buộc và đóng gói nguồn.
+- Commit đã kiểm tra: `9350de76338aca53d4e33c49a605a090235269cb`.
+- Artifact: `Nm7-IPTV-Tizen-0.1.0-source`, ID `10092880456`.
+- Trạng thái: chưa thể gọi là bản cài đặt hoàn chỉnh cho TV thật cho đến khi tạo Samsung Certificate Profile có DUID của TV, ký gói `.wgt`, cài và chạy smoke test trên TV.
