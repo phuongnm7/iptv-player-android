@@ -193,7 +193,12 @@ def check_source(visible):
             return False
         node = find(root, "txtPlayerUrl")
         return node is not None and node.get("text") == BASE + "/sample.m3u8" if visible else node is None
-    wait_for(matches, "Source visibility does not match Settings")
+    # Pause keeps the transient controller visible while UI Automator waits for idle.
+    adb("shell", "input", "keyevent", "KEYCODE_MEDIA_PAUSE")
+    try:
+        wait_for(matches, "Source visibility does not match Settings")
+    finally:
+        adb("shell", "input", "keyevent", "KEYCODE_MEDIA_PLAY")
 
 
 def remote_checks():
