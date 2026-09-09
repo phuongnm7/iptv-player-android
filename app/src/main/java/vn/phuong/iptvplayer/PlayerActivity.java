@@ -73,6 +73,7 @@ public final class PlayerActivity extends Activity {
     private final FpsMeter fpsMeter = new FpsMeter();
     private final ExecutorService drmIo = Executors.newSingleThreadExecutor();
     private boolean resolvingClearKey;
+    private boolean resolvingStreamMime;
     private boolean activityStarted;
     private final Handler fpsHandler = new Handler(Looper.getMainLooper());
     private final Handler clockHandler = new Handler(Looper.getMainLooper());
@@ -152,6 +153,7 @@ public final class PlayerActivity extends Activity {
             player.addAnalyticsListener(new AnalyticsListener(){@Override public void onVideoEnabled(EventTime e,DecoderCounters c){videoCounters=c;fpsMeter.reset();}}); applyQuality();
             player.addListener(new Player.Listener(){
                 @Override public void onPlayerError(PlaybackException e){
+                    if(e.errorCode==PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED&&mime.isEmpty()&&!resolvingStreamMime){resolveRedirectedMime(e);return;}
                     if(isTransientPlaybackError(e)){scheduleRecovery("Luồng tạm gián đoạn",false);return;}
                     showError(e.getErrorCodeName()+"\nKiểm tra URL, quyền truy cập và codec của thiết bị.");
                 }
@@ -174,6 +176,31 @@ public final class PlayerActivity extends Activity {
         Throwable cause=error.getCause();
         while(cause!=null){if(cause instanceof HttpDataSource.InvalidResponseCodeException){int code=((HttpDataSource.InvalidResponseCodeException)cause).responseCode;return code==408||code==429||code>=500;}cause=cause.getCause();}
         return false;
+    }
+    private void resolveRedirectedMime(PlaybackException originalError){
+        resolvingStreamMime=true;status.setText("Đang nhận diện định dạng sau chuyển hướng…");
+        Map<String,String> headers=new LinkedHashMap<>();if(currentHeaders!=null)for(String key:currentHeaders.keySet()){String value=currentHeaders.getString(key);if(value!=null)headers.put(key,value);}
+        drmIo.execute(()->{
+            String current=url,detected="";
+            try{
+                for(int hop=0;hop<5;hop++){
+                    HttpURLConnection connection=(HttpURLConnection)new URL(current).openConnection();
+                    try{
+                        connection.setConnectTimeout(10_000);connection.setReadTimeout(10_000);connection.setInstanceFollowRedirects(false);connection.setRequestMethod("GET");
+                        for(Map.Entry<String,String> header:headers.entrySet())connection.setRequestProperty(header.getKey(),header.getValue());
+                        if(!headers.containsKey("User-Agent"))connection.setRequestProperty("User-Agent","Nm7-IPTV/1.7 Android");
+                        int code=connection.getResponseCode();
+                        if(code>=300&&code<400){
+                            String location=connection.getHeaderField("Location");if(location==null||location.isEmpty())break;
+                            current=new URL(new URL(current),location).toString();String hint=StreamSpec.inferMime(current,options);if(hint!=null&&!hint.isEmpty()){detected=hint;break;}continue;
+                        }
+                        String type=connection.getContentType();if(type!=null){String lower=type.toLowerCase(Locale.ROOT);if(lower.contains("mpegurl")||lower.contains("m3u8"))detected=MimeTypes.APPLICATION_M3U8;else if(lower.contains("dash+xml"))detected=MimeTypes.APPLICATION_MPD;}break;
+                    }finally{connection.disconnect();}
+                }
+            }catch(Exception ignored){}
+            String resolvedMime=detected;
+            runOnUiThread(()->{resolvingStreamMime=false;if(!resolvedMime.isEmpty()&&activityStarted&&!isFinishing()&&!isDestroyed()){mime=resolvedMime;position=0;resumePlayback=true;releasePlayer();startPlayer();}else showError(originalError.getErrorCodeName()+"\nKhông tự nhận diện được định dạng sau chuyển hướng.");});
+        });
     }
     private void scheduleRecovery(String reason,boolean fromEnd){
         if(!activityStarted||isFinishing()||isDestroyed())return;
@@ -198,7 +225,7 @@ public final class PlayerActivity extends Activity {
     private boolean isCurrentChannel(Channel c){if(!c.url().equals(url)||!c.options().equals(options))return false;if(currentHeaders.size()!=c.headers().size())return false;for(Map.Entry<String,String> e:c.headers().entrySet())if(!e.getValue().equals(currentHeaders.getString(e.getKey())))return false;return true;}
     private void showQuickChannels(){quickPanel.setVisibility(View.VISIBLE);filterQuickChannels();if(quickAdapter.getCount()>0)quickChannelList.post(()->quickChannelList.requestFocus());else if(quickGroupRow.getChildCount()>0)quickGroupRow.getChildAt(0).requestFocus();}
     private void hideQuickChannels(){quickPanel.setVisibility(View.GONE);playerView.requestFocus();}
-    private void switchChannel(Channel c){if(c==null)return;hideQuickChannels();if(isCurrentChannel(c))return;name=c.name();url=c.url();mime=c.mimeHint();options=new ArrayList<>(c.options());DrmSpec d=DrmSpec.fromOptions(options);drmSystem=d.system;drmLicense=d.license;currentHeaders=new Bundle();for(Map.Entry<String,String> e:c.headers().entrySet())currentHeaders.putString(e.getKey(),e.getValue());getIntent().putExtra(EXTRA_NAME,name);getIntent().putExtra(EXTRA_URL,url);getIntent().putExtra(EXTRA_HEADERS,currentHeaders);getIntent().putExtra(EXTRA_MIME,mime);getIntent().putStringArrayListExtra(EXTRA_OPTIONS,options);((TextView)findViewById(R.id.txtPlayerTitle)).setText(name);((TextView)findViewById(R.id.txtPlayerUrl)).setText(url);findViewById(R.id.playerError).setVisibility(View.GONE);AppPreferences.recordRecent(this,c);position=0;resumePlayback=true;resolvingClearKey=false;recoveryAttempts=0;recoveryHandler.removeCallbacksAndMessages(null);releasePlayer();filterQuickChannels();startPlayer();}
+    private void switchChannel(Channel c){if(c==null)return;hideQuickChannels();if(isCurrentChannel(c))return;name=c.name();url=c.url();mime=c.mimeHint();options=new ArrayList<>(c.options());DrmSpec d=DrmSpec.fromOptions(options);drmSystem=d.system;drmLicense=d.license;currentHeaders=new Bundle();for(Map.Entry<String,String> e:c.headers().entrySet())currentHeaders.putString(e.getKey(),e.getValue());getIntent().putExtra(EXTRA_NAME,name);getIntent().putExtra(EXTRA_URL,url);getIntent().putExtra(EXTRA_HEADERS,currentHeaders);getIntent().putExtra(EXTRA_MIME,mime);getIntent().putStringArrayListExtra(EXTRA_OPTIONS,options);((TextView)findViewById(R.id.txtPlayerTitle)).setText(name);((TextView)findViewById(R.id.txtPlayerUrl)).setText(url);findViewById(R.id.playerError).setVisibility(View.GONE);AppPreferences.recordRecent(this,c);position=0;resumePlayback=true;resolvingClearKey=false;resolvingStreamMime=false;recoveryAttempts=0;recoveryHandler.removeCallbacksAndMessages(null);releasePlayer();filterQuickChannels();startPlayer();}
     private boolean switchRelative(int delta){for(int i=0;i<quickChannels.size();i++)if(isCurrentChannel(quickChannels.get(i))){switchChannel(quickChannels.get((i+delta+quickChannels.size())%quickChannels.size()));playerView.hideController();return true;}return false;}
     @Override public boolean dispatchKeyEvent(KeyEvent event){int key=event.getKeyCode();if(event.getAction()==KeyEvent.ACTION_UP&&key==consumedRemoteKey){consumedRemoteKey=KeyEvent.KEYCODE_UNKNOWN;return true;}if(event.getAction()==KeyEvent.ACTION_DOWN){if(event.getRepeatCount()>0&&key==consumedRemoteKey)return true;boolean panel=quickPanel!=null&&quickPanel.getVisibility()==View.VISIBLE;if(key==KeyEvent.KEYCODE_BACK&&panel){hideQuickChannels();consumedRemoteKey=key;return true;}if(AppPreferences.isTvInterface(this)&&!panel){boolean controller=playerView.isControllerFullyVisible();boolean handled=false;if(key==KeyEvent.KEYCODE_BACK&&controller){playerView.hideController();playerView.requestFocus();handled=true;}else if((key==KeyEvent.KEYCODE_DPAD_CENTER||key==KeyEvent.KEYCODE_ENTER||key==KeyEvent.KEYCODE_NUMPAD_ENTER)&&!controller){playerView.showController();handled=true;}else if(!controller&&key==KeyEvent.KEYCODE_DPAD_LEFT){showQuickChannels();handled=true;}else if(!controller&&(key==KeyEvent.KEYCODE_DPAD_UP||key==KeyEvent.KEYCODE_DPAD_DOWN)){handled=switchRelative(key==KeyEvent.KEYCODE_DPAD_UP?1:-1);}else if(key==KeyEvent.KEYCODE_MENU){AppPreferences.setShowPlayerSource(this,!AppPreferences.showPlayerSource(this));findViewById(R.id.txtPlayerUrl).setVisibility(AppPreferences.showPlayerSource(this)?View.VISIBLE:View.GONE);handled=true;}if(handled){consumedRemoteKey=key;return true;}}}return super.dispatchKeyEvent(event);}
     private int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);} private void acquireMulticast(){WifiManager wifi=(WifiManager)getApplicationContext().getSystemService(WIFI_SERVICE);if(wifi!=null){multicastLock=wifi.createMulticastLock("iptv-stream");multicastLock.setReferenceCounted(false);multicastLock.acquire();}}
