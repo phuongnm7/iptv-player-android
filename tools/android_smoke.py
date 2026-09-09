@@ -201,17 +201,29 @@ def check_source(visible):
         adb("shell", "input", "keyevent", "KEYCODE_MEDIA_PLAY")
 
 
+def show_sources():
+    if find(hierarchy(), "inputUrl") is None:
+        tap("btnSources")
+
+
 def remote_checks():
     tap("btnWallpaper")
     tap(text="Hiện nguồn phát khi xem")
-    # Verify the preference survives process death before opening the player.
+    wait_for(lambda root: find(root, "mainRoot"), "Settings selection did not close")
+    tap("btnWallpaper")
+    wait_for(lambda root: find(root, text="Ẩn nguồn phát khi xem"),
+             "Settings did not enable the player source")
+    adb("shell", "input", "keyevent", "KEYCODE_BACK")
+    # Let Android complete its normal lifecycle and flush SharedPreferences.
+    adb("shell", "input", "keyevent", "KEYCODE_HOME")
+    time.sleep(1)
     adb("shell", "am", "force-stop", PACKAGE)
     launch()
     tap("btnWallpaper")
     wait_for(lambda root: find(root, text="Ẩn nguồn phát khi xem"),
              "Source preference did not survive restart")
     adb("shell", "input", "keyevent", "KEYCODE_BACK")
-    tap("btnSources")
+    show_sources()
     enter("inputUrl", BASE + "/remote.m3u")
     tap("btnLoadUrl")
     summary("3/3 kênh")
@@ -276,6 +288,8 @@ def run_checks():
     wait_for(lambda root: (lambda n: n is not None and n.get("focused") == "true")(
         find(root, "btnAllChannels")), "TV mode did not place D-pad focus on the channel tab")
     check("TV interface exposes a visible D-pad focus target")
+    remote_checks()
+    show_sources()
     enter("inputUrl", BASE + "/playlist.m3u")
     tap("btnLoadUrl")
     summary("2/2 kênh", "2 đã chọn", "1 trùng", "1 thiếu/sai")
@@ -363,8 +377,6 @@ def run_checks():
     tap(text="playlist-sach.m3u")
     summary("1/1 kênh", "1 đã chọn", "0 trùng", "0 thiếu/sai")
     check("Android file picker imports the exported M3U")
-
-    remote_checks()
 
     play_direct("/sample.mp4", "HTTP-MP4")
     play_direct("/sample.m3u8", "HLS")
