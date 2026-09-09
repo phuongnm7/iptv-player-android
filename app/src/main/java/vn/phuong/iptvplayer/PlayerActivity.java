@@ -393,7 +393,7 @@ public final class PlayerActivity extends Activity {
         Button button = new Button(this);
         button.setTag(value);
         button.setText(label);
-        button.setTextAllCaps(false);
+        button.setAllCaps(false);
         button.setTextSize(12);
         button.setSingleLine(true);
         button.setFocusable(true);

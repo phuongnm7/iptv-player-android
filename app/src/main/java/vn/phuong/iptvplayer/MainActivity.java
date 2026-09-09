@@ -298,7 +298,7 @@ public final class MainActivity extends Activity {
         button.setTag(value);
         button.setText(label);
         button.setTextSize(13);
-        button.setTextAllCaps(false);
+        button.setAllCaps(false);
         button.setSingleLine(true);
         button.setFocusable(true);
         button.setFocusableInTouchMode(false);
