@@ -145,11 +145,14 @@ print(launch.stdout)
 if launch.stderr:
     print(launch.stderr, file=sys.stderr)
 root = wait_for_main_screen()
-required = ["btnSources", "btnPlaylists", "btnAllChannels", "btnFavorites", "btnRecent", "listChannels"]
+required = ["btnSources", "btnPlaylists", "btnAllChannels", "btnFavorites", "btnRecent"]
 missing = [name for name in required if not has_id(root, name)]
 if missing:
     print_diagnostics()
     raise AssertionError("Missing current UI controls: " + ", ".join(missing))
+if not (has_id(root, "listChannels") or has_id(root, "txtEmpty")):
+    print_diagnostics()
+    raise AssertionError("Neither the channel list nor its empty state is available")
 removed = ["btnSelectAll", "btnSelectNone", "btnExport"]
 present = [name for name in removed if has_id(root, name)]
 if present:
