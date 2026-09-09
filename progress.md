@@ -4,15 +4,14 @@ _Cập nhật: 10/09/2026_
 
 ## Trạng thái hiện tại
 
-- Android hiện tại: **Nm7 IPTV 1.10.6** (`versionCode 23`).
+- Android đang triển khai: **Nm7 IPTV 1.10.7** (`versionCode 24`).
 - Nhánh: `main`.
-- Commit kích hoạt build 1.10.6: `3fc8bf33c3a94f9d22c22c1c2816fd53896c23af`.
-- GitHub Actions: **Build #88**, run ID `34382403385` — **PASS toàn bộ**.
-- Artifact APK: `Nm7-IPTV-1.10.6-APK`, artifact ID `10116564840`.
-- SHA-256 APK: `b240fa504923c0709985966c2f30405f5c708f9e0dc1f9ec1cd8210c08478b7e`.
+- Bản 1.10.6 / Build #88 đã PASS và người dùng xác nhận các thao tác controller, seek, fullscreen và thu/phóng hoạt động OK.
+- Lỗi còn lại được ghi nhận từ video thực tế: khi chạm ô tìm kiếm trên Mobile, bàn phím ảo che/đè sát ô tìm kiếm nên không nhìn rõ ký tự đang nhập.
+- Sửa 1.10.7: đặt `MainActivity` dùng `windowSoftInputMode="stateAlwaysHidden|adjustPan"` để Android tự dịch toàn bộ cửa sổ lên đủ khoảng trống khi IME mở, giữ ô tìm kiếm và nội dung đang gõ nằm phía trên bàn phím; khi đóng bàn phím giao diện tự trở về vị trí ban đầu.
 - Samsung Tizen vẫn **tạm dừng** cho tới khi có TV Samsung thật để kết nối, ký và kiểm thử.
 
-## Các phần Android đã hoàn thành tới 1.10.5
+## Các phần Android đã hoàn thành
 
 - Giao diện Mobile phát video trực tiếp phía trên danh sách kênh.
 - Khi đổi kênh, video tiếp tục phát trong khung Mobile thay vì nhảy sang PlayerActivity.
@@ -23,35 +22,26 @@ _Cập nhật: 10/09/2026_
 - EPG/XMLTV có tên chương trình, giờ phát và tiến độ khi dữ liệu nguồn khớp.
 - Hỗ trợ phát nền trên Mobile theo tùy chọn ứng dụng.
 - Giữ màn hình sáng khi đang xem trực tiếp.
-- Có fullscreen ngang và quay về dọc.
 - Media3 TimeBar/seek hiển thị với nguồn thực sự hỗ trợ tua/DVR.
+- Controller mặc định ẩn khi mở kênh, chỉ hiện khi chạm video.
+- Nút fullscreen dùng biểu tượng phóng to/thu nhỏ đặt cạnh bánh răng; fullscreen ngang và quay về dọc đã được kiểm thử thực tế OK.
 
-## Thay đổi hoàn thành trong Android 1.10.6
+## Thay đổi Android 1.10.7
 
-- Khi vừa mở kênh, bộ điều khiển phát mặc định **ẩn hoàn toàn**; chỉ hiện khi người dùng chạm vào video.
-- `PlayerView` tắt `controllerAutoShow` để không tự bật nút Pause/seek sau khi bắt đầu phát hoặc đổi kênh.
-- Giữ Play/Pause và thanh TimeBar chuẩn Media3 khi người dùng chạm vào video.
-- Thanh TimeBar, thời gian hiện tại và tổng thời lượng chỉ hiện nếu nguồn thật sự hỗ trợ seek/DVR.
-- Bỏ hoàn toàn nút chữ `Toàn màn hình` và `Xoay dọc`.
-- Thêm nút **biểu tượng phóng to/thu nhỏ** trực tiếp trong hàng điều khiển Media3, đặt cạnh nút bánh răng.
-- Khi ở khung Mobile, biểu tượng là phóng to; khi fullscreen, biểu tượng đổi thành thu nhỏ.
-- Bấm biểu tượng phóng to: chuyển sang fullscreen ngang và ẩn system bars.
-- Bấm biểu tượng thu nhỏ hoặc Back khi fullscreen: quay lại khung Mobile và màn hình dọc.
-- Không tự bật controller sau khi vào/thoát fullscreen; người dùng chạm video mới hiện điều khiển.
-- Tiếp tục giữ phát nền, giữ màn hình sáng, EPG, độ phân giải và FPS từ các bản trước.
+- Khắc phục bàn phím ảo che ô `Tìm kênh, nhóm hoặc URL…` khi video inline đang phát phía trên.
+- Khi bàn phím mở, cửa sổ MainActivity được pan lên theo ô đang focus thay vì để IME phủ lên vùng nhập.
+- Không thay đổi logic phát video, controller, seek/DVR, fullscreen, phát nền, EPG, độ phân giải hoặc FPS đã ổn định ở 1.10.6.
 
-## Các file chính vừa cập nhật
+## File cập nhật cho 1.10.7
 
-- `app/src/main/java/vn/phuong/iptvplayer/MobileInlinePlayerProviderV2.java`
-- `app/src/main/res/drawable/ic_nm7_fullscreen.xml`
-- `app/src/main/res/drawable/ic_nm7_fullscreen_exit.xml`
+- `app/src/main/AndroidManifest.xml`
 - `app/build.gradle.kts`
 - `.github/workflows/android.yml`
 - `progress.md`
 
-## Kiểm thử / Build #88
+## Kiểm thử / Build
 
-Các bước sau đều **PASS**:
+Pipeline Android chạy:
 1. Compile.
 2. Unit test.
 3. Android lint.
@@ -60,8 +50,9 @@ Các bước sau đều **PASS**:
 6. Đóng gói artifact.
 7. Android 15 emulator smoke test.
 
+Đang theo dõi build 1.10.7. Khi PASS sẽ tải artifact `Nm7-IPTV-1.10.7-APK` và bàn giao APK để kiểm thử trực tiếp lỗi bàn phím.
+
 ## Mốc tiếp tục
 
-- Android: **1.10.6 / Build #88** là mốc hiện tại để tiếp tục kiểm thử thực tế trên điện thoại.
-- Tập trung phản hồi tiếp theo vào trải nghiệm controller Mobile, DVR/seek và fullscreen/phóng to-thu nhỏ.
+- Android: tiếp tục từ **1.10.7**, ưu tiên xác nhận trên điện thoại thật rằng ô tìm kiếm luôn nhìn thấy đầy đủ khi bàn phím mở.
 - Tizen: giữ nguyên trạng thái tạm dừng cho tới khi có TV thật.
