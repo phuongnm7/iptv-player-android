@@ -13,7 +13,6 @@
     <style name="Theme.Nm7.TransparentDialog" parent="android:style/Theme.Material.Dialog.Alert">
         <item name="android:windowBackground">@drawable/dialog_translucent_bg</item>
         <item name="android:backgroundDimEnabled">true</item>
-        <item name="android:windowDimAmount">0.22</item>
         <item name="android:colorAccent">@color/accent</item>
     </style>
 </resources>
