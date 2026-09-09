@@ -2,12 +2,16 @@
 
 _Cập nhật: 09/09/2026_
 
-## Trạng thái hiện tại: Android 1.8.2 ổn định; Samsung Tizen tạm dừng
+## Trạng thái hiện tại: Android 1.8.2 ổn định, Android 1.9.0 chờ kiểm thử thực tế; Samsung Tizen tạm dừng
 
 ### Android
 
 - Bản ổn định hiện tại đã được người dùng xác nhận: **Nm7 IPTV 1.8.2** (`versionCode 15`).
-- Tính năng phát nền trên Mobile và quản lý nguồn IPTV đều hoạt động OK trên thiết bị thực.
+- Bản thử nghiệm mới: **Nm7 IPTV 1.9.0** (`versionCode 16`).
+- GitHub Actions 1.9.0: **Build #68**, run ID `34360948893`; compile, unit test, lint, ký APK và smoke test Android 15 đều PASS.
+- Artifact 1.9.0: `Nm7-IPTV-1.9.0-APK`, ID `10107950162`.
+- Commit tính năng: `701aae7a468ff125e3d9166e27e2a685703b98ce`.
+- Tính năng phát nền trên Mobile và quản lý nguồn IPTV của 1.8.2 tiếp tục được giữ nguyên.
 - GitHub Actions 1.8.2: **Build #67**, run ID `34332032653`; compile, unit test, lint, ký APK và smoke test Android 15 đều PASS.
 - Artifact 1.8.2: `Nm7-IPTV-1.8.2-APK`, ID `10096242357`.
 - Commit tính năng: `2b5cf3fa1d09a3f31db76ac414046134e053eb65`.
@@ -59,6 +63,17 @@ _Cập nhật: 09/09/2026_
 10. Chạy smoke test thực tế: tải playlist, điều khiển remote, phát HLS/DASH, chuyển kênh, Back hai bước và tự nối lại.
 11. Ghi nhận lỗi theo từng đời TV rồi mới đánh dấu bản Tizen hoàn tất.
 
+## Những thay đổi mới của Android 1.9.0
+
+- Thêm nút `↻ Tải lại` trong bảng nhập nguồn để tải lại thủ công URL playlist hiện đang mở.
+- Bỏ sắp xếp alphabet ở cả nhóm màn hình chính và nhóm danh sách nhanh trong trình phát.
+- Giữ nguyên thứ tự nhóm theo lần xuất hiện đầu tiên và giữ nguyên thứ tự kênh trong playlist.
+- Trên Mobile: vuốt dọc 30% mép trái để chỉnh độ sáng riêng của màn hình phát.
+- Trên Mobile: vuốt dọc 30% mép phải để chỉnh âm lượng media.
+- Hiển thị phần trăm độ sáng/âm lượng khi đang vuốt.
+- Giao diện TV không kích hoạt hai cử chỉ vuốt.
+- Cần kiểm thử trên điện thoại thật độ nhạy cử chỉ, tải lại playlist và thứ tự nhóm/kênh.
+
 ## Sửa giao diện quản lý nguồn trên Android 1.8.2
 
 - Sau phản hồi thực tế, bỏ thao tác ẩn khi chạm vào cả dòng nguồn.
@@ -95,6 +110,6 @@ _Cập nhật: 09/09/2026_
 
 ## Mốc tiếp tục
 
-- Android: tiếp tục từ bản ổn định 1.8.2 / Build #67, commit `2b5cf3fa1d09a3f31db76ac414046134e053eb65`.
+- Android: 1.8.2 / Build #67 là mốc ổn định; tiếp tục kiểm thử 1.9.0 / Build #68 trên điện thoại thật.
 - Tizen: tiếp tục từ commit `9350de76338aca53d4e33c49a605a090235269cb`, Build #2.
 - Điều kiện mở lại phần Tizen: có TV Samsung thật tại chỗ để lấy IP/DUID, ký, cài và kiểm thử.
