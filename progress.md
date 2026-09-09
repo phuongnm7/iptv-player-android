@@ -2,15 +2,15 @@
 
 _Cập nhật: 09/09/2026_
 
-## Trạng thái hiện tại: Android 1.8.0 ổn định, Android 1.8.1 chờ kiểm thử quản lý nguồn; Samsung Tizen tạm dừng
+## Trạng thái hiện tại: Android 1.8.0 ổn định, Android 1.8.2 chờ kiểm thử quản lý nguồn; Samsung Tizen tạm dừng
 
 ### Android
 
 - Bản ổn định đã được người dùng xác nhận: **Nm7 IPTV 1.8.0** (`versionCode 13`), gồm tính năng phát nền trên Mobile.
-- Bản thử nghiệm mới: **Nm7 IPTV 1.8.1** (`versionCode 14`), bổ sung quản lý nguồn IPTV.
-- GitHub Actions 1.8.1: **Build #66**, run ID `34329677473`, attempt 2; compile, unit test, lint, ký APK và smoke test Android 15 đều PASS.
-- Artifact 1.8.1: `Nm7-IPTV-1.8.1-APK`, ID `10095555153`.
-- Commit tính năng: `09b1add102c6d351bf35d1db5a84db8c9d90e640`.
+- Bản thử nghiệm mới: **Nm7 IPTV 1.8.2** (`versionCode 15`), sửa giao diện quản lý nguồn với nút thao tác hiển thị trực tiếp.
+- GitHub Actions 1.8.2: **Build #67**, run ID `34332032653`; compile, unit test, lint, ký APK và smoke test Android 15 đều PASS.
+- Artifact 1.8.2: `Nm7-IPTV-1.8.2-APK`, ID `10096242357`.
+- Commit tính năng: `2b5cf3fa1d09a3f31db76ac414046134e053eb65`.
 - Cần kiểm thử thực tế các thao tác: thêm nguồn, sửa tên/URL, tải nguồn, xóa một nguồn và xóa nguồn cuối cùng.
 
 ### Samsung Tizen TV
@@ -59,6 +59,13 @@ _Cập nhật: 09/09/2026_
 10. Chạy smoke test thực tế: tải playlist, điều khiển remote, phát HLS/DASH, chuyển kênh, Back hai bước và tự nối lại.
 11. Ghi nhận lỗi theo từng đời TV rồi mới đánh dấu bản Tizen hoàn tất.
 
+## Sửa giao diện quản lý nguồn trên Android 1.8.2
+
+- Sau phản hồi thực tế, bỏ thao tác ẩn khi chạm vào cả dòng nguồn.
+- Mỗi nguồn hiển thị trực tiếp ba nút `Chọn`, `Sửa`, `Xóa`.
+- Nút `Thêm nguồn` luôn hiển thị ở cuối hộp thoại.
+- Danh sách nguồn nằm trong vùng cuộn để vẫn dùng được khi có nhiều nguồn.
+
 ## Những thay đổi mới của Android 1.8.1
 
 - Nút `Link` mở màn hình `Quản lý nguồn IPTV`.
@@ -88,6 +95,6 @@ _Cập nhật: 09/09/2026_
 
 ## Mốc tiếp tục
 
-- Android: 1.8.0 / Build #65 là mốc ổn định; tiếp tục kiểm thử quản lý nguồn trên 1.8.1 / Build #66.
+- Android: 1.8.0 / Build #65 là mốc ổn định; tiếp tục kiểm thử quản lý nguồn trên 1.8.2 / Build #67.
 - Tizen: tiếp tục từ commit `9350de76338aca53d4e33c49a605a090235269cb`, Build #2.
 - Điều kiện mở lại phần Tizen: có TV Samsung thật tại chỗ để lấy IP/DUID, ký, cài và kiểm thử.
