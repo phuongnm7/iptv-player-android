@@ -139,5 +139,14 @@ public class M3uParserTest {
         assertEquals("Kênh A1", r.channels.get(1).name());
         assertEquals("Kênh B2", r.channels.get(2).name());
     }
+
+    @Test public void readsXmlTvUrlFromPlaylistHeader() {
+        M3uParser.Result r = new M3uParser().parse("#EXTM3U url-tvg=\"guide/epg.xml.gz\"\n"
+                + "#EXTINF:-1 tvg-id=\"vtv1.vn\",VTV1 HD\nhttps://example.test/live/vtv1.m3u8\n",
+                "https://example.test/list/playlist.m3u");
+        assertEquals("https://example.test/list/guide/epg.xml.gz", r.epgUrl);
+        assertEquals("vtv1.vn", r.channels.get(0).tvgId());
+    }
 }
+
 

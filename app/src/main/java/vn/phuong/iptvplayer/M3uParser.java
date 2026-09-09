@@ -37,6 +37,7 @@ public final class M3uParser {
         Set<String> seen = new LinkedHashSet<>();
         int duplicates = 0;
         int missingUrls = 0;
+        String epgUrl = "";
 
         Metadata pending = null;
         Map<String, String> pendingHeaders = new LinkedHashMap<>();
@@ -44,7 +45,8 @@ public final class M3uParser {
 
         for (String raw : lines) {
             String line = raw.trim();
-            if (line.isEmpty() || line.equalsIgnoreCase("#EXTM3U")) continue;
+            if (line.isEmpty()) continue;
+            if (line.regionMatches(true, 0, "#EXTM3U", 0, 7)) { epgUrl = resolveUrl(parseEpgUrl(line), baseUrl); continue; }
 
             if (line.regionMatches(true, 0, "#EXTINF:", 0, 8)) {
                 if (pending != null) missingUrls++;
@@ -95,7 +97,20 @@ public final class M3uParser {
             pendingOptions.clear();
         }
         if (pending != null) missingUrls++;
-        return new Result(channels, duplicates, missingUrls);
+        return new Result(channels, duplicates, missingUrls, epgUrl);
+    }
+
+    private String parseEpgUrl(String line) {
+        Matcher matcher = ATTRIBUTE.matcher(line);
+        while (matcher.find()) {
+            String key = matcher.group(1).toLowerCase(Locale.ROOT);
+            if (key.equals("url-tvg") || key.equals("x-tvg-url")) {
+                String value = firstNonNull(matcher.group(2), matcher.group(3), matcher.group(4)).trim();
+                int comma = value.indexOf(',');
+                return comma < 0 ? value : value.substring(0, comma).trim();
+            }
+        }
+        return "";
     }
 
     private Metadata parseMetadata(String line) {
@@ -291,11 +306,14 @@ public final class M3uParser {
         public final List<Channel> channels;
         public final int duplicateCount;
         public final int missingUrlCount;
+        public final String epgUrl;
 
-        Result(List<Channel> channels, int duplicateCount, int missingUrlCount) {
+        Result(List<Channel> channels, int duplicateCount, int missingUrlCount) { this(channels, duplicateCount, missingUrlCount, ""); }
+        Result(List<Channel> channels, int duplicateCount, int missingUrlCount, String epgUrl) {
             this.channels = Collections.unmodifiableList(channels);
             this.duplicateCount = duplicateCount;
             this.missingUrlCount = missingUrlCount;
+            this.epgUrl = epgUrl == null ? "" : epgUrl.trim();
         }
     }
 }

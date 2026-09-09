@@ -30,10 +30,11 @@ final class SessionStore {
         return copy;
     }
 
-    static void save(Context context, List<Channel> channels, String source, int duplicates, int missing) throws Exception {
+    static void save(Context context, List<Channel> channels, String source, String epgUrl, int duplicates, int missing) throws Exception {
         JSONObject obj = new JSONObject();
         obj.put("playlist", new M3uParser().exportAll(channels));
         obj.put("source", source);
+        obj.put("epg_url", epgUrl == null ? "" : epgUrl);
         obj.put("duplicates", duplicates);
         obj.put("missing", missing);
         JSONArray unchecked = new JSONArray();
@@ -60,7 +61,7 @@ final class SessionStore {
         JSONArray arr = obj.optJSONArray("unchecked");
         if (arr != null) for (int i = 0; i < arr.length(); i++) unchecked.add(arr.getString(i));
         for (Channel channel : result.channels) channel.setSelected(!unchecked.contains(channel.identityKey()));
-        return new State(new M3uParser.Result(result.channels, obj.optInt("duplicates"), obj.optInt("missing")),
+        return new State(new M3uParser.Result(result.channels, obj.optInt("duplicates"), obj.optInt("missing"), obj.optString("epg_url", "")),
                 obj.optString("source", ""));
     }
 
