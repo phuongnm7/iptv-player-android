@@ -4,9 +4,13 @@
     android:layout_marginBottom="7dp" android:background="@drawable/channel_card"
     android:gravity="center_vertical" android:minHeight="78dp" android:orientation="horizontal"
     android:paddingHorizontal="9dp">
-    <TextView android:id="@+id/txtChannelBadge" android:layout_width="54dp" android:layout_height="54dp"
-        android:background="@drawable/channel_badge" android:gravity="center" android:text="TV"
-        android:textColor="@color/accent" android:textSize="22sp" android:textStyle="bold" />
+    <FrameLayout android:layout_width="54dp" android:layout_height="54dp">
+        <TextView android:id="@+id/txtChannelBadge" android:layout_width="match_parent" android:layout_height="match_parent"
+            android:background="@drawable/channel_badge" android:gravity="center" android:text="TV"
+            android:textColor="@color/accent" android:textSize="22sp" android:textStyle="bold" />
+        <ImageView android:id="@+id/imgChannelLogo" android:layout_width="match_parent" android:layout_height="match_parent"
+            android:adjustViewBounds="true" android:contentDescription="Logo kênh" android:scaleType="centerInside" android:visibility="gone" />
+    </FrameLayout>
     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
         android:layout_marginStart="12dp" android:layout_weight="1" android:orientation="vertical">
         <TextView android:id="@+id/txtName" android:layout_width="match_parent" android:layout_height="wrap_content"
@@ -20,8 +24,6 @@
     <TextView android:id="@+id/btnFavorite" android:layout_width="46dp" android:layout_height="54dp"
         android:contentDescription="Thêm hoặc bỏ kênh yêu thích" android:focusable="false" android:gravity="center"
         android:text="☆" android:textColor="@color/warning" android:textSize="25sp" />
-    <CheckBox android:id="@+id/checkKeep" android:layout_width="42dp" android:layout_height="54dp"
-        android:buttonTint="@color/accent" android:contentDescription="Giữ kênh khi xuất playlist" android:focusable="false" />
     <TextView android:layout_width="30dp" android:layout_height="54dp" android:gravity="center"
         android:text="▶" android:textColor="@color/accent" android:textSize="19sp" />
 </LinearLayout>
