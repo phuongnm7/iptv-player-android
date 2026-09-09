@@ -2,24 +2,29 @@
 
 _Cập nhật: 09/09/2026_
 
-## Trạng thái hiện tại
+## Trạng thái bàn giao hiện tại
 
-### Phiên bản mã nguồn mới nhất
-- Commit hiện tại: `7d2444b01012e6f2858e413e9b5627ac33da7c7d`.
-- Nội dung commit: sửa smoke test Android để chờ các thành phần giao diện ổn định thay vì yêu cầu danh sách kênh xuất hiện ngay khi khởi động.
-- Workflow GitHub Actions hiện tại: **Build #44**, run ID `34309525888`.
+### Mã nguồn mới nhất
+- Commit chức năng/smoke test hiện tại: `7d2444b01012e6f2858e413e9b5627ac33da7c7d`.
+- Commit này sửa smoke test Android để chờ các thành phần giao diện ổn định thay vì yêu cầu danh sách kênh xuất hiện ngay khi khởi động.
+- Workflow GitHub Actions: **Build #44**, run ID `34309525888`.
 
-### Kết quả Build #44 đến thời điểm cập nhật
+### Kết quả cuối cùng của Build #44
 - PASS: Compile Android.
 - PASS: Unit test.
 - PASS: Lint.
 - PASS: Verify và đóng gói APK.
 - PASS: Upload APK artifact.
 - PASS: Chuẩn bị Android 15 emulator.
-- ĐANG CHẠY: kiểm tra ứng dụng trên Android 15 emulator.
-- CHƯA CHẠY: upload báo cáo kiểm thử/lint và hoàn tất workflow.
+- FAIL: `Check current app on Android 15 emulator` (smoke test).
+- Vì smoke test thất bại, toàn bộ workflow có trạng thái **FAILED**.
 
-## Các lỗi smoke test đã xử lý
+## APK hiện tại
+- APK của Build #44 đã được tạo thành công và upload dưới dạng GitHub Actions artifact.
+- APK có thể được cài thử, nhưng **chưa được xác nhận là bản hoàn chỉnh** vì smoke test Android 15 chưa PASS.
+- Không bàn giao APK này như bản phát hành cuối cùng cho đến khi lỗi smoke test được xác minh và một lượt build mới PASS toàn bộ.
+
+## Các lỗi đã xử lý trước đó
 
 ### Build #41
 - `MainActivity.java` có lỗi biên dịch.
@@ -27,16 +32,16 @@ _Cập nhật: 09/09/2026_
 
 ### Build #43
 - APK build thành công nhưng smoke test tìm `listChannels` ngay khi khởi động.
-- Trên lần mở đầu, danh sách có thể chưa là thành phần phù hợp để kiểm tra ngay.
+- Trên lần mở đầu, danh sách kênh có thể chưa phải thành phần phù hợp để kiểm tra ngay.
 
 ### Build #44
 - Smoke test đã được sửa để:
   1. Khởi động `MainActivity`.
   2. Chờ `mainRoot` xuất hiện.
   3. Kiểm tra các control ổn định `btnSources` và `btnAllChannels`.
-- Mục tiêu là xác nhận ứng dụng mở được trên Android 15 mà không phụ thuộc vào trạng thái mở/đóng của panel nguồn.
+- Tuy nhiên job smoke test cuối cùng vẫn FAIL. Người tiếp tục cần đọc log đầy đủ của job `Check current app on Android 15 emulator` để xác định chính xác control hoặc thao tác nào còn gây lỗi; không nên tiếp tục giả định nguyên nhân.
 
-## Chức năng đã thay đổi
+## Các chức năng đã thay đổi
 - Cài mới hoặc không có phiên hợp lệ: tự tải nguồn IPTV mặc định:
   `https://iptv-live-merge.phuongnm7-iptv.workers.dev/playlist.m3u`
 - Có phiên hợp lệ: khôi phục playlist trước đó, không ghi đè.
@@ -54,15 +59,29 @@ _Cập nhật: 09/09/2026_
   - `RIGHT`: để Media3 xử lý tua tới.
 - Khả năng tua thực tế phụ thuộc nguồn phát có DVR hoặc seek window.
 
-## APK hiện tại
-- APK của Build #44 đã được tạo và upload dưới dạng artifact.
-- Chưa coi là bản bàn giao hoàn chỉnh cho đến khi bước kiểm tra Android 15 kết thúc PASS.
+## Việc cần làm tiếp theo
 
-## Việc tiếp theo
-1. Theo dõi bước smoke test Android 15 của Build #44.
-2. Nếu PASS: tải APK artifact của Build #44 và bàn giao làm bản đã kiểm thử.
-3. Nếu FAIL: đọc log, xác định lỗi ứng dụng hay lỗi smoke test, sửa đúng nguyên nhân và build lại.
-4. Sau khi có bản PASS, cập nhật `progress.md` với commit và artifact cuối cùng.
+### Ưu tiên 1: Phân tích lỗi Build #44
+1. Tải/đọc log đầy đủ của job `Check current app on Android 15 emulator`.
+2. Xác định đây là lỗi ứng dụng, lỗi emulator hay lỗi smoke test.
+3. Sửa đúng nguyên nhân; không chỉ làm test dễ hơn để bỏ qua lỗi ứng dụng.
 
-## Bàn giao cho người tiếp tục
-Không nên dùng trạng thái Build #43 làm mốc bàn giao vì smoke test của lượt đó đã lỗi thời. Mốc hiện tại là commit `7d2444b` và workflow Build #44. Khi tiếp tục, ưu tiên kiểm tra kết quả job `Check current app on Android 15 emulator` trước khi sửa thêm mã ứng dụng.
+### Ưu tiên 2: Chạy lại toàn bộ CI
+1. Đẩy commit sửa lỗi.
+2. Xác nhận Compile PASS.
+3. Xác nhận Unit test PASS.
+4. Xác nhận Lint PASS.
+5. Xác nhận APK được đóng gói thành công.
+6. Xác nhận smoke test Android 15 PASS.
+
+### Ưu tiên 3: Bàn giao
+Chỉ sau khi workflow PASS toàn bộ mới tải APK artifact của lượt build cuối và gửi trực tiếp file `.apk` cho người dùng.
+
+## Mốc bàn giao
+Người tiếp tục dự án nên bắt đầu từ:
+- Repository: `phuongnm7/iptv-player-android`
+- Branch: `main`
+- Commit chức năng/smoke test gần nhất: `7d2444b01012e6f2858e413e9b5627ac33da7c7d`
+- Workflow cần điều tra: Build #44 / run ID `34309525888`
+
+**Lưu ý:** `progress.md` này phản ánh kết quả cuối cùng đã biết của Build #44. Trạng thái hiện tại là APK build thành công nhưng workflow FAILED do smoke test Android 15, nên chưa có bản phát hành hoàn chỉnh.
