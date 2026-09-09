@@ -115,10 +115,7 @@ def launch():
     wait_for(lambda root: find(root, "inputUrl"), "App did not open")
 
 
-def play_direct(path, name):
-    tap("btnSources")
-    enter("inputUrl", BASE + path)
-    tap("btnPlayUrl")
+def wait_playing(name, title=None):
     def ready(root):
         # A fresh emulator shows Android's one-time immersive-mode tutorial.
         # It is a system overlay, not a player error; acknowledge its button.
@@ -132,12 +129,19 @@ def play_direct(path, name):
             raise AssertionError(name + " playback error: " + error.get("text", ""))
         status = find(root, "txtPlayerStatus")
         if status is not None and "320 × 180" in status.get("text", ""):
-            return True
+            return title is None or find(root, "txtPlayerTitle", title) is not None
         view = find(root, "playerView")
         if view is not None and status is None:
-            tap_node(view)
+            adb("shell", "input", "keyevent", "KEYCODE_DPAD_CENTER")
         return False
     wait_for(ready, name + " did not decode the synthetic video", timeout=50)
+
+
+def play_direct(path, name):
+    tap("btnSources")
+    enter("inputUrl", BASE + path)
+    tap("btnPlayUrl")
+    wait_playing(name)
     screenshot("player-" + name.lower())
     check(name + " synthetic video reports 320 x 180 without player error")
     adb("shell", "input", "keyevent", "KEYCODE_BACK")
@@ -149,7 +153,7 @@ def fixtures(directory):
     media = directory / "sample.mp4"
     command("ffmpeg", "-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i",
             "testsrc2=size=320x180:rate=24", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000",
-            "-t", "20", "-c:v", "libx264", "-preset", "ultrafast", "-profile:v", "baseline",
+            "-t", "120", "-c:v", "libx264", "-preset", "ultrafast", "-profile:v", "baseline",
             "-pix_fmt", "yuv420p", "-g", "48", "-c:a", "aac", "-b:a", "64k", "-movflags", "+faststart", str(media))
     command("ffmpeg", "-hide_banner", "-loglevel", "error", "-i", str(media), "-c", "copy",
             "-hls_time", "2", "-hls_playlist_type", "vod", str(directory / "sample.m3u8"))
@@ -159,6 +163,10 @@ def fixtures(directory):
         '#EXTM3U\n#EXTINF:-1 group-title="News",Alpha\nsample.m3u8\n'
         '#EXTINF:-1 group-title="Sports",Bravo\nsample.mp4\n'
         '#EXTINF:-1,Duplicate\nsample.m3u8\n#EXTINF:-1,Missing\n', encoding="utf-8")
+    (directory / "remote.m3u").write_text(
+        '#EXTM3U\n#EXTINF:-1,Alpha\nsample.m3u8\n'
+        '#EXTINF:-1,Bravo\nsample.mp4\n'
+        '#EXTINF:-1,Charlie\nsample.mpd\n', encoding="utf-8")
     (directory / "invalid.html").write_text("<html>Not a playlist</html>", encoding="utf-8")
 
 
@@ -169,6 +177,85 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         REQUESTS.append(self.path)
         super().do_GET()
+
+
+
+def hide_controller():
+    wait_for(lambda root: find(root, "playerView") is not None and
+             find(root, "playerHeader") is None,
+             "Controller did not auto-hide", timeout=20)
+
+
+def check_source(visible):
+    def matches(root):
+        if find(root, "playerHeader") is None:
+            adb("shell", "input", "keyevent", "KEYCODE_DPAD_CENTER")
+            return False
+        node = find(root, "txtPlayerUrl")
+        return node is not None and node.get("text") == BASE + "/sample.m3u8" if visible else node is None
+    wait_for(matches, "Source visibility does not match Settings")
+
+
+def remote_checks():
+    tap("btnWallpaper")
+    tap(text="Hiện nguồn phát khi xem")
+    # Verify the preference survives process death before opening the player.
+    adb("shell", "am", "force-stop", PACKAGE)
+    launch()
+    tap("btnWallpaper")
+    wait_for(lambda root: find(root, text="Ẩn nguồn phát khi xem"),
+             "Source preference did not survive restart")
+    adb("shell", "input", "keyevent", "KEYCODE_BACK")
+    tap("btnSources")
+    enter("inputUrl", BASE + "/remote.m3u")
+    tap("btnLoadUrl")
+    summary("3/3 kênh")
+    tap(resource="txtName", text="Alpha")
+    wait_playing("Remote Alpha", "Alpha")
+    check_source(True)
+    check("Settings shows the player source and persists across process restart")
+    adb("shell", "input", "keyevent", "KEYCODE_BACK")
+    wait_for(lambda root: find(root, "inputUrl"), "Did not return to Settings")
+    tap("btnWallpaper")
+    tap(text="Ẩn nguồn phát khi xem")
+    tap(resource="txtName", text="Alpha")
+    wait_playing("Hidden source Alpha", "Alpha")
+    check_source(False)
+    check("Settings hides the source while the controller is visible")
+
+    hide_controller()
+    adb("shell", "input", "keyevent", "KEYCODE_DPAD_UP")
+    wait_playing("UP next channel", "Bravo")
+    check("UP selects next channel Alpha to Bravo in a three-channel playlist")
+    hide_controller()
+    adb("shell", "input", "keyevent", "KEYCODE_DPAD_DOWN")
+    wait_playing("DOWN previous channel", "Alpha")
+    check("DOWN selects previous channel Bravo to Alpha")
+    hide_controller()
+    adb("shell", "input", "keyevent", "KEYCODE_DPAD_DOWN")
+    wait_playing("DOWN wraps", "Charlie")
+    hide_controller()
+    adb("shell", "input", "keyevent", "KEYCODE_DPAD_UP")
+    wait_playing("UP wraps", "Alpha")
+    check("Channel navigation wraps at both ends of the playlist")
+
+    hide_controller()
+    adb("shell", "input", "keyevent", "KEYCODE_DPAD_CENTER")
+    wait_for(lambda root: find(root, "playerHeader") is not None,
+             "OK did not show controller")
+    check_source(False)
+    check("OK reveals controller without revealing the hidden source")
+    adb("shell", "input", "keyevent", "KEYCODE_DPAD_LEFT")
+    wait_for(lambda root: find(root, "quickChannelPanel"), "LEFT did not open quick list")
+    adb("shell", "input", "keyevent", "KEYCODE_DPAD_DOWN")
+    adb("shell", "input", "keyevent", "KEYCODE_DPAD_CENTER")
+    wait_playing("Quick list remote selection", "Bravo")
+    wait_for(lambda root: find(root, "quickChannelPanel") is None,
+             "OK did not close quick list after selection")
+    check("LEFT opens quick list; DOWN and OK select a channel using only the remote")
+    screenshot("remote-controls")
+    adb("shell", "input", "keyevent", "KEYCODE_BACK")
+    wait_for(lambda root: find(root, "inputUrl"), "Did not return from remote checks")
 
 
 def run_checks():
@@ -205,17 +292,16 @@ def run_checks():
     check("Horizontal group filtering")
 
     tap(resource="txtName", text="Alpha")
-    wait_for(lambda root: (lambda n: n is not None and "320 × 180" in n.get("text", ""))(
-        find(root, "txtPlayerStatus")), "Alpha did not start before quick channel test", timeout=50)
+    wait_playing("Alpha", "Alpha")
+    check_source(False)
+    check("Player source is hidden by default")
     adb("shell", "input", "keyevent", "KEYCODE_DPAD_LEFT")
     wait_for(lambda root: find(root, "quickChannelPanel") is not None and
         find(root, "txtQuickName", "Bravo") is not None,
         "D-pad Left did not open the quick channel panel")
     check("D-pad Left opens quick channel panel over active playback")
     tap(resource="txtQuickName", text="Bravo")
-    wait_for(lambda root: find(root, "txtPlayerTitle", "Bravo") is not None and
-        (lambda n: n is not None and "320 × 180" in n.get("text", ""))(find(root, "txtPlayerStatus")),
-        "Quick selection did not switch to Bravo", timeout=50)
+    wait_playing("Bravo", "Bravo")
     check("Quick channel panel switches channel without returning to main screen")
     adb("shell", "input", "keyevent", "KEYCODE_BACK")
     wait_for(lambda root: find(root, "inputUrl") is not None, "Did not return from quick channel test")
@@ -271,6 +357,8 @@ def run_checks():
     tap(text="playlist-sach.m3u")
     summary("1/1 kênh", "1 đã chọn", "0 trùng", "0 thiếu/sai")
     check("Android file picker imports the exported M3U")
+
+    remote_checks()
 
     play_direct("/sample.mp4", "HTTP-MP4")
     play_direct("/sample.m3u8", "HLS")

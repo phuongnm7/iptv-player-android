@@ -418,8 +418,9 @@ public final class MainActivity extends Activity {
         String rows = AppPreferences.compactRows(this) ? "Hàng kênh thoải mái" : "Hàng kênh thu gọn";
         String fps = AppPreferences.showFps(this) ? "Ẩn FPS khi xem" : "Hiện FPS khi xem";
         String clock = AppPreferences.showClock(this) ? "Ẩn đồng hồ khi xem" : "Hiện đồng hồ khi xem";
+        String playerSource = AppPreferences.showPlayerSource(this) ? "Ẩn nguồn phát khi xem" : "Hiện nguồn phát khi xem";
         new AlertDialog.Builder(this).setTitle("Tùy chọn ứng dụng")
-                .setItems(new String[]{"Giao diện: " + modeLabel, "Đổi hình nền", urls, rows, fps, clock,
+                .setItems(new String[]{"Giao diện: " + modeLabel, "Đổi hình nền", urls, rows, fps, clock, playerSource,
                                 "Xóa lịch sử Gần đây", "Thông tin ứng dụng"},
                         (dialog, which) -> {
                             if (which == 0) chooseInterfaceMode();
@@ -428,8 +429,9 @@ public final class MainActivity extends Activity {
                             if (which == 3) { AppPreferences.setCompactRows(this, !AppPreferences.compactRows(this)); adapter.notifyDataSetChanged(); }
                             if (which == 4) AppPreferences.setShowFps(this, !AppPreferences.showFps(this));
                             if (which == 5) AppPreferences.setShowClock(this, !AppPreferences.showClock(this));
-                            if (which == 6) { AppPreferences.clearRecent(this); if (activeSection == 2) filter(); toast("Đã xóa lịch sử"); }
-                            if (which == 7) showAbout();
+                            if (which == 6) AppPreferences.setShowPlayerSource(this, !AppPreferences.showPlayerSource(this));
+                            if (which == 7) { AppPreferences.clearRecent(this); if (activeSection == 2) filter(); toast("Đã xóa lịch sử"); }
+                            if (which == 8) showAbout();
                         }).setNegativeButton("Đóng", null).show();
     }
 

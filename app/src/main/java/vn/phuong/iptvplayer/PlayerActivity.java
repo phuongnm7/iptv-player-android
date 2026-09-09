@@ -83,6 +83,7 @@ public final class PlayerActivity extends Activity {
     private QuickChannelAdapter quickAdapter;
     private final List<Channel> quickChannels = new ArrayList<>();
     private String quickGroup = "";
+    private int consumedRemoteKey = KeyEvent.KEYCODE_UNKNOWN;
     private final Runnable clockUpdate = new Runnable() {
         @Override public void run() {
             if (clockView != null) clockView.setText(new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date()));
@@ -145,6 +146,7 @@ public final class PlayerActivity extends Activity {
         ((TextView) findViewById(R.id.txtPlayerTitle)).setText(name);
         TextView source = findViewById(R.id.txtPlayerUrl);
         source.setText(url);
+        source.setVisibility(AppPreferences.showPlayerSource(this) ? View.VISIBLE : View.GONE);
         source.setOnClickListener(v -> showSource());
         playerView.setControllerVisibilityListener((PlayerView.ControllerVisibilityListener) visibility ->
                 findViewById(R.id.playerHeader).setVisibility(visibility));
@@ -490,19 +492,54 @@ public final class PlayerActivity extends Activity {
         startPlayer();
     }
 
+    private boolean switchRelative(int delta) {
+        for (int i = 0; i < quickChannels.size(); i++) {
+            if (isCurrentChannel(quickChannels.get(i))) {
+                switchChannel(quickChannels.get((i + delta + quickChannels.size()) % quickChannels.size()));
+                playerView.hideController();
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Override public boolean dispatchKeyEvent(KeyEvent event) {
-        if (event.getAction() == KeyEvent.ACTION_DOWN
-                && event.getKeyCode() == KeyEvent.KEYCODE_BACK
-                && quickPanel != null && quickPanel.getVisibility() == View.VISIBLE) {
-            hideQuickChannels();
+        int key = event.getKeyCode();
+        if (event.getAction() == KeyEvent.ACTION_UP && key == consumedRemoteKey) {
+            consumedRemoteKey = KeyEvent.KEYCODE_UNKNOWN;
             return true;
         }
-        if (event.getAction() == KeyEvent.ACTION_DOWN
-                && event.getKeyCode() == KeyEvent.KEYCODE_DPAD_LEFT
-                && AppPreferences.isTvInterface(this)
-                && quickPanel != null && quickPanel.getVisibility() != View.VISIBLE) {
-            showQuickChannels();
-            return true;
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            if (event.getRepeatCount() > 0 && key == consumedRemoteKey) return true;
+            boolean panelVisible = quickPanel != null && quickPanel.getVisibility() == View.VISIBLE;
+            if (key == KeyEvent.KEYCODE_BACK && panelVisible) {
+                hideQuickChannels();
+                consumedRemoteKey = key;
+                return true;
+            }
+            if (AppPreferences.isTvInterface(this) && !panelVisible) {
+                boolean handled = false;
+                if (key == KeyEvent.KEYCODE_DPAD_LEFT) {
+                    showQuickChannels();
+                    handled = true;
+                } else if ((key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER
+                        || key == KeyEvent.KEYCODE_NUMPAD_ENTER) && !playerView.isControllerFullyVisible()) {
+                    playerView.showController();
+                    handled = true;
+                } else if (!playerView.isControllerFullyVisible()
+                        && (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_DPAD_DOWN)) {
+                    handled = switchRelative(key == KeyEvent.KEYCODE_DPAD_UP ? 1 : -1);
+                } else if (key == KeyEvent.KEYCODE_MENU) {
+                    AppPreferences.setShowPlayerSource(this, !AppPreferences.showPlayerSource(this));
+                    findViewById(R.id.txtPlayerUrl).setVisibility(
+                            AppPreferences.showPlayerSource(this) ? View.VISIBLE : View.GONE);
+                    handled = true;
+                }
+                if (handled) {
+                    consumedRemoteKey = key;
+                    return true;
+                }
+            }
         }
         return super.dispatchKeyEvent(event);
     }
