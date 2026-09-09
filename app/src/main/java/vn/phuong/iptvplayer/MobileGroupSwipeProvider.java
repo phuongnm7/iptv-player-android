@@ -13,7 +13,10 @@ import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 
+import androidx.media3.common.util.UnstableApi;
+
 /** Adds left/right group navigation over the mobile channel list without changing TV D-pad behavior. */
+@UnstableApi
 public final class MobileGroupSwipeProvider extends ContentProvider implements Application.ActivityLifecycleCallbacks {
     private MainActivity activity;
     private ListView list;
@@ -23,6 +26,7 @@ public final class MobileGroupSwipeProvider extends ContentProvider implements A
 
     @Override public boolean onCreate() {
         if (getContext() != null) {
+            if (AppPreferences.isPhysicalTv(getContext())) return true;
             ((Application) getContext().getApplicationContext()).registerActivityLifecycleCallbacks(this);
         }
         return true;
