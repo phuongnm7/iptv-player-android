@@ -52,8 +52,8 @@ public final class ChannelAdapter extends BaseAdapter {
 
         boolean tv = AppPreferences.isTvInterface(context);
         boolean compact = AppPreferences.compactRows(context);
-        convertView.setMinimumHeight(dp(tv ? 92 : (compact ? 66 : 74)));
-        int vertical = dp(tv ? 6 : (compact ? 0 : 1));
+        convertView.setMinimumHeight(dp(tv ? 78 : (compact ? 54 : 60)));
+        int vertical = dp(tv ? 3 : 0);
         convertView.setPadding(0, vertical, 0, vertical);
 
         loadLogo(h, c.logo());
