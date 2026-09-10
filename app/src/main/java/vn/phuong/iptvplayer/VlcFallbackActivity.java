@@ -22,6 +22,7 @@ import java.util.ArrayList;
  * activity retries once with VLC software decoding, which uses VLC/FFmpeg's
  * bundled codec stack instead of relying on the TV firmware decoder.
  */
+@androidx.media3.common.util.UnstableApi
 public final class VlcFallbackActivity extends Activity {
     private LibVLC libVlc;
     private MediaPlayer vlcPlayer;
