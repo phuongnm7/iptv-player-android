@@ -7,27 +7,25 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.GestureDetector;
 import android.view.MotionEvent;
-import android.view.VelocityTracker;
 import android.view.View;
-import android.view.ViewConfiguration;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 
 import androidx.media3.common.util.UnstableApi;
 
-/** Adds smooth left/right group navigation over the mobile channel list without changing TV D-pad behavior. */
+/** Adds fluid horizontal category swipes while leaving ListView vertical scrolling/clicks native. */
 @UnstableApi
 public final class MobileGroupSwipeProvider extends ContentProvider implements Application.ActivityLifecycleCallbacks {
     private MainActivity activity;
     private ListView list;
     private LinearLayout groupRow;
+    private GestureDetector gestureDetector;
     private float downX;
     private float downY;
-    private int touchSlop;
-    private boolean horizontalSwipe;
-    private VelocityTracker velocityTracker;
+    private boolean switchedByFling;
 
     @Override public boolean onCreate() {
         if (getContext() != null) {
@@ -47,97 +45,73 @@ public final class MobileGroupSwipeProvider extends ContentProvider implements A
         groupRow = main.findViewById(R.id.groupRow);
         if (list == null || groupRow == null) return;
 
-        // Mobile rows should be visually compact. Also remove the old long-press
-        // channel action dialog: tap plays, the star button controls favourites.
-        list.setDividerHeight(dp(main, 2));
+        list.setDividerHeight(dp(main, 1));
         list.setOnItemLongClickListener(null);
-        touchSlop = ViewConfiguration.get(main).getScaledTouchSlop();
+        list.setLongClickable(false);
 
-        list.setOnTouchListener((view, event) -> {
-            int action = event.getActionMasked();
-            if (action == MotionEvent.ACTION_DOWN) {
-                recycleVelocityTracker();
-                velocityTracker = VelocityTracker.obtain();
-                velocityTracker.addMovement(event);
-                downX = event.getX();
-                downY = event.getY();
-                horizontalSwipe = false;
+        gestureDetector = new GestureDetector(main, new GestureDetector.SimpleOnGestureListener() {
+            @Override public boolean onDown(MotionEvent e) { return true; }
+
+            @Override public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                if (e1 == null || e2 == null) return false;
+                float dx = e2.getX() - e1.getX();
+                float dy = e2.getY() - e1.getY();
+                boolean horizontal = Math.abs(dx) > Math.abs(dy) * 1.12f;
+                boolean enoughDistance = Math.abs(dx) >= dp(main, 32);
+                boolean enoughVelocity = Math.abs(velocityX) >= dp(main, 420)
+                        && Math.abs(velocityX) > Math.abs(velocityY) * 1.08f;
+                if (horizontal && (enoughDistance || enoughVelocity)) {
+                    switchedByFling = switchGroup(dx < 0 ? 1 : -1);
+                }
                 return false;
             }
+        });
 
-            if (velocityTracker != null) velocityTracker.addMovement(event);
-            float dx = event.getX() - downX;
-            float dy = event.getY() - downY;
-
-            if (action == MotionEvent.ACTION_MOVE) {
-                if (!horizontalSwipe
-                        && Math.abs(dx) > Math.max(touchSlop * 2, dp(main, 18))
-                        && Math.abs(dx) > Math.abs(dy) * 1.2f) {
-                    horizontalSwipe = true;
-                    view.cancelLongPress();
-                    view.setPressed(false);
-                    if (view.getParent() != null) view.getParent().requestDisallowInterceptTouchEvent(true);
-                }
-                return horizontalSwipe;
+        list.setOnTouchListener((view, event) -> {
+            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                downX = event.getX();
+                downY = event.getY();
+                switchedByFling = false;
             }
 
-            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
-                boolean consumed = horizontalSwipe;
-                float velocityX = 0f;
-                float velocityY = 0f;
-                if (velocityTracker != null) {
-                    velocityTracker.computeCurrentVelocity(1000);
-                    velocityX = velocityTracker.getXVelocity();
-                    velocityY = velocityTracker.getYVelocity();
+            if (gestureDetector != null) gestureDetector.onTouchEvent(event);
+
+            if (event.getActionMasked() == MotionEvent.ACTION_UP && !switchedByFling) {
+                float dx = event.getX() - downX;
+                float dy = event.getY() - downY;
+                if (Math.abs(dx) >= dp(main, 46) && Math.abs(dx) > Math.abs(dy) * 1.18f) {
+                    switchGroup(dx < 0 ? 1 : -1);
                 }
-                if (action == MotionEvent.ACTION_UP && horizontalSwipe) {
-                    boolean enoughDistance = Math.abs(dx) >= dp(main, 42);
-                    boolean enoughVelocity = Math.abs(velocityX) >= dp(main, 520)
-                            && Math.abs(velocityX) > Math.abs(velocityY) * 1.15f;
-                    if ((enoughDistance || enoughVelocity) && Math.abs(dx) > Math.abs(dy) * 1.1f) {
-                        switchGroup(dx < 0 ? 1 : -1);
-                    }
-                }
-                recycleVelocityTracker();
-                horizontalSwipe = false;
-                if (view.getParent() != null) view.getParent().requestDisallowInterceptTouchEvent(false);
-                return consumed;
             }
-            return horizontalSwipe;
+
+            // Never take ownership of the touch stream. Native ListView keeps
+            // vertical scrolling, taps and fling physics; this listener only
+            // observes horizontal gestures and changes the selected category.
+            return false;
         });
     }
 
-    private void switchGroup(int direction) {
-        if (groupRow == null || groupRow.getChildCount() == 0 || list == null) return;
+    private boolean switchGroup(int direction) {
+        if (groupRow == null || groupRow.getChildCount() == 0 || list == null) return false;
         int active = 0;
         for (int i = 0; i < groupRow.getChildCount(); i++) {
             if (groupRow.getChildAt(i).isSelected()) { active = i; break; }
         }
         int count = groupRow.getChildCount();
         int next = Math.max(0, Math.min(count - 1, active + direction));
-        if (next == active) return;
+        if (next == active) return false;
 
         View target = groupRow.getChildAt(next);
         target.performClick();
-
-        list.animate().cancel();
-        list.setTranslationX(direction > 0 ? dp(activity, 12) : -dp(activity, 12));
-        list.setAlpha(.9f);
-        list.animate().translationX(0f).alpha(1f).setDuration(130).start();
+        list.post(() -> list.setSelection(0));
 
         View parent = (View) groupRow.getParent();
         if (parent instanceof HorizontalScrollView) {
             int viewport = parent.getWidth();
-            int x = Math.max(0, target.getLeft() - Math.max(dp(activity, 16), (viewport - target.getWidth()) / 2));
+            int x = Math.max(0, target.getLeft() - Math.max(dp(activity, 12), (viewport - target.getWidth()) / 2));
             parent.post(() -> ((HorizontalScrollView) parent).smoothScrollTo(x, 0));
         }
-    }
-
-    private void recycleVelocityTracker() {
-        if (velocityTracker != null) {
-            velocityTracker.recycle();
-            velocityTracker = null;
-        }
+        return true;
     }
 
     private static int dp(Activity activity, int value) {
@@ -145,12 +119,12 @@ public final class MobileGroupSwipeProvider extends ContentProvider implements A
     }
 
     private void detach() {
-        recycleVelocityTracker();
         if (list != null) list.setOnTouchListener(null);
         activity = null;
         list = null;
         groupRow = null;
-        horizontalSwipe = false;
+        gestureDetector = null;
+        switchedByFling = false;
     }
 
     @Override public void onActivityDestroyed(Activity destroyed) { if (destroyed == activity) detach(); }
