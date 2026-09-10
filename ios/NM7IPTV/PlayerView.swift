@@ -1,5 +1,6 @@
 import SwiftUI
 import AVFoundation
+import AVKit
 import MediaPlayer
 import UIKit
 import Combine
@@ -12,9 +13,13 @@ final class PlayerStore: ObservableObject {
     @Published var statusText = ""
     @Published var errorMessage: String?
     @Published var controlsVisible = false
+    @Published var pictureInPictureAvailable = false
 
     private var timeObservation: NSKeyValueObservation?
+    private var itemStatusObservation: NSKeyValueObservation?
     private var failedObserver: NSObjectProtocol?
+    private var remoteTargets: [Any] = []
+    private var pipController: AVPictureInPictureController?
     weak var volumeSlider: UISlider?
 
     init() {
@@ -23,8 +28,13 @@ final class PlayerStore: ObservableObject {
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.isPlaying = player.timeControlStatus == .playing
-                if player.timeControlStatus == .waitingToPlayAtSpecifiedRate { self.statusText = "Đang tải luồng…" }
-                if player.timeControlStatus == .playing { self.statusText = "Đang phát" }
+                switch player.timeControlStatus {
+                case .waitingToPlayAtSpecifiedRate: self.statusText = "Đang tải luồng…"
+                case .playing: self.statusText = "Đang phát"
+                case .paused where self.currentChannel != nil: self.statusText = "Đã tạm dừng"
+                default: break
+                }
+                self.updateNowPlayingRate()
             }
         }
         failedObserver = NotificationCenter.default.addObserver(
@@ -33,11 +43,17 @@ final class PlayerStore: ObservableObject {
             let error = notification.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? Error
             self?.errorMessage = error?.localizedDescription ?? "Không phát được nguồn này"
         }
+        configureRemoteCommands()
     }
 
     deinit {
         timeObservation?.invalidate()
+        itemStatusObservation?.invalidate()
         if let failedObserver { NotificationCenter.default.removeObserver(failedObserver) }
+        let center = MPRemoteCommandCenter.shared()
+        if remoteTargets.indices.contains(0) { center.playCommand.removeTarget(remoteTargets[0]) }
+        if remoteTargets.indices.contains(1) { center.pauseCommand.removeTarget(remoteTargets[1]) }
+        if remoteTargets.indices.contains(2) { center.togglePlayPauseCommand.removeTarget(remoteTargets[2]) }
     }
 
     func play(_ channel: IPTVChannel) {
@@ -45,11 +61,13 @@ final class PlayerStore: ObservableObject {
         statusText = "Đang kết nối…"
         currentChannel = channel
         controlsVisible = false
+        updateNowPlaying(channel)
 
         if let drm = channel.drmKind {
             player.pause()
             player.replaceCurrentItem(with: nil)
-            errorMessage = "Kênh này dùng \(drm). iPhone/iPad cần FairPlay hoặc SDK DRM dành riêng cho iOS; không thể dùng trực tiếp cấu hình DRM Android."
+            errorMessage = "Kênh này dùng \(drm). iPhone/iPad cần FairPlay hoặc SDK DRM dành riêng cho iOS; cấu hình DRM Android không dùng trực tiếp được trên iOS."
+            statusText = "DRM chưa tương thích iOS"
             return
         }
 
@@ -57,12 +75,14 @@ final class PlayerStore: ObservableObject {
         if channel.mimeHint.lowercased().contains("dash") || lowerURL.contains(".mpd") {
             player.pause()
             player.replaceCurrentItem(with: nil)
-            errorMessage = "Nguồn DASH/MPD chưa được AVPlayer của iOS hỗ trợ trực tiếp. HLS/M3U8 và MP4 được ưu tiên trong bản iOS hiện tại."
+            errorMessage = "Nguồn DASH/MPD chưa được AVPlayer hỗ trợ trực tiếp. Hãy dùng nguồn HLS/M3U8 tương ứng trên iPhone/iPad."
+            statusText = "Định dạng chưa tương thích iOS"
             return
         }
 
         guard let url = URL(string: channel.url), ["http", "https"].contains(url.scheme?.lowercased() ?? "") else {
             errorMessage = "Giao thức của kênh này chưa được bản iOS hỗ trợ."
+            statusText = "Không hỗ trợ nguồn"
             return
         }
 
@@ -73,12 +93,10 @@ final class PlayerStore: ObservableObject {
         } catch { }
 
         var options: [String: Any] = [:]
-        if !channel.headers.isEmpty {
-            // AVFoundation accepts request headers through AVURLAsset options.
-            options["AVURLAssetHTTPHeaderFieldsKey"] = channel.headers
-        }
+        if !channel.headers.isEmpty { options["AVURLAssetHTTPHeaderFieldsKey"] = channel.headers }
         let asset = AVURLAsset(url: url, options: options)
         let item = AVPlayerItem(asset: asset)
+        observeItem(item)
         player.replaceCurrentItem(with: item)
         player.play()
     }
@@ -90,9 +108,33 @@ final class PlayerStore: ObservableObject {
     func stop() {
         player.pause()
         player.replaceCurrentItem(with: nil)
+        itemStatusObservation?.invalidate()
+        itemStatusObservation = nil
         currentChannel = nil
         errorMessage = nil
         statusText = ""
+        controlsVisible = false
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+    }
+
+    func attachPictureInPicture(to layer: AVPlayerLayer) {
+        guard AVPictureInPictureController.isPictureInPictureSupported() else {
+            pictureInPictureAvailable = false
+            return
+        }
+        if pipController?.isPictureInPictureActive == true { return }
+        let controller = AVPictureInPictureController(playerLayer: layer)
+        controller.canStartPictureInPictureAutomaticallyFromInline = true
+        pipController = controller
+        pictureInPictureAvailable = true
+    }
+
+    func startPictureInPicture() {
+        guard let pipController, pipController.isPictureInPicturePossible else {
+            errorMessage = "Picture in Picture chưa sẵn sàng. Hãy đợi kênh bắt đầu phát rồi thử lại."
+            return
+        }
+        pipController.startPictureInPicture()
         controlsVisible = false
     }
 
@@ -105,20 +147,68 @@ final class PlayerStore: ObservableObject {
         volumeSlider?.setValue(value, animated: false)
         volumeSlider?.sendActions(for: .valueChanged)
     }
+
+    private func observeItem(_ item: AVPlayerItem) {
+        itemStatusObservation?.invalidate()
+        itemStatusObservation = item.observe(\.status, options: [.initial, .new]) { [weak self] item, _ in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                if item.status == .failed {
+                    self.errorMessage = item.error?.localizedDescription ?? "Không phát được nguồn này"
+                    self.statusText = "Lỗi phát"
+                }
+            }
+        }
+    }
+
+    private func configureRemoteCommands() {
+        let center = MPRemoteCommandCenter.shared()
+        center.nextTrackCommand.isEnabled = false
+        center.previousTrackCommand.isEnabled = false
+        remoteTargets.append(center.playCommand.addTarget { [weak self] _ in
+            Task { @MainActor in self?.player.play() }
+            return .success
+        })
+        remoteTargets.append(center.pauseCommand.addTarget { [weak self] _ in
+            Task { @MainActor in self?.player.pause() }
+            return .success
+        })
+        remoteTargets.append(center.togglePlayPauseCommand.addTarget { [weak self] _ in
+            Task { @MainActor in self?.togglePlayback() }
+            return .success
+        })
+    }
+
+    private func updateNowPlaying(_ channel: IPTVChannel) {
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = [
+            MPMediaItemPropertyTitle: channel.name,
+            MPMediaItemPropertyArtist: channel.group,
+            MPNowPlayingInfoPropertyIsLiveStream: true,
+            MPNowPlayingInfoPropertyPlaybackRate: 1.0
+        ]
+    }
+
+    private func updateNowPlayingRate() {
+        guard currentChannel != nil else { return }
+        var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
+        info[MPNowPlayingInfoPropertyPlaybackRate] = isPlaying ? 1.0 : 0.0
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+    }
 }
 
 struct PlayerSurface: UIViewRepresentable {
-    let player: AVPlayer
+    @ObservedObject var store: PlayerStore
 
     func makeUIView(context: Context) -> PlayerLayerView {
         let view = PlayerLayerView()
         view.playerLayer.videoGravity = .resizeAspect
-        view.playerLayer.player = player
+        view.playerLayer.player = store.player
+        DispatchQueue.main.async { store.attachPictureInPicture(to: view.playerLayer) }
         return view
     }
 
     func updateUIView(_ uiView: PlayerLayerView, context: Context) {
-        uiView.playerLayer.player = player
+        uiView.playerLayer.player = store.player
     }
 }
 
@@ -156,20 +246,29 @@ struct NM7PlayerPane: View {
         GeometryReader { geometry in
             ZStack {
                 Color.black
-                PlayerSurface(player: playerStore.player)
+                PlayerSurface(store: playerStore)
                 SystemVolumeBridge(store: playerStore)
                     .frame(width: 1, height: 1)
                     .opacity(0.001)
 
                 if playerStore.controlsVisible {
                     ZStack {
-                        Color.black.opacity(0.22)
-                        HStack(spacing: 34) {
+                        Color.black.opacity(0.18)
+                        HStack(spacing: 28) {
                             Button(action: playerStore.togglePlayback) {
                                 Image(systemName: playerStore.isPlaying ? "pause.fill" : "play.fill")
                                     .font(.system(size: 27, weight: .bold))
                                     .frame(width: 58, height: 58)
                                     .background(.ultraThinMaterial, in: Circle())
+                            }
+                            if playerStore.pictureInPictureAvailable {
+                                Button(action: playerStore.startPictureInPicture) {
+                                    Image(systemName: "pip.enter")
+                                        .font(.system(size: 20, weight: .semibold))
+                                        .frame(width: 50, height: 50)
+                                        .background(.ultraThinMaterial, in: Circle())
+                                }
+                                .accessibilityLabel("Picture in Picture")
                             }
                             Button(action: fullscreen) {
                                 Image(systemName: "arrow.up.left.and.arrow.down.right")
