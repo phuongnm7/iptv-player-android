@@ -3,6 +3,7 @@
 Checks both portrait/mobile startup and the landscape layout used by Android TV.
 No public IPTV stream is required.
 """
+import re
 import subprocess
 import sys
 import time
@@ -47,16 +48,47 @@ def has_android_id(root, name):
     return any(n.get("resource-id") == "android:id/" + name for n in root.iter("node"))
 
 
+def android_node(root, name):
+    return next(
+        (n for n in root.iter("node") if n.get("resource-id") == "android:id/" + name),
+        None,
+    )
+
+
+def tap_node(node):
+    if node is None:
+        return False
+    bounds = node.get("bounds", "")
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+    if not match:
+        return False
+    x1, y1, x2, y2 = map(int, match.groups())
+    adb("shell", "input", "tap", str((x1 + x2) // 2), str((y1 + y2) // 2))
+    return True
+
+
+def alert_title(root):
+    node = android_node(root, "alertTitle")
+    return "" if node is None else node.get("text", "")
+
+
+def dismiss_pixel_launcher_anr(root):
+    """Ignore only the emulator launcher's own ANR; never mask an Nm7 ANR/crash."""
+    title = alert_title(root)
+    if title != "Pixel Launcher isn't responding":
+        return False
+    wait = android_node(root, "aerr_wait")
+    close = android_node(root, "aerr_close")
+    print("INFO: Pixel Launcher ANR obscured the test UI; dismissing emulator-only system dialog")
+    if not tap_node(wait):
+        tap_node(close)
+    time.sleep(.8)
+    return True
+
+
 def dismiss_expected_playlist_error(root):
     """Dismiss only the handled network error shown when CI cannot resolve the default playlist."""
-    title = next(
-        (
-            n.get("text", "")
-            for n in root.iter("node")
-            if n.get("resource-id") == "android:id/alertTitle"
-        ),
-        "",
-    )
+    title = alert_title(root)
     message = next(
         (
             n.get("text", "")
@@ -113,6 +145,8 @@ def wait_for_main_screen(timeout=45):
             root = hierarchy()
             if has_id(root, "mainRoot"):
                 return root
+            if dismiss_pixel_launcher_anr(root):
+                continue
             if dismiss_expected_playlist_error(root):
                 time.sleep(.5)
                 continue
