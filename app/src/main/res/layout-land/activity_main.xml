@@ -4,10 +4,7 @@
     android:orientation="vertical" android:padding="12dp" android:background="@color/navy">
     <LinearLayout android:layout_width="match_parent" android:layout_height="48dp" android:gravity="center_vertical">
         <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Nm7 IPTV" android:textSize="20sp" android:textStyle="bold" android:maxLines="1" android:textColor="@color/text_primary" android:ellipsize="end" />
-        <Button android:id="@+id/btnPlaylists" android:layout_width="58dp" android:layout_height="44dp" android:background="@drawable/button_secondary" android:text="☰ Link" android:textAllCaps="false" android:textSize="11sp" android:textColor="@color/text_primary" />
-        <Button android:id="@+id/btnSources" android:layout_width="76dp" android:layout_height="44dp" android:layout_marginStart="5dp" android:background="@drawable/button_secondary" android:text="+ Nguồn" android:textAllCaps="false" android:textSize="12sp" android:textColor="@color/accent" />
-        <Button android:id="@+id/btnWallpaper" android:layout_width="52dp" android:layout_height="44dp" android:layout_marginStart="6dp" android:background="@drawable/button_secondary" android:text="⚙" android:contentDescription="Tùy chọn ứng dụng" android:textAllCaps="false" android:textSize="18sp" android:textColor="@color/text_primary" />
-        <Button android:id="@+id/btnAbout" android:layout_width="44dp" android:layout_height="44dp" android:layout_marginStart="6dp" android:background="@drawable/button_secondary" android:text="ⓘ" android:contentDescription="Thông tin hỗ trợ" android:textColor="@color/text_primary" />
+        <Button android:id="@+id/btnWallpaper" android:layout_width="52dp" android:layout_height="44dp" android:background="@drawable/button_secondary" android:text="⚙" android:contentDescription="Tùy chọn ứng dụng" android:textAllCaps="false" android:textSize="18sp" android:textColor="@color/text_primary" />
     </LinearLayout>
     <TextView android:id="@+id/txtSummary" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:text="Mở playlist để bắt đầu" android:textSize="12sp" android:textColor="@color/text_secondary" />
     <TextView android:id="@+id/txtSource" android:layout_width="match_parent" android:layout_height="28dp" android:gravity="center_vertical" android:maxLines="1" android:ellipsize="middle" android:text="@string/source_none" android:textSize="11sp" android:textColor="@color/text_secondary" />
@@ -36,7 +33,7 @@
     </HorizontalScrollView>
     <ProgressBar android:id="@+id/progress" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="3dp" android:indeterminate="true" android:indeterminateTint="@color/accent" android:visibility="gone" />
     <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
-        <ListView android:id="@+id/listChannels" android:layout_width="match_parent" android:layout_height="match_parent" android:divider="@android:color/transparent" android:dividerHeight="5dp" android:listSelector="@drawable/list_focus" android:focusable="true" android:focusableInTouchMode="false" />
+        <ListView android:id="@+id/listChannels" android:layout_width="match_parent" android:layout_height="match_parent" android:divider="@android:color/transparent" android:dividerHeight="4dp" android:listSelector="@drawable/list_focus" android:focusable="true" android:focusableInTouchMode="false" />
         <TextView android:id="@+id/txtEmpty" android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center" android:padding="20dp" android:text="Chưa có kênh phù hợp.\nMở nguồn hoặc bấm Bỏ lọc." android:textColor="@color/text_secondary" android:visibility="gone" />
     </FrameLayout>
 </LinearLayout>
