@@ -1,29 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent" android:layout_height="wrap_content"
-    android:layout_marginBottom="7dp" android:background="@drawable/channel_card"
-    android:gravity="center_vertical" android:minHeight="92dp" android:orientation="horizontal"
-    android:paddingHorizontal="9dp">
-    <FrameLayout android:layout_width="54dp" android:layout_height="54dp">
+    android:layout_marginBottom="2dp" android:background="@drawable/channel_card"
+    android:gravity="center_vertical" android:minHeight="74dp" android:orientation="horizontal"
+    android:paddingHorizontal="8dp">
+    <FrameLayout android:layout_width="48dp" android:layout_height="48dp">
         <TextView android:id="@+id/txtChannelBadge" android:layout_width="match_parent" android:layout_height="match_parent"
             android:background="@drawable/channel_badge" android:gravity="center" android:text="TV"
-            android:textColor="@color/accent" android:textSize="22sp" android:textStyle="bold" />
+            android:textColor="@color/accent" android:textSize="20sp" android:textStyle="bold" />
         <ImageView android:id="@+id/imgChannelLogo" android:layout_width="match_parent" android:layout_height="match_parent"
             android:adjustViewBounds="true" android:contentDescription="Logo kênh" android:scaleType="centerInside" android:visibility="gone" />
     </FrameLayout>
     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
-        android:layout_marginStart="12dp" android:layout_weight="1" android:orientation="vertical">
+        android:layout_marginStart="9dp" android:layout_weight="1" android:orientation="vertical">
         <TextView android:id="@+id/txtName" android:layout_width="match_parent" android:layout_height="wrap_content"
             android:ellipsize="end" android:maxLines="1" android:textColor="@color/text_primary"
             android:textSize="16sp" android:textStyle="bold" />
         <TextView android:id="@+id/txtGroup" android:layout_width="match_parent" android:layout_height="wrap_content"
             android:ellipsize="end" android:maxLines="1" android:textColor="@color/accent" android:textSize="12sp" />
         <LinearLayout android:id="@+id/epgSection" android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:layout_marginTop="3dp" android:orientation="vertical" android:visibility="gone">
+            android:layout_marginTop="2dp" android:orientation="vertical" android:visibility="gone">
             <TextView android:id="@+id/txtProgramme" android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:ellipsize="end" android:maxLines="1" android:textColor="@color/text_secondary" android:textSize="12sp" />
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:layout_marginTop="3dp" android:gravity="center_vertical" android:orientation="horizontal">
+                android:layout_marginTop="2dp" android:gravity="center_vertical" android:orientation="horizontal">
                 <TextView android:id="@+id/txtEpgStart" android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:textColor="@color/text_secondary" android:textSize="10sp" />
                 <ProgressBar android:id="@+id/epgProgress" style="?android:attr/progressBarStyleHorizontal"
@@ -37,9 +37,9 @@
         <TextView android:id="@+id/txtUrl" android:layout_width="match_parent" android:layout_height="wrap_content"
             android:ellipsize="middle" android:maxLines="1" android:textColor="@color/text_secondary" android:textSize="10sp" />
     </LinearLayout>
-    <TextView android:id="@+id/btnFavorite" android:layout_width="46dp" android:layout_height="54dp"
+    <TextView android:id="@+id/btnFavorite" android:layout_width="42dp" android:layout_height="48dp"
         android:contentDescription="Thêm hoặc bỏ kênh yêu thích" android:focusable="false" android:gravity="center"
-        android:text="☆" android:textColor="@color/warning" android:textSize="25sp" />
-    <TextView android:layout_width="30dp" android:layout_height="54dp" android:gravity="center"
-        android:text="▶" android:textColor="@color/accent" android:textSize="19sp" />
+        android:text="☆" android:textColor="@color/warning" android:textSize="24sp" />
+    <TextView android:layout_width="28dp" android:layout_height="48dp" android:gravity="center"
+        android:text="▶" android:textColor="@color/accent" android:textSize="18sp" />
 </LinearLayout>
