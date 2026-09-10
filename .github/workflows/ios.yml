@@ -26,6 +26,9 @@ jobs:
       - name: Install XcodeGen
         run: brew install xcodegen
 
+      - name: Generate app icon
+        run: python3 ios/tools/generate_icon.py
+
       - name: Generate Xcode project
         working-directory: ios
         run: xcodegen generate
@@ -63,15 +66,15 @@ jobs:
           test -n "$APP_PATH"
           mkdir -p ios/dist/Payload
           cp -R "$APP_PATH" ios/dist/Payload/
-          (cd ios/dist && zip -qry NM7-IPTV-iOS-0.1.0-unsigned.ipa Payload)
-          shasum -a 256 ios/dist/NM7-IPTV-iOS-0.1.0-unsigned.ipa | tee ios/dist/SHA256SUMS.txt
+          (cd ios/dist && zip -qry NM7-IPTV-iOS-1.0.0-unsigned.ipa Payload)
+          shasum -a 256 ios/dist/NM7-IPTV-iOS-1.0.0-unsigned.ipa | tee ios/dist/SHA256SUMS.txt
 
       - name: Upload unsigned IPA
         uses: actions/upload-artifact@v4
         with:
-          name: NM7-IPTV-iOS-0.1.0-unsigned-IPA
+          name: NM7-IPTV-iOS-1.0.0-unsigned-IPA
           path: |
-            ios/dist/NM7-IPTV-iOS-0.1.0-unsigned.ipa
+            ios/dist/NM7-IPTV-iOS-1.0.0-unsigned.ipa
             ios/dist/SHA256SUMS.txt
           retention-days: 30
           if-no-files-found: error
