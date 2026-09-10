@@ -4,64 +4,62 @@ _Cập nhật: 10/09/2026_
 
 ## Trạng thái hiện tại
 
-- Android candidate hiện tại: **Nm7 IPTV 1.10.9** (`versionCode 26`).
+- Android candidate hiện tại: **Nm7 IPTV 1.10.10** (`versionCode 27`).
 - Nhánh: `main`.
-- Mốc stable đã được người dùng xác nhận trước đó: **1.10.7**.
-- GitHub Actions **Build #118**, run ID `34421017708` — **PASS toàn bộ**.
-- Commit kích hoạt build 1.10.9: `bc7c79d4740d9bb3ca9f49eaf40ba0af12243200`.
-- Artifact APK: `Nm7-IPTV-1.10.9-APK`, artifact ID `10130973352`.
-- SHA-256 APK: `fe334934d4721b3eef478e76d8e996fef2a416c8379bb742f8b0eb29eab296d7`.
-- 1.10.9 chưa được đánh dấu stable cho tới khi kiểm thử thực tế trên TV và Mobile hoàn tất.
+- **1.10.9 đã được người dùng xác nhận khởi động thành công trên TV thật**, khắc phục lỗi không mở ứng dụng của 1.10.8.
+- Mốc stable đã được xác nhận đầy đủ trước đó: **1.10.7**; 1.10.9 là mốc TV-boot đã xác nhận.
+- GitHub Actions **Build #127**, run ID `34423183621` — **PASS toàn bộ**.
+- Commit build 1.10.10: `464c56d07b2dda6ee2284a5a92339da591207202`.
+- Artifact APK: `Nm7-IPTV-1.10.10-APK`, artifact ID `10131732396`.
+- SHA-256 APK: `85a7fb8baca7b4adaab21eed9cfc393c7597800c942de5b89ac52445d515289f`.
+- 1.10.10 đang chờ kiểm thử thực tế TV/Mobile trước khi nâng thành stable mới.
 - Samsung Tizen vẫn tạm dừng cho tới khi có TV Samsung thật để kết nối, ký và kiểm thử.
 
 ## Các phần Android đã hoàn thành từ mốc stable
 
-- Giao diện Mobile phát video trực tiếp phía trên danh sách kênh.
-- Khi đổi kênh, video tiếp tục phát trong khung Mobile thay vì nhảy sang `PlayerActivity`.
-- Back khi đang phát inline: đóng khung phát trước, không thoát ứng dụng ngay.
+- Mobile phát video inline phía trên danh sách kênh, đổi kênh ngay trong khung phát.
+- Back đóng player inline trước, không thoát ứng dụng ngay.
 - Hỗ trợ HLS, DASH, SmoothStreaming, RTSP, HTTP/HTTPS, RTMP, UDP MPEG-TS và DRM/ClearKey theo cấu hình nguồn.
-- Tự thử lại khi gặp lỗi mạng/DRM tạm thời và nhận diện lại HLS/DASH sau redirect khi cần.
-- Hiển thị độ phân giải thực tế và FPS thực tế khi phát.
-- EPG/XMLTV có tên chương trình, giờ phát và tiến độ khi dữ liệu nguồn khớp.
-- Hỗ trợ phát nền trên Mobile theo tùy chọn ứng dụng.
-- Giữ màn hình sáng khi đang xem trực tiếp.
-- Media3 TimeBar/seek hiển thị với nguồn thực sự hỗ trợ tua/DVR.
-- Controller mặc định ẩn khi mở kênh, chỉ hiện khi chạm video.
-- Nút fullscreen dùng biểu tượng phóng to/thu nhỏ đặt cạnh bánh răng.
-- Fullscreen ngang và quay về dọc đã được kiểm thử thực tế OK ở mốc trước.
+- Tự thử lại lỗi mạng/DRM tạm thời; tối ưu HTTP keep-alive, Wi-Fi hiệu năng cao và duy trì phiên player.
+- Hiển thị độ phân giải thực tế, FPS thực tế và EPG/XMLTV khi dữ liệu khớp.
+- Phát nền, giữ màn hình sáng, seek/DVR, controller ẩn mặc định và fullscreen Mobile đã hoàn thiện qua các bản 1.10.x.
 - Bàn phím Mobile không còn che ô tìm kiếm.
-- 1.10.8 bổ sung tối ưu duy trì kết nối luồng, HTTP keep-alive/Wi-Fi hiệu năng cao và nền hộp tùy chọn bán trong suốt.
+- Hộp thoại tùy chọn dùng nền bán trong suốt.
 
-## Thay đổi Android 1.10.9
+## Mốc 1.10.9 đã xác nhận
 
-### Sửa khởi động trên TV / landscape
+- Sửa crash TV/landscape do `btnReloadUrl` thiếu trong `layout-land/activity_main.xml`.
+- CI có smoke test riêng cho portrait và landscape/TV-style.
+- Người dùng đã cài trên TV thật và xác nhận ứng dụng **khởi động được**.
+- Bỏ long-press `Phát / Yêu thích` trên danh sách Mobile.
+- Bắt đầu thu gọn chiều cao hàng và cải thiện vuốt chuyển nhóm.
 
-- Xác định đường crash cụ thể: `MainActivity` luôn truy cập `btnReloadUrl` khi khởi động, nhưng `layout-land/activity_main.xml` trước đó không khai báo ID này.
-- Đã bổ sung `btnReloadUrl` vào layout ngang, loại bỏ lỗi null khi TV mở `MainActivity` bằng resource landscape.
-- Bổ sung regression smoke test: CI khởi động ứng dụng ở portrait, sau đó xoay landscape và khởi động lại để kiểm tra layout TV-style không thiếu control bắt buộc.
-- Vẫn giữ nhận diện TV vật lý và tách hành vi Mobile khỏi TV/D-pad.
+## Thay đổi Android 1.10.10
 
-### Giao diện danh sách kênh Mobile
+### TV
 
-- Thu hẹp khoảng cách giữa các kênh: divider Mobile còn 2dp, padding dọc mặc định còn 1dp.
-- Chiều cao card Mobile giảm; chế độ hàng thu gọn có chiều cao nhỏ hơn nữa.
-- Logo/badge và vùng nút yêu thích/phát được thu gọn vừa phải để hiển thị nhiều kênh hơn trên màn hình.
-- TV vẫn giữ chiều cao hàng lớn hơn để dễ điều khiển bằng D-pad.
+- Ẩn các nút `Link`, `Nguồn`, `Thông tin` ở header TV để đồng nhất với Mobile; các chức năng này vẫn nằm trong `Tùy chọn ứng dụng`.
+- Giữ nút bánh răng Tùy chọn ở header.
+- Thêm smoke assertion để bảo đảm các nút đã hợp nhất không xuất hiện lại ở cả portrait và landscape/TV-style.
+- Hạ khoảng cách divider danh sách TV từ mức cũ 9dp xuống 3dp bằng tuner TV riêng, không thay đổi đường khởi động đã ổn định ở 1.10.9.
 
-### Vuốt chuyển nhóm
+### Danh sách kênh
 
-- Thay nhận diện vuốt theo khoảng cách cố định 72dp bằng nhận diện hướng + touch slop + vận tốc fling.
-- Giảm ngưỡng chuyển nhóm để thao tác nhẹ và tự nhiên hơn.
-- Không quay vòng từ nhóm cuối về nhóm đầu hoặc ngược lại khi vuốt quá mép.
-- Thanh nhóm tự smooth-scroll để nhóm mới nằm gần giữa vùng nhìn thấy.
-- Thêm chuyển động ngắn cho danh sách sau khi đổi nhóm để cảm giác chuyển trang mượt hơn.
+- Card kênh mặc định Mobile giảm còn khoảng 60dp; compact khoảng 54dp; TV khoảng 78dp.
+- Logo/badge giảm còn 42dp; khoảng cách nội bộ, nút Yêu thích và biểu tượng phát được thu gọn tương ứng.
+- Divider Mobile còn 1dp, TV 3dp.
+- EPG vẫn tự mở rộng hàng khi có nội dung nên không cắt thông tin chương trình.
 
-### Bỏ long-press không cần thiết
+### Vuốt chuyển nhóm Mobile
 
-- Trên Mobile, nhấn giữ tên/kênh trong danh sách không còn mở hộp thoại `Phát / Thêm vào Yêu thích`.
-- Chạm kênh vẫn phát bình thường; nút ngôi sao vẫn là cách thêm/bỏ Yêu thích.
+- Đã tham khảo riêng phần stream của APK mẫu người dùng cung cấp.
+- APK mẫu có `MobileIptvPlayerActivity`, `HorizontalGroupSwipeHelper` và dùng `GestureDetector` cho gesture ngang.
+- Nm7 chuyển từ logic tự giữ `VelocityTracker`/chiếm touch stream sang `GestureDetector` quan sát gesture.
+- `ListView` tiếp tục tự xử lý cuộn dọc, tap và fling gốc; detector chỉ đổi nhóm khi cú vuốt ngang đủ rõ.
+- Hỗ trợ cả fling nhanh và vuốt chậm đủ khoảng cách; thanh nhóm tự smooth-scroll để nhóm mới nằm gần giữa màn hình.
+- Bỏ hiệu ứng dịch ngang cưỡng bức của toàn danh sách để tránh cảm giác khựng.
 
-## Kiểm thử / Build #118
+## Kiểm thử / Build #127
 
 Các bước sau đều **PASS**:
 1. Compile.
@@ -72,10 +70,11 @@ Các bước sau đều **PASS**:
 6. Đóng gói artifact.
 7. Android 15 portrait smoke test.
 8. Android 15 landscape/TV-style startup smoke test.
+9. Kiểm tra header đã ẩn `Link / Nguồn / Thông tin` trong smoke test.
 
 ## Mốc tiếp tục
 
-- Candidate để kiểm thử thực tế: **Nm7 IPTV 1.10.9 / Build #118**.
-- Cần kiểm thử thực tế trên Android TV để xác nhận lỗi không khởi động đã hết trên thiết bị thật.
-- Cần kiểm thử Mobile: mật độ danh sách, vuốt đổi nhóm, không còn long-press dialog.
-- Chỉ sau khi các kiểm thử thực tế trên đạt yêu cầu mới nâng 1.10.9 thành mốc stable mới.
+- Candidate để kiểm thử thực tế: **Nm7 IPTV 1.10.10 / Build #127**.
+- Cần kiểm thử TV: header đã gọn, khoảng cách hàng kênh hợp lý và điều khiển D-pad vẫn rõ focus.
+- Cần kiểm thử Mobile: mật độ danh sách và cảm giác vuốt trái/phải đổi nhóm sau khi chuyển sang `GestureDetector`.
+- Nếu các kiểm thử thực tế đạt yêu cầu, nâng 1.10.10 thành mốc stable mới.
