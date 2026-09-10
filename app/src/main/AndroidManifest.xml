@@ -15,8 +15,10 @@
         <provider android:name=".MobileInlinePlayerProviderV2" android:authorities="${applicationId}.mobileinline" android:exported="false" android:initOrder="90" />
         <provider android:name=".MobileEdgeGestureProvider" android:authorities="${applicationId}.edgegestures" android:exported="false" android:initOrder="85" />
         <provider android:name=".MobileGroupSwipeProvider" android:authorities="${applicationId}.groupswipe" android:exported="false" android:initOrder="80" />
+        <provider android:name=".MobileNowPlayingHighlightProvider" android:authorities="${applicationId}.nowplayinghighlight" android:exported="false" android:initOrder="75" />
         <provider android:name=".TvLayoutTunerProvider" android:authorities="${applicationId}.tvlayout" android:exported="false" android:initOrder="70" />
         <provider android:name=".TvStreamRecoveryProvider" android:authorities="${applicationId}.tvrecovery" android:exported="false" android:initOrder="65" />
+        <provider android:name=".TvPlayerUiProvider" android:authorities="${applicationId}.tvplayerui" android:exported="false" android:initOrder="60" />
         <activity android:name=".VlcFallbackActivity" android:enabled="${vlcFallbackEnabled}" android:exported="false" android:configChanges="keyboardHidden|orientation|screenSize" />
         <activity android:name=".PlayerActivity" android:exported="false" android:configChanges="keyboardHidden|orientation|screenSize" />
         <activity android:name=".MainActivity" android:configChanges="keyboardHidden|orientation|screenSize" android:windowSoftInputMode="stateAlwaysHidden|adjustPan" android:exported="true">
