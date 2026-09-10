@@ -26,10 +26,9 @@ import java.util.WeakHashMap;
 /**
  * TV-only decoder recovery.
  *
- * Media3 stays the primary player. When a TV firmware decoder fails, Nm7 first
+ * Media3 stays the primary player. When a TV firmware decoder fails, NM7 first
  * tries adaptive 1080p and 720p. If MediaCodec still cannot decode the stream,
- * playback is handed to VlcFallbackActivity, which ships VLC/FFmpeg codecs and
- * is therefore not limited to the same MediaCodec implementation.
+ * playback is handed to the TV-only VLC/FFmpeg fallback activity.
  */
 @androidx.media3.common.util.UnstableApi
 public final class TvStreamRecoveryProvider extends ContentProvider implements Application.ActivityLifecycleCallbacks {
@@ -161,7 +160,8 @@ public final class TvStreamRecoveryProvider extends ContentProvider implements A
             try {
                 invokePrivate(activity, "releasePlayer");
             } catch (Exception ignored) { }
-            Intent fallback = new Intent(activity, VlcFallbackActivity.class);
+            Intent fallback = new Intent();
+            fallback.setClassName(activity, "vn.phuong.iptvplayer.VlcFallbackActivity");
             Bundle extras = activity.getIntent().getExtras();
             if (extras != null) fallback.putExtras(extras);
             activity.startActivity(fallback);
