@@ -143,6 +143,14 @@ def launch_main():
     return wait_for_main_screen()
 
 
+def assert_consolidated_header(root, label):
+    removed = ["btnSources", "btnPlaylists", "btnAbout", "btnSelectAll", "btnSelectNone", "btnExport"]
+    present = [name for name in removed if has_id(root, name)]
+    if present:
+        print_diagnostics()
+        raise AssertionError(label + " still exposes consolidated controls: " + ", ".join(present))
+
+
 adb("install", "-r", APK, timeout=90)
 adb("shell", "input", "keyevent", "KEYCODE_WAKEUP")
 run_adb("shell", "wm", "dismiss-keyguard", check=False)
@@ -161,11 +169,7 @@ if missing:
 if not (has_id(root, "listChannels") or has_id(root, "txtEmpty")):
     print_diagnostics()
     raise AssertionError("Neither the channel list nor its empty state is available")
-removed = ["btnSources", "btnPlaylists", "btnAbout", "btnSelectAll", "btnSelectNone", "btnExport"]
-present = [name for name in removed if has_id(root, name)]
-if present:
-    print_diagnostics()
-    raise AssertionError("Controls that should be consolidated or removed are still visible: " + ", ".join(present))
+assert_consolidated_header(root, "Portrait UI")
 print("PASS: portrait application launches and current IPTV interface is available")
 
 # Landscape startup regression. Android TV normally starts the landscape resource
@@ -179,5 +183,6 @@ if not has_id(root, "mainRoot"):
 if not has_id(root, "btnReloadUrl"):
     print_diagnostics()
     raise AssertionError("Landscape layout is missing btnReloadUrl required by MainActivity")
+assert_consolidated_header(root, "Landscape/TV UI")
 print("PASS: landscape/TV-style main layout launches without missing startup controls")
-print("PASS: Link, source and about controls are consolidated into app options on mobile")
+print("PASS: Link, source and about controls are consolidated into app options on mobile and TV")
