@@ -23,7 +23,7 @@ jobs:
   build:
     if: github.event.repository.private == true
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - name: Checkout private source
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -47,27 +47,44 @@ jobs:
           log-accepted-android-sdk-licenses: false
       - name: Install Android SDK packages
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
-      - name: Compile, test and lint
-        run: gradle --no-daemon --console=plain testDebugUnitTest lintDebug assembleDebug
-      - name: Verify and package APK
+      - name: Compile, test and lint both variants
         run: |
-          mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk dist/Nm7-IPTV-1.10.13.apk
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs dist/Nm7-IPTV-1.10.13.apk
-          cd dist
-          sha256sum Nm7-IPTV-1.10.13.apk | tee SHA256SUMS.txt
-      - name: Upload installable APK (private artifact)
+          gradle --no-daemon --console=plain \
+            testMobileDebugUnitTest lintMobileDebug assembleMobileDebug \
+            testTvDebugUnitTest lintTvDebug assembleTvDebug
+      - name: Verify and package Mobile and TV APKs
+        run: |
+          mkdir -p dist/mobile dist/tv
+          cp app/build/outputs/apk/mobile/debug/app-mobile-debug.apk dist/mobile/NM7-IPTV-Mobile-1.10.14.apk
+          cp app/build/outputs/apk/tv/debug/app-tv-debug.apk dist/tv/NM7-IPTV-TV-1.10.14.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs dist/mobile/NM7-IPTV-Mobile-1.10.14.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs dist/tv/NM7-IPTV-TV-1.10.14.apk
+          if unzip -l dist/mobile/NM7-IPTV-Mobile-1.10.14.apk | grep -q 'libvlc\.so'; then
+            echo 'Mobile APK unexpectedly contains LibVLC' >&2
+            exit 1
+          fi
+          unzip -l dist/tv/NM7-IPTV-TV-1.10.14.apk | grep -q 'libvlc\.so'
+          (cd dist/mobile && sha256sum NM7-IPTV-Mobile-1.10.14.apk | tee SHA256SUMS.txt)
+          (cd dist/tv && sha256sum NM7-IPTV-TV-1.10.14.apk | tee SHA256SUMS.txt)
+      - name: Upload Mobile APK
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: Nm7-IPTV-1.10.13-APK
-          path: dist/
+          name: NM7-IPTV-Mobile-1.10.14-APK
+          path: dist/mobile/
+          retention-days: 30
+          if-no-files-found: error
+      - name: Upload TV APK
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: NM7-IPTV-TV-1.10.14-APK
+          path: dist/tv/
           retention-days: 30
           if-no-files-found: error
       - name: Prepare Android emulator
         run: |
           test -e /dev/kvm
           sudo chmod a+rw /dev/kvm
-      - name: Check current app on Android 15 emulator
+      - name: Smoke-test Mobile APK on Android 15
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
           api-level: 35
@@ -78,15 +95,12 @@ jobs:
           emulator-boot-timeout: 420
           disable-animations: true
           disable-spellchecker: true
-          script: python3 tools/android_smoke_current.py dist/Nm7-IPTV-1.10.13.apk
+          script: python3 tools/android_smoke_current.py dist/mobile/NM7-IPTV-Mobile-1.10.14.apk
       - name: Upload test and lint reports
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: Android-test-reports
-          path: |
-            app/build/reports/tests/testDebugUnitTest/
-            app/build/reports/lint-results-debug.html
-            app/build/reports/lint-results-debug.xml
+          path: app/build/reports/
           retention-days: 14
           if-no-files-found: ignore
