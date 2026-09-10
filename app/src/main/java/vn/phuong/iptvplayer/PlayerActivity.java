@@ -140,7 +140,7 @@ public final class PlayerActivity extends Activity {
         TextView source = findViewById(R.id.txtPlayerUrl); source.setText(url); source.setVisibility(AppPreferences.showPlayerSource(this) ? View.VISIBLE : View.GONE); source.setOnClickListener(v -> showSource());
         playerView.setControllerVisibilityListener((PlayerView.ControllerVisibilityListener) visibility -> findViewById(R.id.playerHeader).setVisibility(visibility));
         findViewById(R.id.btnBack).setOnClickListener(v -> finish()); findViewById(R.id.btnQuality).setOnClickListener(v -> chooseQuality());
-        findViewById(R.id.btnFormat).setOnClickListener(v -> chooseFormat()); findViewById(R.id.btnRotate).setOnClickListener(v -> chooseOrientation());
+        findViewById(R.id.btnFormat).setOnClickListener(v -> chooseFormat()); View rotateButton = findViewById(R.id.btnRotate); if (rotateButton != null) rotateButton.setOnClickListener(v -> chooseOrientation());
         findViewById(R.id.btnDrm).setOnClickListener(v -> configureDrm()); findViewById(R.id.btnResize).setOnClickListener(v -> chooseResizeMode());
         findViewById(R.id.btnRetry).setOnClickListener(v -> { position = 0; resumePlayback = true; releasePlayer(); startPlayer(); }); setupMobileEdgeGestures(); loadQuickChannels();
     }
