@@ -35,6 +35,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /** TV-only reliability layer: resilient playlist loading and decoder recovery. */
+@androidx.media3.common.util.UnstableApi
 public final class TvStreamRecoveryProvider extends ContentProvider implements Application.ActivityLifecycleCallbacks {
     private static final int MAX_PLAYLIST_BYTES = 8 * 1024 * 1024;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
@@ -199,6 +200,11 @@ public final class TvStreamRecoveryProvider extends ContentProvider implements A
         };
         player.addListener(listener);
         attachedPlayers.put(player, listener);
+        PlaybackException existing = player.getPlayerError();
+        if (existing != null) {
+            String name = existing.getErrorCodeName();
+            if (name != null && name.contains("DECOD")) recoverDecoder(activity, name);
+        }
     }
 
     private void recoverDecoder(PlayerActivity activity, String errorName) {
