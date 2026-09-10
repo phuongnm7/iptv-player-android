@@ -1,8 +1,7 @@
 """Compatibility smoke test for the current Nm7 IPTV Player UI.
 
-The older smoke suite expected controls that were intentionally removed from the
-main screen. This test checks the current supported UI without requiring any
-public IPTV stream.
+Checks both portrait/mobile startup and the landscape layout used by Android TV.
+No public IPTV stream is required.
 """
 import subprocess
 import sys
@@ -127,24 +126,33 @@ def wait_for_main_screen(timeout=45):
     raise AssertionError(message)
 
 
+def launch_main():
+    adb("shell", "am", "force-stop", PACKAGE)
+    launch = run_adb(
+        "shell",
+        "am",
+        "start",
+        "-W",
+        "-n",
+        PACKAGE + "/.MainActivity",
+        timeout=40,
+    )
+    print(launch.stdout)
+    if launch.stderr:
+        print(launch.stderr, file=sys.stderr)
+    return wait_for_main_screen()
+
+
 adb("install", "-r", APK, timeout=90)
 adb("shell", "input", "keyevent", "KEYCODE_WAKEUP")
 run_adb("shell", "wm", "dismiss-keyguard", check=False)
 run_adb("logcat", "-c", check=False)
-adb("shell", "am", "force-stop", PACKAGE)
-launch = run_adb(
-    "shell",
-    "am",
-    "start",
-    "-W",
-    "-n",
-    PACKAGE + "/.MainActivity",
-    timeout=40,
-)
-print(launch.stdout)
-if launch.stderr:
-    print(launch.stderr, file=sys.stderr)
-root = wait_for_main_screen()
+
+# Portrait/mobile launch.
+run_adb("shell", "settings", "put", "system", "accelerometer_rotation", "0", check=False)
+run_adb("shell", "settings", "put", "system", "user_rotation", "0", check=False)
+time.sleep(.8)
+root = launch_main()
 required = ["btnWallpaper", "btnAllChannels", "btnFavorites", "btnRecent"]
 missing = [name for name in required if not has_id(root, name)]
 if missing:
@@ -158,5 +166,18 @@ present = [name for name in removed if has_id(root, name)]
 if present:
     print_diagnostics()
     raise AssertionError("Controls that should be consolidated or removed are still visible: " + ", ".join(present))
-print("PASS: application launches and current IPTV interface is available")
-print("PASS: Link, source and about controls are consolidated into app options")
+print("PASS: portrait application launches and current IPTV interface is available")
+
+# Landscape startup regression. Android TV normally starts the landscape resource
+# set, so this catches missing IDs that would crash MainActivity only on a TV.
+run_adb("shell", "settings", "put", "system", "user_rotation", "1", check=False)
+time.sleep(1.2)
+root = launch_main()
+if not has_id(root, "mainRoot"):
+    print_diagnostics()
+    raise AssertionError("Landscape main screen did not open")
+if not has_id(root, "btnReloadUrl"):
+    print_diagnostics()
+    raise AssertionError("Landscape layout is missing btnReloadUrl required by MainActivity")
+print("PASS: landscape/TV-style main layout launches without missing startup controls")
+print("PASS: Link, source and about controls are consolidated into app options on mobile")
