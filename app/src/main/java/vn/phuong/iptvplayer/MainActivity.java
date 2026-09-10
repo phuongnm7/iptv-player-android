@@ -77,7 +77,51 @@ public final class MainActivity extends Activity {
 
     private void reloadPlaylistUrl(){String source=currentSource==null?"":currentSource.split("\\n",2)[0].trim();if(!PlaylistSourceStore.isValid(source)){toast("Playlist hiện tại không phải link URL");return;}inputUrl.setText(source);loadFromUrl();}
 
-    private void loadFromUrl(){String source=inputUrl.getText().toString().trim();if(!M3uParser.isNetworkUrl(source)||!(source.startsWith("http://")||source.startsWith("https://"))){toast("URL phải bắt đầu bằng http:// hoặc https://");setLoading(false);return;}setLoading(true);io.execute(()->{HttpURLConnection c=null;try{c=(HttpURLConnection)new URL(source).openConnection();c.setConnectTimeout(15000);c.setReadTimeout(20000);c.setInstanceFollowRedirects(true);c.setRequestProperty("User-Agent","Nm7-IPTV/1.7 Android");int status=c.getResponseCode();if(status<200||status>=300)throw new Exception("HTTP "+status);String effective=c.getURL().toString(),type=c.getContentType(),description=source.equals(effective)?source:source+"\nChuyển hướng: "+effective;if(type!=null&&(type.startsWith("video/")||type.contains("dash+xml"))){Channel direct=new Channel("Luồng trực tiếp","Phát trực tiếp",effective,"","",java.util.Collections.emptyMap());if(type.contains("dash+xml"))direct.options().add("#KODIPROP:inputstream.adaptive.manifest_type=mpd");ui(()->showPlaylist(new M3uParser.Result(java.util.Collections.singletonList(direct),0,0),description));return;}String content;try(InputStream s=new BufferedInputStream(c.getInputStream())){content=readText(s);}M3uParser.Result result=parser.parse(content,effective);ui(()->showPlaylist(result,description));}catch(Exception e){ui(()->showError("Không tải được playlist: "+readable(e)));}finally{if(c!=null)c.disconnect();}});}
+    private void loadFromUrl(){
+        String source=inputUrl.getText().toString().trim();
+        if(!M3uParser.isNetworkUrl(source)||!(source.startsWith("http://")||source.startsWith("https://"))){toast("URL phải bắt đầu bằng http:// hoặc https://");setLoading(false);return;}
+        setLoading(true);
+        final boolean tv=AppPreferences.isPhysicalTv(this);
+        final int maxAttempts=tv?3:1;
+        io.execute(()->{
+            Exception lastError=null;
+            for(int attempt=1;attempt<=maxAttempts;attempt++){
+                HttpURLConnection c=null;
+                try{
+                    c=(HttpURLConnection)new URL(source).openConnection();
+                    c.setConnectTimeout(tv?25000:15000);
+                    c.setReadTimeout(tv?60000:20000);
+                    c.setInstanceFollowRedirects(true);
+                    c.setRequestProperty("User-Agent",tv?"Nm7-IPTV/1.10.11 Android-TV":"Nm7-IPTV/1.10.11 Android");
+                    c.setRequestProperty("Accept","application/vnd.apple.mpegurl,application/x-mpegURL,text/plain,*/*");
+                    c.setRequestProperty("Connection","keep-alive");
+                    int status=c.getResponseCode();
+                    if(status<200||status>=300)throw new Exception("HTTP "+status);
+                    String effective=c.getURL().toString(),type=c.getContentType(),description=source.equals(effective)?source:source+"\nChuyển hướng: "+effective;
+                    if(type!=null&&(type.startsWith("video/")||type.contains("dash+xml"))){
+                        Channel direct=new Channel("Luồng trực tiếp","Phát trực tiếp",effective,"","",java.util.Collections.emptyMap());
+                        if(type.contains("dash+xml"))direct.options().add("#KODIPROP:inputstream.adaptive.manifest_type=mpd");
+                        ui(()->showPlaylist(new M3uParser.Result(java.util.Collections.singletonList(direct),0,0),description));
+                        return;
+                    }
+                    String content;
+                    try(InputStream s=new BufferedInputStream(c.getInputStream())){content=readText(s);}
+                    M3uParser.Result result=parser.parse(content,effective);
+                    ui(()->showPlaylist(result,description));
+                    return;
+                }catch(Exception e){
+                    lastError=e;
+                    if(attempt<maxAttempts){
+                        int nextAttempt=attempt+1;
+                        ui(()->{TextView summary=findViewById(R.id.txtSummary);if(summary!=null)summary.setText("Kết nối chậm • đang thử lại "+nextAttempt+"/"+maxAttempts+"…");});
+                        try{Thread.sleep(attempt==1?700L:1600L);}catch(InterruptedException interrupted){Thread.currentThread().interrupt();break;}
+                    }
+                }finally{if(c!=null)c.disconnect();}
+            }
+            Exception failure=lastError;
+            ui(()->showError("Không tải được playlist"+(maxAttempts>1?" sau "+maxAttempts+" lần":"")+": "+readable(failure)));
+        });
+    }
 
     private void openFilePicker(){Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("*/*");startActivityForResult(i,OPEN_M3U);}
     @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(result!=RESULT_OK||data==null||data.getData()==null)return;Uri uri=data.getData();if(request==OPEN_M3U)readLocalFile(uri);if(request==PICK_WALLPAPER){io.execute(()->{try{WallpaperStore.importPhoto(getApplicationContext(),uri);ui(()->{applyWallpaper();toast("Đã đổi hình nền");});}catch(Exception e){ui(()->toast("Không mở được hình nền: "+readable(e)));}});}}
@@ -193,7 +237,7 @@ public final class MainActivity extends Activity {
     }
     private void applyInterfaceMode(ListView list){
         boolean tv=AppPreferences.isTvInterface(this);
-        list.setDividerHeight(dp(tv?9:5));
+        list.setDividerHeight(dp(tv?3:5));
         if(tv)findViewById(R.id.btnAllChannels).post(()->findViewById(R.id.btnAllChannels).requestFocus());
     }
     private void chooseWallpaper(){
@@ -211,7 +255,7 @@ public final class MainActivity extends Activity {
     private void showChannelActions(Channel c){new AlertDialog.Builder(this).setTitle(c.name()).setItems(new String[]{AppPreferences.isFavorite(this,c)?"Bỏ Yêu thích":"Thêm vào Yêu thích","Phát"},(d,w)->{if(w==0){AppPreferences.toggleFavorite(this,c);filter();}else play(c);}).show();}
     private void ui(Runnable r){runOnUiThread(r);}
     private void showError(String m){setLoading(false);new AlertDialog.Builder(this).setTitle("Lỗi").setMessage(m).setPositiveButton("Đóng",null).show();}
-    private String readable(Exception e){return e.getMessage()==null?e.getClass().getSimpleName():e.getMessage();}
+    private String readable(Exception e){return e==null?"Không rõ nguyên nhân":e.getMessage()==null?e.getClass().getSimpleName():e.getMessage();}
     private void toast(String m){Toast.makeText(this,m,Toast.LENGTH_SHORT).show();}
     private int dp(int v){return Math.round(v*getResources().getDisplayMetrics().density);}
 }
