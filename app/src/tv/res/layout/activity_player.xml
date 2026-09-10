@@ -12,7 +12,6 @@
         app:resize_mode="fit"
         app:show_buffering="always"
         app:show_subtitle_button="true"
-        app:controller_auto_show="false"
         app:use_controller="true" />
     <LinearLayout
         android:id="@+id/playerHeader"
