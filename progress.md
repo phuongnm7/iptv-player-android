@@ -4,147 +4,180 @@ _Cập nhật: 10/09/2026_
 
 ## Trạng thái hiện tại
 
-Dự án Android đã được tách thành **2 bản phát hành độc lập từ cùng mã nguồn** để tiếp tục phát triển riêng theo thiết bị:
+Dự án Android tiếp tục phát hành **2 APK riêng từ cùng mã nguồn**:
 
 - **NM7 IPTV Mobile** — bản nhẹ, không đóng gói LibVLC.
-- **NM7 IPTV TV** — bản dành cho Android TV, có LibVLC/FFmpeg fallback để xử lý các luồng 4K/codec mà MediaCodec của TV không phát được.
+- **NM7 IPTV TV** — bản Android TV, có LibVLC/FFmpeg fallback cho các trường hợp MediaCodec/Media3 không phát được.
 
-Phiên bản candidate hiện tại của cả hai nhánh sản phẩm là **1.10.15** (`versionCode 32`). Nhánh mã nguồn chính: `main`.
+Phiên bản Android hiện tại là **1.10.17** (`versionCode 34`), nhánh chính `main`.
 
-Mốc thực tế quan trọng:
+Mốc ổn định thực tế:
 
-- **TV 1.10.13** đã được người dùng xác nhận chạy tốt trên TV thật và phát được kênh 4K sau khi bổ sung LibVLC fallback.
-- **1.10.14** bắt đầu tách Mobile/TV nhưng phát sinh regression khi mở một số nguồn: TV có thể gặp `ERROR_CODE_IO_BAD_HTTP_STATUS`; kênh HBO/ClearKey lỗi trên cả Mobile và TV.
-- **1.10.15** là bản sửa regression hiện tại, đang chờ kiểm thử thực tế lại trên Mobile và TV.
+- **TV 1.10.13** đã được xác nhận chạy tốt trên TV thật, bao gồm kênh 4K từng lỗi MediaCodec.
+- **1.10.15** sửa regression HTTP/ClearKey sau khi tách flavor Mobile/TV.
+- **1.10.16** bổ sung highlight kênh đang phát trên Mobile và chỉnh lại controller/player UI riêng cho TV.
+- **1.10.17** bổ sung cơ chế Reload playlist luôn lấy dữ liệu mới, thay logo giao diện chính bằng logo **Phuongnm7 TV nền trong suốt**, và đã đóng gói lại cả Mobile/TV.
 
-## Kiến trúc build Mobile / TV
+## Kiến trúc Mobile / TV
 
-`app/build.gradle.kts` hiện dùng product flavor `device`:
+`app/build.gradle.kts` dùng flavor dimension `device`.
 
 ### Mobile
 
 - Flavor: `mobile`.
-- Version: `1.10.15-mobile`.
-- Không đóng gói `libvlc.so`.
+- Version: `1.10.17-mobile`.
+- Không chứa `libvlc.so`.
 - Media3/ExoPlayer là engine phát chính.
-- Giữ dung lượng APK nhỏ, phù hợp điện thoại/tablet.
+- Player inline trên màn hình danh sách.
+- APK giữ dung lượng nhỏ cho điện thoại/tablet Android.
 
 ### TV
 
 - Flavor: `tv`.
-- Version: `1.10.15-tv`.
+- Version: `1.10.17-tv`.
 - Có `tvImplementation("org.videolan.android:libvlc-all:3.6.1")`.
-- Media3/ExoPlayer vẫn là engine chính.
-- Khi codec/MediaCodec TV không phát được nguồn phù hợp, có thể chuyển sang LibVLC/FFmpeg fallback.
+- Media3/ExoPlayer là engine chính.
+- LibVLC/FFmpeg là fallback riêng cho TV.
 
-## Giao diện / nhận diện 1.10.15
+## Giao diện / nhận diện 1.10.17
 
-- Tên ứng dụng chuẩn hóa thành **NM7 IPTV**.
-- Phần chữ tiêu đề `NM7 IPTV` ở đầu giao diện chính đã được thay bằng **logo ứng dụng** trên cả Mobile và TV.
-- Logo hiện dùng `@mipmap/ic_launcher`, căn giữa trong vùng header.
-- TV tiếp tục giữ hàng chức năng gọn: `Tất cả | ★ Yêu thích | ◷ Gần đây | ⚙ Tùy chọn`.
-- TV đã bỏ các dòng trạng thái dư ở đầu màn hình như `Mở playlist để bắt đầu` và `Nguồn: chưa mở playlist`.
+- Tên ứng dụng: **NM7 IPTV**.
+- Logo trên màn hình chính đã đổi sang **Phuongnm7 TV**.
+- File logo dùng nền trong suốt, chỉ giữ biểu tượng và chữ.
+- Màn hình Mobile portrait hiển thị logo lớn hơn để dễ nhìn.
+- Layout ngang/TV dùng logo gọn hơn để không chiếm nhiều chiều cao.
+- Logo giao diện chính dùng `@drawable/nm7_main_logo`, không còn dùng launcher icon làm header.
 
 ## NM7 IPTV Mobile — trạng thái chức năng
 
-Các phần đã triển khai:
+Đã triển khai:
 
-- Player inline nằm phía trên danh sách kênh.
-- Chọn kênh khác tiếp tục phát trong player inline, không bật PlayerActivity cũ.
-- Controller mặc định ẩn; chạm vào video mới hiện Play/Pause và seek/DVR khi nguồn hỗ trợ.
-- Fullscreen/phóng to/thu nhỏ bằng biểu tượng cạnh bánh răng.
-- Xoay ngang/dọc và quay lại màn hình danh sách.
-- Hiển thị độ phân giải thực tế và FPS thực tế.
-- Giữ màn hình sáng khi đang xem.
-- Hỗ trợ phát nền theo tùy chọn ứng dụng.
-- Tìm kiếm không còn bị bàn phím che ô nhập.
-- Vuốt ngang trên danh sách để đổi nhóm kênh bằng `GestureDetector`; cuộn dọc/tap/fling vẫn do `ListView` xử lý.
-- Bỏ long-press mở hộp `Phát / Yêu thích`; yêu thích dùng biểu tượng ngôi sao riêng.
-- Danh sách kênh đã thu gọn card/logo/khoảng cách so với các bản đầu.
-- Hộp `Tùy chọn ứng dụng` dùng nền bán trong suốt.
-- Bổ sung gesture trên player Mobile:
-  - Vuốt dọc cạnh trái: chỉnh độ sáng.
-  - Vuốt dọc cạnh phải: chỉnh âm lượng.
-  - Có phản hồi phần trăm trên màn hình khi điều chỉnh.
-- Tác vụ lưu playlist/session lớn đã được chuyển khỏi UI thread để giảm nguy cơ ANR khi thêm hoặc chuyển playlist.
-
-### Việc đang kiểm thử trên Mobile 1.10.15
-
-- Kiểm tra lại thêm/chọn/chuyển playlist với playlist lớn, bảo đảm không còn treo giao diện.
-- Kiểm tra kênh HBO/ClearKey sau thay đổi parser DRM.
-- Kiểm tra gesture sáng/âm lượng không xung đột với controller/seek của player inline.
-- Xác nhận logo header hiển thị cân đối trên nhiều kích thước màn hình.
+- Player inline phía trên danh sách kênh.
+- Chọn kênh khác tiếp tục phát trong player inline.
+- Controller mặc định ẩn; chạm video mới hiện điều khiển.
+- Fullscreen/phóng to/thu nhỏ.
+- Xoay ngang/dọc.
+- Hiển thị độ phân giải và FPS thực tế.
+- Giữ màn hình sáng khi xem.
+- Phát nền theo tùy chọn.
+- Tìm kiếm, nhóm kênh, Yêu thích, Gần đây.
+- Vuốt ngang danh sách để đổi nhóm.
+- Vuốt dọc cạnh trái player để chỉnh độ sáng.
+- Vuốt dọc cạnh phải player để chỉnh âm lượng.
+- Có overlay phần trăm khi chỉnh sáng/âm lượng.
+- Lưu playlist/session lớn ngoài UI thread để giảm nguy cơ ANR.
+- **Highlight rõ dòng kênh đang phát** trong danh sách; đổi kênh thì highlight chuyển theo kênh mới.
 
 ## NM7 IPTV TV — trạng thái chức năng
 
-Các phần đã triển khai:
+Đã triển khai:
 
-- Ứng dụng đã khởi động được trên TV thật sau khi sửa crash layout-land ở 1.10.9.
-- Header TV được thu gọn, các nút Link/Nguồn/Thông tin đã đưa vào Tùy chọn thay vì chiếm chỗ ngoài màn hình chính.
-- Hàng chức năng `Tất cả / Yêu thích / Gần đây / Tùy chọn` nằm cùng một hàng.
-- Danh sách kênh TV đã giảm chiều cao card, logo và divider để hiển thị được nhiều kênh hơn.
-- Playlist loader TV có timeout dài hơn và retry để giảm lỗi tải playlist tạm thời.
-- Media3 có decoder fallback và các tầng phục hồi 1080p/720p.
-- Từ 1.10.13, TV có **LibVLC/FFmpeg fallback**, đã được người dùng xác nhận phát được kênh 4K mà MediaCodec trước đó báo `ERROR_CODE_DECODING_FAILED`.
-- 1.10.15 bổ sung hướng xử lý lỗi HTTP của luồng TV: nguồn không DRM gặp `IO_BAD_HTTP_STATUS` có thể được chuyển sang VLC fallback thay vì dừng ngay ở Media3.
+- D-pad/focus dành riêng cho TV.
+- Danh sách nhóm/kênh tối ưu cho điều khiển TV.
+- Quick channel list bằng phím điều hướng theo thiết kế hiện tại.
+- Media3 decoder fallback và các tầng phục hồi 1080p/720p.
+- LibVLC/FFmpeg fallback cho TV, đã được xác nhận phát được nguồn 4K từng lỗi decoder.
+- Nguồn không DRM gặp lỗi HTTP phù hợp có thể chuyển sang VLC fallback.
+- Khi vừa mở kênh, controller không cần hiện ngay.
+- Bấm **OK/Enter** mới hiện controller.
+- Phần overlay trên/dưới của controller TV được làm trong suốt hơn, tránh lớp nền mờ che video.
+- Các chức năng **Định dạng / Chất lượng / Khung hình** được gom vào khu vực bánh răng ở góc dưới bên phải.
 
-### Việc đang kiểm thử trên TV 1.10.15
+## Reload playlist / chống cache 1.10.17
 
-- Kiểm tra lại các kênh 4K đã chạy tốt ở 1.10.13, đặc biệt ASTRO/Eleven Sports 4K.
-- Kiểm tra trường hợp `ERROR_CODE_IO_BAD_HTTP_STATUS` xuất hiện ở 1.10.14.
-- Kiểm tra kênh HBO/ClearKey sau thay đổi parser DRM.
-- Xác nhận D-pad/focus vẫn rõ sau khi thay chữ tiêu đề bằng logo.
+Mục tiêu của 1.10.17 là khi người dùng bấm **Tải lại / Reload**, app không dùng lại bản playlist cũ do cache.
 
-## DRM / ClearKey 1.10.15
+Đã triển khai:
 
-- `DrmPlayback` vẫn hỗ trợ Widevine, ClearKey và PlayReady theo metadata do playlist/nhà cung cấp cung cấp.
+- `HttpURLConnection.setUseCaches(false)`.
+- Gửi `Cache-Control: no-cache, no-store, max-age=0`.
+- Gửi `Pragma: no-cache`.
+- Với `raw.githubusercontent.com`, mỗi lần tải tạo URL request mới bằng tham số timestamp `_nm7_reload=<thời gian>`.
+- URL gốc người dùng lưu trong app vẫn giữ nguyên; tham số chống cache chỉ được thêm ở request thực tế.
+
+Cơ chế này giúp app lấy **bản mới nhất đang có trên GitHub Raw** mỗi lần Reload. Nếu file GitHub trung gian chưa đồng bộ với nguồn gốc thì app không thể vượt trước dữ liệu đang tồn tại trên GitHub; việc đồng bộ nguồn gốc vẫn do updater của repo playlist đảm nhiệm.
+
+## DRM / ClearKey
+
+- `DrmPlayback` tiếp tục hỗ trợ Widevine, ClearKey và PlayReady theo metadata do playlist/nhà cung cấp cung cấp.
 - Không tự tìm, suy đoán hoặc hiển thị khóa DRM.
-- Parser ClearKey đã được nới ở lớp nhận dạng để không loại sớm các phản hồi hợp lệ từ nhà cung cấp trước khi `DrmPlayback` thực hiện bước chuẩn hóa/kiểm tra thực tế.
-- Mục tiêu sửa regression HBO là giữ đúng KID/KEY do nguồn cung cấp nhưng chấp nhận thêm các cấu trúc JSON/JWK hợp lệ thường gặp.
+- Parser ClearKey đã được nới để chấp nhận các cấu trúc hợp lệ phổ biến hơn trước bước chuẩn hóa thực tế.
+- Các thay đổi giao diện/logo/reload 1.10.16–1.10.17 không thay đổi pipeline DRM/decoder đã ổn trước đó.
 
-## Build / CI hiện tại
+## Build / CI Android 1.10.17
 
-GitHub Actions run hiện tại: **Build #169**, run ID `34439906587`, commit `0c98bf6656226e7121966f10d560dc802479c445`.
+Build đóng gói hiện tại:
+
+- **Build #186**
+- Run ID: `34472031833`
+- Head commit build: `499d173fe8eaa20e4d9e777023b5c2bdb4ddc2cb`
 
 Các bước đã PASS:
 
 1. Checkout/JDK/Gradle/Android SDK.
-2. Compile cả Mobile và TV.
-3. Unit test cả Mobile và TV.
-4. Android lint cả Mobile và TV.
-5. Assemble APK cả hai flavor.
+2. Compile Mobile và TV.
+3. Unit test Mobile và TV.
+4. Android lint Mobile và TV.
+5. Assemble cả hai flavor.
 6. Kiểm tra chữ ký APK.
-7. Xác nhận Mobile APK không chứa LibVLC.
-8. Xác nhận TV APK có LibVLC.
+7. Xác nhận Mobile không chứa LibVLC.
+8. Xác nhận TV có LibVLC.
 9. Upload artifact Mobile và TV.
+10. Upload test/lint reports.
 
-Artifact hiện tại:
+Artifact 1.10.17:
 
-- `NM7-IPTV-Mobile-1.10.15-APK` — artifact ID `10137653429`.
-- `NM7-IPTV-TV-1.10.15-APK` — artifact ID `10137656327`.
+- `NM7-IPTV-Mobile-1.10.17-APK` — artifact ID `10149993362`.
+- `NM7-IPTV-TV-1.10.17-APK` — artifact ID `10149997794`.
 
-Bước **Android 15 Mobile smoke test của Build #169 bị fail** sau khi APK đã build/package thành công. Chưa được đánh dấu PASS toàn bộ cho tới khi phân tích/fix smoke test hoặc xác nhận đây là lỗi môi trường emulator. Vì vậy **1.10.15 hiện là candidate, chưa phải stable**.
+### Trạng thái smoke test
 
-## Mốc phát triển tiếp theo
+**Android 15 Mobile smoke test của Build #186 vẫn FAIL**, giống vấn đề smoke-test ở các build gần đây. Vì compile/test/lint/package/sign đều PASS nhưng smoke emulator chưa PASS, **1.10.17 vẫn nên được coi là candidate cho tới khi kiểm thử thực tế trên điện thoại và TV xác nhận ổn**.
+
+Không được ghi CI là PASS toàn bộ khi smoke-test còn fail.
+
+## Playlist SuperOK liên quan
+
+Repo public `phuongnm7/Iptv` đang lưu:
+
+`https://raw.githubusercontent.com/phuongnm7/Iptv/main/SuperOK_playlist.m3u`
+
+Updater của playlist đã được sửa để đồng bộ nguồn thường xuyên hơn. Ứng dụng Android 1.10.17 bổ sung chống cache để mỗi lần Reload lấy bản hiện tại của link GitHub Raw thay vì giữ bản cũ ở phía app/CDN.
+
+## iPhone / iPad
+
+Phần iOS/iPadOS đã có mã nguồn riêng trong thư mục `ios/` và đã từng build bản **1.0.0 unsigned IPA**.
+
+Trạng thái hiện tại: **TẠM DỪNG theo yêu cầu người dùng**. Không tiếp tục thay đổi iOS cho tới khi người dùng yêu cầu khởi động lại phần này.
+
+## Mốc tiếp theo
 
 ### Mobile
 
-- Ưu tiên xác nhận sửa ANR khi đổi playlist.
-- Xác nhận HBO/ClearKey.
-- Hoàn thiện gesture sáng/âm lượng và giữ APK nhẹ.
-- Tiếp tục tối ưu danh sách/gesture nhóm nếu có phản hồi thực tế.
+- Kiểm thử 1.10.17 trên máy thật.
+- Xác nhận highlight kênh đang phát hoạt động đúng khi đổi nhóm/tìm kiếm/Yêu thích/Gần đây.
+- Kiểm tra Reload link GitHub Raw luôn nhận playlist mới nhất đang có trên repo.
+- Tiếp tục theo dõi ANR khi dùng playlist lớn.
 
 ### TV
 
-- Giữ nền tảng phát 4K của 1.10.13 làm chuẩn không được regression.
-- Xác nhận 1.10.15 xử lý được lỗi HTTP status của các kênh 4K.
-- Xác nhận HBO/ClearKey.
-- Không đưa LibVLC sang Mobile trừ khi có yêu cầu riêng.
+- Kiểm thử 1.10.17 trên TV thật.
+- Xác nhận controller chỉ hiện sau OK/Enter như thiết kế.
+- Xác nhận menu bánh răng Định dạng/Chất lượng/Khung hình hoạt động bằng D-pad.
+- Xác nhận 4K/LibVLC fallback không regression.
+- Kiểm tra Reload playlist bằng remote.
 
-## Quy ước từ thời điểm này
+### CI
 
-- Mọi bản phát hành tiếp theo phải tạo **2 APK riêng**: Mobile và TV.
-- Thay đổi dành riêng cho TV không được làm tăng đáng kể dung lượng Mobile.
-- LibVLC/FFmpeg là thành phần TV-only.
-- Tính năng Mobile inline/gesture tiếp tục phát triển riêng nhưng dùng chung phần parser/DRM/network khi phù hợp.
-- Khi một thay đổi ảnh hưởng phần dùng chung, cần kiểm thử cả Mobile và TV trước khi nâng candidate thành stable.
+- Phân tích riêng lỗi Android 15 smoke-test để phân biệt lỗi app với lỗi emulator/test script.
+- Không để lỗi smoke-test che mất trạng thái compile/test/lint/package/sign đã PASS.
+
+## Quy ước tiếp tục phát triển
+
+- Android luôn tạo **2 APK riêng: Mobile và TV**.
+- LibVLC/FFmpeg tiếp tục là TV-only.
+- Thay đổi riêng TV không được làm tăng đáng kể dung lượng Mobile.
+- Thay đổi parser/DRM/network dùng chung phải kiểm thử cả Mobile và TV.
+- Không regression khả năng phát 4K TV đã xác nhận từ 1.10.13.
+- Khi thay logo/UI, giữ player/DRM/decoder tách biệt để tránh làm hỏng phần phát.
+- Chỉ đánh dấu bản stable sau kiểm thử thực tế trên thiết bị phù hợp.
