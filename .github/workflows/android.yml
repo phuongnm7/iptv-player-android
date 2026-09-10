@@ -52,14 +52,14 @@ jobs:
       - name: Verify and package APK
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk dist/Nm7-IPTV-1.10.11.apk
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs dist/Nm7-IPTV-1.10.11.apk
+          cp app/build/outputs/apk/debug/app-debug.apk dist/Nm7-IPTV-1.10.12.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs dist/Nm7-IPTV-1.10.12.apk
           cd dist
-          sha256sum Nm7-IPTV-1.10.11.apk | tee SHA256SUMS.txt
+          sha256sum Nm7-IPTV-1.10.12.apk | tee SHA256SUMS.txt
       - name: Upload installable APK (private artifact)
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: Nm7-IPTV-1.10.11-APK
+          name: Nm7-IPTV-1.10.12-APK
           path: dist/
           retention-days: 30
           if-no-files-found: error
@@ -77,7 +77,7 @@ jobs:
           emulator-boot-timeout: 420
           disable-animations: true
           disable-spellchecker: true
-          script: python3 tools/android_smoke_current.py dist/Nm7-IPTV-1.10.11.apk
+          script: python3 tools/android_smoke_current.py dist/Nm7-IPTV-1.10.12.apk
       - name: Upload test and lint reports
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
