@@ -88,13 +88,21 @@ public final class MainActivity extends Activity {
             for(int attempt=1;attempt<=maxAttempts;attempt++){
                 HttpURLConnection c=null;
                 try{
-                    c=(HttpURLConnection)new URL(source).openConnection();
+                    URL requestUrl=new URL(source);
+          if("raw.githubusercontent.com".equalsIgnoreCase(requestUrl.getHost())){
+              String separator=source.contains("?")?"&":"?";
+              requestUrl=new URL(source+separator+"_nm7_reload="+System.currentTimeMillis());
+          }
+          c=(HttpURLConnection)requestUrl.openConnection();
+          c.setUseCaches(false);
                     c.setConnectTimeout(tv?25000:15000);
                     c.setReadTimeout(tv?60000:20000);
                     c.setInstanceFollowRedirects(true);
-                    c.setRequestProperty("User-Agent",tv?"Nm7-IPTV/1.10.11 Android-TV":"Nm7-IPTV/1.10.11 Android");
+                    c.setRequestProperty("User-Agent",tv?"Nm7-IPTV/1.10.17 Android-TV":"Nm7-IPTV/1.10.17 Android");
                     c.setRequestProperty("Accept","application/vnd.apple.mpegurl,application/x-mpegURL,text/plain,*/*");
                     c.setRequestProperty("Connection","keep-alive");
+          c.setRequestProperty("Cache-Control","no-cache, no-store, max-age=0");
+          c.setRequestProperty("Pragma","no-cache");
                     int status=c.getResponseCode();
                     if(status<200||status>=300)throw new Exception("HTTP "+status);
                     String effective=c.getURL().toString(),type=c.getContentType(),description=source.equals(effective)?source:source+"\nChuyển hướng: "+effective;
