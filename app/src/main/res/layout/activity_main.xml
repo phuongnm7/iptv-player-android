@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/mainRoot" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="12dp" android:background="@color/navy">
     <TextView android:layout_width="match_parent" android:layout_height="48dp"
-        android:gravity="center_vertical" android:text="Nm7 IPTV" android:textSize="22sp"
-        android:textStyle="bold" android:maxLines="1" android:textColor="@color/text_primary" />
+        android:gravity="center_vertical" android:text="@string/app_name" android:textSize="23sp"
+        android:fontFamily="sans-serif-condensed" android:textStyle="bold|italic" android:letterSpacing="0.07"
+        android:textAllCaps="true" android:maxLines="1" android:textColor="@color/text_primary" />
     <LinearLayout android:layout_width="match_parent" android:layout_height="46dp" android:layout_marginBottom="5dp">
         <Button android:id="@+id/btnAllChannels" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@drawable/button_primary" android:text="Tất cả" android:textSize="12sp" android:textAllCaps="false" android:textColor="@color/navy" />
         <Button android:id="@+id/btnFavorites" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:layout_marginHorizontal="6dp" android:background="@drawable/button_secondary" android:text="★ Yêu thích" android:textSize="12sp" android:textAllCaps="false" android:textColor="@color/text_primary" />
