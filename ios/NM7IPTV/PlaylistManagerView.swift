@@ -162,11 +162,13 @@ private struct SourceEditorView: View {
                 Section("Tên nguồn") {
                     TextField("Ví dụ: Thể thao", text: $name)
                 }
-                Section("Link M3U") {
+                Section {
                     TextField("https://.../playlist.m3u", text: $url)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .keyboardType(.URL)
+                } header: {
+                    Text("Link M3U")
                 } footer: {
                     Text("Hỗ trợ HTTP/HTTPS. Để mở tệp .m3u trên máy, dùng mục “Nhập tệp M3U từ Files”.")
                 }
