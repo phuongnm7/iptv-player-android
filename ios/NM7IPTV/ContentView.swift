@@ -40,11 +40,16 @@ struct ContentView: View {
                     ProgressView("Đang tải playlist…")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if store.filteredChannels.isEmpty {
-                    ContentUnavailableView(
-                        "Không tìm thấy kênh",
-                        systemImage: "tv.slash",
-                        description: Text("Chọn nguồn IPTV hoặc thay đổi bộ lọc.")
-                    )
+                    VStack(spacing: 12) {
+                        Image(systemName: "tv.slash")
+                            .font(.system(size: 42))
+                            .foregroundStyle(.secondary)
+                        Text("Không tìm thấy kênh")
+                            .font(.headline)
+                        Text("Chọn nguồn IPTV hoặc thay đổi bộ lọc.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     List(store.filteredChannels) { channel in
