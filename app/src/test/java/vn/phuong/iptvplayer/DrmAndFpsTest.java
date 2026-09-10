@@ -51,6 +51,26 @@ public class DrmAndFpsTest {
         assertTrue(response.contains("\"type\":\"temporary\""));
     }
 
+    @Test public void clearKeyAcceptsProviderArrayMapAndBase64Forms() throws Exception {
+        String kid = "ABEiM0RVZneImaq7zN3u_w";
+        String key = "_-7dzLuqmYh3ZlVEMyIRAA";
+
+        String array = new String(DrmPlayback.clearKeyResponse(
+                "[{\"kid\":\"" + kid + "\",\"key\":\"" + key + "\"}]"),
+                java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue(array.contains(kid));
+        assertTrue(DrmSpec.create("clearkey", "[{\"kid\":\"" + kid + "\",\"key\":\"" + key + "\"}]").localClearKey());
+
+        String map = new String(DrmPlayback.clearKeyResponse(
+                "{\"keys\":{\"00112233445566778899aabbccddeeff\":\"ffeeddccbbaa99887766554433221100\"}}"),
+                java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue(map.contains("\"keys\""));
+
+        String named = new String(DrmPlayback.clearKeyResponse(
+                "kid=" + kid + "&key=" + key), java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue(named.contains(kid));
+    }
+
     @Test public void rejectsUnsafeLicenseHeadersAndCustomTemplates() {
         assertFalse(DrmSpec.create("widevine", "https://license.test|Bad%0AName=x").problem.isEmpty());
         assertFalse(DrmSpec.create("widevine", "https://license.test||CUSTOM{SSM}|").problem.isEmpty());
