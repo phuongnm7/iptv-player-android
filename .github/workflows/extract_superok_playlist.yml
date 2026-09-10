@@ -1,0 +1,58 @@
+name: Extract Super OK playlist
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/extract_superok_playlist.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  extract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Download and decrypt playlist using Super OK format
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          curl -fL --retry 3 --connect-timeout 20 \
+            'https://raw.githubusercontent.com/hieu-TQS/ENC/main/playlist.enc' \
+            -o out/playlist.enc
+          python3 - <<'PY'
+          import base64, hashlib, pathlib, subprocess
+          token = 'dc5521f1fe411d6f2e83c2bf047d6294'
+          src = pathlib.Path('out/playlist.enc').read_text(encoding='utf-8').strip()
+          raw = base64.b64decode(src)
+          if len(raw) <= 16:
+              raise SystemExit('Encrypted playlist is too short')
+          iv, ciphertext = raw[:16], raw[16:]
+          pathlib.Path('out/cipher.bin').write_bytes(ciphertext)
+          keyhex = hashlib.sha256(token.encode('utf-8')).hexdigest()
+          ivhex = iv.hex()
+          subprocess.run([
+              'openssl','enc','-d','-aes-256-cbc',
+              '-K',keyhex,'-iv',ivhex,
+              '-in','out/cipher.bin','-out','out/SuperOK_playlist.m3u'
+          ], check=True)
+          text = pathlib.Path('out/SuperOK_playlist.m3u').read_text(encoding='utf-8-sig')
+          if '#EXTM3U' not in text and '#EXTINF' not in text:
+              raise SystemExit('Decrypted result is not an M3U playlist')
+          channels = sum(1 for line in text.splitlines() if line.lstrip().upper().startswith('#EXTINF'))
+          print(f'Decrypted M3U OK: {channels} channels, {len(text)} chars')
+          pathlib.Path('out/channel_count.txt').write_text(str(channels), encoding='utf-8')
+          PY
+          sha256sum out/SuperOK_playlist.m3u | tee out/SHA256SUMS.txt
+      - name: Upload decrypted M3U
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: SuperOK-decrypted-M3U
+          path: |
+            out/SuperOK_playlist.m3u
+            out/channel_count.txt
+            out/SHA256SUMS.txt
+          retention-days: 7
+          if-no-files-found: error
