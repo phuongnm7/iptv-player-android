@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/mainRoot" android:layout_width="match_parent" android:layout_height="match_parent"
-    android:orientation="vertical" android:padding="12dp" android:background="@color/navy">
-    <LinearLayout android:layout_width="match_parent" android:layout_height="38dp" android:gravity="center_vertical">
+    android:orientation="vertical" android:padding="10dp" android:background="@color/navy">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="34dp" android:gravity="center_vertical">
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Nm7 IPTV" android:textSize="20sp" android:textStyle="bold" android:maxLines="1" android:textColor="@color/text_primary" android:ellipsize="end" />
     </LinearLayout>
-    <TextView android:id="@+id/txtSummary" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="Mở playlist để bắt đầu" android:textSize="12sp" android:textColor="@color/text_secondary" />
-    <TextView android:id="@+id/txtSource" android:layout_width="match_parent" android:layout_height="22dp" android:gravity="center_vertical" android:maxLines="1" android:ellipsize="middle" android:text="@string/source_none" android:textSize="11sp" android:textColor="@color/text_secondary" />
-    <LinearLayout android:layout_width="match_parent" android:layout_height="44dp" android:layout_marginTop="3dp" android:layout_marginBottom="4dp">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="42dp" android:layout_marginTop="1dp" android:layout_marginBottom="3dp">
         <Button android:id="@+id/btnAllChannels" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@drawable/button_primary" android:text="Tất cả" android:textAllCaps="false" android:textColor="@color/navy" android:focusableInTouchMode="true" />
         <Button android:id="@+id/btnFavorites" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:layout_marginStart="5dp" android:background="@drawable/button_secondary" android:text="★ Yêu thích" android:textAllCaps="false" android:textColor="@color/text_primary" android:focusableInTouchMode="true" />
         <Button android:id="@+id/btnRecent" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:layout_marginStart="5dp" android:background="@drawable/button_secondary" android:text="◷ Gần đây" android:textAllCaps="false" android:textColor="@color/text_primary" android:focusableInTouchMode="true" />
