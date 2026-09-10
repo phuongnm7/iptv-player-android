@@ -29,6 +29,7 @@ import androidx.media3.ui.PlayerView;
  * Left edge vertical swipe controls screen brightness; right edge controls media volume.
  * The center of the player is untouched so Media3 tap/seek/controller gestures keep working.
  */
+@androidx.media3.common.util.UnstableApi
 public final class MobileEdgeGestureProvider extends ContentProvider implements Application.ActivityLifecycleCallbacks {
     private static final int EDGE_NONE = 0;
     private static final int EDGE_BRIGHTNESS = 1;
