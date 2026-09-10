@@ -17,6 +17,7 @@ import java.util.concurrent.Executors;
 /** Device-only state. The manifest excludes it from Android backup. */
 final class SessionStore {
     static final ExecutorService IO = Executors.newSingleThreadExecutor();
+    private static final ExecutorService SAVE_IO = Executors.newSingleThreadExecutor();
 
     static List<Channel> snapshot(List<Channel> channels) {
         List<Channel> copy = new ArrayList<>();
@@ -30,11 +31,27 @@ final class SessionStore {
         return copy;
     }
 
-    static void save(Context context, List<Channel> channels, String source, String epgUrl, int duplicates, int missing) throws Exception {
+    /**
+     * Queue the potentially expensive playlist export + AtomicFile write away from the UI thread.
+     * MainActivity already passes a detached channel snapshot, so the queued save is race-safe.
+     */
+    static void save(Context context, List<Channel> channels, String source, String epgUrl, int duplicates, int missing) {
+        Context app = context.getApplicationContext();
+        List<Channel> detached = channels == null ? new ArrayList<>() : channels;
+        String sourceCopy = source == null ? "" : source;
+        String epgCopy = epgUrl == null ? "" : epgUrl;
+        SAVE_IO.execute(() -> {
+            try {
+                write(app, detached, sourceCopy, epgCopy, duplicates, missing);
+            } catch (Exception ignored) { }
+        });
+    }
+
+    private static void write(Context context, List<Channel> channels, String source, String epgUrl, int duplicates, int missing) throws Exception {
         JSONObject obj = new JSONObject();
         obj.put("playlist", new M3uParser().exportAll(channels));
         obj.put("source", source);
-        obj.put("epg_url", epgUrl == null ? "" : epgUrl);
+        obj.put("epg_url", epgUrl);
         obj.put("duplicates", duplicates);
         obj.put("missing", missing);
         JSONArray unchecked = new JSONArray();
