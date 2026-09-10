@@ -61,22 +61,14 @@ jobs:
           text = text.replace('versionCode = 33', 'versionCode = 34', 1)
           text = text.replace('versionName = "1.10.16"', 'versionName = "1.10.17"', 1)
           gradle.write_text(text, encoding='utf-8')
-
-          workflow = Path('.github/workflows/android.yml')
-          text = workflow.read_text(encoding='utf-8')
-          count = text.count('1.10.16')
-          if count < 1:
-              raise SystemExit('Android workflow does not contain 1.10.16 artifact names')
-          workflow.write_text(text.replace('1.10.16', '1.10.17'), encoding='utf-8')
-          print(f'Updated Android workflow artifact names: {count}')
           PY
 
-      - name: Commit patch
+      - name: Commit app patch
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add app/src/main/java/vn/phuong/iptvplayer/MainActivity.java app/build.gradle.kts .github/workflows/android.yml
+          git add app/src/main/java/vn/phuong/iptvplayer/MainActivity.java app/build.gradle.kts
           git commit -m 'Force fresh playlist reload on Android 1.10.17'
           git push origin HEAD:main
