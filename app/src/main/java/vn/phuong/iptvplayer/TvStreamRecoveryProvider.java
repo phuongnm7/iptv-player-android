@@ -24,11 +24,13 @@ import java.util.Map;
 import java.util.WeakHashMap;
 
 /**
- * TV-only decoder recovery.
+ * TV-only stream recovery.
  *
  * Media3 stays the primary player. When a TV firmware decoder fails, NM7 first
  * tries adaptive 1080p and 720p. If MediaCodec still cannot decode the stream,
- * playback is handed to the TV-only VLC/FFmpeg fallback activity.
+ * playback is handed to the TV-only VLC/FFmpeg fallback activity. For non-DRM
+ * sources that Media3 cannot open because the server returns a bad HTTP status,
+ * NM7 also tries VLC directly because its HTTP stack/user-agent behavior differs.
  */
 @androidx.media3.common.util.UnstableApi
 public final class TvStreamRecoveryProvider extends ContentProvider implements Application.ActivityLifecycleCallbacks {
@@ -63,17 +65,21 @@ public final class TvStreamRecoveryProvider extends ContentProvider implements A
         @Override public void run() {
             PlayerActivity activity = activePlayerActivity;
             if (activity == null || activity.isFinishing() || activity.isDestroyed()) return;
-            attachDecoderRecovery(activity);
+            attachRecovery(activity);
             main.postDelayed(this, 250L);
         }
     };
 
-    private void attachDecoderRecovery(PlayerActivity activity) {
+    private void attachRecovery(PlayerActivity activity) {
         ExoPlayer player = privatePlayer(activity);
         if (player == null || attachedPlayers.containsKey(player)) return;
         Player.Listener listener = new Player.Listener() {
             @Override public void onPlayerError(PlaybackException error) {
-                if (isDecoderError(error)) recoverDecoder(activity);
+                if (isDecoderError(error)) {
+                    recoverDecoder(activity);
+                } else if (isBadHttpStatus(error)) {
+                    recoverHttpStatus(activity);
+                }
             }
             @Override public void onPlaybackStateChanged(int state) {
                 if (state == Player.STATE_READY) markReady(activity, player);
@@ -82,12 +88,37 @@ public final class TvStreamRecoveryProvider extends ContentProvider implements A
         player.addListener(listener);
         attachedPlayers.put(player, listener);
         PlaybackException existing = player.getPlayerError();
-        if (existing != null && isDecoderError(existing)) recoverDecoder(activity);
+        if (existing != null) {
+            if (isDecoderError(existing)) recoverDecoder(activity);
+            else if (isBadHttpStatus(existing)) recoverHttpStatus(activity);
+        }
     }
 
     private static boolean isDecoderError(PlaybackException error) {
         String name = error == null ? null : error.getErrorCodeName();
         return name != null && name.contains("DECOD");
+    }
+
+    private static boolean isBadHttpStatus(PlaybackException error) {
+        return error != null && error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS;
+    }
+
+    private void recoverHttpStatus(PlayerActivity activity) {
+        // Never hand DRM playback to VLC: the fallback intentionally has no DRM/key path.
+        if (!privateString(activity, "drmSystem").isEmpty()) return;
+        String url = privateString(activity, "url");
+        DecoderState state = decoderStates.get(activity);
+        if (state == null || !url.equals(state.url)) {
+            state = new DecoderState(url, privateInt(activity, "quality", Integer.MAX_VALUE));
+            decoderStates.put(activity, state);
+        }
+        if (state.recovering) return;
+        state.recovering = true;
+        View error = activity.findViewById(R.id.playerError);
+        if (error != null) error.setVisibility(View.GONE);
+        TextView status = activity.findViewById(R.id.txtPlayerStatus);
+        if (status != null) status.setText("Media3 bị máy chủ từ chối • đang thử VLC…");
+        launchVlcFallback(activity, state);
     }
 
     private void recoverDecoder(PlayerActivity activity) {
@@ -136,7 +167,7 @@ public final class TvStreamRecoveryProvider extends ContentProvider implements A
             }
             main.postDelayed(() -> {
                 state.recovering = false;
-                attachDecoderRecovery(activity);
+                attachRecovery(activity);
                 ExoPlayer current = privatePlayer(activity);
                 PlaybackException existing = current == null ? null : current.getPlayerError();
                 if (existing != null && isDecoderError(existing)) recoverDecoder(activity);
@@ -154,7 +185,7 @@ public final class TvStreamRecoveryProvider extends ContentProvider implements A
         }
 
         TextView status = activity.findViewById(R.id.txtPlayerStatus);
-        if (status != null) status.setText("MediaCodec TV không phát được • chuyển sang VLC…");
+        if (status != null) status.setText("Đang chuyển sang VLC fallback…");
         main.postDelayed(() -> {
             if (activity.isFinishing() || activity.isDestroyed()) return;
             try {
