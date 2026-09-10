@@ -28,12 +28,19 @@ public final class ChannelAdapter extends BaseAdapter {
     private final ExecutorService logoIo = Executors.newFixedThreadPool(3);
     private List<Channel> channels = new ArrayList<>();
     private EpgStore.Guide guide;
+    private String playingChannelId = "";
 
     public ChannelAdapter(Context context, Listener listener) {
         this.context = context; this.inflater = LayoutInflater.from(context); this.listener = listener;
     }
     public void submit(List<Channel> channels) { this.channels = new ArrayList<>(channels); notifyDataSetChanged(); }
     public void submitGuide(EpgStore.Guide guide) { this.guide = guide; notifyDataSetChanged(); }
+    void setPlayingChannel(Channel channel) {
+        String next = channel == null ? "" : AppPreferences.id(channel);
+        if (next.equals(playingChannelId)) return;
+        playingChannelId = next;
+        notifyDataSetChanged();
+    }
     @Override public int getCount() { return channels.size(); }
     @Override public Channel getItem(int position) { return channels.get(position); }
     @Override public long getItemId(int position) { return position; }
@@ -52,6 +59,8 @@ public final class ChannelAdapter extends BaseAdapter {
 
         boolean tv = AppPreferences.isTvInterface(context);
         boolean compact = AppPreferences.compactRows(context);
+        boolean playing = !tv && !playingChannelId.isEmpty() && playingChannelId.equals(AppPreferences.id(c));
+        convertView.setBackgroundResource(playing ? R.drawable.channel_card_playing : R.drawable.channel_card);
         convertView.setMinimumHeight(dp(tv ? 78 : (compact ? 54 : 60)));
         int vertical = dp(tv ? 3 : 0);
         convertView.setPadding(0, vertical, 0, vertical);
