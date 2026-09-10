@@ -27,6 +27,14 @@ public final class TvPlayerUiProvider extends ContentProvider implements Applica
         return true;
     }
 
+    @Override public void onActivityCreated(Activity activity, Bundle state) {
+        if (activity instanceof PlayerActivity && AppPreferences.isTvInterface(activity)) {
+            // Activity.onCreate has already inflated the player view, but onStart has
+            // not started playback yet. Hide controller chrome here to avoid startup flash.
+            tune((PlayerActivity) activity);
+        }
+    }
+
     @Override public void onActivityResumed(Activity activity) {
         if (!(activity instanceof PlayerActivity) || !AppPreferences.isTvInterface(activity)) return;
         activity.getWindow().getDecorView().post(() -> tune((PlayerActivity) activity));
@@ -112,7 +120,6 @@ public final class TvPlayerUiProvider extends ContentProvider implements Applica
         if (view instanceof ImageView) ((ImageView) view).setImageDrawable(null);
     }
 
-    @Override public void onActivityCreated(Activity activity, Bundle state) { }
     @Override public void onActivityStarted(Activity activity) { }
     @Override public void onActivityPaused(Activity activity) { }
     @Override public void onActivityStopped(Activity activity) { }
