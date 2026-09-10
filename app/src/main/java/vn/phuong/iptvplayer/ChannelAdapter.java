@@ -49,8 +49,13 @@ public final class ChannelAdapter extends BaseAdapter {
         h.badge.setText(c.name().isEmpty() ? "TV" : c.name().substring(0, 1).toUpperCase(java.util.Locale.ROOT));
         h.favorite.setText(AppPreferences.isFavorite(context, c) ? "★" : "☆");
         h.favorite.setOnClickListener(v -> { boolean favorite = AppPreferences.toggleFavorite(context, c); h.favorite.setText(favorite ? "★" : "☆"); listener.onFavoriteChanged(c, favorite); });
-        int vertical = dp(AppPreferences.isTvInterface(context) ? 10 : (AppPreferences.compactRows(context) ? 3 : 8));
+
+        boolean tv = AppPreferences.isTvInterface(context);
+        boolean compact = AppPreferences.compactRows(context);
+        convertView.setMinimumHeight(dp(tv ? 92 : (compact ? 66 : 74)));
+        int vertical = dp(tv ? 6 : (compact ? 0 : 1));
         convertView.setPadding(0, vertical, 0, vertical);
+
         loadLogo(h, c.logo());
         return convertView;
     }
