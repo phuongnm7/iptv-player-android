@@ -26,35 +26,37 @@ jobs:
 
           main = Path('app/src/main/java/vn/phuong/iptvplayer/MainActivity.java')
           text = main.read_text(encoding='utf-8')
-          old = '''                    c=(HttpURLConnection)new URL(source).openConnection();
-                    c.setConnectTimeout(tv?25000:15000);
-                    c.setReadTimeout(tv?60000:20000);
-                    c.setInstanceFollowRedirects(true);
-                    c.setRequestProperty("User-Agent",tv?"Nm7-IPTV/1.10.11 Android-TV":"Nm7-IPTV/1.10.11 Android");
-                    c.setRequestProperty("Accept","application/vnd.apple.mpegurl,application/x-mpegURL,text/plain,*/*");
-                    c.setRequestProperty("Connection","keep-alive");'''
-          new = '''                    URL requestUrl=new URL(source);
+
+          needle = 'c=(HttpURLConnection)new URL(source).openConnection();'
+          replacement = '''URL requestUrl=new URL(source);
                     if("raw.githubusercontent.com".equalsIgnoreCase(requestUrl.getHost())){
                         String separator=source.contains("?")?"&":"?";
                         requestUrl=new URL(source+separator+"_nm7_reload="+System.currentTimeMillis());
                     }
                     c=(HttpURLConnection)requestUrl.openConnection();
-                    c.setUseCaches(false);
-                    c.setConnectTimeout(tv?25000:15000);
-                    c.setReadTimeout(tv?60000:20000);
-                    c.setInstanceFollowRedirects(true);
-                    c.setRequestProperty("User-Agent",tv?"Nm7-IPTV/1.10.17 Android-TV":"Nm7-IPTV/1.10.17 Android");
-                    c.setRequestProperty("Accept","application/vnd.apple.mpegurl,application/x-mpegURL,text/plain,*/*");
-                    c.setRequestProperty("Connection","keep-alive");
+                    c.setUseCaches(false);'''
+          if text.count(needle) != 1:
+              raise SystemExit(f'Expected connection line exactly once, got {text.count(needle)}')
+          text = text.replace(needle, replacement, 1)
+
+          ua_old = 'c.setRequestProperty("User-Agent",tv?"Nm7-IPTV/1.10.11 Android-TV":"Nm7-IPTV/1.10.11 Android");'
+          ua_new = 'c.setRequestProperty("User-Agent",tv?"Nm7-IPTV/1.10.17 Android-TV":"Nm7-IPTV/1.10.17 Android");'
+          if text.count(ua_old) != 1:
+              raise SystemExit(f'Expected User-Agent line exactly once, got {text.count(ua_old)}')
+          text = text.replace(ua_old, ua_new, 1)
+
+          connection = 'c.setRequestProperty("Connection","keep-alive");'
+          no_cache = '''c.setRequestProperty("Connection","keep-alive");
                     c.setRequestProperty("Cache-Control","no-cache, no-store, max-age=0");
                     c.setRequestProperty("Pragma","no-cache");'''
-          if text.count(old) != 1:
-              raise SystemExit('Expected MainActivity network block exactly once')
-          main.write_text(text.replace(old, new), encoding='utf-8')
+          if text.count(connection) != 1:
+              raise SystemExit(f'Expected Connection header line exactly once, got {text.count(connection)}')
+          text = text.replace(connection, no_cache, 1)
+          main.write_text(text, encoding='utf-8')
 
           gradle = Path('app/build.gradle.kts')
           text = gradle.read_text(encoding='utf-8')
-          if 'versionCode = 33' not in text or 'versionName = "1.10.16"' not in text:
+          if text.count('versionCode = 33') != 1 or text.count('versionName = "1.10.16"') != 1:
               raise SystemExit('Unexpected Android version before patch')
           text = text.replace('versionCode = 33', 'versionCode = 34', 1)
           text = text.replace('versionName = "1.10.16"', 'versionName = "1.10.17"', 1)
@@ -62,9 +64,11 @@ jobs:
 
           workflow = Path('.github/workflows/android.yml')
           text = workflow.read_text(encoding='utf-8')
-          if '1.10.16' not in text:
+          count = text.count('1.10.16')
+          if count < 1:
               raise SystemExit('Android workflow does not contain 1.10.16 artifact names')
           workflow.write_text(text.replace('1.10.16', '1.10.17'), encoding='utf-8')
+          print(f'Updated Android workflow artifact names: {count}')
           PY
 
       - name: Commit patch
