@@ -1,0 +1,78 @@
+name: Apply fresh playlist reload patch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/patch_fresh_playlist_reload.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch playlist reload and bump Android version
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          main = Path('app/src/main/java/vn/phuong/iptvplayer/MainActivity.java')
+          text = main.read_text(encoding='utf-8')
+          old = '''                    c=(HttpURLConnection)new URL(source).openConnection();
+                    c.setConnectTimeout(tv?25000:15000);
+                    c.setReadTimeout(tv?60000:20000);
+                    c.setInstanceFollowRedirects(true);
+                    c.setRequestProperty("User-Agent",tv?"Nm7-IPTV/1.10.11 Android-TV":"Nm7-IPTV/1.10.11 Android");
+                    c.setRequestProperty("Accept","application/vnd.apple.mpegurl,application/x-mpegURL,text/plain,*/*");
+                    c.setRequestProperty("Connection","keep-alive");'''
+          new = '''                    URL requestUrl=new URL(source);
+                    if("raw.githubusercontent.com".equalsIgnoreCase(requestUrl.getHost())){
+                        String separator=source.contains("?")?"&":"?";
+                        requestUrl=new URL(source+separator+"_nm7_reload="+System.currentTimeMillis());
+                    }
+                    c=(HttpURLConnection)requestUrl.openConnection();
+                    c.setUseCaches(false);
+                    c.setConnectTimeout(tv?25000:15000);
+                    c.setReadTimeout(tv?60000:20000);
+                    c.setInstanceFollowRedirects(true);
+                    c.setRequestProperty("User-Agent",tv?"Nm7-IPTV/1.10.17 Android-TV":"Nm7-IPTV/1.10.17 Android");
+                    c.setRequestProperty("Accept","application/vnd.apple.mpegurl,application/x-mpegURL,text/plain,*/*");
+                    c.setRequestProperty("Connection","keep-alive");
+                    c.setRequestProperty("Cache-Control","no-cache, no-store, max-age=0");
+                    c.setRequestProperty("Pragma","no-cache");'''
+          if text.count(old) != 1:
+              raise SystemExit('Expected MainActivity network block exactly once')
+          main.write_text(text.replace(old, new), encoding='utf-8')
+
+          gradle = Path('app/build.gradle.kts')
+          text = gradle.read_text(encoding='utf-8')
+          if 'versionCode = 33' not in text or 'versionName = "1.10.16"' not in text:
+              raise SystemExit('Unexpected Android version before patch')
+          text = text.replace('versionCode = 33', 'versionCode = 34', 1)
+          text = text.replace('versionName = "1.10.16"', 'versionName = "1.10.17"', 1)
+          gradle.write_text(text, encoding='utf-8')
+
+          workflow = Path('.github/workflows/android.yml')
+          text = workflow.read_text(encoding='utf-8')
+          if '1.10.16' not in text:
+              raise SystemExit('Android workflow does not contain 1.10.16 artifact names')
+          workflow.write_text(text.replace('1.10.16', '1.10.17'), encoding='utf-8')
+          PY
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/src/main/java/vn/phuong/iptvplayer/MainActivity.java app/build.gradle.kts .github/workflows/android.yml
+          git commit -m 'Force fresh playlist reload on Android 1.10.17'
+          git push origin HEAD:main
