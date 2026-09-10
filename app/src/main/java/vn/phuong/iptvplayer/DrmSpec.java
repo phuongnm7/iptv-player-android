@@ -66,8 +66,11 @@ public final class DrmSpec {
             return new DrmSpec(type, value, headers, "");
         }
         if (!type.equals("clearkey")) return new DrmSpec(type, value, headers, "Địa chỉ máy chủ giấy phép phải là HTTP hoặc HTTPS.");
-        if (!(value.startsWith("{") || value.matches("(?i)[0-9a-f-]{32,36}:[0-9a-f]{32}(\\s*,\\s*[0-9a-f-]{32,36}:[0-9a-f]{32})*")))
-            return new DrmSpec(type, value, headers, "ClearKey cần JSON/JWK hoặc cặp KID:KEY do nhà cung cấp cấp.");
+        // Provider ClearKey responses are normalized and strictly validated later by DrmPlayback.
+        // Accept JSON object/array, KID:KEY, named KID/KEY fields and Base64 variants here so
+        // a valid provider response is not rejected before the actual key parser sees it.
+        if (value.length() > 65536 || value.contains("\r") || value.contains("\n"))
+            return new DrmSpec(type, value, headers, "ClearKey không hợp lệ hoặc quá lớn.");
         return new DrmSpec(type, value, headers, "");
     }
 
