@@ -41,7 +41,9 @@ final class PlayerStore: ObservableObject {
             forName: .AVPlayerItemFailedToPlayToEndTime, object: nil, queue: .main
         ) { [weak self] notification in
             let error = notification.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? Error
-            self?.errorMessage = error?.localizedDescription ?? "Không phát được nguồn này"
+            Task { @MainActor in
+                self?.errorMessage = error?.localizedDescription ?? "Không phát được nguồn này"
+            }
         }
         configureRemoteCommands()
     }
@@ -123,7 +125,10 @@ final class PlayerStore: ObservableObject {
             return
         }
         if pipController?.isPictureInPictureActive == true { return }
-        let controller = AVPictureInPictureController(playerLayer: layer)
+        guard let controller = AVPictureInPictureController(playerLayer: layer) else {
+            pictureInPictureAvailable = false
+            return
+        }
         controller.canStartPictureInPictureAutomaticallyFromInline = true
         pipController = controller
         pictureInPictureAvailable = true
