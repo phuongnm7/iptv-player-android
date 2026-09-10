@@ -95,7 +95,7 @@ struct ContentView: View {
                     .fill(.thinMaterial)
                 Image(systemName: "play.tv.fill")
                     .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(.tint)
+                    .foregroundStyle(Color.accentColor)
             }
             .frame(width: 46, height: 46)
 
@@ -126,7 +126,8 @@ struct ContentView: View {
                         .font(.subheadline.weight(.semibold))
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(store.section == item ? .borderedProminent : .bordered)
+                .buttonStyle(.borderedProminent)
+                .tint(store.section == item ? Color.accentColor : Color.secondary.opacity(0.35))
             }
         }
         .padding(.horizontal, 12)
@@ -168,7 +169,8 @@ struct ContentView: View {
 
     private func groupButton(_ title: String, value: String) -> some View {
         Button(title) { store.selectedGroup = value }
-            .buttonStyle(store.selectedGroup == value ? .borderedProminent : .bordered)
+            .buttonStyle(.borderedProminent)
+            .tint(store.selectedGroup == value ? Color.accentColor : Color.secondary.opacity(0.30))
             .font(.caption.weight(.semibold))
             .lineLimit(1)
     }
@@ -198,7 +200,7 @@ private struct ChannelRow: View {
                         RoundedRectangle(cornerRadius: 8).fill(Color.secondary.opacity(0.12))
                         Text(String(channel.name.prefix(1)).uppercased())
                             .font(.headline.weight(.bold))
-                            .foregroundStyle(.tint)
+                            .foregroundStyle(Color.accentColor)
                     }
                 }
             }
@@ -208,7 +210,7 @@ private struct ChannelRow: View {
                 HStack(spacing: 6) {
                     if playing {
                         Image(systemName: "waveform")
-                            .foregroundStyle(.tint)
+                            .foregroundStyle(Color.accentColor)
                     }
                     Text(channel.name)
                         .font(.body.weight(playing ? .bold : .semibold))
