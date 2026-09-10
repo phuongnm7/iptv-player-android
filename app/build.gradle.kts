@@ -10,10 +10,24 @@ android {
         applicationId = "vn.phuong.iptvplayer"
         minSdk = 23
         targetSdk = 36
-        versionCode = 30
-        versionName = "1.10.13"
+        versionCode = 31
+        versionName = "1.10.14"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    flavorDimensions += "device"
+    productFlavors {
+        create("mobile") {
+            dimension = "device"
+            versionNameSuffix = "-mobile"
+            manifestPlaceholders["vlcFallbackEnabled"] = "false"
+        }
+        create("tv") {
+            dimension = "device"
+            versionNameSuffix = "-tv"
+            manifestPlaceholders["vlcFallbackEnabled"] = "true"
+        }
     }
 
     buildTypes {
@@ -45,9 +59,10 @@ dependencies {
     implementation("androidx.media3:media3-datasource-rtmp:$media3Version")
     implementation("androidx.media3:media3-ui:$media3Version")
 
-    // TV-only fallback engine. VLC bundles its own demux/codec stack, so 4K
-    // playback is not limited to the MediaCodec implementations exposed by a TV.
-    implementation("org.videolan.android:libvlc-all:3.6.1")
+    // Compile the VLC fallback activity for both variants, but package LibVLC only
+    // in the TV APK. The Mobile APK therefore stays lightweight.
+    compileOnly("org.videolan.android:libvlc-all:3.6.1")
+    add("tvImplementation", "org.videolan.android:libvlc-all:3.6.1")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
