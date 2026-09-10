@@ -1,3 +1,59 @@
+# BÀN GIAO HIỆN TẠI — NM7 IPTV 1.10.17 (2026-09-10)
+
+> Đây là mốc phải đọc trước khi tiếp tục. Repo chuẩn: `phuongnm7/iptv-player-android` (private), nhánh `main`.
+
+## Trạng thái nguồn và bản bàn giao
+
+- HEAD ứng dụng trước commit tài liệu: `767e03bc9197c51b6937f41fa0e8869ee46e6eb3` — **Reduce Mobile wordmark logo size**.
+- Version hiện tại: `versionName 1.10.17`; hai product flavor riêng: **Mobile** và **TV**.
+- Build gần nhất của mã ứng dụng: GitHub Actions **Build #190**, run `34489487767`, job `102912330798`.
+- Các bước compile, unit test, Android lint, kiểm tra/ký/đóng gói và upload **cả Mobile lẫn TV đều SUCCESS**.
+- Toàn run #190 có kết luận **failure** chỉ vì bước **Smoke-test Mobile APK on Android 15** thất bại. Không được diễn giải kết luận đỏ này thành lỗi compile hoặc không có APK.
+- Artifact Build #190:
+  - Mobile: `NM7-IPTV-Mobile-1.10.17-APK`, artifact ID `10157247519`, archive digest `sha256:2ef74f0a434311038f00bab52278eeb74c3d11f5d39320fd072b08b1f4039e46`.
+  - TV: `NM7-IPTV-TV-1.10.17-APK`, artifact ID `10157254198`, archive digest `sha256:80f854c64f02bd35aa910fc1c7fe0ed932630bd6a920f2ef218ca1528a5753bd`.
+- APK Mobile đã được tải và bàn giao trực tiếp: `NM7-IPTV-Mobile-1.10.17.apk`, 7,157,117 bytes, SHA-256 `51e00357de4bc5235d7b7fe7cc4130f333cc9dbc290ef294ed02948b22c4f297`.
+
+## Thay đổi mới nhất cần giữ nguyên
+
+### Logo
+
+- Logo gốc chung/TV: `app/src/main/res/drawable/nm7_main_logo.png`.
+  - Nền trong suốt.
+  - Giữ biểu tượng màu + chữ **Phuongnm7 TV**.
+- Logo ghi đè riêng cho Mobile: `app/src/mobile/res/drawable/nm7_main_logo.png`.
+  - Chỉ giữ chữ **Phuongnm7 TV** và hai đường kẻ; không có biểu tượng.
+  - Được thu nhỏ còn khoảng 75% so với lần đầu và căn giữa bằng vùng đệm trong suốt.
+- Không sửa logo TV khi tinh chỉnh kích thước logo Mobile.
+
+### Player TV
+
+- Đã xóa nút xoay màn hình `↻` khỏi `app/src/tv/res/layout/activity_player.xml`.
+- Bản TV không cần chức năng xoay màn hình; bản Mobile vẫn giữ chức năng này.
+- `app/src/tv/res/values/ids.xml` khai báo ID `btnRotate` để lớp `PlayerActivity` dùng chung vẫn biên dịch, nhưng layout TV không tạo View nên không có nút/chức năng xoay.
+- Commit liên quan:
+  - `2428fa7994112e9f81f7f911f9641f3f03ed6eda` — cập nhật logo chung và bỏ điều khiển xoay TV.
+  - `fdcd9037e860c81d0a5a10915aecef6148e6ed96` — sửa biên dịch TV sau khi bỏ nút.
+  - `3a3a555bec63b7a435f4a00b610a8473242ff962` — logo chữ-only riêng cho Mobile.
+  - `767e03bc9197c51b6937f41fa0e8869ee46e6eb3` — thu nhỏ logo Mobile.
+
+## Playlist động và reload
+
+- Ứng dụng 1.10.17 có nút **Tải lại** playlist.
+- Khi tải từ `raw.githubusercontent.com`, ứng dụng thêm tham số thời gian và gửi `Cache-Control: no-cache, no-store, max-age=0` cùng `Pragma: no-cache` để tránh dữ liệu cũ.
+- User-Agent hiện dùng `Nm7-IPTV/1.10.17 Android` hoặc `Nm7-IPTV/1.10.17 Android-TV`.
+- Endpoint M3U động/Vercel và khóa giải mã thuộc dự án/repo private tách riêng; không đưa khóa hoặc secret vào repo Android/tài liệu công khai.
+
+## Việc xử lý tiếp theo
+
+1. Cài APK Mobile Build #190 trên điện thoại thật và xác nhận logo chữ đã đủ nhỏ; nếu chưa, chỉ chỉnh asset trong `app/src/mobile/res/drawable/`.
+2. Cài APK TV Build #190 và xác nhận nút xoay không còn trong Player, điều khiển D-pad/OK/LEFT và chuyển kênh vẫn hoạt động.
+3. Mở artifact/log của smoke-test run `34489487767` để phân biệt lỗi test/emulator với lỗi ứng dụng; không tắt test để che lỗi.
+4. Nếu sửa mã hoặc tài nguyên tiếp, tăng version chỉ khi chuẩn bị một bản phát hành mới theo yêu cầu; build cả hai flavor và ghi lại run/artifact/SHA.
+5. Repo phải tiếp tục **private**. Không commit playlist riêng, token, cookie, khóa DRM, khóa giải mã hoặc secret Vercel.
+
+---
+
 # Nhật ký tiếp tục dự án — IPTV Player Android
 
 ## Phiên bản 1.7 — Nm7 IPTV và chọn kênh nhanh trên TV
