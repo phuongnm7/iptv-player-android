@@ -12,9 +12,11 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ListView;
 
+import androidx.media3.common.util.UnstableApi;
 import androidx.media3.ui.PlayerView;
 
 /** Keeps the currently playing inline Mobile channel visually highlighted. */
+@UnstableApi
 public final class MobileNowPlayingHighlightProvider extends ContentProvider implements Application.ActivityLifecycleCallbacks {
     private MainActivity currentActivity;
     private ListView channelList;
