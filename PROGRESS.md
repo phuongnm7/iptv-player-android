@@ -1,3 +1,23 @@
+# BÀN GIAO HIỆN TẠI — NM7 IPTV MOBILE 1.10.21 (2026-09-12)
+
+## Bản Mobile 1.10.21 — phát hiện đứng hình thật và chuyển kênh nhanh hơn
+
+- Phân tích video máy thật cho thấy Media3 có thể quay lại READY và vẫn có `playWhenReady=true` nhưng decoder không xuất thêm frame; FPS giữ 0.0 nên watchdog chỉ theo dõi BUFFERING của 1.10.20 không bắt được.
+- Watchdog mới theo dõi trực tiếp `DecoderCounters.renderedOutputBufferCount` mỗi 2 giây. Nếu READY/đang phát/không bị suppression nhưng không có frame mới trong 8 giây, ứng dụng tự phục hồi.
+- Khi phục hồi luồng live, Player luôn `seekToDefaultPosition()` để trở về live edge trước `prepare/play`, tránh giữ vị trí đã rơi khỏi cửa sổ HLS/DASH.
+- Ngưỡng BUFFERING trước khi tự nối lại giảm từ 15 xuống 10 giây.
+- Sửa lỗi callback pause bất đồng bộ: cờ lifecycle không bị xóa ngay sau `player.pause()`, tránh nhận nhầm pause do hệ thống thành thao tác Pause của người dùng rồi chặn auto-play.
+- Bộ đệm cân bằng lại thành 20–90 giây, bắt đầu phát ở 750 ms và phát lại sau rebuffer ở 2,5 giây để chuyển kênh nhanh hơn nhưng vẫn giữ vùng đệm dài.
+- Luồng đổi kênh cập nhật kênh/UI trước khi giải phóng Player cũ; bỏ các lệnh `stop()` và `clearMediaItems()` dư thừa trước `release()`.
+- Version: `versionCode 38`, `versionName 1.10.21`.
+- Commit sửa Player: `3d1ef78`; phát hành: `8b63538`; workflow: `b4c0c8b`.
+- Workflow run `34724994307`, job `103637476574`: compile, unit test, lint, ký/đóng gói APK và smoke-test Mobile trên Android 15 đều **SUCCESS**.
+- Artifact `NM7-IPTV-Mobile-1.10.21-APK`, ID `10307701954`, archive digest `sha256:43f34e99c893ac3f8b1fd9e74aa9dcef3f632cca67682c4575602b48578dd652`.
+- APK: 7.173.562 bytes; SHA-256 `a5c19e97eaca26a3ca688fa05b3f051eb5527444e6a08ecaac36cd43474d9004`.
+- Cần thử dài hạn trên điện thoại thật với chính nhóm kênh nước ngoài. Nếu vẫn đứng, thu `adb logcat` tại thời điểm đó để phân biệt decoder 4K, manifest/server HLS hoặc token/session nguồn.
+
+---
+
 # BÀN GIAO HIỆN TẠI — NM7 IPTV MOBILE 1.10.20 (2026-09-12)
 
 ## Bản Mobile 1.10.20 — ổn định phát và nút tải lại nhanh
