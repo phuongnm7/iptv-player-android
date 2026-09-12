@@ -75,6 +75,7 @@ final class PlaylistSourceStore {
 
     static boolean isValid(String url) { return url != null && (url.startsWith("https://") || url.startsWith("http://")); }
     static boolean isDefault(String url) { if(url==null)return false;String clean=url.trim();return DEFAULT_URL.equals(clean)||LEGACY_DEFAULT_URL.equals(clean); }
+    static boolean isLegacyDefault(String url) { return url!=null&&LEGACY_DEFAULT_URL.equals(url.trim()); }
     private static String cleanName(String name, String url) {
         String clean = name == null ? "" : name.trim();
         if (!clean.isEmpty()) return clean.length() > 80 ? clean.substring(0, 80) : clean;
