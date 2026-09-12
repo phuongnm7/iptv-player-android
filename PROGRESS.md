@@ -1,6 +1,23 @@
-# BÀN GIAO HIỆN TẠI — NM7 IPTV 1.10.17 (2026-09-10)
+# BÀN GIAO HIỆN TẠI — NM7 IPTV MOBILE 1.10.18 (2026-09-12)
 
 > Đây là mốc phải đọc trước khi tiếp tục. Repo chuẩn: `phuongnm7/iptv-player-android` (private), nhánh `main`.
+
+
+## Bản Mobile 1.10.18 — thông tin ứng dụng, vuốt nhóm và ổn định luồng
+
+- Từ mốc này repo này được phát triển và đóng gói **chỉ cho Mobile**; dự án TV riêng nằm tại `phuongnm7/nm7-tv-android`.
+- “Thông tin ứng dụng” tự đọc version từ gói cài đặt và hiển thị `Phiên bản: 1.10.18 (Mobile)`.
+- Thay mô tả bằng: “Ứng dụng được phát triển bởi Phuongnm7 vì mục đích cá nhân, không vì mục đích thương mại.”
+- Player dựng sẵn chỉ mục kênh theo nhóm, không quét toàn playlist mỗi lần đổi nhóm; adapter không sao chép lại danh sách và dùng ID ổn định.
+- Thanh nhóm hỗ trợ vuốt ngang đổi nhóm sau khi nhấc tay, cuộn tới nhóm đang chọn; bật hardware layer và tắt overscroll/fading edge để thao tác nhẹ hơn.
+- Tăng bộ đệm chống giật lên 15–60 giây, giữ back-buffer 10 giây, bắt đầu phát từ 500 ms, thêm HTTP keep-alive.
+- Nếu Player mắc ở trạng thái buffering liên tục 20 giây, cơ chế phục hồi phiên hiện có được kích hoạt thay vì đứng hình vô hạn.
+- Đặt `playWhenReady` trước `prepare` để giảm độ trễ bắt đầu phát.
+- Version: `versionCode 35`, `versionName 1.10.18`.
+- Workflow đã tách sang chỉ chạy `testMobileDebugUnitTest`, `lintMobileDebug`, `assembleMobileDebug`; không build hoặc upload TV.
+- Build run `34671826668`, job `103494506653`: compile, unit test, lint, kiểm tra chữ ký, đóng gói APK và smoke-test Mobile trên Android 15 đều **PASS**.
+- Artifact `NM7-IPTV-Mobile-1.10.18-APK`, ID `10291245926`, archive digest `sha256:60a03b8179cb74f7e33008155c5a4751a490adbdc7893ce022e98e1da3e53323`.
+- Các commit chính: `1bbde5e`, `8877abb`, `cbf5ca0`, `7aac12a`, `39afa7a`, `767ab1e`, `9507505`.
 
 ## Trạng thái nguồn và bản bàn giao
 
