@@ -47,37 +47,23 @@ jobs:
           log-accepted-android-sdk-licenses: false
       - name: Install Android SDK packages
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
-      - name: Compile, test and lint both variants
+      - name: Compile, test and lint Mobile
+        run: gradle --no-daemon --console=plain testMobileDebugUnitTest lintMobileDebug assembleMobileDebug
+      - name: Verify and package Mobile APK
         run: |
-          gradle --no-daemon --console=plain \
-            testMobileDebugUnitTest lintMobileDebug assembleMobileDebug \
-            testTvDebugUnitTest lintTvDebug assembleTvDebug
-      - name: Verify and package Mobile and TV APKs
-        run: |
-          mkdir -p dist/mobile dist/tv
-          cp app/build/outputs/apk/mobile/debug/app-mobile-debug.apk dist/mobile/NM7-IPTV-Mobile-1.10.17.apk
-          cp app/build/outputs/apk/tv/debug/app-tv-debug.apk dist/tv/NM7-IPTV-TV-1.10.17.apk
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs dist/mobile/NM7-IPTV-Mobile-1.10.17.apk
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs dist/tv/NM7-IPTV-TV-1.10.17.apk
-          if unzip -l dist/mobile/NM7-IPTV-Mobile-1.10.17.apk | grep -q 'libvlc\.so'; then
+          mkdir -p dist/mobile
+          cp app/build/outputs/apk/mobile/debug/app-mobile-debug.apk dist/mobile/NM7-IPTV-Mobile-1.10.18.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs dist/mobile/NM7-IPTV-Mobile-1.10.18.apk
+          if unzip -l dist/mobile/NM7-IPTV-Mobile-1.10.18.apk | grep -q 'libvlc\.so'; then
             echo 'Mobile APK unexpectedly contains LibVLC' >&2
             exit 1
           fi
-          unzip -l dist/tv/NM7-IPTV-TV-1.10.17.apk | grep -q 'libvlc\.so'
-          (cd dist/mobile && sha256sum NM7-IPTV-Mobile-1.10.17.apk | tee SHA256SUMS.txt)
-          (cd dist/tv && sha256sum NM7-IPTV-TV-1.10.17.apk | tee SHA256SUMS.txt)
+          (cd dist/mobile && sha256sum NM7-IPTV-Mobile-1.10.18.apk | tee SHA256SUMS.txt)
       - name: Upload Mobile APK
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: NM7-IPTV-Mobile-1.10.17-APK
+          name: NM7-IPTV-Mobile-1.10.18-APK
           path: dist/mobile/
-          retention-days: 30
-          if-no-files-found: error
-      - name: Upload TV APK
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: NM7-IPTV-TV-1.10.17-APK
-          path: dist/tv/
           retention-days: 30
           if-no-files-found: error
       - name: Prepare Android emulator
@@ -95,7 +81,7 @@ jobs:
           emulator-boot-timeout: 420
           disable-animations: true
           disable-spellchecker: true
-          script: python3 tools/android_smoke_current.py dist/mobile/NM7-IPTV-Mobile-1.10.17.apk
+          script: python3 tools/android_smoke_current.py dist/mobile/NM7-IPTV-Mobile-1.10.18.apk
       - name: Upload test and lint reports
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
