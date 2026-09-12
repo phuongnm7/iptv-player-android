@@ -17,6 +17,8 @@ public class PlaylistSourceStoreTest {
         assertEquals("NM7 IPTV", PlaylistSourceStore.DEFAULT_NAME);
         assertTrue(PlaylistSourceStore.isDefault(PlaylistSourceStore.DEFAULT_URL));
         assertTrue(PlaylistSourceStore.isDefault("https://iptv-live-merge.phuongnm7-iptv.workers.dev/playlist.m3u"));
+        assertTrue(PlaylistSourceStore.isLegacyDefault("https://iptv-live-merge.phuongnm7-iptv.workers.dev/playlist.m3u"));
+        assertFalse(PlaylistSourceStore.isLegacyDefault(PlaylistSourceStore.DEFAULT_URL));
         assertFalse(PlaylistSourceStore.isDefault("https://example.test/list.m3u"));
     }
 }
