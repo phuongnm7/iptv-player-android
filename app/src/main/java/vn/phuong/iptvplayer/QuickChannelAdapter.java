@@ -17,14 +17,15 @@ final class QuickChannelAdapter extends BaseAdapter {
     QuickChannelAdapter(Context context) { inflater = LayoutInflater.from(context); }
 
     void submit(List<Channel> values, String currentId) {
-        channels = new ArrayList<>(values);
+        channels = values == null ? java.util.Collections.emptyList() : values;
         this.currentId = currentId;
         notifyDataSetChanged();
     }
 
     @Override public int getCount() { return channels.size(); }
     @Override public Channel getItem(int position) { return channels.get(position); }
-    @Override public long getItemId(int position) { return position; }
+    @Override public long getItemId(int position) { return AppPreferences.id(getItem(position)).hashCode(); }
+    @Override public boolean hasStableIds() { return true; }
 
     @Override public View getView(int position, View convertView, ViewGroup parent) {
         Holder holder;
