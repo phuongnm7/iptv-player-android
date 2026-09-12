@@ -99,6 +99,9 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
     private Object backCallback33;
     private boolean backgroundActive;
     private boolean resumeAfterLifecyclePause;
+    private boolean lifecyclePauseInProgress;
+    private boolean userPaused;
+    private long bufferingSinceMs;
     private boolean fullscreen;
     private View.OnLayoutChangeListener rootLayoutListener;
 
@@ -106,6 +109,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         @Override public void run() {
             updateStatsNow();
             updateSeekUi();
+            monitorPlaybackHealth();
             if (player != null) mainHandler.postDelayed(this, 2000);
         }
     };
@@ -129,7 +133,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         backgroundActive = false;
         if (player != null) {
             player.setWakeMode(C.WAKE_MODE_NONE);
-            if (resumeAfterLifecyclePause) player.play();
+            if (resumeAfterLifecyclePause && !userPaused) player.play();
         }
         resumeAfterLifecyclePause = false;
         if (panel != null && panel.getVisibility() == View.VISIBLE) keepScreenAwake(true);
@@ -383,7 +387,8 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
 
     private static DefaultLoadControl stableLoadControl() {
         return new DefaultLoadControl.Builder()
-                .setBufferDurationsMs(12_000, 45_000, 750, 2_000)
+                .setBufferDurationsMs(25_000, 90_000, 1_500, 5_000)
+                .setBackBuffer(15_000, true)
                 .setPrioritizeTimeOverSizeThresholds(true)
                 .build();
     }
@@ -393,6 +398,8 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         int generation = ++playGeneration;
         recoveryAttempts = 0;
         resumeAfterLifecyclePause = false;
+        userPaused = false;
+        bufferingSinceMs = 0;
         releasePlayer();
         currentChannel = channel;
         panel.setVisibility(View.VISIBLE);
@@ -421,16 +428,16 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         if (currentActivity == null || currentChannel != channel || generation != playGeneration) return;
         try {
             Map<String, String> headers = new LinkedHashMap<>(channel.headers());
-            String ua = headers.containsKey("User-Agent") ? headers.get("User-Agent") : "Nm7-IPTV/1.10.8 Android";
+            String ua = headers.containsKey("User-Agent") ? headers.get("User-Agent") : "Nm7-IPTV/1.10.20 Android";
             DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory()
                     .setUserAgent(ua)
-                    .setConnectTimeoutMs(20_000)
-                    .setReadTimeoutMs(35_000)
+                    .setConnectTimeoutMs(30_000)
+                    .setReadTimeoutMs(60_000)
                     .setAllowCrossProtocolRedirects(true)
                     .setDefaultRequestProperties(headers);
             DefaultDataSource.Factory data = new DefaultDataSource.Factory(currentActivity, http);
             DefaultMediaSourceFactory mediaFactory = new DefaultMediaSourceFactory(data)
-                    .setLoadErrorHandlingPolicy(new DefaultLoadErrorHandlingPolicy(6));
+                    .setLoadErrorHandlingPolicy(new DefaultLoadErrorHandlingPolicy(8));
 
             MediaItem.Builder media = new MediaItem.Builder().setUri(channel.url());
             String mime = forcedMime;
@@ -463,8 +470,12 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
             next.addListener(new Player.Listener() {
                 @Override public void onPlaybackStateChanged(int state) {
                     if (generation != playGeneration || next != player) return;
-                    if (state == Player.STATE_BUFFERING) programme.setText("Đang tải luồng…");
+                    if (state == Player.STATE_BUFFERING) {
+                        programme.setText("Đang tải luồng…");
+                        if (bufferingSinceMs == 0) bufferingSinceMs = android.os.SystemClock.elapsedRealtime();
+                    }
                     if (state == Player.STATE_READY) {
+                        bufferingSinceMs = 0;
                         updateProgramme(channel);
                         updateSeekUi();
                         keepScreenAwake(true);
@@ -472,10 +483,22 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
                             if (generation == playGeneration && next == player && next.isPlaying()) recoveryAttempts = 0;
                         }, 8000);
                     }
+                    if (state == Player.STATE_ENDED && !userPaused) {
+                        recoverPlayback(channel, drm, generation, forcedMime, "Luồng đã kết thúc");
+                    }
                 }
                 @Override public void onIsPlayingChanged(boolean isPlaying) {
                     if (generation != playGeneration || next != player) return;
-                    if (isPlaying && !backgroundActive) keepScreenAwake(true);
+                    if (isPlaying) {
+                        bufferingSinceMs = 0;
+                        if (!backgroundActive) keepScreenAwake(true);
+                    }
+                }
+                @Override public void onPlayWhenReadyChanged(boolean playWhenReady, int reason) {
+                    if (generation != playGeneration || next != player) return;
+                    if (reason == Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST && !lifecyclePauseInProgress) {
+                        userPaused = !playWhenReady;
+                    }
                 }
                 @Override public void onAvailableCommandsChanged(Player.Commands availableCommands) {
                     if (generation != playGeneration || next != player) return;
@@ -511,6 +534,59 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         } catch (Exception error) {
             releasePlayer();
             programme.setText("Không phát được kênh này • " + readable(error));
+        }
+    }
+
+    private void monitorPlaybackHealth() {
+        ExoPlayer active = player;
+        Channel channel = currentChannel;
+        if (active == null || channel == null || userPaused || backgroundActive || currentActivity == null
+                || panel == null || panel.getVisibility() != View.VISIBLE) return;
+        int state = active.getPlaybackState();
+        long now = android.os.SystemClock.elapsedRealtime();
+        if (state == Player.STATE_BUFFERING) {
+            if (bufferingSinceMs == 0) bufferingSinceMs = now;
+            if (now - bufferingSinceMs >= 15_000) {
+                bufferingSinceMs = now;
+                recoverPlayback(channel, DrmSpec.fromOptions(channel.options()), playGeneration, "",
+                        "Luồng đứng hình, đang kết nối lại");
+            }
+        } else if (state == Player.STATE_READY && !active.getPlayWhenReady()
+                && active.getPlaybackSuppressionReason() == Player.PLAYBACK_SUPPRESSION_REASON_NONE) {
+            active.play();
+            programme.setText("Đang tiếp tục phát…");
+        }
+    }
+
+    private void recoverPlayback(Channel channel, DrmSpec drm, int generation, String forcedMime, String reason) {
+        if (generation != playGeneration || currentChannel != channel || userPaused) return;
+        if (recoveryAttempts >= 6) {
+            programme.setText(reason + " • không thể tự nối lại");
+            return;
+        }
+        int attempt = ++recoveryAttempts;
+        long delay = attempt <= 2 ? 500L : attempt <= 4 ? 1_500L : 3_500L;
+        programme.setText(reason + " • thử lần " + attempt + "/6…");
+        ExoPlayer active = player;
+        if (attempt <= 2 && active != null) {
+            mainHandler.postDelayed(() -> {
+                if (generation != playGeneration || player != active || currentChannel != channel || userPaused) return;
+                try {
+                    if (active.getPlaybackState() == Player.STATE_ENDED) active.seekToDefaultPosition();
+                    active.prepare();
+                    active.play();
+                } catch (RuntimeException ignored) {
+                    releasePlayer();
+                    startInlinePlayer(channel, drm, generation, forcedMime);
+                }
+            }, delay);
+        } else {
+            releasePlayer();
+            mainHandler.postDelayed(() -> {
+                if (generation == playGeneration && currentChannel == channel && !userPaused) {
+                    startInlinePlayer(channel, drm, generation, forcedMime);
+                }
+            }, delay);
         }
     }
 
@@ -589,7 +665,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
                         connection.setInstanceFollowRedirects(false);
                         connection.setRequestMethod("GET");
                         for (Map.Entry<String, String> header : headers.entrySet()) connection.setRequestProperty(header.getKey(), header.getValue());
-                        if (!headers.containsKey("User-Agent")) connection.setRequestProperty("User-Agent", "Nm7-IPTV/1.10.8 Android");
+                        if (!headers.containsKey("User-Agent")) connection.setRequestProperty("User-Agent", "Nm7-IPTV/1.10.20 Android");
                         int code = connection.getResponseCode();
                         if (code >= 300 && code < 400) {
                             String location = connection.getHeaderField("Location");
@@ -759,6 +835,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
 
     private void releasePlayer() {
         mainHandler.removeCallbacks(statsTick);
+        bufferingSinceMs = 0;
         videoCounters = null;
         fpsMeter.reset();
         if (player != null) {
@@ -905,8 +982,10 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
             startBackgroundService(a);
         } else {
             backgroundActive = false;
-            resumeAfterLifecyclePause = wantedPlayback;
+            resumeAfterLifecyclePause = wantedPlayback && !userPaused;
+            lifecyclePauseInProgress = true;
             player.pause();
+            lifecyclePauseInProgress = false;
         }
     }
     @Override public void onActivityStopped(Activity a) { }
