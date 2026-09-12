@@ -1,3 +1,23 @@
+# BÀN GIAO HIỆN TẠI — NM7 IPTV MOBILE 1.10.20 (2026-09-12)
+
+## Bản Mobile 1.10.20 — ổn định phát và nút tải lại nhanh
+
+- Chỉ thay đổi repo Mobile `phuongnm7/iptv-player-android`; repo TV không bị tác động.
+- Sửa trường hợp đang xem bị chuyển sang pause ngoài ý muốn: Player phân biệt pause do người dùng với pause do lifecycle/hệ thống và tự tiếp tục khi `playWhenReady` bị mất nhưng không có playback suppression.
+- Thêm watchdog kiểm tra mỗi 2 giây. Nếu luồng ở trạng thái buffering quá 15 giây, ứng dụng tự prepare/play hoặc tạo lại Player; tối đa 6 lần với backoff.
+- Khi luồng báo ENDED ngoài ý muốn, ứng dụng tự nối lại từ vị trí live mặc định.
+- Bộ đệm Mobile tăng từ 12–45 giây lên 25–90 giây; ngưỡng bắt đầu 1,5 giây, sau rebuffer 5 giây; giữ back-buffer 15 giây.
+- Timeout kết nối/đọc tăng từ 20/35 giây lên 30/60 giây; số lần tải lại Media3 tăng từ 6 lên 8.
+- Nút **↻ Tải lại** được đưa ra thanh chức năng, đặt ngay cạnh **★ Yêu thích** ở cả giao diện dọc và ngang; nút cũ trong bảng nhập nguồn đã được bỏ.
+- Version: `versionCode 37`, `versionName 1.10.20`; User-Agent Mobile đồng bộ thành 1.10.20.
+- Commit mã chính: `bd55dc5`; giao diện: `0b8d24d`, `54262d9`; phát hành: `3ebaf4f`; workflow: `a397156`.
+- Workflow run `34709802587`, job `103596376811`: compile, unit test, lint, kiểm tra/đóng gói APK và smoke-test Mobile trên Android 15 đều **SUCCESS**.
+- Artifact `NM7-IPTV-Mobile-1.10.20-APK`, ID `10302258664`, archive digest `sha256:21769088fc2468a4e441e90f0cb9a67144e56c31adc1289bd2f95fba4ce73699`.
+- APK: 7.173.555 bytes; SHA-256 `f7f742623b1001fce94eced4ef6fd3626eaac42bcd4ce63b2aaa12402a68c237`.
+- Cần kiểm tra trên điện thoại thật với chính các kênh nước ngoài trong thời gian dài. CI không dùng playlist/credential/DRM riêng nên không thể chứng minh chất lượng của máy chủ nguồn.
+
+---
+
 # BÀN GIAO HIỆN TẠI — NM7 IPTV MOBILE 1.10.19 (2026-09-12)
 
 > Đây là mốc phải đọc trước khi tiếp tục. Repo chuẩn: `phuongnm7/iptv-player-android` (private), nhánh `main`.
