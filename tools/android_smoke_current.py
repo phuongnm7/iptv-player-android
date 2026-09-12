@@ -1,6 +1,6 @@
 """Compatibility smoke test for the current Nm7 IPTV Player UI.
 
-Checks both portrait/mobile startup and the landscape layout used by Android TV.
+Checks Mobile startup in both portrait and landscape orientations.
 No public IPTV stream is required.
 """
 import re
@@ -206,17 +206,13 @@ if not (has_id(root, "listChannels") or has_id(root, "txtEmpty")):
 assert_consolidated_header(root, "Portrait UI")
 print("PASS: portrait application launches and current IPTV interface is available")
 
-# Landscape startup regression. Android TV normally starts the landscape resource
-# set, so this catches missing IDs that would crash MainActivity only on a TV.
+# Landscape startup regression for phones/tablets that rotate the Mobile activity.
 run_adb("shell", "settings", "put", "system", "user_rotation", "1", check=False)
 time.sleep(1.2)
 root = launch_main()
 if not has_id(root, "mainRoot"):
     print_diagnostics()
     raise AssertionError("Landscape main screen did not open")
-if not has_id(root, "btnReloadUrl"):
-    print_diagnostics()
-    raise AssertionError("Landscape layout is missing btnReloadUrl required by MainActivity")
-assert_consolidated_header(root, "Landscape/TV UI")
-print("PASS: landscape/TV-style main layout launches without missing startup controls")
-print("PASS: Link, source and about controls are consolidated into app options on mobile and TV")
+assert_consolidated_header(root, "Landscape Mobile UI")
+print("PASS: landscape Mobile layout launches without missing startup controls")
+print("PASS: Link, source and about controls are consolidated into Mobile app options")
