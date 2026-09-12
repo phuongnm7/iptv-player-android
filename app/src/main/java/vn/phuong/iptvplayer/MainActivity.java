@@ -70,7 +70,7 @@ public final class MainActivity extends Activity {
 
     private void restoreSession() {
         setLoading(true);
-        io.execute(()->{try{SessionStore.State state=SessionStore.load(getApplicationContext());ui(()->{if(state!=null&&state.result!=null&&!state.result.channels.isEmpty()){showPlaylist(state.result,state.source);if(state.source.startsWith("http"))inputUrl.setText(state.source.split("\\n")[0]);setLoading(false);}else loadDefaultPlaylist();});}catch(Exception e){ui(this::loadDefaultPlaylist);}});
+        io.execute(()->{try{SessionStore.State state=SessionStore.load(getApplicationContext());ui(()->{String savedSource=state==null?"":state.source.split("\\n",2)[0].trim();if(PlaylistSourceStore.isLegacyDefault(savedSource)){loadDefaultPlaylist();return;}if(state!=null&&state.result!=null&&!state.result.channels.isEmpty()){showPlaylist(state.result,state.source);if(state.source.startsWith("http"))inputUrl.setText(state.source.split("\\n")[0]);setLoading(false);}else loadDefaultPlaylist();});}catch(Exception e){ui(this::loadDefaultPlaylist);}});
     }
 
     private void loadDefaultPlaylist(){inputUrl.setText(DEFAULT_PLAYLIST);loadFromUrl();}
