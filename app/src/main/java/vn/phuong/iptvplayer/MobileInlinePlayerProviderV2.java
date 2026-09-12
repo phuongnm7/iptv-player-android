@@ -102,6 +102,8 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
     private boolean lifecyclePauseInProgress;
     private boolean userPaused;
     private long bufferingSinceMs;
+    private int lastRenderedBufferCount = -1;
+    private long lastFrameProgressMs;
     private boolean fullscreen;
     private View.OnLayoutChangeListener rootLayoutListener;
 
@@ -136,6 +138,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
             if (resumeAfterLifecyclePause && !userPaused) player.play();
         }
         resumeAfterLifecyclePause = false;
+        mainHandler.postDelayed(() -> lifecyclePauseInProgress = false, 1_000);
         if (panel != null && panel.getVisibility() == View.VISIBLE) keepScreenAwake(true);
         mainHandler.post(this::syncOrientationUi);
     }
@@ -387,7 +390,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
 
     private static DefaultLoadControl stableLoadControl() {
         return new DefaultLoadControl.Builder()
-                .setBufferDurationsMs(25_000, 90_000, 1_500, 5_000)
+                .setBufferDurationsMs(20_000, 90_000, 750, 2_500)
                 .setBackBuffer(15_000, true)
                 .setPrioritizeTimeOverSizeThresholds(true)
                 .build();
@@ -400,7 +403,8 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         resumeAfterLifecyclePause = false;
         userPaused = false;
         bufferingSinceMs = 0;
-        releasePlayer();
+        lastRenderedBufferCount = -1;
+        lastFrameProgressMs = android.os.SystemClock.elapsedRealtime();
         currentChannel = channel;
         panel.setVisibility(View.VISIBLE);
         playerView.hideController();
@@ -411,6 +415,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         AppPreferences.recordRecent(currentActivity, channel);
         keepScreenAwake(true);
         mainHandler.post(this::syncOrientationUi);
+        releasePlayer();
 
         String scheme = Uri.parse(channel.url()).getScheme();
         if (scheme == null || !scheme.matches("(?i)https?|rtsp|udp|rtmp")) {
@@ -464,6 +469,8 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
                 @Override public void onVideoEnabled(EventTime eventTime, DecoderCounters counters) {
                     if (generation != playGeneration) return;
                     videoCounters = counters;
+                    lastRenderedBufferCount = counters.renderedOutputBufferCount;
+                    lastFrameProgressMs = android.os.SystemClock.elapsedRealtime();
                     fpsMeter.reset();
                 }
             });
@@ -546,15 +553,34 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         long now = android.os.SystemClock.elapsedRealtime();
         if (state == Player.STATE_BUFFERING) {
             if (bufferingSinceMs == 0) bufferingSinceMs = now;
-            if (now - bufferingSinceMs >= 15_000) {
+            if (now - bufferingSinceMs >= 10_000) {
                 bufferingSinceMs = now;
                 recoverPlayback(channel, DrmSpec.fromOptions(channel.options()), playGeneration, "",
-                        "Luồng đứng hình, đang kết nối lại");
+                        "Luồng tải quá lâu, đang kết nối lại");
             }
-        } else if (state == Player.STATE_READY && !active.getPlayWhenReady()
+            return;
+        }
+        if (state == Player.STATE_READY && !active.getPlayWhenReady()
                 && active.getPlaybackSuppressionReason() == Player.PLAYBACK_SUPPRESSION_REASON_NONE) {
             active.play();
-            programme.setText("Đang tiếp tục phát…");
+            programme.setText("Đang tự tiếp tục phát…");
+            return;
+        }
+        if (state == Player.STATE_READY && active.getPlayWhenReady()
+                && active.getPlaybackSuppressionReason() == Player.PLAYBACK_SUPPRESSION_REASON_NONE
+                && videoCounters != null) {
+            int rendered = videoCounters.renderedOutputBufferCount;
+            if (rendered != lastRenderedBufferCount) {
+                lastRenderedBufferCount = rendered;
+                lastFrameProgressMs = now;
+            } else if (lastFrameProgressMs > 0 && now - lastFrameProgressMs >= 8_000) {
+                lastFrameProgressMs = now;
+                recoverPlayback(channel, DrmSpec.fromOptions(channel.options()), playGeneration, "",
+                        "Hình ảnh bị đứng, đang về luồng trực tiếp");
+            }
+        } else {
+            lastRenderedBufferCount = videoCounters == null ? -1 : videoCounters.renderedOutputBufferCount;
+            lastFrameProgressMs = now;
         }
     }
 
@@ -572,7 +598,9 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
             mainHandler.postDelayed(() -> {
                 if (generation != playGeneration || player != active || currentChannel != channel || userPaused) return;
                 try {
-                    if (active.getPlaybackState() == Player.STATE_ENDED) active.seekToDefaultPosition();
+                    if (active.isCurrentMediaItemLive() || active.getPlaybackState() == Player.STATE_ENDED) {
+                        active.seekToDefaultPosition();
+                    }
                     active.prepare();
                     active.play();
                 } catch (RuntimeException ignored) {
@@ -836,13 +864,13 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
     private void releasePlayer() {
         mainHandler.removeCallbacks(statsTick);
         bufferingSinceMs = 0;
+        lastRenderedBufferCount = -1;
+        lastFrameProgressMs = 0;
         videoCounters = null;
         fpsMeter.reset();
         if (player != null) {
             ExoPlayer old = player;
             player = null;
-            try { old.stop(); } catch (RuntimeException ignored) { }
-            try { old.clearMediaItems(); } catch (RuntimeException ignored) { }
             if (playerView != null) playerView.setPlayer(null);
             old.release();
         }
@@ -985,7 +1013,6 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
             resumeAfterLifecyclePause = wantedPlayback && !userPaused;
             lifecyclePauseInProgress = true;
             player.pause();
-            lifecyclePauseInProgress = false;
         }
     }
     @Override public void onActivityStopped(Activity a) { }
