@@ -1,6 +1,21 @@
-# BÀN GIAO HIỆN TẠI — NM7 IPTV MOBILE 1.10.18 (2026-09-12)
+# BÀN GIAO HIỆN TẠI — NM7 IPTV MOBILE 1.10.19 (2026-09-12)
 
 > Đây là mốc phải đọc trước khi tiếp tục. Repo chuẩn: `phuongnm7/iptv-player-android` (private), nhánh `main`.
+
+## Bản Mobile 1.10.19 — nguồn mặc định riêng và khôi phục nguồn
+
+- Chỉ thay đổi repo Mobile `phuongnm7/iptv-player-android`; không đọc, sửa hoặc kích hoạt workflow của repo TV `phuongnm7/nm7-tv-android`.
+- Đổi nguồn tích hợp mặc định sang Worker mới do chủ dự án cung cấp.
+- Nguồn mặc định không được lưu chung với danh sách nguồn tự thêm và URL không hiển thị trong màn hình quản lý nguồn.
+- Màn hình quản lý nguồn luôn có mục **NM7 IPTV** với nút **Chọn nguồn mặc định**; khi đang dùng nguồn này, nút đổi thành **Đang sử dụng nguồn mặc định**.
+- Khi xóa nguồn tự thêm đang được chọn, ứng dụng tự quay về nguồn mặc định và thông báo rõ cho người dùng.
+- Có migration nhận diện URL mặc định cũ, kể cả phiên được cache trước khi nâng cấp, rồi chuyển sang nguồn mặc định mới.
+- Thêm unit test cho URL mặc định mới, nhận diện nguồn mặc định/nguồn cũ và luồng migration.
+- Version: `versionCode 36`, `versionName 1.10.19`; User-Agent được đồng bộ thành 1.10.19.
+- Workflow chỉ build Mobile. Run `34674734089`, job `103502434843`: compile, unit test, lint, kiểm tra/đóng gói APK, cài và smoke-test Mobile trên Android 15 ở dọc/ngang đều **SUCCESS**.
+- Artifact `NM7-IPTV-Mobile-1.10.19-APK`, ID `10291729098`, archive digest `sha256:2fea60f5328309fd8907908feaf644b2eb012723041d43f0fc5d4305a42063ef`.
+- Các commit chính: `36653ec`, `f305c11`, `492845c`, `69d64a3`, `6465509`, `6810541`, `fca332a`, `c6ff2af`, `7bea29d`.
+
 
 
 ## Bản Mobile 1.10.18 — thông tin ứng dụng, vuốt nhóm và ổn định luồng
