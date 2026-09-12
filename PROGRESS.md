@@ -21,15 +21,13 @@
 
 ## Trạng thái nguồn và bản bàn giao
 
-- HEAD ứng dụng trước commit tài liệu: `767e03bc9197c51b6937f41fa0e8869ee46e6eb3` — **Reduce Mobile wordmark logo size**.
-- Version hiện tại: `versionName 1.10.17`; hai product flavor riêng: **Mobile** và **TV**.
-- Build gần nhất của mã ứng dụng: GitHub Actions **Build #190**, run `34489487767`, job `102912330798`.
-- Các bước compile, unit test, Android lint, kiểm tra/ký/đóng gói và upload **cả Mobile lẫn TV đều SUCCESS**.
-- Toàn run #190 có kết luận **failure** chỉ vì bước **Smoke-test Mobile APK on Android 15** thất bại. Không được diễn giải kết luận đỏ này thành lỗi compile hoặc không có APK.
-- Artifact Build #190:
-  - Mobile: `NM7-IPTV-Mobile-1.10.17-APK`, artifact ID `10157247519`, archive digest `sha256:2ef74f0a434311038f00bab52278eeb74c3d11f5d39320fd072b08b1f4039e46`.
-  - TV: `NM7-IPTV-TV-1.10.17-APK`, artifact ID `10157254198`, archive digest `sha256:80f854c64f02bd35aa910fc1c7fe0ed932630bd6a920f2ef218ca1528a5753bd`.
-- APK Mobile đã được tải và bàn giao trực tiếp: `NM7-IPTV-Mobile-1.10.17.apk`, 7,157,117 bytes, SHA-256 `51e00357de4bc5235d7b7fe7cc4130f333cc9dbc290ef294ed02948b22c4f297`.
+- Commit mã Mobile 1.10.18 cuối trước tài liệu: `95075051940e42bced32f92ce4983f860f4cce97`.
+- Version hiện tại: `versionCode 35`, `versionName 1.10.18`; trong ứng dụng hiển thị **1.10.18 (Mobile)**.
+- Build gần nhất: run `34671826668`, job `103494506653`.
+- Compile, unit test, Android lint, kiểm tra chữ ký, đóng gói và upload APK Mobile đều **SUCCESS**.
+- Smoke-test cài và mở APK Mobile trên Android 15 cũng **SUCCESS**; toàn workflow kết luận **success**.
+- Artifact hiện hành: `NM7-IPTV-Mobile-1.10.18-APK`, ID `10291245926`, archive digest `sha256:60a03b8179cb74f7e33008155c5a4751a490adbdc7893ce022e98e1da3e53323`.
+- Không tiếp tục build hoặc phát triển bản TV trong repo này. Mọi nội dung TV chuyển sang repo riêng `phuongnm7/nm7-tv-android`.
 
 ## Thay đổi mới nhất cần giữ nguyên
 
