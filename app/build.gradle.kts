@@ -10,8 +10,8 @@ android {
         applicationId = "vn.phuong.iptvplayer"
         minSdk = 23
         targetSdk = 36
-        versionCode = 34
-        versionName = "1.10.17"
+        versionCode = 35
+        versionName = "1.10.18"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
