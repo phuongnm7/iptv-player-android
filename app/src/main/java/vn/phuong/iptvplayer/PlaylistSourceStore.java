@@ -9,8 +9,9 @@ import java.util.List;
 
 /** Playlist URLs. A trusted default is available on a clean install; user sources stay device-local. */
 final class PlaylistSourceStore {
-    static final String DEFAULT_URL = "https://iptv-live-merge.phuongnm7-iptv.workers.dev/playlist.m3u";
-    private static final String DEFAULT_NAME = "Nguồn IPTV mặc định";
+    static final String DEFAULT_URL = "https://phuongnm7-playlist.phuongnm7-iptv.workers.dev/";
+    static final String DEFAULT_NAME = "NM7 IPTV";
+    private static final String LEGACY_DEFAULT_URL = "https://iptv-live-merge.phuongnm7-iptv.workers.dev/playlist.m3u";
     private static final String FILE = "playlist-sources";
     private static final String KEY = "sources";
     private static final int MAX_SOURCES = 50;
@@ -23,22 +24,21 @@ final class PlaylistSourceStore {
     static List<Source> load(Context context) {
         List<Source> result = new ArrayList<>();
         android.content.SharedPreferences preferences = context.getSharedPreferences(FILE, Context.MODE_PRIVATE);
-        boolean initialized = preferences.contains(KEY);
         try {
             JSONArray values = new JSONArray(preferences.getString(KEY, "[]"));
             for (int i = 0; i < values.length() && result.size() < MAX_SOURCES; i++) {
                 JSONObject item = values.getJSONObject(i);
                 String url = item.optString("url", "").trim();
-                if (isValid(url)) result.add(new Source(cleanName(item.optString("name"), url), url));
+                if (isValid(url) && !isDefault(url)) result.add(new Source(cleanName(item.optString("name"), url), url));
             }
         } catch (Exception ignored) { }
-        if (result.isEmpty() && !initialized) result.add(new Source(DEFAULT_NAME, DEFAULT_URL));
         return result;
     }
 
     static void add(Context context, String name, String url) throws Exception {
         String cleanUrl = url == null ? "" : url.trim();
         if (!isValid(cleanUrl)) throw new IllegalArgumentException("Link playlist phải bắt đầu bằng http:// hoặc https://");
+        if (isDefault(cleanUrl)) return;
         List<Source> values = new ArrayList<>(load(context));
         String requestedName = name == null ? "" : name.trim();
         for (int i = values.size() - 1; i >= 0; i--) if (values.get(i).url.equals(cleanUrl)) {
@@ -58,6 +58,7 @@ final class PlaylistSourceStore {
     static void update(Context context, int index, String name, String url) throws Exception {
         String cleanUrl = url == null ? "" : url.trim();
         if (!isValid(cleanUrl)) throw new IllegalArgumentException("Link playlist phải bắt đầu bằng http:// hoặc https://");
+        if (isDefault(cleanUrl)) throw new IllegalArgumentException("Nguồn mặc định đã có sẵn trong ứng dụng");
         List<Source> values = new ArrayList<>(load(context));
         if (index < 0 || index >= values.size()) throw new IllegalArgumentException("Nguồn IPTV không còn tồn tại");
         values.remove(index);
@@ -73,6 +74,7 @@ final class PlaylistSourceStore {
     }
 
     static boolean isValid(String url) { return url != null && (url.startsWith("https://") || url.startsWith("http://")); }
+    static boolean isDefault(String url) { if(url==null)return false;String clean=url.trim();return DEFAULT_URL.equals(clean)||LEGACY_DEFAULT_URL.equals(clean); }
     private static String cleanName(String name, String url) {
         String clean = name == null ? "" : name.trim();
         if (!clean.isEmpty()) return clean.length() > 80 ? clean.substring(0, 80) : clean;
