@@ -52,17 +52,17 @@ jobs:
       - name: Verify and package Mobile APK
         run: |
           mkdir -p dist/mobile
-          cp app/build/outputs/apk/mobile/debug/app-mobile-debug.apk dist/mobile/NM7-IPTV-Mobile-1.10.19.apk
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs dist/mobile/NM7-IPTV-Mobile-1.10.19.apk
-          if unzip -l dist/mobile/NM7-IPTV-Mobile-1.10.19.apk | grep -q 'libvlc\.so'; then
+          cp app/build/outputs/apk/mobile/debug/app-mobile-debug.apk dist/mobile/NM7-IPTV-Mobile-1.10.20.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs dist/mobile/NM7-IPTV-Mobile-1.10.20.apk
+          if unzip -l dist/mobile/NM7-IPTV-Mobile-1.10.20.apk | grep -q 'libvlc\.so'; then
             echo 'Mobile APK unexpectedly contains LibVLC' >&2
             exit 1
           fi
-          (cd dist/mobile && sha256sum NM7-IPTV-Mobile-1.10.19.apk | tee SHA256SUMS.txt)
+          (cd dist/mobile && sha256sum NM7-IPTV-Mobile-1.10.20.apk | tee SHA256SUMS.txt)
       - name: Upload Mobile APK
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: NM7-IPTV-Mobile-1.10.19-APK
+          name: NM7-IPTV-Mobile-1.10.20-APK
           path: dist/mobile/
           retention-days: 30
           if-no-files-found: error
@@ -81,7 +81,7 @@ jobs:
           emulator-boot-timeout: 420
           disable-animations: true
           disable-spellchecker: true
-          script: python3 tools/android_smoke_current.py dist/mobile/NM7-IPTV-Mobile-1.10.19.apk
+          script: python3 tools/android_smoke_current.py dist/mobile/NM7-IPTV-Mobile-1.10.20.apk
       - name: Upload test and lint reports
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
