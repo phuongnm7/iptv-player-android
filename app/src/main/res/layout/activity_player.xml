@@ -172,8 +172,9 @@
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
             android:layout_marginTop="2dp" android:text="Chọn kênh • Back để đóng"
             android:textColor="@color/text_secondary" android:textSize="11sp" />
-        <HorizontalScrollView android:layout_width="match_parent" android:layout_height="52dp"
-            android:layout_marginTop="8dp" android:scrollbars="none">
+        <HorizontalScrollView android:id="@+id/quickGroupScroller" android:layout_width="match_parent" android:layout_height="52dp"
+            android:layout_marginTop="8dp" android:scrollbars="none" android:fillViewport="false"
+            android:fadingEdge="none" android:overScrollMode="never" android:smoothScrollbar="true">
             <LinearLayout android:id="@+id/quickGroupRow" android:layout_width="wrap_content"
                 android:layout_height="match_parent" android:gravity="center_vertical"
                 android:orientation="horizontal" />
