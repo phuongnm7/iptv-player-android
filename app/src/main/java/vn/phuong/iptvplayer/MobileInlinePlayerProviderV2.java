@@ -166,7 +166,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         playerView.setControllerHideOnTouch(true);
         playerView.setControllerShowTimeoutMs(4500);
         playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FIT);
-        playerView.setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING);
+        playerView.setShowBuffering(PlayerView.SHOW_BUFFERING_NEVER);
         playerView.setKeepContentOnPlayerReset(true);
         videoContainer.addView(playerView, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
@@ -390,8 +390,8 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
 
     private static DefaultLoadControl stableLoadControl() {
         return new DefaultLoadControl.Builder()
-                .setBufferDurationsMs(20_000, 90_000, 750, 2_500)
-                .setBackBuffer(15_000, true)
+                .setBufferDurationsMs(30_000, 120_000, 1_200, 5_000)
+                .setBackBuffer(20_000, true)
                 .setPrioritizeTimeOverSizeThresholds(true)
                 .build();
     }
@@ -433,7 +433,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         if (currentActivity == null || currentChannel != channel || generation != playGeneration) return;
         try {
             Map<String, String> headers = new LinkedHashMap<>(channel.headers());
-            String ua = headers.containsKey("User-Agent") ? headers.get("User-Agent") : "Nm7-IPTV/1.10.20 Android";
+            String ua = headers.containsKey("User-Agent") ? headers.get("User-Agent") : "Nm7-IPTV/1.10.22 Android";
             DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory()
                     .setUserAgent(ua)
                     .setConnectTimeoutMs(30_000)
@@ -444,7 +444,12 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
             DefaultMediaSourceFactory mediaFactory = new DefaultMediaSourceFactory(data)
                     .setLoadErrorHandlingPolicy(new DefaultLoadErrorHandlingPolicy(8));
 
-            MediaItem.Builder media = new MediaItem.Builder().setUri(channel.url());
+            MediaItem.Builder media = new MediaItem.Builder().setUri(channel.url())
+                    .setLiveConfiguration(new MediaItem.LiveConfiguration.Builder()
+                            .setTargetOffsetMs(6_000)
+                            .setMinPlaybackSpeed(0.97f)
+                            .setMaxPlaybackSpeed(1.03f)
+                            .build());
             String mime = forcedMime;
             if (mime == null || mime.isEmpty()) mime = channel.mimeHint();
             if (mime == null || mime.isEmpty()) mime = StreamSpec.inferMime(channel.url(), channel.options());
@@ -627,28 +632,20 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         }
         boolean drmSystem = error.errorCode == PlaybackException.ERROR_CODE_DRM_SYSTEM_ERROR;
         boolean transientError = isTransientPlaybackError(error);
-        if (transientError && recoveryAttempts < 4) {
-            int attempt = ++recoveryAttempts;
-            long delay = attempt == 1 ? 350 : attempt == 2 ? 800 : attempt == 3 ? 1800 : 3500;
-            programme.setText("Luồng tạm gián đoạn, đang giữ phiên và thử lại…");
-            ExoPlayer retryPlayer = player;
-            if (attempt <= 2 && retryPlayer != null) {
-                mainHandler.postDelayed(() -> {
-                    if (generation != playGeneration || currentChannel != channel || player != retryPlayer) return;
-                    try {
-                        retryPlayer.prepare();
-                        retryPlayer.play();
-                    } catch (RuntimeException ignored) {
-                        releasePlayer();
-                        startInlinePlayer(channel, drm, generation, forcedMime);
-                    }
-                }, delay);
-            } else {
-                releasePlayer();
-                mainHandler.postDelayed(() -> {
-                    if (generation == playGeneration && currentChannel == channel) startInlinePlayer(channel, drm, generation, forcedMime);
-                }, delay);
-            }
+        if (transientError) {
+            // A live source can time out repeatedly even on a healthy client network.
+            // Never leave the player in a terminal error state: recreate the request with
+            // capped backoff while preserving the last rendered frame in PlayerView.
+            int attempt = Math.min(++recoveryAttempts, 8);
+            long delay = attempt <= 2 ? 500L : attempt <= 4 ? 1_500L
+                    : attempt <= 6 ? 3_500L : 7_000L;
+            programme.setText("Luồng tạm gián đoạn, đang tự kết nối lại…");
+            releasePlayer();
+            mainHandler.postDelayed(() -> {
+                if (generation == playGeneration && currentChannel == channel && !userPaused) {
+                    startInlinePlayer(channel, drm, generation, forcedMime);
+                }
+            }, delay);
             return;
         }
         if (drmSystem && recoveryAttempts < 3) {
@@ -667,12 +664,14 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
 
     private boolean isTransientPlaybackError(PlaybackException error) {
         if (error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED
-                || error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT) return true;
+                || error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT
+                || error.errorCode == PlaybackException.ERROR_CODE_TIMEOUT
+                || error.errorCode == PlaybackException.ERROR_CODE_IO_UNSPECIFIED) return true;
         Throwable cause = error.getCause();
         while (cause != null) {
             if (cause instanceof HttpDataSource.InvalidResponseCodeException) {
                 int code = ((HttpDataSource.InvalidResponseCodeException) cause).responseCode;
-                return code == 408 || code == 429 || code >= 500;
+                return code == 401 || code == 403 || code == 408 || code == 429 || code >= 500;
             }
             cause = cause.getCause();
         }
@@ -693,7 +692,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
                         connection.setInstanceFollowRedirects(false);
                         connection.setRequestMethod("GET");
                         for (Map.Entry<String, String> header : headers.entrySet()) connection.setRequestProperty(header.getKey(), header.getValue());
-                        if (!headers.containsKey("User-Agent")) connection.setRequestProperty("User-Agent", "Nm7-IPTV/1.10.20 Android");
+                        if (!headers.containsKey("User-Agent")) connection.setRequestProperty("User-Agent", "Nm7-IPTV/1.10.22 Android");
                         int code = connection.getResponseCode();
                         if (code >= 300 && code < 400) {
                             String location = connection.getHeaderField("Location");
