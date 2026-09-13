@@ -643,7 +643,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         programme.setText(reason + "…");
 
         ExoPlayer active = player;
-        if (attempt == 1 && active != null && active.getPlaybackError() == null) {
+        if (attempt == 1 && active != null) {
             // First tier: retain the connection, timeline and decoder. Seek only when
             // the live position is clearly stale; unconditional live-edge seeks caused repeats.
             mainHandler.postDelayed(() -> {
