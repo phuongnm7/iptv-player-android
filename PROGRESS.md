@@ -10,7 +10,7 @@
 - Logo kênh dùng cache RAM LRU 16 MB, chặn tải trùng cùng URL, tải song song tối đa 4 tác vụ và có timeout 5/8 giây; hàng tái sử dụng lấy bitmap từ cache nên không tải lại mỗi lần vuốt.
 - Version: `versionCode 39`, `versionName 1.10.22`; repo TV không bị thay đổi.
 - Commit mã: `21fdaf3853e614af9806021a903f2c59b4192f26`; commit workflow: `cdbc47a91bf7726d1f0a8b67f1db740a59f95b71`.
-- Workflow run `34726563618`, job `103641642102`: compile, unit test, lint, ký/đóng gói APK và smoke-test Mobile trên Android 15 đều **SUCCESS**.
+- Workflow run `34726563618`, job `103641603760`: compile, unit test, lint, ký/đóng gói APK và smoke-test Mobile trên Android 15 đều **SUCCESS**.
 - Artifact `NM7-IPTV-Mobile-1.10.22-APK`, ID `10307104801`, archive digest `sha256:dbfac5a6b80428bb5f81a5d7e5290a821f97d85f5df344201e6c62ec74b50006`.
 - APK: 7.173.560 bytes; SHA-256 `67288e8479e5d594827052aff9afcc33a03108f309228a67b36dd009244c77ad`; kiểm tra ZIP và `sha256sum -c` đều đạt.
 - Cần thử dài hạn trên điện thoại thật bằng chính các kênh nước ngoài. CI xác nhận app không crash và luồng mẫu hoạt động nhưng không thể mô phỏng timeout/token/CDN của nguồn riêng.
