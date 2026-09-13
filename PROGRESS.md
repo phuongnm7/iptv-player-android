@@ -17,6 +17,8 @@
 - Artifact `NM7-IPTV-Mobile-1.10.23-APK`, ID `10309245086`, archive digest `sha256:d1a714f66863d428b547b1931e7c33cd7e2df20d7fb8501f935b86d52952754d`.
 - APK: 7.723.539 bytes; SHA-256 `0b3755ce087f3920fadbe7c4489d410e28bce431ab548dca386cc24c3740becb`.
 - Cần thử dài hạn trên điện thoại thật với đúng kênh nước ngoài/4K. Không thể bảo đảm nguồn máy chủ thiếu segment vẫn phát liên tục, nhưng app không còn restart chỉ vì BUFFERING còn tiến triển.
+- Phản hồi máy thật ngày 2026-09-13: bản 1.10.23 **ổn định hơn**; người dùng đang tiếp tục test dài hạn. Chưa đánh dấu là hết lỗi tuyệt đối.
+- Hồ sơ nguyên nhân, kiến trúc sửa, kết quả và checklist áp dụng cho Android TV: `docs/PLAYBACK_STABILITY_1.10.23.md`. Khi xử lý TV phải điều chỉnh theo Player/lifecycle TV, không sao chép nguyên trạng lớp Mobile.
 
 ---
 
