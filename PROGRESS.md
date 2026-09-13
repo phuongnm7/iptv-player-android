@@ -1,3 +1,23 @@
+# BÀN GIAO ĐANG KIỂM THỬ — NM7 IPTV MOBILE 1.10.24 (2026-09-13)
+
+## Sửa xóa nguồn đang dùng không quay về nguồn mặc định
+
+- Đã phân tích video máy thật `video_2026-09-13_21-17-06.mp4`: sau khi xóa nguồn tự thêm đang được sử dụng, mục nguồn biến mất khỏi màn hình quản lý nhưng nhóm/kênh của nguồn đó vẫn còn trên màn hình chính; phiên cũ tiếp tục được lưu.
+- Nguyên nhân: luồng xóa chỉ so sánh URL nguồn bằng chuỗi tuyệt đối với dòng đầu của `currentSource`. Trạng thái có mô tả/redirect khác có thể làm nhận diện sai. Ngoài ra, app chờ tải nguồn mặc định xong mới thay dữ liệu trong bộ nhớ, nên khi mạng chậm/lỗi giao diện vẫn treo ở playlist đã xóa.
+- Khi xóa, app nay đối chiếu nguồn hiện hành với toàn bộ danh sách nguồn còn lại. Nếu nguồn đang dùng không còn, app lập tức chuyển trạng thái về nguồn mặc định.
+- Trước khi gọi mạng, app xóa ngay danh sách kênh, nhóm, tìm kiếm, EPG, bộ đếm và phiên nguồn cũ; cập nhật màn hình về NM7 IPTV rồi tải lại nguồn mặc định. Vì vậy nguồn vừa xóa không thể tiếp tục tồn tại do cache hoặc do tải mặc định chậm.
+- Nếu xóa một nguồn không phải nguồn đang dùng, app giữ nguyên nguồn hiện tại và mở lại màn hình quản lý như trước.
+- Thêm unit test cho bốn trường hợp: nguồn đang dùng vẫn còn, nguồn đang dùng bị xóa, mô tả nguồn có dòng redirect, và nguồn mặc định/nội dung cục bộ không bị chuyển sai.
+- Version: `versionCode 41`, `versionName 1.10.24`. Repo TV không bị thay đổi.
+- Nhánh kiểm thử: `fix/mobile-source-delete-1.10.24`; chưa gộp vào `main` cho đến khi máy thật xác nhận.
+- Commit: phát hiện nguồn còn lại `6de217ae5fe074a1527df2bd908c47a354fbb172`; reset giao diện/phiên `0a568a4ff62a771df430c127dc562d65a2109c43`; test `39801f77d09021bce08826158d66fc13f9847edc`; tăng version `08da0bf16df557a897063702bfaf4a480ed9eeb4`; CI cuối `e4c713c161eb38381d95355f91490031a6b05ca4`.
+- Workflow run `34763079646` (#224), job `103739184185`: compile, unit test, lint, đọc version, xác minh chữ ký, kiểm tra không chứa LibVLC, đóng gói và smoke-test Mobile trên Android 15 đều **SUCCESS**.
+- Artifact `NM7-IPTV-Mobile-1.10.24-APK`, ID `10319532889`, archive SHA-256 `1dfd99bba7d2585a66a0566bb28ec4d9b74f539cd94f2596bea0354ce7a1d750`.
+- APK: 7.723.542 bytes; SHA-256 `eaf2ae2ce216038655f3044777dfa00957c006852d177bb2c28336d20d5fe3e3`; `sha256sum -c` đạt.
+- Cần test máy thật theo đúng chuỗi: thêm nguồn tùy chỉnh → chọn dùng → xóa chính nguồn đó → danh sách cũ phải biến mất ngay → NM7 IPTV tải lại → đóng/mở app vẫn ở nguồn mặc định.
+
+---
+
 # BÀN GIAO HIỆN TẠI — NM7 IPTV MOBILE 1.10.23 (2026-09-13)
 
 ## Bản Mobile 1.10.23 — duy trì phiên live và loại bỏ nhấp nháy logo
