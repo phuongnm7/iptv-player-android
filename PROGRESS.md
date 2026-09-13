@@ -1,3 +1,25 @@
+# BÀN GIAO HIỆN TẠI — NM7 IPTV MOBILE 1.10.23 (2026-09-13)
+
+## Bản Mobile 1.10.23 — duy trì phiên live và loại bỏ nhấp nháy logo
+
+- Phân tích ảnh/video máy thật của 1.10.22 cho thấy watchdog cũ chỉ dựa vào thời gian BUFFERING, reset lịch sử lỗi sau 8 giây phát và gọi prepare/recreate lặp lại; do đó hình thành vòng phát–tải–phát dù chức năng auto-play đã hoạt động.
+- Chuyển HTTP Media3 sang OkHttp DataSource dùng connection pool 8 socket, giữ kết nối 5 phút, retryOnConnectionFailure và ping 20 giây. Manifest/segment tái sử dụng socket thay vì liên tục tạo kết nối mới.
+- Watchdog theo dõi thêm tiến triển mạng từ bandwidth callback, buffered-ahead, trạng thái isLoading, vị trí phát và frame decoder. Luồng chậm nhưng còn nhận dữ liệu được chờ tối đa 35 giây; socket không tiến triển phục hồi sau 18 giây.
+- Phục hồi phân cấp: lần đầu giữ Player/timeline/decoder và prepare lại; các lần sau mới tạo MediaSource/Player mới qua connection pool. Backoff tự động được giới hạn 0,4–7 giây và không dừng chờ người dùng bấm Play.
+- Không reset lịch sử lỗi sau một đoạn phát ngắn; chỉ reset sau 2 phút phát liên tục, giúp lỗi CDN lặp lại được nâng cấp sang phương án phục hồi mạnh hơn.
+- Bỏ seekToDefaultPosition vô điều kiện. Chỉ nhảy live edge khi luồng kết thúc hoặc live offset vượt 45 giây, giảm phát lặp đoạn cũ. Live target offset tăng từ 6 lên 10 giây.
+- Sửa nháy logo: bỏ notifyDataSetChanged sau mỗi ảnh; một URL chỉ có một tác vụ tải và cập nhật đúng các Holder đang chờ. Giữ drawable nếu URL của hàng không đổi.
+- Logo có cache RAM LRU 24 MB và cache ổ đĩa trong cache app; giới hạn mỗi ảnh 2 MB, timeout 5/8 giây.
+- Version: `versionCode 40`, `versionName 1.10.23`; repo TV không bị thay đổi.
+- Commit tính năng: `d48a84cd64d848c5259cc185dbc05f92ef105fb0`; workflow: `b768815250fd0d480a2a73f9f28a0961ae0e6e76`; sửa tương thích Media3: `454735411f92a39a855d2f5f4024b42804a150c4`.
+- Build đầu run `34727897253` bị compiler chặn do Media3 1.11 không có getPlaybackError; đã sửa đúng API, không tạo/bàn giao APK từ run lỗi.
+- Build bàn giao run `34728059143`, job `103645667798`: compile, unit test, lint, ký/đóng gói và smoke-test Mobile trên Android 15 đều **SUCCESS**.
+- Artifact `NM7-IPTV-Mobile-1.10.23-APK`, ID `10309245086`, archive digest `sha256:d1a714f66863d428b547b1931e7c33cd7e2df20d7fb8501f935b86d52952754d`.
+- APK: 7.723.539 bytes; SHA-256 `0b3755ce087f3920fadbe7c4489d410e28bce431ab548dca386cc24c3740becb`.
+- Cần thử dài hạn trên điện thoại thật với đúng kênh nước ngoài/4K. Không thể bảo đảm nguồn máy chủ thiếu segment vẫn phát liên tục, nhưng app không còn restart chỉ vì BUFFERING còn tiến triển.
+
+---
+
 # BÀN GIAO HIỆN TẠI — NM7 IPTV MOBILE 1.10.22 (2026-09-13)
 
 ## Bản Mobile 1.10.22 — tự nối lại timeout, giảm giật và cache logo
