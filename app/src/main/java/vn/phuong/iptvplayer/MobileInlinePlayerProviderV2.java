@@ -46,6 +46,7 @@ import androidx.media3.common.util.UnstableApi;
 import androidx.media3.datasource.DefaultDataSource;
 import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.datasource.HttpDataSource;
+import androidx.media3.datasource.okhttp.OkHttpDataSource;
 import androidx.media3.exoplayer.DefaultLoadControl;
 import androidx.media3.exoplayer.DefaultRenderersFactory;
 import androidx.media3.exoplayer.DecoderCounters;
@@ -68,6 +69,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+import okhttp3.ConnectionPool;
+import okhttp3.OkHttpClient;
 
 /** Mobile inline player with DVR seekbar, clean tap controls, fullscreen icons and background playback. */
 @UnstableApi
@@ -104,8 +109,19 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
     private long bufferingSinceMs;
     private int lastRenderedBufferCount = -1;
     private long lastFrameProgressMs;
+    private long lastNetworkProgressMs;
+    private long stablePlaybackSinceMs;
     private boolean fullscreen;
     private View.OnLayoutChangeListener rootLayoutListener;
+
+    private static final OkHttpClient STREAM_HTTP = new OkHttpClient.Builder()
+            .connectTimeout(20, TimeUnit.SECONDS)
+            .readTimeout(45, TimeUnit.SECONDS)
+            .writeTimeout(20, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
+            .pingInterval(20, TimeUnit.SECONDS)
+            .connectionPool(new ConnectionPool(8, 5, TimeUnit.MINUTES))
+            .build();
 
     private final Runnable statsTick = new Runnable() {
         @Override public void run() {
@@ -405,6 +421,8 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         bufferingSinceMs = 0;
         lastRenderedBufferCount = -1;
         lastFrameProgressMs = android.os.SystemClock.elapsedRealtime();
+        lastNetworkProgressMs = lastFrameProgressMs;
+        stablePlaybackSinceMs = 0;
         currentChannel = channel;
         panel.setVisibility(View.VISIBLE);
         playerView.hideController();
@@ -433,12 +451,12 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         if (currentActivity == null || currentChannel != channel || generation != playGeneration) return;
         try {
             Map<String, String> headers = new LinkedHashMap<>(channel.headers());
-            String ua = headers.containsKey("User-Agent") ? headers.get("User-Agent") : "Nm7-IPTV/1.10.22 Android";
-            DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory()
+            String ua = headers.containsKey("User-Agent") ? headers.get("User-Agent") : "Nm7-IPTV/1.10.23 Android";
+            // Reuse sockets across manifests and media segments. OkHttp keeps the
+            // live session warm and retries a broken pooled connection before Media3
+            // has to rebuild the whole source.
+            OkHttpDataSource.Factory http = new OkHttpDataSource.Factory(STREAM_HTTP)
                     .setUserAgent(ua)
-                    .setConnectTimeoutMs(30_000)
-                    .setReadTimeoutMs(60_000)
-                    .setAllowCrossProtocolRedirects(true)
                     .setDefaultRequestProperties(headers);
             DefaultDataSource.Factory data = new DefaultDataSource.Factory(currentActivity, http);
             DefaultMediaSourceFactory mediaFactory = new DefaultMediaSourceFactory(data)
@@ -446,7 +464,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
 
             MediaItem.Builder media = new MediaItem.Builder().setUri(channel.url())
                     .setLiveConfiguration(new MediaItem.LiveConfiguration.Builder()
-                            .setTargetOffsetMs(6_000)
+                            .setTargetOffsetMs(10_000)
                             .setMinPlaybackSpeed(0.97f)
                             .setMaxPlaybackSpeed(1.03f)
                             .build());
@@ -478,12 +496,19 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
                     lastFrameProgressMs = android.os.SystemClock.elapsedRealtime();
                     fpsMeter.reset();
                 }
+                @Override public void onBandwidthEstimate(EventTime eventTime, int totalLoadTimeMs,
+                                                           long totalBytesLoaded, long bitrateEstimate) {
+                    if (generation == playGeneration && totalBytesLoaded > 0) {
+                        lastNetworkProgressMs = android.os.SystemClock.elapsedRealtime();
+                    }
+                }
             });
             next.addListener(new Player.Listener() {
                 @Override public void onPlaybackStateChanged(int state) {
                     if (generation != playGeneration || next != player) return;
                     if (state == Player.STATE_BUFFERING) {
-                        programme.setText("Đang tải luồng…");
+                        programme.setText("Đang ổn định bộ đệm…");
+                        stablePlaybackSinceMs = 0;
                         if (bufferingSinceMs == 0) bufferingSinceMs = android.os.SystemClock.elapsedRealtime();
                     }
                     if (state == Player.STATE_READY) {
@@ -491,9 +516,6 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
                         updateProgramme(channel);
                         updateSeekUi();
                         keepScreenAwake(true);
-                        mainHandler.postDelayed(() -> {
-                            if (generation == playGeneration && next == player && next.isPlaying()) recoveryAttempts = 0;
-                        }, 8000);
                     }
                     if (state == Player.STATE_ENDED && !userPaused) {
                         recoverPlayback(channel, drm, generation, forcedMime, "Luồng đã kết thúc");
@@ -503,7 +525,11 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
                     if (generation != playGeneration || next != player) return;
                     if (isPlaying) {
                         bufferingSinceMs = 0;
+                        lastNetworkProgressMs = android.os.SystemClock.elapsedRealtime();
+                        if (stablePlaybackSinceMs == 0) stablePlaybackSinceMs = lastNetworkProgressMs;
                         if (!backgroundActive) keepScreenAwake(true);
+                    } else {
+                        stablePlaybackSinceMs = 0;
                     }
                 }
                 @Override public void onPlayWhenReadyChanged(boolean playWhenReady, int reason) {
@@ -554,23 +580,42 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         Channel channel = currentChannel;
         if (active == null || channel == null || userPaused || backgroundActive || currentActivity == null
                 || panel == null || panel.getVisibility() != View.VISIBLE) return;
+
         int state = active.getPlaybackState();
         long now = android.os.SystemClock.elapsedRealtime();
+        if (active.isPlaying() && stablePlaybackSinceMs > 0
+                && now - stablePlaybackSinceMs >= 120_000) {
+            // Short successful bursts must not erase the stall history. Reset only
+            // after two continuous minutes so repeated CDN failures escalate.
+            recoveryAttempts = 0;
+            stablePlaybackSinceMs = now;
+        }
+
         if (state == Player.STATE_BUFFERING) {
+            stablePlaybackSinceMs = 0;
             if (bufferingSinceMs == 0) bufferingSinceMs = now;
-            if (now - bufferingSinceMs >= 10_000) {
+            long stalledFor = now - bufferingSinceMs;
+            long bufferedAhead = Math.max(0L, active.getBufferedPosition() - active.getCurrentPosition());
+            boolean networkRecentlyMoved = now - lastNetworkProgressMs < 8_000;
+            // Do not restart a slow-but-progressing transfer. A request that is still
+            // moving receives a longer grace period; a dead socket is recovered sooner.
+            long limit = (networkRecentlyMoved || (active.isLoading() && bufferedAhead > 0))
+                    ? 35_000L : 18_000L;
+            if (stalledFor >= limit) {
                 bufferingSinceMs = now;
                 recoverPlayback(channel, DrmSpec.fromOptions(channel.options()), playGeneration, "",
-                        "Luồng tải quá lâu, đang kết nối lại");
+                        "Luồng ngừng nhận dữ liệu, đang phục hồi kết nối");
             }
             return;
         }
+
         if (state == Player.STATE_READY && !active.getPlayWhenReady()
                 && active.getPlaybackSuppressionReason() == Player.PLAYBACK_SUPPRESSION_REASON_NONE) {
             active.play();
             programme.setText("Đang tự tiếp tục phát…");
             return;
         }
+
         if (state == Player.STATE_READY && active.getPlayWhenReady()
                 && active.getPlaybackSuppressionReason() == Player.PLAYBACK_SUPPRESSION_REASON_NONE
                 && videoCounters != null) {
@@ -578,10 +623,10 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
             if (rendered != lastRenderedBufferCount) {
                 lastRenderedBufferCount = rendered;
                 lastFrameProgressMs = now;
-            } else if (lastFrameProgressMs > 0 && now - lastFrameProgressMs >= 8_000) {
+            } else if (lastFrameProgressMs > 0 && now - lastFrameProgressMs >= 12_000) {
                 lastFrameProgressMs = now;
                 recoverPlayback(channel, DrmSpec.fromOptions(channel.options()), playGeneration, "",
-                        "Hình ảnh bị đứng, đang về luồng trực tiếp");
+                        "Decoder ngừng xuất hình, đang phục hồi");
             }
         } else {
             lastRenderedBufferCount = videoCounters == null ? -1 : videoCounters.renderedOutputBufferCount;
@@ -589,21 +634,25 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         }
     }
 
-    private void recoverPlayback(Channel channel, DrmSpec drm, int generation, String forcedMime, String reason) {
+    private void recoverPlayback(Channel channel, DrmSpec drm, int generation,
+                                 String forcedMime, String reason) {
         if (generation != playGeneration || currentChannel != channel || userPaused) return;
-        if (recoveryAttempts >= 6) {
-            programme.setText(reason + " • không thể tự nối lại");
-            return;
-        }
-        int attempt = ++recoveryAttempts;
-        long delay = attempt <= 2 ? 500L : attempt <= 4 ? 1_500L : 3_500L;
-        programme.setText(reason + " • thử lần " + attempt + "/6…");
+        int attempt = Math.min(++recoveryAttempts, 8);
+        long delay = attempt == 1 ? 400L : attempt == 2 ? 900L
+                : attempt <= 4 ? 2_000L : attempt <= 6 ? 4_000L : 7_000L;
+        programme.setText(reason + "…");
+
         ExoPlayer active = player;
-        if (attempt <= 2 && active != null) {
+        if (attempt == 1 && active != null && active.getPlaybackError() == null) {
+            // First tier: retain the connection, timeline and decoder. Seek only when
+            // the live position is clearly stale; unconditional live-edge seeks caused repeats.
             mainHandler.postDelayed(() -> {
-                if (generation != playGeneration || player != active || currentChannel != channel || userPaused) return;
+                if (generation != playGeneration || player != active
+                        || currentChannel != channel || userPaused) return;
                 try {
-                    if (active.isCurrentMediaItemLive() || active.getPlaybackState() == Player.STATE_ENDED) {
+                    long liveOffset = active.getCurrentLiveOffset();
+                    if (active.getPlaybackState() == Player.STATE_ENDED
+                            || (liveOffset != C.TIME_UNSET && liveOffset > 45_000)) {
                         active.seekToDefaultPosition();
                     }
                     active.prepare();
@@ -614,6 +663,8 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
                 }
             }, delay);
         } else {
+            // Higher tiers cancel a genuinely stuck request and rebuild it using the
+            // shared HTTP connection pool. Backoff is capped, so recovery remains automatic.
             releasePlayer();
             mainHandler.postDelayed(() -> {
                 if (generation == playGeneration && currentChannel == channel && !userPaused) {
@@ -633,19 +684,8 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         boolean drmSystem = error.errorCode == PlaybackException.ERROR_CODE_DRM_SYSTEM_ERROR;
         boolean transientError = isTransientPlaybackError(error);
         if (transientError) {
-            // A live source can time out repeatedly even on a healthy client network.
-            // Never leave the player in a terminal error state: recreate the request with
-            // capped backoff while preserving the last rendered frame in PlayerView.
-            int attempt = Math.min(++recoveryAttempts, 8);
-            long delay = attempt <= 2 ? 500L : attempt <= 4 ? 1_500L
-                    : attempt <= 6 ? 3_500L : 7_000L;
-            programme.setText("Luồng tạm gián đoạn, đang tự kết nối lại…");
-            releasePlayer();
-            mainHandler.postDelayed(() -> {
-                if (generation == playGeneration && currentChannel == channel && !userPaused) {
-                    startInlinePlayer(channel, drm, generation, forcedMime);
-                }
-            }, delay);
+            recoverPlayback(channel, drm, generation, forcedMime,
+                    "Kết nối tạm gián đoạn, đang tự nối lại");
             return;
         }
         if (drmSystem && recoveryAttempts < 3) {
@@ -692,7 +732,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
                         connection.setInstanceFollowRedirects(false);
                         connection.setRequestMethod("GET");
                         for (Map.Entry<String, String> header : headers.entrySet()) connection.setRequestProperty(header.getKey(), header.getValue());
-                        if (!headers.containsKey("User-Agent")) connection.setRequestProperty("User-Agent", "Nm7-IPTV/1.10.22 Android");
+                        if (!headers.containsKey("User-Agent")) connection.setRequestProperty("User-Agent", "Nm7-IPTV/1.10.23 Android");
                         int code = connection.getResponseCode();
                         if (code >= 300 && code < 400) {
                             String location = connection.getHeaderField("Location");
@@ -865,6 +905,8 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         bufferingSinceMs = 0;
         lastRenderedBufferCount = -1;
         lastFrameProgressMs = 0;
+        lastNetworkProgressMs = 0;
+        stablePlaybackSinceMs = 0;
         videoCounters = null;
         fpsMeter.reset();
         if (player != null) {

@@ -10,8 +10,8 @@ android {
         applicationId = "vn.phuong.iptvplayer"
         minSdk = 23
         targetSdk = 36
-        versionCode = 39
-        versionName = "1.10.22"
+        versionCode = 40
+        versionName = "1.10.23"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -58,6 +58,8 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer-rtsp:$media3Version")
     implementation("androidx.media3:media3-datasource-rtmp:$media3Version")
     implementation("androidx.media3:media3-ui:$media3Version")
+    implementation("androidx.media3:media3-datasource-okhttp:$media3Version")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     // Compile the VLC fallback activity for both variants, but package LibVLC only
     // in the TV APK. The Mobile APK therefore stays lightweight.

@@ -12,14 +12,18 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.lang.ref.WeakReference;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -29,19 +33,22 @@ public final class ChannelAdapter extends BaseAdapter {
         void onFavoriteChanged(Channel channel, boolean favorite);
     }
 
-    private static final int LOGO_CACHE_KB = 16 * 1024;
-    private static final LruCache<String, Bitmap> LOGO_CACHE = new LruCache<String, Bitmap>(LOGO_CACHE_KB) {
-        @Override protected int sizeOf(String key, Bitmap bitmap) {
-            return Math.max(1, bitmap.getAllocationByteCount() / 1024);
-        }
-    };
-    private static final Set<String> LOGO_LOADING =
-            Collections.synchronizedSet(new HashSet<>());
+    private static final int MAX_LOGO_BYTES = 2 * 1024 * 1024;
+    private static final int LOGO_CACHE_KB = 24 * 1024;
+    private static final LruCache<String, Bitmap> LOGO_CACHE =
+            new LruCache<String, Bitmap>(LOGO_CACHE_KB) {
+                @Override protected int sizeOf(String key, Bitmap bitmap) {
+                    return Math.max(1, bitmap.getAllocationByteCount() / 1024);
+                }
+            };
+    private static final Object WAITERS_LOCK = new Object();
+    private static final Map<String, List<WeakReference<Holder>>> LOGO_WAITERS = new HashMap<>();
 
     private final LayoutInflater inflater;
     private final Context context;
     private final Listener listener;
     private final ExecutorService logoIo = Executors.newFixedThreadPool(4);
+    private final File logoCacheDir;
     private List<Channel> channels = new ArrayList<>();
     private EpgStore.Guide guide;
     private String playingChannelId = "";
@@ -50,6 +57,8 @@ public final class ChannelAdapter extends BaseAdapter {
         this.context = context;
         this.inflater = LayoutInflater.from(context);
         this.listener = listener;
+        logoCacheDir = new File(context.getCacheDir(), "channel-logos-v2");
+        if (!logoCacheDir.exists()) logoCacheDir.mkdirs();
     }
 
     public void submit(List<Channel> channels) {
@@ -111,44 +120,124 @@ public final class ChannelAdapter extends BaseAdapter {
     }
 
     private void loadLogo(Holder holder, String url) {
+        Object previous = holder.logo.getTag();
+        if (url != null && url.equals(previous) && holder.logo.getDrawable() != null) {
+            holder.logo.setVisibility(View.VISIBLE);
+            holder.badge.setVisibility(View.GONE);
+            return;
+        }
         holder.logo.setTag(url);
         Bitmap cached = url == null ? null : LOGO_CACHE.get(url);
         if (cached != null) {
             showLogo(holder, url, cached);
             return;
         }
+
         holder.logo.setImageDrawable(null);
         holder.logo.setVisibility(View.GONE);
         holder.badge.setVisibility(View.VISIBLE);
-        if (url == null || url.isEmpty()
-                || !(url.startsWith("http://") || url.startsWith("https://"))) return;
+        if (!isRemoteLogo(url)) return;
 
-        if (!LOGO_LOADING.add(url)) return;
-        logoIo.execute(() -> {
-            Bitmap bitmap = null;
-            HttpURLConnection connection = null;
-            try {
-                connection = (HttpURLConnection) new URL(url).openConnection();
-                connection.setConnectTimeout(5_000);
-                connection.setReadTimeout(8_000);
-                connection.setInstanceFollowRedirects(true);
-                connection.setRequestProperty("User-Agent", "Nm7-IPTV/1.10.22 Android");
-                try (InputStream input = connection.getInputStream()) {
-                    bitmap = BitmapFactory.decodeStream(input);
-                }
-                if (bitmap != null) LOGO_CACHE.put(url, bitmap);
-            } catch (Exception ignored) {
-                // Keep the inexpensive text badge when a remote logo is unavailable.
-            } finally {
-                if (connection != null) connection.disconnect();
-                LOGO_LOADING.remove(url);
+        boolean startLoad = false;
+        synchronized (WAITERS_LOCK) {
+            List<WeakReference<Holder>> waiters = LOGO_WAITERS.get(url);
+            if (waiters == null) {
+                waiters = new ArrayList<>();
+                LOGO_WAITERS.put(url, waiters);
+                startLoad = true;
             }
+            waiters.add(new WeakReference<>(holder));
+        }
+        if (!startLoad) return;
+
+        logoIo.execute(() -> {
+            Bitmap bitmap = readCachedLogo(url);
+            if (bitmap == null) bitmap = downloadLogo(url);
+            if (bitmap != null) LOGO_CACHE.put(url, bitmap);
+
+            List<WeakReference<Holder>> waiters;
+            synchronized (WAITERS_LOCK) {
+                waiters = LOGO_WAITERS.remove(url);
+            }
+            if (waiters == null) return;
             final Bitmap ready = bitmap;
-            holder.logo.post(() -> {
-                if (ready != null && url.equals(holder.logo.getTag())) showLogo(holder, url, ready);
-                notifyDataSetChanged();
-            });
+            for (WeakReference<Holder> reference : waiters) {
+                Holder waiting = reference.get();
+                if (waiting == null) continue;
+                waiting.logo.post(() -> {
+                    if (ready != null && url.equals(waiting.logo.getTag())) {
+                        showLogo(waiting, url, ready);
+                    }
+                });
+            }
         });
+    }
+
+    private Bitmap readCachedLogo(String url) {
+        File file = cacheFile(url);
+        if (!file.isFile()) return null;
+        Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
+        if (bitmap == null) file.delete();
+        return bitmap;
+    }
+
+    private Bitmap downloadLogo(String url) {
+        HttpURLConnection connection = null;
+        File target = cacheFile(url);
+        File temporary = new File(target.getAbsolutePath() + ".tmp");
+        try {
+            connection = (HttpURLConnection) new URL(url).openConnection();
+            connection.setConnectTimeout(5_000);
+            connection.setReadTimeout(8_000);
+            connection.setInstanceFollowRedirects(true);
+            connection.setRequestProperty("User-Agent", "Nm7-IPTV/1.10.23 Android");
+            int length = connection.getContentLength();
+            if (length > MAX_LOGO_BYTES) return null;
+            int total = 0;
+            try (InputStream input = connection.getInputStream();
+                 FileOutputStream output = new FileOutputStream(temporary)) {
+                byte[] buffer = new byte[8192];
+                int count;
+                while ((count = input.read(buffer)) >= 0) {
+                    total += count;
+                    if (total > MAX_LOGO_BYTES) throw new IllegalArgumentException("logo too large");
+                    output.write(buffer, 0, count);
+                }
+            }
+            Bitmap bitmap = BitmapFactory.decodeFile(temporary.getAbsolutePath());
+            if (bitmap == null) return null;
+            if (!temporary.renameTo(target)) {
+                try (FileOutputStream output = new FileOutputStream(target)) {
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 90, output);
+                }
+            }
+            return bitmap;
+        } catch (Exception ignored) {
+            return null;
+        } finally {
+            if (connection != null) connection.disconnect();
+            if (temporary.exists()) temporary.delete();
+        }
+    }
+
+    private File cacheFile(String url) {
+        return new File(logoCacheDir, sha256(url) + ".img");
+    }
+
+    private static String sha256(String value) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(value.getBytes(StandardCharsets.UTF_8));
+            StringBuilder result = new StringBuilder(64);
+            for (byte b : digest) result.append(String.format(java.util.Locale.ROOT, "%02x", b));
+            return result.toString();
+        } catch (Exception impossible) {
+            return Integer.toHexString(value.hashCode());
+        }
+    }
+
+    private static boolean isRemoteLogo(String url) {
+        return url != null && (url.startsWith("http://") || url.startsWith("https://"));
     }
 
     private static void showLogo(Holder holder, String url, Bitmap bitmap) {
