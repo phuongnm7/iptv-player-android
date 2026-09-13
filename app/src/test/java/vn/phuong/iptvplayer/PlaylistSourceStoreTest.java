@@ -21,4 +21,23 @@ public class PlaylistSourceStoreTest {
         assertFalse(PlaylistSourceStore.isLegacyDefault(PlaylistSourceStore.DEFAULT_URL));
         assertFalse(PlaylistSourceStore.isDefault("https://example.test/list.m3u"));
     }
+
+    @Test public void returnsToDefaultWhenCurrentCustomSourceWasDeleted() {
+        String custom = "https://example.test/custom.m3u";
+        assertFalse(PlaylistSourceStore.shouldReturnToDefault(
+                custom, java.util.Arrays.asList(new PlaylistSourceStore.Source("Custom", custom))));
+        assertTrue(PlaylistSourceStore.shouldReturnToDefault(
+                custom, java.util.Collections.emptyList()));
+        assertTrue(PlaylistSourceStore.shouldReturnToDefault(
+                custom + "\nChuyển hướng: https://cdn.example.test/live.m3u",
+                java.util.Collections.emptyList()));
+    }
+
+    @Test public void keepsDefaultAndLocalSessionsWhenAnotherSourceIsDeleted() {
+        assertFalse(PlaylistSourceStore.shouldReturnToDefault(
+                PlaylistSourceStore.DEFAULT_URL, java.util.Collections.emptyList()));
+        assertFalse(PlaylistSourceStore.shouldReturnToDefault(
+                "content://media/external/playlist.m3u", java.util.Collections.emptyList()));
+    }
+
 }
