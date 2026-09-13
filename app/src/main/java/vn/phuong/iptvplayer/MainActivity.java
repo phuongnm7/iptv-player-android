@@ -75,6 +75,13 @@ public final class MainActivity extends Activity {
 
     private void loadDefaultPlaylist(){inputUrl.setText(DEFAULT_PLAYLIST);loadFromUrl();}
 
+    private void resetToDefaultPlaylist(){
+        currentSource=DEFAULT_PLAYLIST;epgUrl="";duplicateCount=0;missingUrlCount=0;
+        allChannels.clear();inputSearch.setText("");selectedGroup="";activeSection=0;
+        rebuildGroups();updateSectionButtons();filter();adapter.submitGuide(null);
+        inputUrl.setText(DEFAULT_PLAYLIST);setImportExpanded(false);saveSession();loadFromUrl();
+    }
+
     private void reloadPlaylistUrl(){String source=currentSource==null?"":currentSource.split("\\n",2)[0].trim();if(!PlaylistSourceStore.isValid(source)){toast("Playlist hiện tại không phải link URL");return;}inputUrl.setText(source);loadFromUrl();}
 
     private void loadFromUrl(){
@@ -202,7 +209,7 @@ public final class MainActivity extends Activity {
     }
     private void confirmDeleteSource(PlaylistSourceStore.Source source,int index){
         new AlertDialog.Builder(this).setTitle("Xóa nguồn IPTV?").setMessage(source.name+"\n"+source.url)
-                .setPositiveButton("Xóa",(d,w)->{try{boolean removingActive=source.url.equals(currentSource==null?"":currentSource.split("\\n",2)[0].trim());PlaylistSourceStore.remove(this,index);toast("Đã xóa nguồn");if(removingActive){loadDefaultPlaylist();toast("Nguồn đang dùng đã bị xóa • đã chuyển về NM7 IPTV");}else showPlaylistSources();}catch(Exception e){showError("Không xóa được nguồn: "+readable(e));}})
+                .setPositiveButton("Xóa",(d,w)->{try{PlaylistSourceStore.remove(this,index);List<PlaylistSourceStore.Source> remaining=PlaylistSourceStore.load(this);toast("Đã xóa nguồn");if(PlaylistSourceStore.shouldReturnToDefault(currentSource,remaining)){resetToDefaultPlaylist();toast("Nguồn đang dùng đã bị xóa • đang tải lại NM7 IPTV");}else showPlaylistSources();}catch(Exception e){showError("Không xóa được nguồn: "+readable(e));}})
                 .setNegativeButton("Hủy",null).show();
     }
     private void playDirect(){String source=inputUrl.getText().toString().trim();if(source.isEmpty()){toast("Nhập URL để phát");return;}Channel c=new Channel("URL trực tiếp","Trực tiếp",source,"","",java.util.Collections.emptyMap());play(c);}
