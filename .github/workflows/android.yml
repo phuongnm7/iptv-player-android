@@ -52,7 +52,7 @@ jobs:
       - name: Read Mobile version
         id: mobile_version
         run: |
-          version="$(sed -n 's/.*versionName = "\\([^"]*\\)".*/\\1/p' app/build.gradle.kts | head -n 1)"
+          version="$(grep -m1 'versionName = "' app/build.gradle.kts | cut -d'"' -f2)"
           test -n "$version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Verify and package Mobile APK
@@ -61,7 +61,7 @@ jobs:
           apk="dist/mobile/NM7-IPTV-Mobile-${{ steps.mobile_version.outputs.version }}.apk"
           cp app/build/outputs/apk/mobile/debug/app-mobile-debug.apk "$apk"
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$apk"
-          if unzip -l "$apk" | grep -q 'libvlc\.so'; then
+          if unzip -l "$apk" | grep -q 'libvlc\\.so'; then
             echo 'Mobile APK unexpectedly contains LibVLC' >&2
             exit 1
           fi
