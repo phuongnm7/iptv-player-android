@@ -67,6 +67,7 @@ jobs:
           fi
           (cd dist/mobile && sha256sum "NM7-IPTV-Mobile-${{ steps.mobile_version.outputs.version }}.apk" | tee SHA256SUMS.txt)
       - name: Upload Mobile APK
+        continue-on-error: true
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: NM7-IPTV-Mobile-${{ steps.mobile_version.outputs.version }}-APK
@@ -91,6 +92,7 @@ jobs:
           script: python3 tools/android_smoke_current.py dist/mobile/NM7-IPTV-Mobile-${{ steps.mobile_version.outputs.version }}.apk
       - name: Upload test and lint reports
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: Android-test-reports
