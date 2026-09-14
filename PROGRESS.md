@@ -1,28 +1,29 @@
-# GHI NHẬN LỖI MỚI — NM7 IPTV MOBILE 1.10.24: chưa tự tải lại playlist khi mở ứng dụng (2026-09-14)
+# ĐANG KIỂM THỬ — NM7 IPTV MOBILE 1.10.25: tự tải lại playlist khi mở ứng dụng (2026-09-14)
 
-## Trạng thái Mobile hiện tại
+## Lỗi và nguyên nhân
 
-- Repo chuẩn: `phuongnm7/iptv-player-android`, nhánh `main`, vẫn ở chế độ private.
-- Bản ổn định mới nhất: `versionCode 41`, `versionName 1.10.24`. Người dùng đã xác nhận lỗi xóa nguồn đang sử dụng và quay về nguồn mặc định đã hoạt động đúng.
-- 1.10.24 tiếp tục là baseline ổn định. Lỗi tải lại khi khởi động được ghi nhận để xử lý ở phiên bản tiếp theo; chưa thay đổi mã player, nguồn, Mobile UI, TV flavor, iOS hoặc Tizen trong bước kiểm tra này.
+- 1.10.24 khôi phục nhanh danh sách kênh từ `SessionStore`, nhưng khi cache còn hợp lệ thì `restoreSession()` chỉ hiển thị cache và dừng; không gọi tải lại URL. Vì vậy nguồn mặc định và nguồn URL tự thêm có thể giữ danh sách cũ cho tới khi người dùng bấm **Tải lại**.
+- Nút tải lại thủ công và cơ chế chống cache HTTP vẫn hoạt động; lỗi nằm riêng ở đường khởi động ứng dụng.
 
-## Kết quả kiểm tra lỗi tải lại playlist
+## Thay đổi trong 1.10.25
 
-- Xác nhận lỗi tồn tại trong mã `main`: `MainActivity.onCreate()` gọi `restoreSession()`.
-- Khi `SessionStore` có danh sách kênh hợp lệ, `restoreSession()` chỉ gọi `showPlaylist(state.result, state.source)`, điền URL và tắt trạng thái loading; không gọi `reloadPlaylistUrl()` hoặc `loadFromUrl()`.
-- Vì vậy ứng dụng hiển thị nhanh playlist đã cache nhưng không kiểm tra nội dung mới từ URL khi mở lại. Tính năng nút **Tải lại** vẫn hoạt động và đã gửi `Cache-Control: no-cache`, `Pragma: no-cache`; lỗi nằm ở việc đường khởi động không kích hoạt nó.
-- Nguồn mặc định hiện tại và nguồn URL tự thêm đều có thể giữ dữ liệu cũ nếu phiên cache còn hợp lệ. Chỉ nguồn mặc định cũ (legacy) hoặc phiên rỗng mới đi qua đường tải mạng lúc khởi động.
-
-## Hướng sửa an toàn cho phiên bản tiếp theo
-
-- Giữ cơ chế cache-first: hiển thị ngay danh sách đã lưu để ứng dụng mở nhanh.
-- Sau khi giao diện cache xuất hiện, nếu nguồn hiện tại là URL HTTP/HTTPS thì tự tải lại ở nền đúng một lần cho lần mở ứng dụng.
-- Khi tải thành công, thay danh sách và lưu phiên mới; khi mạng lỗi hoặc playlist trả về rỗng, giữ nguyên danh sách cache đang xem, không xóa kênh và không bật hộp lỗi chặn giao diện.
-- Bảo toàn mục đang chọn, tìm kiếm/nhóm và tránh kết quả tải nền ghi đè một lần tải thủ công mới hơn.
-- Bổ sung kiểm thử cho: cache URL kích hoạt refresh, nguồn file cục bộ không refresh, tải lỗi vẫn giữ cache, URL có dòng chuyển hướng lấy đúng dòng đầu và tải thủ công vẫn giữ hành vi hiện tại.
-- Nếu triển khai, bắt đầu từ 1.10.24 trên `main`, tạo nhánh Mobile riêng và tăng phiên bản mới; không sửa repo NM7 TV.
+- Vẫn hiển thị playlist cache ngay để màn hình chính mở nhanh, sau đó tự tải lại nguồn HTTP/HTTPS ở nền đúng một lần.
+- Nguồn file/content cục bộ không bị gọi mạng.
+- Khi tải nền thành công, danh sách và phiên cache được thay bằng dữ liệu mới; giữ trạng thái tìm kiếm, nhóm và mục đang xem nếu chúng vẫn còn hợp lệ.
+- Khi mạng lỗi hoặc playlist trả về rỗng, ứng dụng giữ nguyên danh sách cache và không hiện hộp lỗi chặn giao diện.
+- Mỗi lần tải có số thế hệ. Nếu người dùng tải URL khác hoặc mở file cục bộ trong lúc refresh nền đang chạy, kết quả nền cũ bị bỏ và không thể ghi đè thao tác mới.
+- User-Agent tải playlist được đồng bộ thành `Nm7-IPTV/1.10.25 Android`.
+- Bổ sung unit test cho nguồn mặc định, URL tùy chỉnh, mô tả có dòng chuyển hướng, nguồn rỗng và file/content cục bộ.
+- Phiên bản thử nghiệm: `versionCode 42`, `versionName 1.10.25`.
+- Nhánh: `fix/mobile-startup-playlist-refresh-1.10.25`; commit sửa mã: `e242e1aaf0388a8639a210f2d41f181a7dfc5244`; commit CI: `ea531786c94f25fb2f3f2b09787a6840a441994c`.
+- Workflow run `34910095082` (#227), job `104195449906`: compile, unit test, lint, đọc version, xác minh chữ ký/không chứa LibVLC, đóng gói và smoke-test Mobile Android 15 ở dọc/ngang đều **SUCCESS**.
+- APK trong runner: `NM7-IPTV-Mobile-1.10.25.apk`; SHA-256 `f0c518e33d58082cd27fbf5b358723e976d95ba23bd74c81e778e0f69aec341f`.
+- GitHub Actions hiện chạm hạn mức lưu artifact nên không tạo được file tải xuống cho run #227. Workflow được chỉnh để lỗi hạ tầng upload không bỏ qua smoke-test; cảnh báo quota vẫn hiển thị và artifact list rỗng.
+- Chưa merge vào `main`. 1.10.24 tiếp tục là baseline ổn định cho đến khi người dùng cài và xác nhận 1.10.25 trên máy thật.
+- Repo NM7 TV, iOS và Tizen không bị thay đổi.
 
 ---
+
 
 # BÀN GIAO ỔN ĐỊNH — NM7 IPTV MOBILE 1.10.24 (2026-09-13)
 
