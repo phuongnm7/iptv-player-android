@@ -77,6 +77,10 @@ final class PlaylistSourceStore {
     static boolean isDefault(String url) { if(url==null)return false;String clean=url.trim();return DEFAULT_URL.equals(clean)||LEGACY_DEFAULT_URL.equals(clean); }
     static boolean isLegacyDefault(String url) { return url!=null&&LEGACY_DEFAULT_URL.equals(url.trim()); }
 
+    static boolean shouldRefreshOnStartup(String sourceDescription) {
+        return isValid(sourceUrl(sourceDescription));
+    }
+
     static String sourceUrl(String sourceDescription) {
         if (sourceDescription == null) return "";
         return sourceDescription.split("\n", 2)[0].trim();
