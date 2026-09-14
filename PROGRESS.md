@@ -1,3 +1,29 @@
+# GHI NHẬN LỖI MỚI — NM7 IPTV MOBILE 1.10.24: chưa tự tải lại playlist khi mở ứng dụng (2026-09-14)
+
+## Trạng thái Mobile hiện tại
+
+- Repo chuẩn: `phuongnm7/iptv-player-android`, nhánh `main`, vẫn ở chế độ private.
+- Bản ổn định mới nhất: `versionCode 41`, `versionName 1.10.24`. Người dùng đã xác nhận lỗi xóa nguồn đang sử dụng và quay về nguồn mặc định đã hoạt động đúng.
+- 1.10.24 tiếp tục là baseline ổn định. Lỗi tải lại khi khởi động được ghi nhận để xử lý ở phiên bản tiếp theo; chưa thay đổi mã player, nguồn, Mobile UI, TV flavor, iOS hoặc Tizen trong bước kiểm tra này.
+
+## Kết quả kiểm tra lỗi tải lại playlist
+
+- Xác nhận lỗi tồn tại trong mã `main`: `MainActivity.onCreate()` gọi `restoreSession()`.
+- Khi `SessionStore` có danh sách kênh hợp lệ, `restoreSession()` chỉ gọi `showPlaylist(state.result, state.source)`, điền URL và tắt trạng thái loading; không gọi `reloadPlaylistUrl()` hoặc `loadFromUrl()`.
+- Vì vậy ứng dụng hiển thị nhanh playlist đã cache nhưng không kiểm tra nội dung mới từ URL khi mở lại. Tính năng nút **Tải lại** vẫn hoạt động và đã gửi `Cache-Control: no-cache`, `Pragma: no-cache`; lỗi nằm ở việc đường khởi động không kích hoạt nó.
+- Nguồn mặc định hiện tại và nguồn URL tự thêm đều có thể giữ dữ liệu cũ nếu phiên cache còn hợp lệ. Chỉ nguồn mặc định cũ (legacy) hoặc phiên rỗng mới đi qua đường tải mạng lúc khởi động.
+
+## Hướng sửa an toàn cho phiên bản tiếp theo
+
+- Giữ cơ chế cache-first: hiển thị ngay danh sách đã lưu để ứng dụng mở nhanh.
+- Sau khi giao diện cache xuất hiện, nếu nguồn hiện tại là URL HTTP/HTTPS thì tự tải lại ở nền đúng một lần cho lần mở ứng dụng.
+- Khi tải thành công, thay danh sách và lưu phiên mới; khi mạng lỗi hoặc playlist trả về rỗng, giữ nguyên danh sách cache đang xem, không xóa kênh và không bật hộp lỗi chặn giao diện.
+- Bảo toàn mục đang chọn, tìm kiếm/nhóm và tránh kết quả tải nền ghi đè một lần tải thủ công mới hơn.
+- Bổ sung kiểm thử cho: cache URL kích hoạt refresh, nguồn file cục bộ không refresh, tải lỗi vẫn giữ cache, URL có dòng chuyển hướng lấy đúng dòng đầu và tải thủ công vẫn giữ hành vi hiện tại.
+- Nếu triển khai, bắt đầu từ 1.10.24 trên `main`, tạo nhánh Mobile riêng và tăng phiên bản mới; không sửa repo NM7 TV.
+
+---
+
 # BÀN GIAO ỔN ĐỊNH — NM7 IPTV MOBILE 1.10.24 (2026-09-13)
 
 ## Sửa xóa nguồn đang dùng không quay về nguồn mặc định
