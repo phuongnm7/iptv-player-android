@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: iptv-private-android-build
@@ -67,6 +67,7 @@ jobs:
           fi
           (cd dist/mobile && sha256sum "NM7-IPTV-Mobile-${{ steps.mobile_version.outputs.version }}.apk" | tee SHA256SUMS.txt)
       - name: Upload Mobile APK
+        id: upload_mobile_apk
         continue-on-error: true
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
@@ -90,6 +91,20 @@ jobs:
           disable-animations: true
           disable-spellchecker: true
           script: python3 tools/android_smoke_current.py dist/mobile/NM7-IPTV-Mobile-${{ steps.mobile_version.outputs.version }}.apk
+      - name: Publish Mobile test APK when artifact storage is unavailable
+        if: steps.upload_mobile_apk.outcome == 'failure' && startsWith(github.ref_name, 'fix/mobile-')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MOBILE_VERSION: ${{ steps.mobile_version.outputs.version }}
+        run: |
+          tag="mobile-v${MOBILE_VERSION}-test"
+          title="NM7 IPTV Mobile ${MOBILE_VERSION} (test)"
+          notes="Automated test build from ${GITHUB_SHA}. Main remains on the last confirmed stable version."
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" dist/mobile/* --clobber
+          else
+            gh release create "$tag" dist/mobile/* --prerelease --target "$GITHUB_SHA" --title "$title" --notes "$notes"
+          fi
       - name: Upload test and lint reports
         if: always()
         continue-on-error: true
