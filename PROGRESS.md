@@ -15,10 +15,10 @@
 - User-Agent tải playlist được đồng bộ thành `Nm7-IPTV/1.10.25 Android`.
 - Bổ sung unit test cho nguồn mặc định, URL tùy chỉnh, mô tả có dòng chuyển hướng, nguồn rỗng và file/content cục bộ.
 - Phiên bản thử nghiệm: `versionCode 42`, `versionName 1.10.25`.
-- Nhánh: `fix/mobile-startup-playlist-refresh-1.10.25`; commit sửa mã: `e242e1aaf0388a8639a210f2d41f181a7dfc5244`; commit CI: `ea531786c94f25fb2f3f2b09787a6840a441994c`.
-- Workflow run `34910095082` (#227), job `104195449906`: compile, unit test, lint, đọc version, xác minh chữ ký/không chứa LibVLC, đóng gói và smoke-test Mobile Android 15 ở dọc/ngang đều **SUCCESS**.
-- APK trong runner: `NM7-IPTV-Mobile-1.10.25.apk`; SHA-256 `f0c518e33d58082cd27fbf5b358723e976d95ba23bd74c81e778e0f69aec341f`.
-- GitHub Actions hiện chạm hạn mức lưu artifact nên không tạo được file tải xuống cho run #227. Workflow được chỉnh để lỗi hạ tầng upload không bỏ qua smoke-test; cảnh báo quota vẫn hiển thị và artifact list rỗng.
+- Nhánh: `fix/mobile-startup-playlist-refresh-1.10.25`; commit sửa mã: `e242e1aaf0388a8639a210f2d41f181a7dfc5244`; commit CI chịu lỗi quota: `ea531786c94f25fb2f3f2b09787a6840a441994c`; commit phát hành dự phòng: `666f97b47210c6396f4279f3c739d6c8ebb27c89`.
+- Workflow run `34913801444` (#228), job `104206904211`: compile, unit test, lint, đọc version, xác minh chữ ký/không chứa LibVLC, đóng gói và smoke-test Mobile Android 15 ở dọc/ngang đều **SUCCESS**.
+- APK: `NM7-IPTV-Mobile-1.10.25.apk`, 7.723.537 bytes; SHA-256 `01fff5f9442f063b7114bbdd3865499c319ea6558dc3fd59e24411db94eaeddd`.
+- GitHub Actions chưa tính lại quota artifact sau khi xóa (GitHub cảnh báo có thể mất 6–12 giờ), nên workflow #228 đã phát hành APK qua prerelease riêng `mobile-v1.10.25-test`. Release ID `388795961`, asset ID `564547063`; asset đã ở trạng thái `uploaded` và digest khớp SHA-256 ở trên.
 - Chưa merge vào `main`. 1.10.24 tiếp tục là baseline ổn định cho đến khi người dùng cài và xác nhận 1.10.25 trên máy thật.
 - Repo NM7 TV, iOS và Tizen không bị thay đổi.
 
