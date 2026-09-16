@@ -1,0 +1,1 @@
+Requested Mobile 1.10.25 follow-up: add an app-close timer under application settings and replace the app icon with the supplied NM7 TV image; preserve all existing features.
