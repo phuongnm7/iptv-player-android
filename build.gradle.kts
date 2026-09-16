@@ -84,6 +84,9 @@ subprojects {
     if (path in smartTubeAndroidLibraryModules) {
         pluginManager.apply("com.android.library")
         pluginManager.apply("org.jetbrains.kotlin.android")
+        extensions.configure<com.android.build.gradle.LibraryExtension> {
+            buildFeatures.buildConfig = true
+        }
     }
 }
 
