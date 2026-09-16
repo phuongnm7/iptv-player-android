@@ -33,6 +33,15 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+      - name: Initialize SmartTube nested submodules
+        run: |
+          git -C third_party/SmartTube-droid submodule sync --recursive
+          git -C third_party/SmartTube-droid submodule update --init --force --recursive
+          git -C third_party/SmartTube-droid submodule status --recursive
+          test -f third_party/SmartTube-droid/SharedModules/constants.gradle
+          test -f third_party/SmartTube-droid/MediaServiceCore/core_settings.gradle
+          test -f third_party/SmartTube-droid/exoplayer-amzn-2.10.6/core_settings.gradle
+          echo "SmartTube nested submodules are ready"
       - name: Install JDK 17
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
@@ -82,7 +91,7 @@ jobs:
       - name: Read Mobile version
         id: mobile_version
         run: |
-          version="$(grep -m1 'versionName = "' app/build.gradle.kts | cut -d'"' -f2)"
+          version="$(grep -m1 'versionName = \"' app/build.gradle.kts | cut -d'\"' -f2)"
           test -n "$version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Verify and package Mobile APK
