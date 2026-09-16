@@ -40,4 +40,18 @@ public class PlaylistSourceStoreTest {
                 "content://media/external/playlist.m3u", java.util.Collections.emptyList()));
     }
 
+
+    @Test public void startupRefreshAcceptsNetworkSourceDescriptions() {
+        assertTrue(PlaylistSourceStore.shouldRefreshOnStartup(PlaylistSourceStore.DEFAULT_URL));
+        assertTrue(PlaylistSourceStore.shouldRefreshOnStartup("https://example.com/list.m3u"));
+        assertTrue(PlaylistSourceStore.shouldRefreshOnStartup("https://example.com/list.m3u\nChuyển hướng: https://cdn.example.com/list.m3u"));
+    }
+
+    @Test public void startupRefreshSkipsLocalAndEmptySources() {
+        assertFalse(PlaylistSourceStore.shouldRefreshOnStartup(""));
+        assertFalse(PlaylistSourceStore.shouldRefreshOnStartup(null));
+        assertFalse(PlaylistSourceStore.shouldRefreshOnStartup("content://documents/playlist.m3u"));
+        assertFalse(PlaylistSourceStore.shouldRefreshOnStartup("file:///sdcard/playlist.m3u"));
+    }
+
 }
