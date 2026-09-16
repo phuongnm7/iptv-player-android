@@ -2,7 +2,7 @@ name: Build private Android APK
 
 on:
   push:
-    branches: [main, "fix/mobile-*"]
+    branches: [main, "fix/mobile-*", "feature/mobile-youtube-smarttube"]
     paths:
       - "app/**"
       - "*.gradle.kts"
@@ -47,32 +47,34 @@ jobs:
           log-accepted-android-sdk-licenses: false
       - name: Install Android SDK packages
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
-      - name: Inject and verify Mobile sleep timer source
+      - name: Inject and verify Mobile sleep timer + YouTube entry
         run: |
           python3 - <<'PY'
           from pathlib import Path
           p = Path("app/src/main/java/vn/phuong/iptvplayer/MainActivity.java")
           text = p.read_text()
           old_items = 'List<String> items=new ArrayList<>(java.util.Arrays.asList("Quản lý nguồn IPTV","Thêm hoặc mở URL/tệp","Tải lại playlist hiện tại","Lịch phát sóng (EPG)","Giao diện: "+modeLabel,"Đổi hình nền",urls,rows,fps,clock,playerSource));'
-          new_items = 'List<String> items=new ArrayList<>(java.util.Arrays.asList("Quản lý nguồn IPTV","Thêm hoặc mở URL/tệp","Tải lại playlist hiện tại","Lịch phát sóng (EPG)","Giao diện: "+modeLabel,"Đổi hình nền",urls,rows,fps,clock,playerSource,"Hẹn giờ đóng app"));'
+          new_items = 'List<String> items=new ArrayList<>(java.util.Arrays.asList("Quản lý nguồn IPTV","Thêm hoặc mở URL/tệp","Tải lại playlist hiện tại","Lịch phát sóng (EPG)","Giao diện: "+modeLabel,"Đổi hình nền",urls,rows,fps,clock,playerSource,"Hẹn giờ đóng app","YouTube"));'
           old_handler = 'if(which==10)AppPreferences.setShowPlayerSource(this,!AppPreferences.showPlayerSource(this));'
-          new_handler = old_handler + '\n                    if(which==11)SleepTimer.showDialog(this);'
+          new_handler = old_handler + '\n                    if(which==11)SleepTimer.showDialog(this);\n                    if(which==12)startActivity(new Intent(this,YoutubeActivity.class));'
           old_create = '@Override protected void onCreate(Bundle savedInstanceState) { super.onCreate(savedInstanceState); setupViews(); restoreSession(); epgHandler.post(epgTick); }'
           new_create = '@Override protected void onCreate(Bundle savedInstanceState) { super.onCreate(savedInstanceState); setupViews(); SleepTimer.restore(this); restoreSession(); epgHandler.post(epgTick); }'
-          if 'SleepTimer.showDialog(this)' not in text:
-              if old_items not in text: raise SystemExit('Sleep timer injection failed: settings item block not found')
-              if old_handler not in text: raise SystemExit('Sleep timer injection failed: settings handler not found')
-              if old_create not in text: raise SystemExit('Sleep timer injection failed: onCreate block not found')
+          changed = False
+          if '"YouTube"' not in text:
+              if old_items not in text: raise SystemExit('YouTube injection failed: settings item block not found')
+              if old_handler not in text: raise SystemExit('YouTube injection failed: settings handler not found')
               text = text.replace(old_items, new_items, 1)
               text = text.replace(old_handler, new_handler, 1)
+              changed = True
+          if 'SleepTimer.restore(this)' not in text:
+              if old_create not in text: raise SystemExit('Sleep timer injection failed: onCreate block not found')
               text = text.replace(old_create, new_create, 1)
-              p.write_text(text)
-          else:
-              p.write_text(text)
+              changed = True
+          p.write_text(text)
           verify = p.read_text()
-          for needle in ('"Hẹn giờ đóng app"', 'SleepTimer.showDialog(this)', 'SleepTimer.restore(this)'):
+          for needle in ('"Hẹn giờ đóng app"', 'SleepTimer.showDialog(this)', 'SleepTimer.restore(this)', '"YouTube"', 'YoutubeActivity.class'):
               if needle not in verify: raise SystemExit(f'Missing injected feature: {needle}')
-          print('Sleep timer source injection verified')
+          print('Sleep timer + YouTube source injection verified')
           PY
       - name: Compile, test and lint Mobile
         run: gradle --no-daemon --console=plain testMobileDebugUnitTest lintMobileDebug assembleMobileDebug
