@@ -95,6 +95,13 @@ subprojects {
         pluginManager.apply("com.android.library")
         pluginManager.apply("org.jetbrains.kotlin.android")
     }
+    if (path == ":appupdatechecker2") {
+        pluginManager.withPlugin("com.android.library") {
+            extensions.configure<com.android.build.gradle.LibraryExtension> {
+                namespace = "com.liskovsoft.appupdatechecker2"
+            }
+        }
+    }
 }
 
 allprojects {
