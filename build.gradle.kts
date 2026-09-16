@@ -32,7 +32,6 @@ val smartTubeAndroidLibraryModules = setOf(
     ":slidableactivity",
     ":sharedutils",
     ":sharedtests",
-    ":appupdatechecker2",
     ":mediaserviceinterfaces",
     ":youtubeapi",
     ":exoplayer-library",
