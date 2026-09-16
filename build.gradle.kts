@@ -87,6 +87,33 @@ subprojects {
     }
 }
 
+// SmartTube's pinned SharedModules still contains OkHttp 3-era API calls.
+// Patch the source in CI immediately before Kotlin compilation so the nested
+// submodule stays untouched while remaining compatible with the current OkHttp.
+subprojects {
+    tasks.matching { it.name.endsWith("Kotlin") }.configureEach {
+        doFirst {
+            val source = rootProject.file(
+                "third_party/SmartTube-droid/SharedModules/sharedutils/src/main/java/com/liskovsoft/sharedutils/helpers/DohProviders.kt"
+            )
+            if (source.isFile) {
+                var text = source.readText()
+                if (text.contains("HttpUrl.parse(s)")) {
+                    if (!text.contains("import okhttp3.toHttpUrlOrNull")) {
+                        text = text.replaceFirst(
+                            "import okhttp3.HttpUrl",
+                            "import okhttp3.HttpUrl\nimport okhttp3.toHttpUrlOrNull"
+                        )
+                    }
+                    text = text.replace("HttpUrl.parse(s)", "s.toHttpUrlOrNull()")
+                    source.writeText(text)
+                    logger.lifecycle("Patched SmartTube DohProviders.kt: HttpUrl.parse -> toHttpUrlOrNull")
+                }
+            }
+        }
+    }
+}
+
 allprojects {
     repositories {
         google()
