@@ -41,7 +41,7 @@ project(":mediaserviceinterfaces").projectDir = file("third_party/SmartTube-droi
 project(":youtubeapi").projectDir = file("third_party/SmartTube-droid/MediaServiceCore/youtubeapi")
 
 // Patched ExoPlayer 2.10.6 used by SmartTube's common/player stack.
-def exo = "third_party/SmartTube-droid/exoplayer-amzn-2.10.6"
+val exo = "third_party/SmartTube-droid/exoplayer-amzn-2.10.6"
 listOf(
     "library" to "library/all",
     "library-core" to "library/core",
