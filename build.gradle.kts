@@ -22,6 +22,31 @@ gradle.extensions.extraProperties.set("mediaServiceCoreRoot", file("third_party/
 gradle.extensions.extraProperties.set("exoplayerRoot", file("third_party/SmartTube-droid/exoplayer-amzn-2.10.6"))
 gradle.extensions.extraProperties.set("exoplayerModulePrefix", "exoplayer-")
 
+val smartTubeAndroidLibraryModules = setOf(
+    ":common",
+    ":leanbackassistant",
+    ":leanback-1.0.0",
+    ":fragment-1.1.0",
+    ":filepicker-lib",
+    ":doubletapplayerview",
+    ":slidableactivity",
+    ":sharedutils",
+    ":sharedtests",
+    ":appupdatechecker2",
+    ":mediaserviceinterfaces",
+    ":youtubeapi",
+    ":exoplayer-library",
+    ":exoplayer-library-core",
+    ":exoplayer-library-dash",
+    ":exoplayer-library-sabr",
+    ":exoplayer-library-hls",
+    ":exoplayer-library-smoothstreaming",
+    ":exoplayer-library-ui",
+    ":exoplayer-extension-mediasession",
+    ":exoplayer-extension-okhttp",
+    ":exoplayer-extension-cronet"
+)
+
 val smartTubeSharedConstantsProjects = setOf(
     ":common",
     ":leanbackassistant",
@@ -70,31 +95,6 @@ gradle.addProjectEvaluationListener(object : org.gradle.api.ProjectEvaluationLis
         }
     }
 })
-
-val smartTubeAndroidLibraryModules = setOf(
-    ":common",
-    ":leanbackassistant",
-    ":leanback-1.0.0",
-    ":fragment-1.1.0",
-    ":filepicker-lib",
-    ":doubletapplayerview",
-    ":slidableactivity",
-    ":sharedutils",
-    ":sharedtests",
-    ":appupdatechecker2",
-    ":mediaserviceinterfaces",
-    ":youtubeapi",
-    ":exoplayer-library",
-    ":exoplayer-library-core",
-    ":exoplayer-library-dash",
-    ":exoplayer-library-sabr",
-    ":exoplayer-library-hls",
-    ":exoplayer-library-smoothstreaming",
-    ":exoplayer-library-ui",
-    ":exoplayer-extension-mediasession",
-    ":exoplayer-extension-okhttp",
-    ":exoplayer-extension-cronet"
-)
 
 subprojects {
     if (path in smartTubeAndroidLibraryModules) {
