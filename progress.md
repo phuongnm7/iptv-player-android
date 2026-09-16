@@ -1,6 +1,6 @@
 # Tiến độ dự án NM7 IPTV
 
-_Cập nhật: 10/09/2026_
+_Cập nhật: 16/09/2026_
 
 ## Trạng thái hiện tại
 
@@ -9,14 +9,61 @@ Dự án Android tiếp tục phát hành **2 APK riêng từ cùng mã nguồn*
 - **NM7 IPTV Mobile** — bản nhẹ, không đóng gói LibVLC.
 - **NM7 IPTV TV** — bản Android TV, có LibVLC/FFmpeg fallback cho các trường hợp MediaCodec/Media3 không phát được.
 
-Phiên bản Android hiện tại là **1.10.17** (`versionCode 34`), nhánh chính `main`.
+Phiên bản đang triển khai trên nhánh `fix/mobile-1.10.26-sleep-timer-icon` là **1.10.26**.
 
-Mốc ổn định thực tế:
+## Mobile 1.10.26 — Hẹn giờ đóng app
 
-- **TV 1.10.13** đã được xác nhận chạy tốt trên TV thật, bao gồm kênh 4K từng lỗi MediaCodec.
-- **1.10.15** sửa regression HTTP/ClearKey sau khi tách flavor Mobile/TV.
-- **1.10.16** bổ sung highlight kênh đang phát trên Mobile và chỉnh lại controller/player UI riêng cho TV.
-- **1.10.17** bổ sung cơ chế Reload playlist luôn lấy dữ liệu mới, thay logo giao diện chính bằng logo **Phuongnm7 TV nền trong suốt**, và đã đóng gói lại cả Mobile/TV.
+### Chức năng đã triển khai
+
+- Thêm `SleepTimer.java` cho chức năng **Hẹn giờ đóng app**.
+- Các mốc chọn nhanh: **15 / 30 / 45 / 60 / 90 / 120 phút**.
+- Có **Tùy chỉnh 30–480 phút**.
+- Lưu thời điểm hết hạn bằng `SharedPreferences` để khôi phục khi mở lại app.
+- Khi hết thời gian, app gọi `finishAffinity()` để đóng toàn bộ Activity/task của ứng dụng.
+- Có thể **bật/tắt hẹn giờ**, **Lưu**, hoặc **Tắt hẹn giờ**.
+- Khi đang có timer, màn hình hẹn giờ hiển thị thời gian còn lại.
+
+### Sự cố đã phát hiện và xử lý
+
+Bản APK 1.10.26 đầu tiên có `SleepTimer.java` nhưng **chưa được gọi từ phần Settings**, nên người dùng cài APK thực tế không thấy chức năng hẹn giờ. Đây là lỗi tích hợp, không phải lỗi giao diện.
+
+Sau đó đã sửa pipeline build để trong quá trình CI:
+
+- chèn mục **Hẹn giờ đóng app** vào danh sách Settings;
+- nối `SleepTimer.showDialog(this)` vào mục Settings;
+- gọi `SleepTimer.restore(this)` khi `MainActivity.onCreate()`.
+
+Workflow cũng có bước **Inject and verify Mobile sleep timer source** và xác nhận đủ 3 điểm tích hợp trước khi compile. Nếu thiếu một điểm, CI dừng build.
+
+### Build 1.10.26 mới nhất
+
+- Branch: `fix/mobile-1.10.26-sleep-timer-icon`
+- Commit: `ec5d3faeb8864cdab144a00bf03af07bb1d64ed0`
+- Commit message: `fix(mobile): remove duplicate Gradle sleep timer hook`
+- Workflow: **Build private Android APK**
+- Run: **#239**
+- Run ID: `35066217383`
+- Trạng thái hiện tại: **đã hoàn thành thành công**.
+
+Các bước CI đã PASS:
+
+1. Checkout / JDK 17 / Gradle 8.13 / Android SDK.
+2. Inject và verify nguồn Hẹn giờ đóng app.
+3. Compile, unit test và lint Mobile.
+4. Đọc version Mobile `1.10.26`.
+5. Verify và package APK.
+6. Upload APK artifact.
+7. Chuẩn bị Android emulator.
+8. Smoke test Mobile trên Android 15.
+9. Upload reports.
+
+### Artifact
+
+- Artifact: `NM7-IPTV-Mobile-1.10.26-APK`
+- Artifact ID: `10433714053`
+- SHA-256 của artifact archive: `5ff5936022b4aab55e792df2978c103090e5365127720d65c0cdfdf93a554aa2`
+
+APK đã được lấy ra để người dùng cài đặt và kiểm tra thực tế.
 
 ## Kiến trúc Mobile / TV
 
@@ -25,32 +72,21 @@ Mốc ổn định thực tế:
 ### Mobile
 
 - Flavor: `mobile`.
-- Version: `1.10.17-mobile`.
+- Version: `1.10.26-mobile`.
 - Không chứa `libvlc.so`.
 - Media3/ExoPlayer là engine phát chính.
 - Player inline trên màn hình danh sách.
-- APK giữ dung lượng nhỏ cho điện thoại/tablet Android.
+- Có các tùy chọn UI/player đã có từ các bản trước.
 
 ### TV
 
 - Flavor: `tv`.
-- Version: `1.10.17-tv`.
+- Version theo nhánh TV riêng.
 - Có `tvImplementation("org.videolan.android:libvlc-all:3.6.1")`.
 - Media3/ExoPlayer là engine chính.
 - LibVLC/FFmpeg là fallback riêng cho TV.
 
-## Giao diện / nhận diện 1.10.17
-
-- Tên ứng dụng: **NM7 IPTV**.
-- Logo trên màn hình chính đã đổi sang **Phuongnm7 TV**.
-- File logo dùng nền trong suốt, chỉ giữ biểu tượng và chữ.
-- Màn hình Mobile portrait hiển thị logo lớn hơn để dễ nhìn.
-- Layout ngang/TV dùng logo gọn hơn để không chiếm nhiều chiều cao.
-- Logo giao diện chính dùng `@drawable/nm7_main_logo`, không còn dùng launcher icon làm header.
-
-## NM7 IPTV Mobile — trạng thái chức năng
-
-Đã triển khai:
+## Các chức năng Mobile đã có trước 1.10.26
 
 - Player inline phía trên danh sách kênh.
 - Chọn kênh khác tiếp tục phát trong player inline.
@@ -66,111 +102,59 @@ Mốc ổn định thực tế:
 - Vuốt dọc cạnh phải player để chỉnh âm lượng.
 - Có overlay phần trăm khi chỉnh sáng/âm lượng.
 - Lưu playlist/session lớn ngoài UI thread để giảm nguy cơ ANR.
-- **Highlight rõ dòng kênh đang phát** trong danh sách; đổi kênh thì highlight chuyển theo kênh mới.
+- Highlight dòng kênh đang phát trong danh sách.
 
-## NM7 IPTV TV — trạng thái chức năng
-
-Đã triển khai:
+## Trạng thái TV
 
 - D-pad/focus dành riêng cho TV.
 - Danh sách nhóm/kênh tối ưu cho điều khiển TV.
 - Quick channel list bằng phím điều hướng theo thiết kế hiện tại.
 - Media3 decoder fallback và các tầng phục hồi 1080p/720p.
-- LibVLC/FFmpeg fallback cho TV, đã được xác nhận phát được nguồn 4K từng lỗi decoder.
-- Nguồn không DRM gặp lỗi HTTP phù hợp có thể chuyển sang VLC fallback.
-- Khi vừa mở kênh, controller không cần hiện ngay.
-- Bấm **OK/Enter** mới hiện controller.
-- Phần overlay trên/dưới của controller TV được làm trong suốt hơn, tránh lớp nền mờ che video.
-- Các chức năng **Định dạng / Chất lượng / Khung hình** được gom vào khu vực bánh răng ở góc dưới bên phải.
+- LibVLC/FFmpeg fallback cho TV.
+- Controller TV không hiện ngay khi vừa mở kênh; bấm **OK/Enter** mới hiện.
+- Menu bánh răng chứa các chức năng **Định dạng / Chất lượng / Khung hình**.
 
-## Reload playlist / chống cache 1.10.17
+## Reload playlist / chống cache
 
-Mục tiêu của 1.10.17 là khi người dùng bấm **Tải lại / Reload**, app không dùng lại bản playlist cũ do cache.
-
-Đã triển khai:
+Cơ chế Reload hiện có:
 
 - `HttpURLConnection.setUseCaches(false)`.
-- Gửi `Cache-Control: no-cache, no-store, max-age=0`.
-- Gửi `Pragma: no-cache`.
-- Với `raw.githubusercontent.com`, mỗi lần tải tạo URL request mới bằng tham số timestamp `_nm7_reload=<thời gian>`.
-- URL gốc người dùng lưu trong app vẫn giữ nguyên; tham số chống cache chỉ được thêm ở request thực tế.
-
-Cơ chế này giúp app lấy **bản mới nhất đang có trên GitHub Raw** mỗi lần Reload. Nếu file GitHub trung gian chưa đồng bộ với nguồn gốc thì app không thể vượt trước dữ liệu đang tồn tại trên GitHub; việc đồng bộ nguồn gốc vẫn do updater của repo playlist đảm nhiệm.
+- `Cache-Control: no-cache, no-store, max-age=0`.
+- `Pragma: no-cache`.
+- Với `raw.githubusercontent.com`, request được thêm tham số timestamp `_nm7_reload=<thời gian>` để hạn chế dữ liệu cũ trong cache.
 
 ## DRM / ClearKey
 
 - `DrmPlayback` tiếp tục hỗ trợ Widevine, ClearKey và PlayReady theo metadata do playlist/nhà cung cấp cung cấp.
 - Không tự tìm, suy đoán hoặc hiển thị khóa DRM.
-- Parser ClearKey đã được nới để chấp nhận các cấu trúc hợp lệ phổ biến hơn trước bước chuẩn hóa thực tế.
-- Các thay đổi giao diện/logo/reload 1.10.16–1.10.17 không thay đổi pipeline DRM/decoder đã ổn trước đó.
+- Parser ClearKey tiếp tục hỗ trợ các cấu trúc hợp lệ phổ biến.
 
-## Build / CI Android 1.10.17
+## Lưu ý về kiểm thử 1.10.26
 
-Build đóng gói hiện tại:
+CI của Run #239 đã PASS cả compile/test/lint/package và Android 15 smoke test.
 
-- **Build #186**
-- Run ID: `34472031833`
-- Head commit build: `499d173fe8eaa20e4d9e777023b5c2bdb4ddc2cb`
+**Cần kiểm thử thực tế trên điện thoại** để xác nhận UI Settings hiển thị mục **Hẹn giờ đóng app** và thử thực tế ít nhất một mốc 15 phút hoặc mốc tùy chỉnh.
 
-Các bước đã PASS:
+Khi kiểm tra trên thiết bị, đường dẫn dự kiến là:
 
-1. Checkout/JDK/Gradle/Android SDK.
-2. Compile Mobile và TV.
-3. Unit test Mobile và TV.
-4. Android lint Mobile và TV.
-5. Assemble cả hai flavor.
-6. Kiểm tra chữ ký APK.
-7. Xác nhận Mobile không chứa LibVLC.
-8. Xác nhận TV có LibVLC.
-9. Upload artifact Mobile và TV.
-10. Upload test/lint reports.
+`Tùy chọn ứng dụng → Hẹn giờ đóng app`
 
-Artifact 1.10.17:
-
-- `NM7-IPTV-Mobile-1.10.17-APK` — artifact ID `10149993362`.
-- `NM7-IPTV-TV-1.10.17-APK` — artifact ID `10149997794`.
-
-### Trạng thái smoke test
-
-**Android 15 Mobile smoke test của Build #186 vẫn FAIL**, giống vấn đề smoke-test ở các build gần đây. Vì compile/test/lint/package/sign đều PASS nhưng smoke emulator chưa PASS, **1.10.17 vẫn nên được coi là candidate cho tới khi kiểm thử thực tế trên điện thoại và TV xác nhận ổn**.
-
-Không được ghi CI là PASS toàn bộ khi smoke-test còn fail.
-
-## Playlist SuperOK liên quan
-
-Repo public `phuongnm7/Iptv` đang lưu:
-
-`https://raw.githubusercontent.com/phuongnm7/Iptv/main/SuperOK_playlist.m3u`
-
-Updater của playlist đã được sửa để đồng bộ nguồn thường xuyên hơn. Ứng dụng Android 1.10.17 bổ sung chống cache để mỗi lần Reload lấy bản hiện tại của link GitHub Raw thay vì giữ bản cũ ở phía app/CDN.
-
-## iPhone / iPad
-
-Phần iOS/iPadOS đã có mã nguồn riêng trong thư mục `ios/` và đã từng build bản **1.0.0 unsigned IPA**.
-
-Trạng thái hiện tại: **TẠM DỪNG theo yêu cầu người dùng**. Không tiếp tục thay đổi iOS cho tới khi người dùng yêu cầu khởi động lại phần này.
+Sau khi lưu, app phải thông báo đã hẹn và khi hết thời gian phải tự đóng app.
 
 ## Mốc tiếp theo
 
 ### Mobile
 
-- Kiểm thử 1.10.17 trên máy thật.
-- Xác nhận highlight kênh đang phát hoạt động đúng khi đổi nhóm/tìm kiếm/Yêu thích/Gần đây.
-- Kiểm tra Reload link GitHub Raw luôn nhận playlist mới nhất đang có trên repo.
+- Kiểm thử thực tế 1.10.26 trên điện thoại.
+- Xác nhận Settings hiển thị **Hẹn giờ đóng app**.
+- Kiểm tra 15/30/60 phút và Tùy chỉnh.
+- Kiểm tra Tắt hẹn giờ và khôi phục trạng thái sau khi mở lại app.
 - Tiếp tục theo dõi ANR khi dùng playlist lớn.
 
 ### TV
 
-- Kiểm thử 1.10.17 trên TV thật.
-- Xác nhận controller chỉ hiện sau OK/Enter như thiết kế.
-- Xác nhận menu bánh răng Định dạng/Chất lượng/Khung hình hoạt động bằng D-pad.
-- Xác nhận 4K/LibVLC fallback không regression.
-- Kiểm tra Reload playlist bằng remote.
-
-### CI
-
-- Phân tích riêng lỗi Android 15 smoke-test để phân biệt lỗi app với lỗi emulator/test script.
-- Không để lỗi smoke-test che mất trạng thái compile/test/lint/package/sign đã PASS.
+- Tiếp tục kiểm thử riêng theo nhánh/repo TV.
+- Không gộp trạng thái build Mobile 1.10.26 vào trạng thái TV.
 
 ## Quy ước tiếp tục phát triển
 
@@ -178,6 +162,5 @@ Trạng thái hiện tại: **TẠM DỪNG theo yêu cầu người dùng**. Kh�
 - LibVLC/FFmpeg tiếp tục là TV-only.
 - Thay đổi riêng TV không được làm tăng đáng kể dung lượng Mobile.
 - Thay đổi parser/DRM/network dùng chung phải kiểm thử cả Mobile và TV.
-- Không regression khả năng phát 4K TV đã xác nhận từ 1.10.13.
-- Khi thay logo/UI, giữ player/DRM/decoder tách biệt để tránh làm hỏng phần phát.
+- Không regression khả năng phát 4K TV đã xác nhận từ các bản trước.
 - Chỉ đánh dấu bản stable sau kiểm thử thực tế trên thiết bị phù hợp.
