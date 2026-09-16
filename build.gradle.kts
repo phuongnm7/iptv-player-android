@@ -16,7 +16,6 @@ buildscript {
     }
 }
 
-// SmartTube's legacy Gradle scripts read these through Gradle extra properties.
 gradle.extensions.extraProperties.set("sharedModulesRoot", file("third_party/SmartTube-droid/SharedModules"))
 gradle.extensions.extraProperties.set("sharedModulesConstants", file("third_party/SmartTube-droid/SharedModules/constants.gradle"))
 gradle.extensions.extraProperties.set("mediaServiceCoreRoot", file("third_party/SmartTube-droid/MediaServiceCore"))
@@ -54,7 +53,22 @@ gradle.addProjectEvaluationListener(object : org.gradle.api.ProjectEvaluationLis
     override fun afterEvaluate(
         project: org.gradle.api.Project,
         state: org.gradle.api.ProjectState
-    ) { }
+    ) {
+        if (project.path in smartTubeAndroidLibraryModules) {
+            project.pluginManager.withPlugin("com.android.library") {
+                project.extensions.configure<com.android.build.gradle.LibraryExtension> {
+                    if (!flavorDimensions.contains("device")) {
+                        flavorDimensions += "device"
+                    }
+                    if (productFlavors.findByName("mobile") == null) {
+                        productFlavors.create("mobile") {
+                            dimension = "device"
+                        }
+                    }
+                }
+            }
+        }
+    }
 })
 
 val smartTubeAndroidLibraryModules = setOf(
@@ -88,7 +102,9 @@ subprojects {
         pluginManager.apply("org.jetbrains.kotlin.android")
         pluginManager.withPlugin("com.android.library") {
             extensions.configure<com.android.build.gradle.LibraryExtension> {
-                flavorDimensions += "device"
+                if (!flavorDimensions.contains("device")) {
+                    flavorDimensions += "device"
+                }
                 if (productFlavors.findByName("mobile") == null) {
                     productFlavors.create("mobile") {
                         dimension = "device"
