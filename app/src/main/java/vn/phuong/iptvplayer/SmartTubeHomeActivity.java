@@ -1,24 +1,23 @@
 package vn.phuong.iptvplayer;
 
+import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.LinearLayout;
 
-import com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity;
-
-public final class SmartTubeHomeActivity extends BrowseActivity {
+/** Native SmartTube phone UI entry point inside the same NM7 APK/process. */
+public final class SmartTubeHomeActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        SmartTubeRuntime.initialize(this);
         super.onCreate(savedInstanceState);
-
-        ViewGroup content = findViewById(android.R.id.content);
-        if (content != null && content.getChildCount() > 0) {
-            View child = content.getChildAt(0);
-            if (child instanceof LinearLayout) {
-                HomeTabBar.attach(this, (LinearLayout) child, true);
-            }
+        SmartTubeRuntime.initialize(this);
+        try {
+            Class<?> browse = Class.forName("com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity");
+            Intent intent = new Intent(this, browse);
+            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+            startActivity(intent);
+        } catch (Throwable e) {
+            android.widget.Toast.makeText(this, "Không tải được YouTube SmartTube: " + e.getClass().getSimpleName(), android.widget.Toast.LENGTH_LONG).show();
         }
+        finish();
     }
 }
