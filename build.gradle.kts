@@ -4,6 +4,20 @@ plugins {
     id("org.jetbrains.kotlin.android") version "1.8.10" apply false
 }
 
+// Legacy SmartTube modules use `apply plugin:` and therefore need the
+// Android/Kotlin plugins on the buildscript classpath as well.
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    dependencies {
+        classpath("com.android.tools.build:gradle:8.13.2")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.10")
+    }
+}
+
 // SmartTube's legacy Groovy scripts read these through Gradle's extra properties.
 gradle.extensions.extraProperties.set("sharedModulesRoot", file("third_party/SmartTube-droid/SharedModules"))
 gradle.extensions.extraProperties.set("sharedModulesConstants", file("third_party/SmartTube-droid/SharedModules/constants.gradle"))
