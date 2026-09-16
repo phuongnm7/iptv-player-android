@@ -6,6 +6,16 @@ android {
     namespace = "com.liskovsoft.smartyoutubetv2.droid"
     compileSdk = 36
 
+    // Mirror the app's device dimension so the Mobile app consumes a
+    // matching SmartTube variant instead of leaving its transitive
+    // SmartTube flavors ambiguous.
+    flavorDimensions += "device"
+    productFlavors {
+        create("mobile") {
+            dimension = "device"
+        }
+    }
+
     defaultConfig {
         minSdk = 23
         targetSdk = 36
