@@ -47,7 +47,7 @@ jobs:
           test -f third_party/SmartTube-droid/MediaServiceCore/core_settings.gradle
           test -f third_party/SmartTube-droid/exoplayer-amzn-2.10.6/core_settings.gradle
           echo "SmartTube nested submodules are ready"
-      - name: Patch SmartTube legacy namespaces
+      - name: Patch SmartTube legacy Android DSL
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -59,27 +59,27 @@ jobs:
               if "/gradle/" in gradle_file.as_posix():
                   continue
               text = gradle_file.read_text(errors="ignore")
-              if re.search(r'\bnamespace\s*[= ]', text):
-                  continue
               module_dir = gradle_file.parent
               manifest = module_dir / "src/main/AndroidManifest.xml"
-              if not manifest.is_file():
-                  continue
-              m = re.search(r'\bpackage\s*=\s*["\']([^"\']+)["\']', manifest.read_text(errors="ignore"))
-              if not m:
-                  continue
-              pkg = m.group(1)
-              text = re.sub(r'(\bandroid\s*\{)', r'\1\n    namespace "' + pkg + '"', text, count=1)
-              gradle_file.write_text(text)
-              patched.append(f"{gradle_file}: {pkg}")
-
-          print("Patched SmartTube namespaces:")
-          for item in patched:
-              print("  ", item)
-          print(f"Total patched: {len(patched)}")
+              pkg = None
+              if manifest.is_file():
+                  m = re.search(r'\bpackage\s*=\s*["\']([^"\']+)["\']', manifest.read_text(errors="ignore"))
+                  if m:
+                      pkg = m.group(1)
+              changed = False
+              if pkg and not re.search(r'\bnamespace\s*[= ]', text):
+                  text = re.sub(r'(\bandroid\s*\{)', r'\1\n    namespace "' + pkg + '"', text, count=1)
+                  changed = True
+              if re.search(r'\bandroid\s*\{', text) and not re.search(r'\bcompileSdkVersion\s+[^\n]+', text) and not re.search(r'\bcompileSdk\s*[= ]', text):
+                  text = re.sub(r'(\bandroid\s*\{)', r'\1\n    compileSdkVersion 36', text, count=1)
+                  changed = True
+              if changed:
+                  gradle_file.write_text(text)
+                  patched.append(str(gradle_file))
+          print(f"Patched legacy Android DSL in {len(patched)} SmartTube Gradle files")
           common = "third_party/SmartTube-droid/common/build.gradle"
-          if not any(item.startswith(common + ": ") for item in patched):
-              raise SystemExit("Expected :common namespace patch was not applied")
+          if not (Path(common).is_file() and 'compileSdkVersion 36' in Path(common).read_text()):
+              raise SystemExit("Expected :common compileSdk patch was not applied")
           PY
       - name: Install JDK 17
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
