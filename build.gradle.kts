@@ -56,7 +56,7 @@ gradle.addProjectEvaluationListener(object : org.gradle.api.ProjectEvaluationLis
 
     override fun afterEvaluate(
         project: org.gradle.api.Project,
-        state: org.gradle.api.plugins.internal.PluginAwareInternal
+        state: org.gradle.api.ProjectState
     ) {
         // No-op; constants are injected in beforeEvaluate.
     }
