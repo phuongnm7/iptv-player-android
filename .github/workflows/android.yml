@@ -74,7 +74,6 @@ jobs:
               if re.search(r'\bandroid\s*\{', text) and not re.search(r'\bcompileSdkVersion\s+[^\n]+', text) and not re.search(r'\bcompileSdk\s*[= ]', text):
                   text = re.sub(r'(\bandroid\s*\{)', r'\1\n    compileSdkVersion project.properties.compileSdkVersion', text, count=1)
                   compile_sdk_added.append(str(gradle_file))
-              # Gradle 8 removed the old Jar.classifier setter method.
               new_text = re.sub(r'(?m)^(\s*)classifier\s+[\'\"]([^\'\"]+)[\'\"]\s*$', r"\1archiveClassifier.set('\2')", text)
               new_text = re.sub(r'(?m)^(\s*)classifier\s*=\s*[\'\"]([^\'\"]+)[\'\"]\s*$', r"\1archiveClassifier.set('\2')", new_text)
               if new_text != text:
@@ -92,8 +91,24 @@ jobs:
           if not any(path.endswith("filepicker-lib/build.gradle") for path in classifier_patched):
               raise SystemExit("Expected filepicker-lib classifier patch was not applied")
           PY
+      - name: Verify Mobile flavor mapping for vendored SmartTube
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("smarttube/build.gradle.kts")
+          text = p.read_text()
+          needle = 'missingDimensionStrategy("device", "mobile")'
+          if needle not in text:
+              anchor = 'missingDimensionStrategy("default", "ststable")'
+              if anchor not in text:
+                  raise SystemExit("SmartTube default flavor mapping not found")
+              text = text.replace(anchor, anchor + '\n        ' + needle, 1)
+              p.write_text(text)
+          assert needle in p.read_text()
+          print("Verified SmartTube device dimension strategy: mobile")
+          PY
       - name: Install JDK 17
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@v6 # v6
         with:
           distribution: temurin
           java-version: "17"
@@ -151,13 +166,13 @@ jobs:
           apk="dist/mobile/NM7-IPTV-Mobile-${{ steps.mobile_version.outputs.version }}.apk"
           cp app/build/outputs/apk/mobile/debug/app-mobile-debug.apk "$apk"
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$apk"
-          if unzip -l "$apk" | grep -q 'libvlc\\.so'; then
+          if unzip -l "$apk" | grep -q 'libvlc\.so'; then
             echo 'Mobile APK unexpectedly contains LibVLC' >&2
             exit 1
           fi
           (cd dist/mobile && sha256sum "NM7-IPTV-Mobile-${{ steps.mobile_version.outputs.version }}.apk" | tee SHA256SUMS.txt)
       - name: Upload Mobile APK
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a0 # v7
         with:
           name: NM7-IPTV-Mobile-${{ steps.mobile_version.outputs.version }}-APK
           path: dist/mobile/
@@ -181,7 +196,7 @@ jobs:
           script: python3 tools/android_smoke_current.py dist/mobile/NM7-IPTV-Mobile-${{ steps.mobile_version.outputs.version }}.apk
       - name: Upload test and lint reports
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a0 # v7
         with:
           name: Android-test-reports
           path: app/build/reports/
