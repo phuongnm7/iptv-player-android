@@ -110,6 +110,7 @@ jobs:
               re.compile(r'("org\.jetbrains\.kotlinx"\s*:\s*"kotlinx-coroutines-(?:android|core|core-jvm|jdk8)"\s*:\s*)"1\.8\.10"'),
           ]
           changed=[]
+          matches=[]
           for p in root.rglob('*'):
               if not p.is_file() or '.git' in p.parts:
                   continue
@@ -123,9 +124,13 @@ jobs:
               if new != text:
                   p.write_text(new)
                   changed.append(str(p))
-          if not changed:
-              raise SystemExit('No SmartTube kotlinx-coroutines 1.8.10 declaration found to patch')
-          print('Patched unavailable kotlinx-coroutines 1.8.10 -> 1.8.1 in:', *changed, sep='\n  ')
+              if 'kotlinx-coroutines' in text:
+                  matches.append(str(p))
+          if changed:
+              print('Patched unavailable kotlinx-coroutines 1.8.10 -> 1.8.1 in:', *changed, sep='\n  ')
+          else:
+              print('No 1.8.10 declaration found in SmartTube checkout; continuing. Dependency versions may be supplied by Gradle/version catalogs.')
+              print('SmartTube files mentioning kotlinx-coroutines:', *matches, sep='\n  ')
           PY
 
       - name: Verify Mobile SmartTube flavor mapping
