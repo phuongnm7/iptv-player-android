@@ -23,6 +23,9 @@ concurrency:
   group: iptv-private-android-build
   cancel-in-progress: true
 
+# CI trigger verification: keep this workflow change in the build history so the
+# current SmartTube collision fixes are executed by GitHub Actions on this branch.
+
 jobs:
   build:
     if: github.event.repository.private == true
@@ -105,9 +108,6 @@ jobs:
           from pathlib import Path
           root=Path('third_party/SmartTube-droid')
           changed=[]
-          # SmartTube embeds the legacy ExoPlayer 2.x UI, while NM7 also ships Media3.
-          # Both expose attr/show_buffering. Rename the legacy SmartTube resource and
-          # every source reference in the SmartTube checkout so both player stacks coexist.
           for p in root.rglob('*'):
               if not p.is_file() or '.git' in p.parts:
                   continue
@@ -122,11 +122,8 @@ jobs:
                   p.write_text(new)
                   changed.append(str(p))
           print('Renamed SmartTube legacy show_buffering references:',len(changed))
-          # The library manifest contains application-level defaults that must not
-          # override NM7's application configuration. NM7's manifest supplies tools:replace.
           manifest=root/'leanbackassistant/src/main/AndroidManifest.xml'
           if manifest.is_file():
-              text=manifest.read_text(errors='ignore')
               print('SmartTube leanbackassistant manifest present:',manifest)
               print('Application attributes are resolved by the NM7 main manifest.')
           else:
