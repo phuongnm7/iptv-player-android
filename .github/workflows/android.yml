@@ -69,9 +69,6 @@ jobs:
                       text=re.sub(r'(\bandroid\s*\{)',r'\1\n    namespace "'+pkg+'"',text,count=1)
                   if not re.search(r'\bcompileSdkVersion\s+[^\n]+',text) and not re.search(r'\bcompileSdk\s*[= ]',text):
                       text=re.sub(r'(\bandroid\s*\{)',r'\1\n    compileSdkVersion project.properties.compileSdkVersion',text,count=1)
-                  # All vendored SmartTube modules receive a device dimension.
-                  # Existing SmartTube st* flavors MUST explicitly belong to the
-                  # legacy default dimension when a second dimension is present.
                   dm=re.search(r'(?m)^(\s*)flavorDimensions\s+(.+)$',text)
                   if dm:
                       rhs=dm.group(2).strip()
@@ -80,10 +77,7 @@ jobs:
                   else:
                       text=re.sub(r'(\bandroid\s*\{)',r'\1\n    flavorDimensions "device"',text,count=1)
                   if not re.search(r'\bmobile\s*\{\s*dimension\s+["\']device["\']',text,re.S):
-                      # Add a dedicated device flavor block; this is intentionally
-                      # separate from existing default-dimension flavors.
                       text=re.sub(r'(\bandroid\s*\{)',r'\1\n    productFlavors {\n        mobile { dimension "device" }\n    }',text,count=1)
-                  # Fix every legacy SmartTube flavor, not just appupdatechecker2.
                   for flavor in ('stbeta','ststable','stfdroid'):
                       text=re.sub(rf'(?m)^(\s*){flavor}\s*\{{\s*\}}',rf'\1{flavor} {{ dimension "default" }}',text)
                   text=re.sub(r'(?m)^(\s*)classifier\s+["\']([^"\']+)["\']\s*$',r"\1archiveClassifier.set('\2')",text)
@@ -91,7 +85,6 @@ jobs:
               if text!=original:
                   p.write_text(text)
                   changed.append(str(p))
-          # Hard verification: every legacy flavor declaration must carry default.
           bad=[]
           for p in root.rglob('build.gradle'):
               t=p.read_text(errors='ignore')
@@ -104,6 +97,31 @@ jobs:
           print('Verified all st* flavors have explicit default dimension')
           PY
 
+      - name: Patch SmartTube unavailable Coroutines version
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          root=Path('third_party/SmartTube-droid')
+          changed=[]
+          pattern=re.compile(r'(org\.jetbrains\.kotlinx:kotlinx-coroutines-(?:android|core|core-jvm|jdk8)):(?:1\.8\.10)\b')
+          for p in root.rglob('*'):
+              if not p.is_file() or '.git' in p.parts:
+                  continue
+              try:
+                  text=p.read_text(errors='ignore')
+              except Exception:
+                  continue
+              new=pattern.sub(r'\1:1.8.1', text)
+              if new != text:
+                  p.write_text(new)
+                  changed.append(str(p))
+          if not changed:
+              raise SystemExit('No SmartTube kotlinx-coroutines 1.8.10 declaration found to patch')
+          print('Patched unavailable kotlinx-coroutines 1.8.10 -> 1.8.1 in:', *changed, sep='\n  ')
+          PY
+
       - name: Verify Mobile SmartTube flavor mapping
         run: |
           python3 - <<'PY'
@@ -113,7 +131,6 @@ jobs:
           t=t.replace('missingDimensionStrategy("device", "mobile")\n','')
           anchor='missingDimensionStrategy("default", "ststable")'
           if anchor not in t: raise SystemExit('SmartTube default flavor strategy missing')
-          # The vendored modules are normalized to a device dimension by CI.
           if 'missingDimensionStrategy("device", "mobile")' not in t:
               t=t.replace(anchor,anchor+'\n        missingDimensionStrategy("device", "mobile")',1)
           p.write_text(t)
