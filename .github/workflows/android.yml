@@ -132,6 +132,61 @@ jobs:
               print('SmartTube leanbackassistant manifest not found; no manifest patch needed.')
           PY
 
+      - name: Patch SmartTube legacy OkHttp API
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('third_party/SmartTube-droid/SharedModules/sharedutils/src/main/java/com/liskovsoft/sharedutils/okhttp/DohProviders.kt')
+          if not p.is_file():
+              raise SystemExit(f'Missing expected file: {p}')
+          text=p.read_text()
+          old=text
+          text=text.replace('import okhttp3.HttpUrl\n', 'import okhttp3.HttpUrl\nimport okhttp3.toHttpUrlOrNull\n')
+          text=text.replace('return HttpUrl.parse(s) ?: throw NullPointerException("unable to parse url")', 'return s.toHttpUrlOrNull() ?: throw NullPointerException("unable to parse url")')
+          if text == old:
+              print('DohProviders.kt already patched or source differs; verifying no legacy HttpUrl.parse remains.')
+          p.write_text(text)
+          if 'HttpUrl.parse(' in text:
+              raise SystemExit('Legacy HttpUrl.parse remains in DohProviders.kt')
+          print('Patched DohProviders.kt: HttpUrl.parse -> toHttpUrlOrNull')
+          PY
+
+      - name: Patch SmartTube legacy formatted strings
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          root=Path('third_party/SmartTube-droid')
+          wanted={'auto_frame_rate_applying','proxy_test_error','proxy_test_start','proxy_test_status'}
+          string_re=re.compile(r'(<string\b[^>]*\bname=["\']('+'|'.join(map(re.escape,wanted))+r')["\'][^>]*>)(.*?)(</string>)',re.S)
+          token_re=re.compile(r'%(?![0-9]+\$)([sdif])')
+          changed=0
+          for p in root.rglob('*.xml'):
+              if '.git' in p.parts:
+                  continue
+              text=p.read_text(errors='ignore')
+              def repl(m):
+                  nonlocal_changed[0]+=1
+                  body=m.group(3)
+                  idx=[0]
+                  def tok(t):
+                      idx[0]+=1
+                      return f'%{idx[0]}${t.group(1)}'
+                  new=token_re.sub(tok,body)
+                  if new != body:
+                      changes[0]+=1
+                  return m.group(1)+new+m.group(4)
+              nonlocal_changed=[0]
+              changes=[0]
+              new=string_re.sub(repl,text)
+              if new != text:
+                  p.write_text(new)
+                  changed += changes[0]
+          print('Patched formatted SmartTube string resources:',changed)
+          PY
+
       - name: Patch SmartTube unavailable Coroutines version
         run: |
           set -euxo pipefail
