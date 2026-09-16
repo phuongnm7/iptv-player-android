@@ -126,13 +126,12 @@ subprojects {
     }
 }
 
-// The legacy Cast extension's AndroidX Test Core unit-test manifest is not part
-// of the NM7 runtime and fails AGP 8.13 because generated test activities lack
-// android:exported. Disable every MobileDebugUnitTest task in this legacy test
-// module, including manifest/resource preparation tasks that are dependencies
-// of the aggregate test graph. The Cast runtime library itself remains enabled.
+// Legacy SmartTube/ExoPlayer extension unit-test manifests are test-only and
+// fail AGP 8.13 validation. They are not required to assemble the NM7 runtime.
+// Skip MobileDebugUnitTest tasks for all legacy ExoPlayer extension modules while
+// keeping their production/runtime libraries fully enabled.
 subprojects {
-    if (path == ":exoplayer-extension-cast") {
+    if (path.startsWith(":exoplayer-extension-")) {
         tasks.matching { it.name.contains("MobileDebugUnitTest") }.configureEach {
             enabled = false
         }
