@@ -17,8 +17,8 @@ public final class SmartTubeRuntime {
             Object vm = vmClass.getMethod("instance", Context.class).invoke(null, context.getApplicationContext());
             Class<?> browse = Class.forName("com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity");
             vmClass.getMethod("setRoot", Class.class).invoke(vm, browse);
-            register(vmClass, vm, "SplashView", "com.liskovsoft.smartyoutubetv2.droid.ui.splash.SplashActivity");
-            register(vmClass, vm, "BrowseView", "com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity");
+            register(vmClass, vm, "SplashView", "com.liskovsoft.smartyoutubetv2.droid.ui.splash.SplashActivity", false);
+            register(vmClass, vm, "BrowseView", "com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity", false);
             register(vmClass, vm, "PlaybackView", "com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity", true);
             register(vmClass, vm, "AppDialogView", "com.liskovsoft.smartyoutubetv2.droid.ui.dialogs.AppDialogActivity", true);
             register(vmClass, vm, "SearchView", "com.liskovsoft.smartyoutubetv2.droid.ui.search.SearchActivity", true);
@@ -34,9 +34,11 @@ public final class SmartTubeRuntime {
         Class<?> activity = Class.forName(activityName);
         if (withParent) {
             Class<?> parent = Class.forName("com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity");
-            vmClass.getMethod("register", Class.class, Class.class, Class.class).invoke(vm, view, activity, parent);
+            Method m = vmClass.getMethod("register", Class.class, Class.class, Class.class);
+            m.invoke(vm, view, activity, parent);
         } else {
-            vmClass.getMethod("register", Class.class, Class.class).invoke(vm, view, activity);
+            Method m = vmClass.getMethod("register", Class.class, Class.class);
+            m.invoke(vm, view, activity);
         }
     }
 }
