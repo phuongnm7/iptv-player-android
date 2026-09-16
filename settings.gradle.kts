@@ -20,18 +20,15 @@ rootProject.name = "IPTV Player"
 include(":app")
 include(":smarttube")
 
-// SmartTube Droid's original build relies on these core_settings.gradle files
-// to populate compileSdk/minSdk/targetSdk and shared dependency versions.
+// SmartTube Droid's legacy modules use these shared paths and constants.
+// The original core_settings.gradle files are not present in the checked-out
+// submodule tree in CI, so the required modules are included explicitly below.
 val smartTubeRoot = file("third_party/SmartTube-droid")
 gradle.extensions.extraProperties.set("sharedModulesRoot", file("$smartTubeRoot/SharedModules"))
 gradle.extensions.extraProperties.set("sharedModulesConstants", file("$smartTubeRoot/SharedModules/constants.gradle"))
 gradle.extensions.extraProperties.set("mediaServiceCoreRoot", file("$smartTubeRoot/MediaServiceCore"))
 gradle.extensions.extraProperties.set("exoplayerRoot", file("$smartTubeRoot/exoplayer-amzn-2.10.6"))
 gradle.extensions.extraProperties.set("exoplayerModulePrefix", "exoplayer-")
-
-apply(from = file("$smartTubeRoot/SharedModules/core_settings.gradle"))
-apply(from = file("$smartTubeRoot/MediaServiceCore/core_settings.gradle"))
-apply(from = file("$smartTubeRoot/exoplayer-amzn-2.10.6/core_settings.gradle"))
 
 // SmartTube Droid phone UI and shared modules.
 include(":common", ":leanbackassistant", ":leanback-1.0.0", ":fragment-1.1.0", ":filepicker-lib", ":doubletapplayerview", ":slidableactivity")
