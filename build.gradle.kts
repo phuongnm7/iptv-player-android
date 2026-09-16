@@ -25,6 +25,24 @@ gradle.extensions.extraProperties.set("mediaServiceCoreRoot", file("third_party/
 gradle.extensions.extraProperties.set("exoplayerRoot", file("third_party/SmartTube-droid/exoplayer-amzn-2.10.6"))
 gradle.extensions.extraProperties.set("exoplayerModulePrefix", "exoplayer-")
 
+// The vendored SmartTube tree predates the plugins DSL and applies Android/Kotlin
+// plugins from individual subproject build.gradle files. Gradle buildscript
+// classpaths are project-scoped, so expose the legacy plugin classpath to every
+// subproject explicitly.
+subprojects {
+    buildscript {
+        repositories {
+            google()
+            mavenCentral()
+            gradlePluginPortal()
+        }
+        dependencies {
+            classpath("com.android.tools.build:gradle:8.13.2")
+            classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.10")
+        }
+    }
+}
+
 allprojects {
     repositories {
         google()
