@@ -16,7 +16,7 @@ public final class SmartTubeHomeActivity extends Activity {
             intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
             startActivity(intent);
         } catch (Throwable e) {
-            android.widget.Toast.makeText(this, "Không tải được YouTube SmartTube: " + e.getClass().getSimpleName(), android.widget.Toast.LENGTH_LONG).show();
+            android.widget.Toast.makeText(this, "Không tải được YouTube SmartTube", android.widget.Toast.LENGTH_LONG).show();
         }
         finish();
     }
