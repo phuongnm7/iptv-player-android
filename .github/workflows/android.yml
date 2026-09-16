@@ -89,7 +89,8 @@ jobs:
           for p in root.rglob('build.gradle'):
               t=p.read_text(errors='ignore')
               for f in ('stbeta','ststable','stfdroid'):
-                  if re.search(rf'(?m)^\s*{f}\s*\{\s*\}',t): bad.append(f'{p}:{f}')
+                  if re.search(r'(?m)^\s*'+re.escape(f)+r'\s*\{\s*\}',t):
+                      bad.append(f'{p}:{f}')
           if bad:
               raise SystemExit('Unpatched legacy flavors: '+', '.join(bad))
           assert any(x.endswith('filepicker-lib/build.gradle') for x in changed), 'filepicker classifier patch missing'
