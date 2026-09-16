@@ -12,6 +12,7 @@ on:
       - "gradle.properties"
       - "gradle/**"
       - "tools/**"
+      - "progress.md"
       - ".github/workflows/android.yml"
   workflow_dispatch:
 
