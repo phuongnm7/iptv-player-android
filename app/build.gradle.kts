@@ -14,6 +14,10 @@ android {
         versionName = "1.10.26"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // SmartTube's legacy modules retain the "default" flavor dimension
+        // (stbeta/ststable/stfdroid). Select the stable runtime for NM7 Mobile.
+        missingDimensionStrategy("default", "ststable")
     }
 
     flavorDimensions += "device"
