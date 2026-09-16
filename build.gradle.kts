@@ -23,9 +23,6 @@ gradle.extensions.extraProperties.set("mediaServiceCoreRoot", file("third_party/
 gradle.extensions.extraProperties.set("exoplayerRoot", file("third_party/SmartTube-droid/exoplayer-amzn-2.10.6"))
 gradle.extensions.extraProperties.set("exoplayerModulePrefix", "exoplayer-")
 
-// Apply SmartTube's shared constants before legacy module build scripts run.
-// Using a ProjectEvaluationListener avoids Kotlin DSL SAM-conversion issues
-// with Gradle.beforeProject(Action<...>).
 val smartTubeSharedConstantsProjects = setOf(
     ":common",
     ":leanbackassistant",
@@ -57,14 +54,9 @@ gradle.addProjectEvaluationListener(object : org.gradle.api.ProjectEvaluationLis
     override fun afterEvaluate(
         project: org.gradle.api.Project,
         state: org.gradle.api.ProjectState
-    ) {
-        // No-op; constants are injected in beforeEvaluate.
-    }
+    ) { }
 })
 
-// These vendored SmartTube modules are Android libraries but use legacy
-// `apply plugin:` scripts. Apply the Android/Kotlin plugins from the root
-// so they expose variants before :smarttube resolves their dependencies.
 val smartTubeAndroidLibraryModules = setOf(
     ":common",
     ":leanbackassistant",
@@ -94,6 +86,16 @@ subprojects {
     if (path in smartTubeAndroidLibraryModules) {
         pluginManager.apply("com.android.library")
         pluginManager.apply("org.jetbrains.kotlin.android")
+        pluginManager.withPlugin("com.android.library") {
+            extensions.configure<com.android.build.gradle.LibraryExtension> {
+                flavorDimensions += "device"
+                if (productFlavors.findByName("mobile") == null) {
+                    productFlavors.create("mobile") {
+                        dimension = "device"
+                    }
+                }
+            }
+        }
     }
     if (path == ":appupdatechecker2") {
         pluginManager.withPlugin("com.android.library") {
