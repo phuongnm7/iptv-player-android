@@ -52,8 +52,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import re
-          root=Path('third_party/SmartTube-droid')
-          changed=[]
+          root=Path('third_party/SmartTube-droid'); changed=[]
           for p in sorted(root.rglob('build.gradle')):
               if '/gradle/' in p.as_posix(): continue
               text=p.read_text(errors='ignore'); original=text
@@ -119,14 +118,11 @@ jobs:
 
       - name: Patch SmartTube legacy formatted strings
         run: |
-          set -euxo pipefail
           python3 - <<'PY'
           from pathlib import Path
           import re
-          root=Path('third_party/SmartTube-droid')
-          wanted={'auto_frame_rate_applying','proxy_test_error','proxy_test_start','proxy_test_status'}
-          sr=re.compile(r'(<string\b[^>]*\bname=["\']('+'|'.join(map(re.escape,wanted))+r')["\'][^>]*>)(.*?)(</string>)',re.S)
-          tr=re.compile(r'%(?![0-9]+\$)([sdif])'); changed=0
+          root=Path('third_party/SmartTube-droid'); wanted={'auto_frame_rate_applying','proxy_test_error','proxy_test_start','proxy_test_status'}
+          sr=re.compile(r'(<string\b[^>]*\bname=["\']('+'|'.join(map(re.escape,wanted))+r')["\'][^>]*>)(.*?)(</string>)',re.S); tr=re.compile(r'%(?![0-9]+\$)([sdif])'); changed=0
           for p in root.rglob('*.xml'):
               if '.git' in p.parts: continue
               text=p.read_text(errors='ignore')
@@ -144,8 +140,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import re
-          root=Path('third_party/SmartTube-droid')
-          changed=0
+          root=Path('third_party/SmartTube-droid'); changed=0
           for p in root.rglob('*'):
               if not p.is_file() or '.git' in p.parts: continue
               try: t=p.read_text(errors='ignore')
@@ -169,6 +164,31 @@ jobs:
               n=re.sub(r'(\bandroid\s*\{)',r'\1\n    kotlinOptions { jvmTarget = "1.8" }',t,count=1)
               if n!=t: p.write_text(n); changed.append(str(p))
           print('Patched Kotlin JVM target:',len(changed))
+          PY
+
+      - name: Patch SmartTube Cast test manifest exported activities
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          root=Path('third_party/SmartTube-droid')
+          targets={'BootstrapActivity','EmptyActivity','EmptyFloatingActivity'}
+          changed=[]
+          for p in root.rglob('AndroidManifest.xml'):
+              if '.git' in p.parts: continue
+              text=p.read_text(errors='ignore')
+              original=text
+              for name in targets:
+                  pattern=r'(<activity\b[^>]*\bandroid:name=["\'][^"\']*\.?'+re.escape(name)+r'["\'][^>]*)(/?>)'
+                  def repl(m):
+                      block=m.group(1)
+                      if re.search(r'android:exported\s*=',block): return m.group(0)
+                      return block+' android:exported="false"'+m.group(2)
+                  text=re.sub(pattern,repl,text)
+              if text!=original:
+                  p.write_text(text); changed.append(str(p))
+          print('Patched Cast test manifests:',len(changed))
           PY
 
       - name: Verify Mobile SmartTube flavor mapping
