@@ -61,6 +61,7 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     compileOnly("org.videolan.android:libvlc-all:3.6.1")
     add("tvImplementation", "org.videolan.android:libvlc-all:3.6.1")
+    add("mobileImplementation", project(":smarttube"))
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
