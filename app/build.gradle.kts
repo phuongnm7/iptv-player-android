@@ -67,8 +67,8 @@ dependencies {
 }
 
 // Inject the sleep-timer entry into the existing Settings screen immediately before
-// Mobile Java compilation. The previous build attached this to a variant task that
-// was not present in the CI task graph, so the feature never reached the APK.
+// Mobile Java compilation. The task MUST be a dependency of the Java compile task;
+// making assemble depend on injection is too late because compile may already have run.
 tasks.register("injectSleepTimerFeature") {
     doLast {
         val source = file("src/main/java/vn/phuong/iptvplayer/MainActivity.java")
@@ -89,14 +89,10 @@ tasks.register("injectSleepTimerFeature") {
             check(text.contains(oldCreate)) { "Cannot inject sleep timer: onCreate changed" }
             text = text.replace(oldCreate, newCreate)
         }
-        // Fix Java self-reference in the expiry runnable during CI compilation.
-        text = text.replace("HANDLER.postDelayed(EXPIRY, remaining);", "HANDLER.postDelayed(() -> EXPIRY.run(), remaining);")
         source.writeText(text)
     }
 }
 
-tasks.configureEach {
-    if (name == "compileMobileDebugJavaWithJavac" || name == "assembleMobileDebug") {
-        dependsOn("injectSleepTimerFeature")
-    }
+tasks.named("compileMobileDebugJavaWithJavac") {
+    dependsOn("injectSleepTimerFeature")
 }
