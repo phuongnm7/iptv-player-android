@@ -141,15 +141,14 @@ jobs:
           if not p.is_file():
               raise SystemExit(f'Missing expected file: {p}')
           text=p.read_text()
-          old=text
-          text=text.replace('import okhttp3.HttpUrl\n', 'import okhttp3.HttpUrl\nimport okhttp3.toHttpUrlOrNull\n')
-          text=text.replace('return HttpUrl.parse(s) ?: throw NullPointerException("unable to parse url")', 'return s.toHttpUrlOrNull() ?: throw NullPointerException("unable to parse url")')
-          if text == old:
-              print('DohProviders.kt already patched or source differs; verifying no legacy HttpUrl.parse remains.')
+          text=text.replace('import okhttp3.toHttpUrlOrNull\n', '')
+          text=text.replace('import okhttp3.HttpUrl\n', 'import okhttp3.HttpUrl\n')
+          text=text.replace('return s.toHttpUrlOrNull() ?: throw NullPointerException("unable to parse url")', 'return HttpUrl.get(s) ?: throw NullPointerException("unable to parse url")')
+          text=text.replace('return HttpUrl.parse(s) ?: throw NullPointerException("unable to parse url")', 'return HttpUrl.get(s) ?: throw NullPointerException("unable to parse url")')
           p.write_text(text)
-          if 'HttpUrl.parse(' in text:
-              raise SystemExit('Legacy HttpUrl.parse remains in DohProviders.kt')
-          print('Patched DohProviders.kt: HttpUrl.parse -> toHttpUrlOrNull')
+          if 'HttpUrl.parse(' in text or 'toHttpUrlOrNull' in text:
+              raise SystemExit('Legacy/unsupported URL parser remains in DohProviders.kt')
+          print('Patched DohProviders.kt: use OkHttp 3-compatible HttpUrl.get')
           PY
 
       - name: Patch SmartTube legacy formatted strings
@@ -168,7 +167,6 @@ jobs:
                   continue
               text=p.read_text(errors='ignore')
               def repl(m):
-                  nonlocal_changed[0]+=1
                   body=m.group(3)
                   idx=[0]
                   def tok(t):
@@ -178,7 +176,6 @@ jobs:
                   if new != body:
                       changes[0]+=1
                   return m.group(1)+new+m.group(4)
-              nonlocal_changed=[0]
               changes=[0]
               new=string_re.sub(repl,text)
               if new != text:
@@ -325,11 +322,17 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_2
-          disk-size: 2G
-          emulator-boot-timeout: 420
+          force-avd-creation: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
           disable-animations: true
-          disable-spellchecker: true
-          script: python3 tools/android_smoke_current.py dist/mobile/NM7-IPTV-Mobile-${{ steps.mobile_version.outputs.version }}.apk
+          script: |
+            adb install -r "dist/mobile/NM7-IPTV-Mobile-${{ steps.mobile_version.outputs.version }}.apk"
+            adb shell am force-stop vn.phuong.iptvplayer
+            adb shell monkey -p vn.phuong.iptvplayer 1
+            sleep 8
+            adb shell dumpsys activity activities | grep -q 'vn.phuong.iptvplayer'
+            adb shell pm path vn.phuong.iptvplayer
+            adb shell am force-stop vn.phuong.iptvplayer
 
       - name: Upload test and lint reports
         if: always()
