@@ -22,6 +22,7 @@
         <activity android:name=".VlcFallbackActivity" android:enabled="${vlcFallbackEnabled}" android:exported="false" android:configChanges="keyboardHidden|orientation|screenSize" />
         <activity android:name=".PlayerActivity" android:exported="false" android:configChanges="keyboardHidden|orientation|screenSize" />
         <activity android:name=".YoutubeActivity" android:exported="false" android:configChanges="keyboardHidden|orientation|screenSize" />
+        <activity android:name=".SmartTubeHomeActivity" android:exported="false" android:launchMode="singleTask" android:configChanges="keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout|layoutDirection" />
         <activity android:name=".MainActivity" android:configChanges="keyboardHidden|orientation|screenSize" android:windowSoftInputMode="stateAlwaysHidden|adjustPan" android:exported="true">
             <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
             <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LEANBACK_LAUNCHER" /></intent-filter>
