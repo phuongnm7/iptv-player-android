@@ -1,0 +1,146 @@
+name: NM7 Mobile Final Build
+
+on:
+  push:
+    branches: ["fix/mobile-1.10.26-sleep-timer-icon"]
+    paths:
+      - "app/**"
+      - "smarttube/**"
+      - ".github/workflows/android-mobile-final.yml"
+      - "gradle/**"
+      - "*.gradle.kts"
+      - "gradle.properties"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: github.event.repository.private == true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout source and submodules
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+          submodules: recursive
+
+      - name: Restore SmartTube dependencies
+        run: |
+          set -euxo pipefail
+          rm -rf third_party/SmartTube-droid
+          git clone --depth 1 --recurse-submodules https://github.com/systematiq-one/SmartTube-droid.git third_party/SmartTube-droid
+          git -C third_party/SmartTube-droid submodule update --init --force --recursive
+
+      - name: Patch SmartTube for AGP 8.13
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          root=Path('third_party/SmartTube-droid')
+          for p in root.rglob('build.gradle'):
+              if '.git' in p.parts: continue
+              t=p.read_text(errors='ignore')
+              orig=t
+              mfile=p.parent/'src/main/AndroidManifest.xml'
+              pkg=None
+              if mfile.is_file():
+                  m=re.search(r'\bpackage\s*=\s*["\']([^"\']+)["\']',mfile.read_text(errors='ignore'))
+                  if m: pkg=m.group(1)
+              if 'android {' in t:
+                  if pkg and not re.search(r'\bnamespace\s',t):
+                      t=re.sub(r'(android\s*\{)',r'\1\n    namespace "'+pkg+'"',t,1)
+                  if not re.search(r'compileSdkVersion|compileSdk\s*[= ]',t):
+                      t=re.sub(r'(android\s*\{)',r'\1\n    compileSdkVersion project.properties.compileSdkVersion',t,1)
+                  if 'flavorDimensions' not in t:
+                      t=re.sub(r'(android\s*\{)',r'\1\n    flavorDimensions "device"',t,1)
+                  elif '"device"' not in re.search(r'flavorDimensions[^\n]*',t).group(0):
+                      t=re.sub(r'(flavorDimensions\s+[^\n]+)',r'\1, "device"',t,1)
+                  if not re.search(r'\bmobile\s*\{\s*dimension\s+["\']device["\']',t,re.S):
+                      t=re.sub(r'(android\s*\{)',r'\1\n    productFlavors { mobile { dimension "device" } }',t,1)
+                  for f in ('stbeta','ststable','stfdroid'):
+                      t=re.sub(r'(?m)^(\s*)'+f+r'\s*\{\s*\}',lambda m:m.group(1)+f+' { dimension "default" }',t)
+                  t=re.sub(r'(?m)^(\s*)classifier\s+["\']([^"\']+)["\']\s*$',r"\1archiveClassifier.set('\2')",t)
+                  t=re.sub(r'(?m)^(\s*)classifier\s*=\s*["\']([^"\']+)["\']\s*$',r"\1archiveClassifier.set('\2')",t)
+                  if 'kotlin-android' in t and 'kotlinOptions' not in t:
+                      t=re.sub(r'(android\s*\{)',r'\1\n    kotlinOptions { jvmTarget = "1.8" }',t,1)
+              if t!=orig: p.write_text(t)
+          PY
+
+      - name: Patch SmartTube source compatibility
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('third_party/SmartTube-droid/SharedModules/sharedutils/src/main/java/com/liskovsoft/sharedutils/okhttp/DohProviders.kt')
+          t=p.read_text()
+          t=t.replace('import okhttp3.toHttpUrlOrNull\n','')
+          t=t.replace('return s.toHttpUrlOrNull() ?: throw NullPointerException("unable to parse url")','return HttpUrl.get(s)')
+          t=t.replace('return HttpUrl.parse(s) ?: throw NullPointerException("unable to parse url")','return HttpUrl.get(s)')
+          p.write_text(t)
+          if 'HttpUrl.parse(' in t or 'toHttpUrlOrNull' in t: raise SystemExit('URL parser patch failed')
+
+          import re
+          root=Path('third_party/SmartTube-droid')
+          wanted={'auto_frame_rate_applying','proxy_test_error','proxy_test_start','proxy_test_status'}
+          pat=re.compile(r'(<string\b[^>]*\bname=["\']('+'|'.join(wanted)+r')["\'][^>]*>)(.*?)(</string>)',re.S)
+          tok=re.compile(r'%(?![0-9]+\$)([sdif])')
+          for p in root.rglob('*.xml'):
+              if '.git' in p.parts: continue
+              t=p.read_text(errors='ignore')
+              def repl(m):
+                  i=[0]
+                  def r(x): i[0]+=1; return f'%{i[0]}${x.group(1)}'
+                  return m.group(1)+tok.sub(r,m.group(3))+m.group(4)
+              p.write_text(pat.sub(repl,t))
+          PY
+
+      - name: Configure build tools
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb
+        with:
+          gradle-version: "8.13"
+          cache-provider: basic
+          validate-wrappers: false
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
+        with:
+          cmdline-tools-version: "12266719"
+          packages: "platform-tools"
+          accept-android-sdk-licenses: true
+
+      - name: Install SDK packages
+        run: sdkmanager "platforms;android-34" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Build Mobile
+        run: |
+          set -o pipefail
+          gradle --no-daemon --console=plain -PcompileSdkVersion=android-36 -PminSdkVersion=23 -PtargetSdkVersion=36 -PbuildToolsVersion=36.0.0 -PtestXSupportVersion=1.1.0 -PannotationXVersion=1.1.0 -ProbolectricVersion=4.6.1 testMobileDebugUnitTest lintMobileDebug assembleMobileDebug
+
+      - name: Package APK
+        run: |
+          set -euxo pipefail
+          version="$(grep -m1 'versionName = "' app/build.gradle.kts | cut -d'"' -f2)"
+          mkdir -p dist/mobile
+          apk="dist/mobile/NM7-IPTV-Mobile-${version}.apk"
+          cp app/build/outputs/apk/mobile/debug/app-mobile-debug.apk "$apk"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$apk"
+          if unzip -l "$apk" | grep -q 'libvlc\.so'; then exit 1; fi
+          sha256sum "$apk" | tee dist/mobile/SHA256SUMS.txt
+
+      - name: Upload Mobile APK
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a0
+        with:
+          name: NM7-IPTV-Mobile-FINAL
+          path: dist/mobile/
+          retention-days: 30
+          if-no-files-found: error
