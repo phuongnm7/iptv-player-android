@@ -79,13 +79,15 @@ jobs:
                           indent=dim_line.group(1); rhs=dim_line.group(2).strip(); text=text[:dim_line.start()]+f'{indent}flavorDimensions {rhs}, "device"'+text[dim_line.end():]; device_dimension_added.append(str(gradle_file))
                   if not re.search(r'\bmobile\s*\{\s*dimension\s+["\']device["\']',text,re.S):
                       text=re.sub(r'(\bandroid\s*\{)',r'\1\n    productFlavors {\n        mobile { dimension "device" }\n    }',text,count=1); device_flavor_added.append(str(gradle_file))
-                  # Legacy SmartTube flavors relied on implicit dimension assignment.
-                  # Once the mobile/device dimension is added, AGP 8.x requires every
-                  # existing flavor to have an explicit dimension as well.
-                  if '"default"' in text and '"device"' in text and re.search(r'productFlavors\s*\{', text):
-                      text=re.sub(r'(?m)^(\s*)(stbeta|ststable|stfdroid)\s*\{\s*\}$',r'\1\2 { dimension "default" }',text)
-                      text=re.sub(r'(?m)^(\s*)(stbeta|ststable|stfdroid)\s*\{(?![^\n]*dimension)',r'\1\2 { dimension "default"',text)
-                      text=text.replace('dimension "default" } }','dimension "default" } }')
+                  # appupdatechecker2 has three legacy flavors in the default dimension.
+                  # Rewrite that exact flavor block instead of using a brace-sensitive regex.
+                  if gradle_file.as_posix().endswith("SharedModules/appupdatechecker2/build.gradle"):
+                      old_block='''    productFlavors {\n        stbeta {}\n        ststable {}\n        stfdroid {}\n    }'''
+                      new_block='''    productFlavors {\n        stbeta { dimension "default" }\n        ststable { dimension "default" }\n        stfdroid { dimension "default" }\n    }'''
+                      if old_block in text:
+                          text=text.replace(old_block,new_block,1)
+                      elif re.search(r'(?ms)^\s*productFlavors\s*\{\s*stbeta\s*\{\s*\}\s*ststable\s*\{\s*\}\s*stfdroid\s*\{\s*\}\s*\}',text):
+                          text=re.sub(r'(?ms)^\s*productFlavors\s*\{\s*stbeta\s*\{\s*\}\s*ststable\s*\{\s*\}\s*stfdroid\s*\{\s*\}\s*\}',new_block,text,count=1)
               new_text=re.sub(r'(?m)^(\s*)classifier\s+[\'\"]([^\'\"]+)[\'\"]\s*$',r"\1archiveClassifier.set('\2')",text)
               new_text=re.sub(r'(?m)^(\s*)classifier\s*=\s*[\'\"]([^\'\"]+)[\'\"]\s*$',r"\1archiveClassifier.set('\2')",new_text)
               if new_text!=text: text=new_text; classifier_patched.append(str(gradle_file))
@@ -97,6 +99,12 @@ jobs:
           print(f"Patched legacy classifier syntax: {len(classifier_patched)}")
           for path in classifier_patched: print("  classifier:",path)
           if not any(path.endswith("filepicker-lib/build.gradle") for path in classifier_patched): raise SystemExit("Expected filepicker-lib classifier patch was not applied")
+          p=root/"SharedModules/appupdatechecker2/build.gradle"
+          check=p.read_text(errors="ignore")
+          for flavor in ("stbeta", "ststable", "stfdroid"):
+              if not re.search(rf'\b{flavor}\s*\{{\s*dimension\s+["\']default["\']\s*\}}',check):
+                  raise SystemExit(f"appupdatechecker2 flavor dimension missing: {flavor}")
+          print("Verified appupdatechecker2 legacy flavors use default dimension")
       - name: Verify Mobile flavor mapping for vendored SmartTube
         run: |
           python3 - <<'PY'
