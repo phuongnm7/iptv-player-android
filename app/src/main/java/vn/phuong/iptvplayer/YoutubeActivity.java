@@ -2,41 +2,26 @@ package vn.phuong.iptvplayer;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.content.ActivityNotFoundException;
-import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
-import android.view.ViewGroup;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 /**
- * Mobile YouTube entry point.
+ * YouTube screen host inside NM7 IPTV.
  *
- * The viewer stays inside the NM7 process. When a compatible SmartTube build is
- * already installed, the user can hand off to SmartTube from the same screen;
- * otherwise NM7 provides a built-in YouTube web player fallback.
- *
- * This class is intentionally isolated so a future SmartTube source/AAR can
- * replace the fallback without changing the NM7 home UI or sleep timer.
+ * The top-level navigation is shared with the IPTV home. The WebView remains
+ * only as a temporary buildable fallback while the SmartTube Droid modules are
+ * being merged into the NM7 Mobile APK.
  */
 public final class YoutubeActivity extends Activity {
     private static final String YOUTUBE_URL = "https://m.youtube.com/";
-    private static final String[] SMARTTUBE_PACKAGES = {
-            "org.smarttube.stable",
-            "org.smarttube.beta",
-            "app.smarttube",
-            "app.smarttube.fdroid"
-    };
-
     private WebView webView;
     private ProgressBar progress;
 
@@ -52,31 +37,15 @@ public final class YoutubeActivity extends Activity {
         root.setBackgroundColor(Color.rgb(7, 22, 52));
         root.setPadding(12, 12, 12, 12);
 
-        LinearLayout top = new LinearLayout(this);
-        top.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        HomeTabBar.attach(this, root, true);
 
         TextView title = new TextView(this);
         title.setText("YouTube");
         title.setTextColor(Color.WHITE);
         title.setTextSize(20);
         title.setTypeface(null, android.graphics.Typeface.BOLD);
-        top.addView(title, new LinearLayout.LayoutParams(0, 48, 1));
-
-        Button smartTube = new Button(this);
-        smartTube.setText("SmartTube");
-        smartTube.setAllCaps(false);
-        smartTube.setOnClickListener(v -> openSmartTubeOrToast());
-        top.addView(smartTube, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, 48));
-
-        Button close = new Button(this);
-        close.setText("Đóng");
-        close.setAllCaps(false);
-        close.setOnClickListener(v -> finish());
-        LinearLayout.LayoutParams closeLp = new LinearLayout.LayoutParams(96, 48);
-        closeLp.setMarginStart(6);
-        top.addView(close, closeLp);
-
-        root.addView(top);
+        title.setPadding(4, 2, 4, 8);
+        root.addView(title, new LinearLayout.LayoutParams(-1, 42));
 
         progress = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
         progress.setMax(100);
@@ -116,33 +85,6 @@ public final class YoutubeActivity extends Activity {
                 progress.setProgress(newProgress);
             }
         });
-    }
-
-    private String findInstalledSmartTube() {
-        for (String pkg : SMARTTUBE_PACKAGES) {
-            try {
-                getPackageManager().getApplicationInfo(pkg, 0);
-                return pkg;
-            } catch (Exception ignored) {
-            }
-        }
-        return null;
-    }
-
-    private void openSmartTubeOrToast() {
-        String pkg = findInstalledSmartTube();
-        if (pkg == null) {
-            Toast.makeText(this, "Chưa cài SmartTube. NM7 đang dùng trình YouTube tích hợp.", Toast.LENGTH_LONG).show();
-            return;
-        }
-        try {
-            Intent launch = getPackageManager().getLaunchIntentForPackage(pkg);
-            if (launch == null) throw new ActivityNotFoundException(pkg);
-            launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(launch);
-        } catch (Exception e) {
-            Toast.makeText(this, "Không mở được SmartTube", Toast.LENGTH_SHORT).show();
-        }
     }
 
     @SuppressWarnings("deprecation")
