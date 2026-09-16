@@ -93,4 +93,8 @@ allprojects {
         mavenCentral()
         maven { url = uri("https://jitpack.io") }
     }
+    configurations.all {
+        resolutionStrategy.force("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+        resolutionStrategy.force("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    }
 }
