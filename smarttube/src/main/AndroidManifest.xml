@@ -1,10 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
+    <queries>
+        <intent><action android:name="android.speech.RecognitionService" /></intent>
+    </queries>
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
-    <application android:usesCleartextTraffic="true">
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" tools:node="replace" />
+    <uses-feature android:name="android.software.leanback" android:required="false" tools:node="replace" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" tools:node="replace" />
+    <uses-sdk tools:overrideLibrary="com.google.android.exoplayer2.ext.vp9,com.google.android.exoplayer2.testutil,com.google.android.exoplayer2.ext.okhttp" />
+    <application android:usesCleartextTraffic="true" android:allowBackup="false" android:allowAudioPlaybackCapture="true" android:hardwareAccelerated="true" android:largeHeap="true" tools:node="merge">
         <activity android:name="com.liskovsoft.smartyoutubetv2.droid.ui.splash.SplashActivity" android:exported="false" android:noHistory="true" />
         <activity android:name="com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity" android:launchMode="singleTask" android:exported="false" />
         <activity android:name="com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity" android:launchMode="singleTask" android:exported="false" android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|keyboardHidden|layoutDirection" android:supportsPictureInPicture="true" android:resizeableActivity="true" android:showWhenLocked="true" />
@@ -15,5 +22,8 @@
         <activity android:name="com.liskovsoft.smartyoutubetv2.droid.ui.signin.SignInActivity" android:exported="false" />
         <activity android:name="com.liskovsoft.smartyoutubetv2.droid.ui.adddevice.AddDeviceActivity" android:exported="false" />
         <activity android:name="com.liskovsoft.smartyoutubetv2.droid.ui.webbrowser.WebBrowserActivity" android:exported="false" />
+        <activity android:name="com.liskovsoft.leanbackassistant.search.SearchableActivity" tools:node="remove" />
+        <receiver android:name="com.liskovsoft.leanbackassistant.channels.UpdateChannelsReceiver" tools:node="remove" />
+        <provider android:name="com.liskovsoft.leanbackassistant.search.VideoContentProvider" tools:node="remove" />
     </application>
 </manifest>
