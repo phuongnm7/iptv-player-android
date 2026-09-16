@@ -11,6 +11,7 @@ android {
         targetSdk = 36
         multiDexEnabled = true
         missingDimensionStrategy("default", "ststable")
+        missingDimensionStrategy("device", "mobile")
         buildConfigField("long", "TIMESTAMP", "${System.currentTimeMillis()}L")
     }
 
