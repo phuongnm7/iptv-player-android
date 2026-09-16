@@ -10,7 +10,7 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 
-/** Bottom navigation modeled after the supplied SmartTube mobile UI. */
+/** Main Mobile navigation: exactly two top-level sections, YouTube and IPTV. */
 public final class HomeTabBar {
     private static final int TAG_KEY = 0x4E4D3701;
     private static final int BG = Color.rgb(23, 23, 28);
@@ -36,6 +36,7 @@ public final class HomeTabBar {
                 activity.startActivity(intent);
             }
         });
+
         addItem(activity, bar, R.drawable.nm7_nav_iptv, !youtubeSelected, () -> {
             if (youtubeSelected) {
                 Intent intent = new Intent(activity, MainActivity.class);
@@ -44,8 +45,6 @@ public final class HomeTabBar {
                 activity.finish();
             }
         });
-        addItem(activity, bar, R.drawable.nm7_nav_media, false, () -> { });
-        addItem(activity, bar, R.drawable.nm7_nav_settings, false, () -> { });
 
         root.addView(bar, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(activity, 64)));
