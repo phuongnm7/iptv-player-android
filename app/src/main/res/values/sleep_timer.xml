@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sleep_timer_title">Hẹn giờ đóng app</string>
+    <string name="sleep_timer_off">Tắt</string>
+    <string name="sleep_timer_15">15 phút</string>
+    <string name="sleep_timer_30">30 phút</string>
+    <string name="sleep_timer_60">60 phút</string>
+    <string name="sleep_timer_90">90 phút</string>
+    <string name="sleep_timer_120">120 phút</string>
+    <string name="sleep_timer_end_program">Hết chương trình đang xem</string>
+</resources>
