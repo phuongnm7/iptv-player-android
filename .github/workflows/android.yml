@@ -82,7 +82,9 @@ jobs:
                   if not re.search(r'\bmobile\s*\{\s*dimension\s+["\']device["\']',text,re.S):
                       text=re.sub(r'(\bandroid\s*\{)',r'\1\n    productFlavors {\n        mobile { dimension "device" }\n    }',text,count=1)
                   for flavor in ('stbeta','ststable','stfdroid'):
-                      text=re.sub(rf'(?m)^(\s*){flavor}\s*\{\s*\}',rf'\1{flavor} {{ dimension "default" }}',text)
+                      pattern = r'(?m)^(\s*)' + re.escape(flavor) + r'\s*\{\s*\}'
+                      replacement = lambda m, f=flavor: m.group(1) + f + ' { dimension "default" }'
+                      text=re.sub(pattern,replacement,text)
                   text=re.sub(r'(?m)^(\s*)classifier\s+["\']([^"\']+)["\']\s*$',r"\1archiveClassifier.set('\2')",text)
                   text=re.sub(r'(?m)^(\s*)classifier\s*=\s*["\']([^"\']+)["\']\s*$',r"\1archiveClassifier.set('\2')",text)
               if text!=original:
