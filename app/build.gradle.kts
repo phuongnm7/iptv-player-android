@@ -10,9 +10,8 @@ android {
         applicationId = "vn.phuong.iptvplayer"
         minSdk = 23
         targetSdk = 36
-        versionCode = 44
+        versionCode = 45
         versionName = "1.10.26"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -61,11 +60,7 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     compileOnly("org.videolan.android:libvlc-all:3.6.1")
     add("tvImplementation", "org.videolan.android:libvlc-all:3.6.1")
-
-    // Native SmartTube phone runtime is packaged only into the Mobile flavor;
-    // the TV flavor remains the existing NM7 TV implementation.
     add("mobileImplementation", project(":smarttube"))
-
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
