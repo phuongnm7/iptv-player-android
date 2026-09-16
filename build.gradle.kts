@@ -23,9 +23,9 @@ gradle.extensions.extraProperties.set("mediaServiceCoreRoot", file("third_party/
 gradle.extensions.extraProperties.set("exoplayerRoot", file("third_party/SmartTube-droid/exoplayer-amzn-2.10.6"))
 gradle.extensions.extraProperties.set("exoplayerModulePrefix", "exoplayer-")
 
-// The legacy SmartTube modules expect constants.gradle to run before their
-// own build.gradle files so project.properties.compileSdkVersion, minSdkVersion,
-// targetSdkVersion and the shared dependency versions already exist.
+// Apply SmartTube's shared constants before legacy module build scripts run.
+// Using a ProjectEvaluationListener avoids Kotlin DSL SAM-conversion issues
+// with Gradle.beforeProject(Action<...>).
 val smartTubeSharedConstantsProjects = setOf(
     ":common",
     ":leanbackassistant",
@@ -41,15 +41,24 @@ val smartTubeSharedConstantsProjects = setOf(
     ":j2v8"
 )
 
-gradle.beforeProject(org.gradle.api.Action<org.gradle.api.Project> { project ->
-    if (project.path in smartTubeSharedConstantsProjects) {
-        project.apply(
-            mapOf(
-                "from" to project.rootProject.file(
-                    "third_party/SmartTube-droid/SharedModules/constants.gradle"
+gradle.addProjectEvaluationListener(object : org.gradle.api.ProjectEvaluationListener {
+    override fun beforeEvaluate(project: org.gradle.api.Project) {
+        if (project.path in smartTubeSharedConstantsProjects) {
+            project.apply(
+                mapOf(
+                    "from" to project.rootProject.file(
+                        "third_party/SmartTube-droid/SharedModules/constants.gradle"
+                    )
                 )
             )
-        )
+        }
+    }
+
+    override fun afterEvaluate(
+        project: org.gradle.api.Project,
+        state: org.gradle.api.plugins.internal.PluginAwareInternal
+    ) {
+        // No-op; constants are injected in beforeEvaluate.
     }
 })
 
