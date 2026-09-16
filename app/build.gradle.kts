@@ -88,8 +88,10 @@ tasks.register("injectSleepTimerFeature") {
             val newCreate = "@Override protected void onCreate(Bundle savedInstanceState) { super.onCreate(savedInstanceState); setupViews(); SleepTimer.restore(this); restoreSession(); epgHandler.post(epgTick); }"
             check(text.contains(oldCreate)) { "Cannot inject sleep timer: onCreate changed" }
             text = text.replace(oldCreate, newCreate)
-            source.writeText(text)
         }
+        // Fix Java self-reference in the expiry runnable during CI compilation.
+        text = text.replace("HANDLER.postDelayed(EXPIRY, remaining);", "HANDLER.postDelayed(() -> EXPIRY.run(), remaining);")
+        source.writeText(text)
     }
 }
 
