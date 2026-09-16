@@ -33,8 +33,13 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
-      - name: Initialize SmartTube nested submodules
+      - name: Restore SmartTube submodule and nested dependencies
         run: |
+          set -euxo pipefail
+          if [ ! -d third_party/SmartTube-droid/.git ]; then
+            rm -rf third_party/SmartTube-droid
+            git clone --depth 1 --recurse-submodules https://github.com/systematiq-one/SmartTube-droid.git third_party/SmartTube-droid
+          fi
           git -C third_party/SmartTube-droid submodule sync --recursive
           git -C third_party/SmartTube-droid submodule update --init --force --recursive
           git -C third_party/SmartTube-droid submodule status --recursive
@@ -43,7 +48,7 @@ jobs:
           test -f third_party/SmartTube-droid/exoplayer-amzn-2.10.6/core_settings.gradle
           echo "SmartTube nested submodules are ready"
       - name: Install JDK 17
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcb961 # v5
         with:
           distribution: temurin
           java-version: "17"
