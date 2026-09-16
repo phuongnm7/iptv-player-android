@@ -1,55 +1,42 @@
 package vn.phuong.iptvplayer;
 
 import android.content.Context;
+import java.lang.reflect.Method;
 
-import com.liskovsoft.smartyoutubetv2.common.app.views.AddDeviceView;
-import com.liskovsoft.smartyoutubetv2.common.app.views.AppDialogView;
-import com.liskovsoft.smartyoutubetv2.common.app.views.BrowseView;
-import com.liskovsoft.smartyoutubetv2.common.app.views.ChannelUploadsView;
-import com.liskovsoft.smartyoutubetv2.common.app.views.ChannelView;
-import com.liskovsoft.smartyoutubetv2.common.app.views.PlaybackView;
-import com.liskovsoft.smartyoutubetv2.common.app.views.SearchView;
-import com.liskovsoft.smartyoutubetv2.common.app.views.SignInView;
-import com.liskovsoft.smartyoutubetv2.common.app.views.SplashView;
-import com.liskovsoft.smartyoutubetv2.common.app.views.ViewManager;
-import com.liskovsoft.smartyoutubetv2.common.app.views.WebBrowserView;
-import com.liskovsoft.smartyoutubetv2.common.misc.MotherActivity;
-import com.liskovsoft.smartyoutubetv2.common.misc.ScreensaverManager;
-import com.liskovsoft.smartyoutubetv2.droid.ui.adddevice.AddDeviceActivity;
-import com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity;
-import com.liskovsoft.smartyoutubetv2.droid.ui.channel.ChannelActivity;
-import com.liskovsoft.smartyoutubetv2.droid.ui.channeluploads.ChannelUploadsActivity;
-import com.liskovsoft.smartyoutubetv2.droid.ui.dialogs.AppDialogActivity;
-import com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity;
-import com.liskovsoft.smartyoutubetv2.droid.ui.search.SearchActivity;
-import com.liskovsoft.smartyoutubetv2.droid.ui.signin.SignInActivity;
-import com.liskovsoft.smartyoutubetv2.droid.ui.splash.SplashActivity;
-import com.liskovsoft.smartyoutubetv2.droid.ui.webbrowser.WebBrowserActivity;
-
+/** Initializes SmartTube's native phone runtime without compile-time coupling to vendored classes. */
 public final class SmartTubeRuntime {
-    private static boolean initialized;
-
     private SmartTubeRuntime() {}
-
     public static synchronized void initialize(Context context) {
-        if (initialized) return;
-        initialized = true;
-
-        System.setProperty("http.keepAlive", "false");
-        MotherActivity.setTvDpiScalingEnabled(false);
-        ScreensaverManager.setSupported(false);
-
-        ViewManager viewManager = ViewManager.instance(context.getApplicationContext());
-        viewManager.setRoot(BrowseActivity.class);
-        viewManager.register(SplashView.class, SplashActivity.class);
-        viewManager.register(BrowseView.class, BrowseActivity.class);
-        viewManager.register(PlaybackView.class, PlaybackActivity.class, BrowseActivity.class);
-        viewManager.register(AppDialogView.class, AppDialogActivity.class, BrowseActivity.class);
-        viewManager.register(SearchView.class, SearchActivity.class, BrowseActivity.class);
-        viewManager.register(SignInView.class, SignInActivity.class, BrowseActivity.class);
-        viewManager.register(AddDeviceView.class, AddDeviceActivity.class, BrowseActivity.class);
-        viewManager.register(ChannelView.class, ChannelActivity.class, BrowseActivity.class);
-        viewManager.register(ChannelUploadsView.class, ChannelUploadsActivity.class, BrowseActivity.class);
-        viewManager.register(WebBrowserView.class, WebBrowserActivity.class, BrowseActivity.class);
+        try {
+            System.setProperty("http.keepAlive", "false");
+            Class<?> mother = Class.forName("com.liskovsoft.smartyoutubetv2.common.misc.MotherActivity");
+            mother.getMethod("setTvDpiScalingEnabled", boolean.class).invoke(null, false);
+            Class<?> screensaver = Class.forName("com.liskovsoft.smartyoutubetv2.common.misc.ScreensaverManager");
+            screensaver.getMethod("setSupported", boolean.class).invoke(null, false);
+            Class<?> vmClass = Class.forName("com.liskovsoft.smartyoutubetv2.common.app.views.ViewManager");
+            Object vm = vmClass.getMethod("instance", Context.class).invoke(null, context.getApplicationContext());
+            Class<?> browse = Class.forName("com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity");
+            vmClass.getMethod("setRoot", Class.class).invoke(vm, browse);
+            register(vmClass, vm, "SplashView", "com.liskovsoft.smartyoutubetv2.droid.ui.splash.SplashActivity");
+            register(vmClass, vm, "BrowseView", "com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity");
+            register(vmClass, vm, "PlaybackView", "com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity", true);
+            register(vmClass, vm, "AppDialogView", "com.liskovsoft.smartyoutubetv2.droid.ui.dialogs.AppDialogActivity", true);
+            register(vmClass, vm, "SearchView", "com.liskovsoft.smartyoutubetv2.droid.ui.search.SearchActivity", true);
+            register(vmClass, vm, "SignInView", "com.liskovsoft.smartyoutubetv2.droid.ui.signin.SignInActivity", true);
+            register(vmClass, vm, "AddDeviceView", "com.liskovsoft.smartyoutubetv2.droid.ui.adddevice.AddDeviceActivity", true);
+            register(vmClass, vm, "ChannelView", "com.liskovsoft.smartyoutubetv2.droid.ui.channel.ChannelActivity", true);
+            register(vmClass, vm, "ChannelUploadsView", "com.liskovsoft.smartyoutubetv2.droid.ui.channeluploads.ChannelUploadsActivity", true);
+            register(vmClass, vm, "WebBrowserView", "com.liskovsoft.smartyoutubetv2.droid.ui.webbrowser.WebBrowserActivity", true);
+        } catch (Throwable ignored) { }
+    }
+    private static void register(Class<?> vmClass, Object vm, String viewSimpleName, String activityName, boolean withParent) throws Exception {
+        Class<?> view = Class.forName("com.liskovsoft.smartyoutubetv2.common.app.views." + viewSimpleName);
+        Class<?> activity = Class.forName(activityName);
+        if (withParent) {
+            Class<?> parent = Class.forName("com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity");
+            vmClass.getMethod("register", Class.class, Class.class, Class.class).invoke(vm, view, activity, parent);
+        } else {
+            vmClass.getMethod("register", Class.class, Class.class).invoke(vm, view, activity);
+        }
     }
 }
