@@ -58,6 +58,8 @@ jobs:
           compile_sdk_added = []
           classifier_patched = []
           device_flavor_added = []
+          device_dimension_added = []
+
           for gradle_file in sorted(root.rglob("build.gradle")):
               if "/gradle/" in gradle_file.as_posix():
                   continue
@@ -70,31 +72,57 @@ jobs:
                   m = re.search(r'\bpackage\s*=\s*["\']([^"\']+)["\']', manifest.read_text(errors="ignore"))
                   if m:
                       pkg = m.group(1)
+
               has_android = bool(re.search(r'\bandroid\s*\{', text))
               if pkg and has_android and not re.search(r'\bnamespace\s*[= ]', text):
                   text = re.sub(r'(\bandroid\s*\{)', r'\1\n    namespace "' + pkg + '"', text, count=1)
               if has_android and not re.search(r'\bcompileSdkVersion\s+[^\n]+', text) and not re.search(r'\bcompileSdk\s*[= ]', text):
                   text = re.sub(r'(\bandroid\s*\{)', r'\1\n    compileSdkVersion project.properties.compileSdkVersion', text, count=1)
                   compile_sdk_added.append(str(gradle_file))
-              if has_android and not re.search(r'\bflavorDimensions\s+["\']device["\']', text) and not re.search(r'\bflavorDimensions\s*\+?=', text):
-                  text = re.sub(r'(\bandroid\s*\{)', r'\1\n    flavorDimensions "device"', text, count=1)
-              if has_android and not re.search(r'\bmobile\s*\{\s*dimension\s+["\']device["\']', text, re.S):
-                  text = re.sub(r'(\bandroid\s*\{)', r'\1\n    productFlavors {\n        mobile { dimension "device" }\n    }', text, count=1)
-                  device_flavor_added.append(str(gradle_file))
+
+              if has_android:
+                  # SmartTube modules already declare a legacy "default" dimension.
+                  # Preserve it and add the application's "device" dimension instead
+                  # of adding a second flavorDimensions statement that would be replaced.
+                  default_dim = re.search(r'(?m)^(\s*)flavorDimensions\s+["\']default["\']\s*$', text)
+                  if default_dim and '"device"' not in default_dim.group(0):
+                      indent = default_dim.group(1)
+                      text = text[:default_dim.start()] + f'{indent}flavorDimensions "default", "device"' + text[default_dim.end():]
+                      device_dimension_added.append(str(gradle_file))
+                  elif not re.search(r'(?m)^\s*flavorDimensions\b', text):
+                      text = re.sub(r'(\bandroid\s*\{)', r'\1\n    flavorDimensions "device"', text, count=1)
+                      device_dimension_added.append(str(gradle_file))
+                  else:
+                      dim_line = re.search(r'(?m)^(\s*)flavorDimensions\s+(.+)$', text)
+                      if dim_line and '"device"' not in dim_line.group(2) and "'device'" not in dim_line.group(2):
+                          indent = dim_line.group(1)
+                          rhs = dim_line.group(2).strip()
+                          text = text[:dim_line.start()] + f'{indent}flavorDimensions {rhs}, "device"' + text[dim_line.end():]
+                          device_dimension_added.append(str(gradle_file))
+
+                  if not re.search(r'\bmobile\s*\{\s*dimension\s+["\']device["\']', text, re.S):
+                      text = re.sub(
+                          r'(\bandroid\s*\{)',
+                          r'\1\n    productFlavors {\n        mobile { dimension "device" }\n    }',
+                          text,
+                          count=1,
+                      )
+                      device_flavor_added.append(str(gradle_file))
+
               new_text = re.sub(r'(?m)^(\s*)classifier\s+[\'\"]([^\'\"]+)[\'\"]\s*$', r"\1archiveClassifier.set('\2')", text)
               new_text = re.sub(r'(?m)^(\s*)classifier\s*=\s*[\'\"]([^\'\"]+)[\'\"]\s*$', r"\1archiveClassifier.set('\2')", new_text)
               if new_text != text:
                   text = new_text
                   classifier_patched.append(str(gradle_file))
+
               if text != original:
                   gradle_file.write_text(text)
                   patched.append(str(gradle_file))
 
           print(f"Patched SmartTube Gradle files: {len(patched)}")
           print(f"Added compileSdk declarations: {len(compile_sdk_added)}")
+          print(f"Added or merged device dimension: {len(device_dimension_added)}")
           print(f"Added mobile device flavor: {len(device_flavor_added)}")
-          for path in device_flavor_added:
-              print("  device flavor:", path)
           print(f"Patched legacy classifier syntax: {len(classifier_patched)}")
           for path in classifier_patched:
               print("  classifier:", path)
