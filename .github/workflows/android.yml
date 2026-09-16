@@ -23,9 +23,6 @@ concurrency:
   group: iptv-private-android-build
   cancel-in-progress: true
 
-# CI trigger verification: keep this workflow change in the build history so the
-# current SmartTube collision fixes are executed by GitHub Actions on this branch.
-
 jobs:
   build:
     if: github.event.repository.private == true
@@ -58,49 +55,34 @@ jobs:
           root=Path('third_party/SmartTube-droid')
           changed=[]
           for p in sorted(root.rglob('build.gradle')):
-              if '/gradle/' in p.as_posix():
-                  continue
-              text=p.read_text(errors='ignore')
-              original=text
-              manifest=p.parent/'src/main/AndroidManifest.xml'
-              pkg=None
+              if '/gradle/' in p.as_posix(): continue
+              text=p.read_text(errors='ignore'); original=text
+              manifest=p.parent/'src/main/AndroidManifest.xml'; pkg=None
               if manifest.is_file():
                   m=re.search(r'\bpackage\s*=\s*["\']([^"\']+)["\']',manifest.read_text(errors='ignore'))
                   if m: pkg=m.group(1)
               if re.search(r'\bandroid\s*\{',text):
-                  if pkg and not re.search(r'\bnamespace\s*[= ]',text):
-                      text=re.sub(r'(\bandroid\s*\{)',r'\1\n    namespace "'+pkg+'"',text,count=1)
-                  if not re.search(r'\bcompileSdkVersion\s+[^\n]+',text) and not re.search(r'\bcompileSdk\s*[= ]',text):
-                      text=re.sub(r'(\bandroid\s*\{)',r'\1\n    compileSdkVersion project.properties.compileSdkVersion',text,count=1)
+                  if pkg and not re.search(r'\bnamespace\s*[= ]',text): text=re.sub(r'(\bandroid\s*\{)',r'\1\n    namespace "'+pkg+'"',text,count=1)
+                  if not re.search(r'\bcompileSdkVersion\s+[^\n]+',text) and not re.search(r'\bcompileSdk\s*[= ]',text): text=re.sub(r'(\bandroid\s*\{)',r'\1\n    compileSdkVersion project.properties.compileSdkVersion',text,count=1)
                   dm=re.search(r'(?m)^(\s*)flavorDimensions\s+(.+)$',text)
                   if dm:
                       rhs=dm.group(2).strip()
-                      if '"device"' not in rhs and "'device'" not in rhs:
-                          text=text[:dm.start()]+dm.group(1)+'flavorDimensions '+rhs+', "device"'+text[dm.end():]
-                  else:
-                      text=re.sub(r'(\bandroid\s*\{)',r'\1\n    flavorDimensions "device"',text,count=1)
-                  if not re.search(r'\bmobile\s*\{\s*dimension\s+["\']device["\']',text,re.S):
-                      text=re.sub(r'(\bandroid\s*\{)',r'\1\n    productFlavors {\n        mobile { dimension "device" }\n    }',text,count=1)
+                      if '"device"' not in rhs and "'device'" not in rhs: text=text[:dm.start()]+dm.group(1)+'flavorDimensions '+rhs+', "device"'+text[dm.end():]
+                  else: text=re.sub(r'(\bandroid\s*\{)',r'\1\n    flavorDimensions "device"',text,count=1)
+                  if not re.search(r'\bmobile\s*\{\s*dimension\s+["\']device["\']',text,re.S): text=re.sub(r'(\bandroid\s*\{)',r'\1\n    productFlavors {\n        mobile { dimension "device" }\n    }',text,count=1)
                   for flavor in ('stbeta','ststable','stfdroid'):
-                      pattern = r'(?m)^(\s*)' + re.escape(flavor) + r'\s*\{\s*\}'
-                      replacement = lambda m, f=flavor: m.group(1) + f + ' { dimension "default" }'
-                      text=re.sub(pattern,replacement,text)
+                      text=re.sub(r'(?m)^(\s*)'+re.escape(flavor)+r'\s*\{\s*\}',lambda m,f=flavor:m.group(1)+f+' { dimension "default" }',text)
                   text=re.sub(r'(?m)^(\s*)classifier\s+["\']([^"\']+)["\']\s*$',r"\1archiveClassifier.set('\2')",text)
                   text=re.sub(r'(?m)^(\s*)classifier\s*=\s*["\']([^"\']+)["\']\s*$',r"\1archiveClassifier.set('\2')",text)
-              if text!=original:
-                  p.write_text(text)
-                  changed.append(str(p))
+              if text!=original: p.write_text(text); changed.append(str(p))
           bad=[]
           for p in root.rglob('build.gradle'):
               t=p.read_text(errors='ignore')
               for f in ('stbeta','ststable','stfdroid'):
-                  if re.search(r'(?m)^\s*'+re.escape(f)+r'\s*\{\s*\}',t):
-                      bad.append(f'{p}:{f}')
-          if bad:
-              raise SystemExit('Unpatched legacy flavors: '+', '.join(bad))
+                  if re.search(r'(?m)^\s*'+re.escape(f)+r'\s*\{\s*\}',t): bad.append(f'{p}:{f}')
+          if bad: raise SystemExit('Unpatched legacy flavors: '+', '.join(bad))
           assert any(x.endswith('filepicker-lib/build.gradle') for x in changed), 'filepicker classifier patch missing'
           print('Patched SmartTube modules:',len(changed))
-          print('Verified all st* flavors have explicit default dimension')
           PY
 
       - name: Patch SmartTube resource and manifest collisions
@@ -108,28 +90,15 @@ jobs:
           set -euxo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          root=Path('third_party/SmartTube-droid')
-          changed=[]
+          root=Path('third_party/SmartTube-droid'); changed=[]
           for p in root.rglob('*'):
-              if not p.is_file() or '.git' in p.parts:
-                  continue
-              try:
-                  text=p.read_text(errors='ignore')
-              except Exception:
-                  continue
-              if 'show_buffering' not in text:
-                  continue
-              new=text.replace('show_buffering','st_show_buffering')
-              if new != text:
-                  p.write_text(new)
-                  changed.append(str(p))
+              if not p.is_file() or '.git' in p.parts: continue
+              try: text=p.read_text(errors='ignore')
+              except Exception: continue
+              if 'show_buffering' in text:
+                  new=text.replace('show_buffering','st_show_buffering')
+                  if new!=text: p.write_text(new); changed.append(str(p))
           print('Renamed SmartTube legacy show_buffering references:',len(changed))
-          manifest=root/'leanbackassistant/src/main/AndroidManifest.xml'
-          if manifest.is_file():
-              print('SmartTube leanbackassistant manifest present:',manifest)
-              print('Application attributes are resolved by the NM7 main manifest.')
-          else:
-              print('SmartTube leanbackassistant manifest not found; no manifest patch needed.')
           PY
 
       - name: Patch SmartTube legacy OkHttp API
@@ -138,17 +107,14 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           p=Path('third_party/SmartTube-droid/SharedModules/sharedutils/src/main/java/com/liskovsoft/sharedutils/okhttp/DohProviders.kt')
-          if not p.is_file():
-              raise SystemExit(f'Missing expected file: {p}')
+          if not p.is_file(): raise SystemExit(f'Missing expected file: {p}')
           text=p.read_text()
-          text=text.replace('import okhttp3.toHttpUrlOrNull\n', '')
-          text=text.replace('import okhttp3.HttpUrl\n', 'import okhttp3.HttpUrl\n')
-          text=text.replace('return s.toHttpUrlOrNull() ?: throw NullPointerException("unable to parse url")', 'return HttpUrl.get(s) ?: throw NullPointerException("unable to parse url")')
-          text=text.replace('return HttpUrl.parse(s) ?: throw NullPointerException("unable to parse url")', 'return HttpUrl.get(s) ?: throw NullPointerException("unable to parse url")')
+          text=text.replace('import okhttp3.toHttpUrlOrNull\n','')
+          text=text.replace('return s.toHttpUrlOrNull() ?: throw NullPointerException("unable to parse url")','return HttpUrl.get(s) ?: throw NullPointerException("unable to parse url")')
+          text=text.replace('return HttpUrl.parse(s) ?: throw NullPointerException("unable to parse url")','return HttpUrl.get(s) ?: throw NullPointerException("unable to parse url")')
           p.write_text(text)
-          if 'HttpUrl.parse(' in text or 'toHttpUrlOrNull' in text:
-              raise SystemExit('Legacy/unsupported URL parser remains in DohProviders.kt')
-          print('Patched DohProviders.kt: use OkHttp 3-compatible HttpUrl.get')
+          if 'HttpUrl.parse(' in text or 'toHttpUrlOrNull' in text: raise SystemExit('Unsupported URL parser remains')
+          print('Patched DohProviders.kt: HttpUrl.get')
           PY
 
       - name: Patch SmartTube legacy formatted strings
@@ -159,121 +125,75 @@ jobs:
           import re
           root=Path('third_party/SmartTube-droid')
           wanted={'auto_frame_rate_applying','proxy_test_error','proxy_test_start','proxy_test_status'}
-          string_re=re.compile(r'(<string\b[^>]*\bname=["\']('+'|'.join(map(re.escape,wanted))+r')["\'][^>]*>)(.*?)(</string>)',re.S)
-          token_re=re.compile(r'%(?![0-9]+\$)([sdif])')
-          changed=0
+          sr=re.compile(r'(<string\b[^>]*\bname=["\']('+'|'.join(map(re.escape,wanted))+r')["\'][^>]*>)(.*?)(</string>)',re.S)
+          tr=re.compile(r'%(?![0-9]+\$)([sdif])'); changed=0
           for p in root.rglob('*.xml'):
-              if '.git' in p.parts:
-                  continue
+              if '.git' in p.parts: continue
               text=p.read_text(errors='ignore')
               def repl(m):
-                  body=m.group(3)
-                  idx=[0]
-                  def tok(t):
-                      idx[0]+=1
-                      return f'%{idx[0]}${t.group(1)}'
-                  new=token_re.sub(tok,body)
-                  if new != body:
-                      changes[0]+=1
-                  return m.group(1)+new+m.group(4)
-              changes=[0]
-              new=string_re.sub(repl,text)
-              if new != text:
-                  p.write_text(new)
-                  changed += changes[0]
-          print('Patched formatted SmartTube string resources:',changed)
+                  body=m.group(3); i=[0]
+                  def tok(x): i[0]+=1; return f'%{i[0]}${x.group(1)}'
+                  return m.group(1)+tr.sub(tok,body)+m.group(4)
+              new=sr.sub(repl,text)
+              if new!=text: p.write_text(new); changed+=1
+          print('Patched formatted SmartTube string files:',changed)
           PY
 
       - name: Patch SmartTube unavailable Coroutines version
         run: |
-          set -euxo pipefail
           python3 - <<'PY'
           from pathlib import Path
           import re
           root=Path('third_party/SmartTube-droid')
-          patterns=[
-              re.compile(r'(org\.jetbrains\.kotlinx:kotlinx-coroutines-(?:android|core|core-jvm|jdk8)):(?:1\.8\.10)\b'),
-              re.compile(r'("org\.jetbrains\.kotlinx"\s*:\s*"kotlinx-coroutines-(?:android|core|core-jvm|jdk8)"\s*:\s*)"1\.8\.10"'),
-          ]
-          changed=[]
-          matches=[]
+          changed=0
           for p in root.rglob('*'):
-              if not p.is_file() or '.git' in p.parts:
-                  continue
-              try:
-                  text=p.read_text(errors='ignore')
-              except Exception:
-                  continue
-              new=text
-              new=patterns[0].sub(r'\1:1.8.1', new)
-              new=patterns[1].sub(r'\1"1.8.1"', new)
-              if new != text:
-                  p.write_text(new)
-                  changed.append(str(p))
-              if 'kotlinx-coroutines' in text:
-                  matches.append(str(p))
-          if changed:
-              print('Patched unavailable kotlinx-coroutines 1.8.10 -> 1.8.1 in:', *changed, sep='\n  ')
-          else:
-              print('No 1.8.10 declaration found in SmartTube checkout; continuing. Dependency versions may be supplied by Gradle/version catalogs.')
-              print('SmartTube files mentioning kotlinx-coroutines:', *matches, sep='\n  ')
+              if not p.is_file() or '.git' in p.parts: continue
+              try: t=p.read_text(errors='ignore')
+              except Exception: continue
+              n=re.sub(r'(org\.jetbrains\.kotlinx:kotlinx-coroutines-(?:android|core|core-jvm|jdk8)):(?:1\.8\.10)\b',r'\1:1.8.1',t)
+              n=re.sub(r'("org\.jetbrains\.kotlinx"\s*:\s*"kotlinx-coroutines-(?:android|core|core-jvm|jdk8)"\s*:\s*)"1\.8\.10"',r'\1"1.8.1"',n)
+              if n!=t: p.write_text(n); changed+=1
+          print('Patched coroutines files:',changed)
           PY
 
       - name: Patch SmartTube Kotlin JVM target
         run: |
-          set -euxo pipefail
           python3 - <<'PY'
           from pathlib import Path
           import re
-          root=Path('third_party/SmartTube-droid')
-          changed=[]
+          root=Path('third_party/SmartTube-droid'); changed=[]
           for p in sorted(root.rglob('build.gradle')):
-              if '/gradle/' in p.as_posix():
-                  continue
-              text=p.read_text(errors='ignore')
-              if "kotlin-android" not in text or "kotlinOptions" in text:
-                  continue
-              new=re.sub(r'(\bandroid\s*\{)',r'\1\n    kotlinOptions { jvmTarget = "1.8" }',text,count=1)
-              if new != text:
-                  p.write_text(new)
-                  changed.append(str(p))
-          print('Patched Kotlin JVM target to 1.8 in:', *changed, sep='\n  ')
+              if '/gradle/' in p.as_posix(): continue
+              t=p.read_text(errors='ignore')
+              if 'kotlin-android' not in t or 'kotlinOptions' in t: continue
+              n=re.sub(r'(\bandroid\s*\{)',r'\1\n    kotlinOptions { jvmTarget = "1.8" }',t,count=1)
+              if n!=t: p.write_text(n); changed.append(str(p))
+          print('Patched Kotlin JVM target:',len(changed))
           PY
 
       - name: Verify Mobile SmartTube flavor mapping
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('smarttube/build.gradle.kts')
-          t=p.read_text()
+          p=Path('smarttube/build.gradle.kts'); t=p.read_text()
           t=t.replace('missingDimensionStrategy("device", "mobile")\n','')
           anchor='missingDimensionStrategy("default", "ststable")'
           if anchor not in t: raise SystemExit('SmartTube default flavor strategy missing')
-          if 'missingDimensionStrategy("device", "mobile")' not in t:
-              t=t.replace(anchor,anchor+'\n        missingDimensionStrategy("device", "mobile")',1)
-          p.write_text(t)
-          print('Verified SmartTube strategies: default=ststable, device=mobile')
+          if 'missingDimensionStrategy("device", "mobile")' not in t: t=t.replace(anchor,anchor+'\n        missingDimensionStrategy("device", "mobile")',1)
+          p.write_text(t); print('Verified SmartTube strategies')
           PY
 
       - name: Install JDK 17
         uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: "17"
+        with: {distribution: temurin, java-version: "17"}
 
       - name: Set up Gradle 8.13
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb
-        with:
-          gradle-version: "8.13"
-          cache-provider: basic
-          validate-wrappers: false
+        with: {gradle-version: "8.13", cache-provider: basic, validate-wrappers: false}
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
-        with:
-          cmdline-tools-version: "12266719"
-          packages: "platform-tools"
-          log-accepted-android-sdk-licenses: false
+        with: {cmdline-tools-version: "12266719", packages: "platform-tools", log-accepted-android-sdk-licenses: false}
 
       - name: Install Android SDK packages
         run: sdkmanager "platforms;android-34" "platforms;android-36" "build-tools;30.0.3" "build-tools;36.0.0"
