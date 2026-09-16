@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.Application;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.widget.LinearLayout;
 
 /** Process-wide networking defaults for long-running IPTV streams. */
 public final class Nm7Application extends Application implements Application.ActivityLifecycleCallbacks {
@@ -44,9 +45,23 @@ public final class Nm7Application extends Application implements Application.Act
     @Override public void onActivityStopped(Activity activity) {
         if (startedActivities > 0 && --startedActivities == 0) releaseWifiPerformanceLock();
     }
-    @Override public void onActivityCreated(Activity a, Bundle b) { }
-    @Override public void onActivityResumed(Activity a) { }
-    @Override public void onActivityPaused(Activity a) { }
-    @Override public void onActivitySaveInstanceState(Activity a, Bundle b) { }
-    @Override public void onActivityDestroyed(Activity a) { }
+    @Override public void onActivityCreated(Activity activity, Bundle state) {
+        if (activity instanceof MainActivity) {
+            activity.getWindow().getDecorView().post(() -> {
+                if (activity.isFinishing()) return;
+                android.view.View content = activity.findViewById(android.R.id.content);
+                if (content instanceof android.widget.FrameLayout) {
+                    android.view.View root = ((android.view.ViewGroup) content).getChildCount() > 0
+                            ? ((android.view.ViewGroup) content).getChildAt(0) : null;
+                    if (root instanceof LinearLayout) {
+                        HomeTabBar.attach(activity, (LinearLayout) root, false);
+                    }
+                }
+            });
+        }
+    }
+    @Override public void onActivityResumed(Activity activity) { }
+    @Override public void onActivityPaused(Activity activity) { }
+    @Override public void onActivitySaveInstanceState(Activity activity, Bundle state) { }
+    @Override public void onActivityDestroyed(Activity activity) { }
 }

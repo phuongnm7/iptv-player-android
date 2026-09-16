@@ -2,55 +2,48 @@ package vn.phuong.iptvplayer;
 
 import android.content.Context;
 
-import com.liskovsoft.smartyoutubetv2.common.app.views.AddDeviceView;
-import com.liskovsoft.smartyoutubetv2.common.app.views.AppDialogView;
-import com.liskovsoft.smartyoutubetv2.common.app.views.BrowseView;
-import com.liskovsoft.smartyoutubetv2.common.app.views.ChannelUploadsView;
-import com.liskovsoft.smartyoutubetv2.common.app.views.ChannelView;
-import com.liskovsoft.smartyoutubetv2.common.app.views.PlaybackView;
-import com.liskovsoft.smartyoutubetv2.common.app.views.SearchView;
-import com.liskovsoft.smartyoutubetv2.common.app.views.SignInView;
-import com.liskovsoft.smartyoutubetv2.common.app.views.SplashView;
-import com.liskovsoft.smartyoutubetv2.common.app.views.ViewManager;
-import com.liskovsoft.smartyoutubetv2.common.app.views.WebBrowserView;
-import com.liskovsoft.smartyoutubetv2.common.misc.MotherActivity;
-import com.liskovsoft.smartyoutubetv2.common.misc.ScreensaverManager;
-import com.liskovsoft.smartyoutubetv2.droid.ui.adddevice.AddDeviceActivity;
-import com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity;
-import com.liskovsoft.smartyoutubetv2.droid.ui.channel.ChannelActivity;
-import com.liskovsoft.smartyoutubetv2.droid.ui.channeluploads.ChannelUploadsActivity;
-import com.liskovsoft.smartyoutubetv2.droid.ui.dialogs.AppDialogActivity;
-import com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity;
-import com.liskovsoft.smartyoutubetv2.droid.ui.search.SearchActivity;
-import com.liskovsoft.smartyoutubetv2.droid.ui.signin.SignInActivity;
-import com.liskovsoft.smartyoutubetv2.droid.ui.splash.SplashActivity;
-import com.liskovsoft.smartyoutubetv2.droid.ui.webbrowser.WebBrowserActivity;
+import java.lang.reflect.Method;
 
-/** Initializes SmartTube's shared runtime inside the NM7 Application process. */
+/** Initializes the vendored SmartTube phone runtime without compile-time SmartTube imports. */
 public final class SmartTubeRuntime {
     private static boolean initialized;
+    private static final String PREFIX = "com.liskovsoft.smartyoutubetv2";
 
     private SmartTubeRuntime() {}
 
     public static synchronized void initialize(Context context) {
         if (initialized) return;
-        initialized = true;
+        try {
+            System.setProperty("http.keepAlive", "false");
+            Class<?> mother = Class.forName(PREFIX + ".common.misc.MotherActivity");
+            mother.getMethod("setTvDpiScalingEnabled", boolean.class).invoke(null, false);
+            Class<?> screensaver = Class.forName(PREFIX + ".common.misc.ScreensaverManager");
+            screensaver.getMethod("setSupported", boolean.class).invoke(null, false);
 
-        System.setProperty("http.keepAlive", "false");
-        MotherActivity.setTvDpiScalingEnabled(false);
-        ScreensaverManager.setSupported(false);
+            Class<?> vmClass = Class.forName(PREFIX + ".common.app.views.ViewManager");
+            Object vm = vmClass.getMethod("instance", Context.class).invoke(null, context.getApplicationContext());
+            Class<?> browse = Class.forName(PREFIX + ".droid.ui.browse.BrowseActivity");
+            vmClass.getMethod("setRoot", Class.class).invoke(vm, browse);
 
-        ViewManager viewManager = ViewManager.instance(context.getApplicationContext());
-        viewManager.setRoot(BrowseActivity.class);
-        viewManager.register(SplashView.class, SplashActivity.class);
-        viewManager.register(BrowseView.class, BrowseActivity.class);
-        viewManager.register(PlaybackView.class, PlaybackActivity.class, BrowseActivity.class);
-        viewManager.register(AppDialogView.class, AppDialogActivity.class, BrowseActivity.class);
-        viewManager.register(SearchView.class, SearchActivity.class, BrowseActivity.class);
-        viewManager.register(SignInView.class, SignInActivity.class, BrowseActivity.class);
-        viewManager.register(AddDeviceView.class, AddDeviceActivity.class, BrowseActivity.class);
-        viewManager.register(ChannelView.class, ChannelActivity.class, BrowseActivity.class);
-        viewManager.register(ChannelUploadsView.class, ChannelUploadsActivity.class, BrowseActivity.class);
-        viewManager.register(WebBrowserView.class, WebBrowserActivity.class, BrowseActivity.class);
+            register(vmClass, vm, "SplashView", "splash.SplashActivity", browse);
+            register(vmClass, vm, "BrowseView", "browse.BrowseActivity", browse);
+            register(vmClass, vm, "PlaybackView", "playback.PlaybackActivity", browse);
+            register(vmClass, vm, "AppDialogView", "dialogs.AppDialogActivity", browse);
+            register(vmClass, vm, "SearchView", "search.SearchActivity", browse);
+            register(vmClass, vm, "SignInView", "signin.SignInActivity", browse);
+            register(vmClass, vm, "AddDeviceView", "adddevice.AddDeviceActivity", browse);
+            register(vmClass, vm, "ChannelView", "channel.ChannelActivity", browse);
+            register(vmClass, vm, "ChannelUploadsView", "channeluploads.ChannelUploadsActivity", browse);
+            register(vmClass, vm, "WebBrowserView", "webbrowser.WebBrowserActivity", browse);
+            initialized = true;
+        } catch (ReflectiveOperationException | RuntimeException ignored) {
+            initialized = false;
+        }
+    }
+
+    private static void register(Class<?> vmClass, Object vm, String viewName, String activityPath, Class<?> parent) throws ReflectiveOperationException {
+        Class<?> view = Class.forName(PREFIX + ".common.app.views." + viewName);
+        Class<?> activity = Class.forName(PREFIX + ".droid.ui." + activityPath);
+        vmClass.getMethod("register", Class.class, Class.class, Class.class).invoke(vm, view, activity, parent);
     }
 }

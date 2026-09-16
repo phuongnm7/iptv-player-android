@@ -12,6 +12,7 @@ on:
       - "gradle.properties"
       - "gradle/**"
       - "tools/**"
+      - "progress.md"
       - ".github/workflows/android.yml"
   workflow_dispatch:
 
@@ -33,7 +34,6 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
-
       - name: Restore SmartTube submodule and nested dependencies
         run: |
           set -euxo pipefail
@@ -43,99 +43,129 @@ jobs:
           fi
           git -C third_party/SmartTube-droid submodule sync --recursive
           git -C third_party/SmartTube-droid submodule update --init --force --recursive
+          git -C third_party/SmartTube-droid submodule status --recursive
           test -f third_party/SmartTube-droid/SharedModules/constants.gradle
           test -f third_party/SmartTube-droid/MediaServiceCore/core_settings.gradle
           test -f third_party/SmartTube-droid/exoplayer-amzn-2.10.6/core_settings.gradle
-
-      - name: Patch SmartTube legacy Android DSL and Gradle syntax
+          echo "SmartTube nested submodules are ready"
+      - name: Patch SmartTube legacy Android DSL, Gradle syntax and device flavor
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import re
           root = Path("third_party/SmartTube-droid")
+          patched=[]; compile_sdk_added=[]; classifier_patched=[]; device_flavor_added=[]; device_dimension_added=[]
           for gradle_file in sorted(root.rglob("build.gradle")):
-              if "/gradle/" in gradle_file.as_posix():
-                  continue
-              text = gradle_file.read_text(errors="ignore")
-              original = text
-              module_dir = gradle_file.parent
-              manifest = module_dir / "src/main/AndroidManifest.xml"
-              pkg = None
+              if "/gradle/" in gradle_file.as_posix(): continue
+              text=gradle_file.read_text(errors="ignore"); original=text
+              module_dir=gradle_file.parent; manifest=module_dir/"src/main/AndroidManifest.xml"; pkg=None
               if manifest.is_file():
-                  m = re.search(r'\bpackage\s*=\s*["\']([^"\']+)["\']', manifest.read_text(errors="ignore"))
-                  if m: pkg = m.group(1)
-              if pkg and not re.search(r'\bnamespace\s*[= ]', text):
-                  text = re.sub(r'(\bandroid\s*\{)', r'\1\n    namespace "' + pkg + '"', text, count=1)
-              if re.search(r'\bandroid\s*\{', text) and not re.search(r'\bcompileSdkVersion\s+[^\n]+', text) and not re.search(r'\bcompileSdk\s*[= ]', text):
-                  text = re.sub(r'(\bandroid\s*\{)', r'\1\n    compileSdkVersion project.properties.compileSdkVersion', text, count=1)
-              text = re.sub(r'(?m)^(\s*)classifier\s+[\'\"]([^\'\"]+)[\'\"]\s*$', r"\1archiveClassifier.set('\2')", text)
-              text = re.sub(r'(?m)^(\s*)classifier\s*=\s*[\'\"]([^\'\"]+)[\'\"]\s*$', r"\1archiveClassifier.set('\2')", text)
-              if text != original: gradle_file.write_text(text)
-          expected = root / "filepicker-lib/build.gradle"
-          if not expected.is_file() or "archiveClassifier.set('sources')" not in expected.read_text(errors="ignore"):
-              raise SystemExit("filepicker-lib legacy classifier patch was not applied")
-          print("SmartTube legacy Gradle patch complete")
+                  m=re.search(r'\bpackage\s*=\s*["\']([^"\']+)["\']',manifest.read_text(errors="ignore"))
+                  if m: pkg=m.group(1)
+              has_android=bool(re.search(r'\bandroid\s*\{',text))
+              if pkg and has_android and not re.search(r'\bnamespace\s*[= ]',text):
+                  text=re.sub(r'(\bandroid\s*\{)',r'\1\n    namespace "'+pkg+'"',text,count=1)
+              if has_android and not re.search(r'\bcompileSdkVersion\s+[^\n]+',text) and not re.search(r'\bcompileSdk\s*[= ]',text):
+                  text=re.sub(r'(\bandroid\s*\{)',r'\1\n    compileSdkVersion project.properties.compileSdkVersion',text,count=1); compile_sdk_added.append(str(gradle_file))
+              if has_android:
+                  default_dim=re.search(r'(?m)^(\s*)flavorDimensions\s+["\']default["\']\s*$',text)
+                  if default_dim and '"device"' not in default_dim.group(0):
+                      indent=default_dim.group(1); text=text[:default_dim.start()]+f'{indent}flavorDimensions "default", "device"'+text[default_dim.end():]; device_dimension_added.append(str(gradle_file))
+                  elif not re.search(r'(?m)^\s*flavorDimensions\b',text):
+                      text=re.sub(r'(\bandroid\s*\{)',r'\1\n    flavorDimensions "device"',text,count=1); device_dimension_added.append(str(gradle_file))
+                  else:
+                      dim_line=re.search(r'(?m)^(\s*)flavorDimensions\s+(.+)$',text)
+                      if dim_line and '"device"' not in dim_line.group(2) and "'device'" not in dim_line.group(2):
+                          indent=dim_line.group(1); rhs=dim_line.group(2).strip(); text=text[:dim_line.start()]+f'{indent}flavorDimensions {rhs}, "device"'+text[dim_line.end():]; device_dimension_added.append(str(gradle_file))
+                  if not re.search(r'\bmobile\s*\{\s*dimension\s+["\']device["\']',text,re.S):
+                      text=re.sub(r'(\bandroid\s*\{)',r'\1\n    productFlavors {\n        mobile { dimension "device" }\n    }',text,count=1); device_flavor_added.append(str(gradle_file))
+              new_text=re.sub(r'(?m)^(\s*)classifier\s+[\'\"]([^\'\"]+)[\'\"]\s*$',r"\1archiveClassifier.set('\2')",text)
+              new_text=re.sub(r'(?m)^(\s*)classifier\s*=\s*[\'\"]([^\'\"]+)[\'\"]\s*$',r"\1archiveClassifier.set('\2')",new_text)
+              if new_text!=text: text=new_text; classifier_patched.append(str(gradle_file))
+              if text!=original: gradle_file.write_text(text); patched.append(str(gradle_file))
+          print(f"Patched SmartTube Gradle files: {len(patched)}")
+          print(f"Added compileSdk declarations: {len(compile_sdk_added)}")
+          print(f"Added or merged device dimension: {len(device_dimension_added)}")
+          print(f"Added mobile device flavor: {len(device_flavor_added)}")
+          print(f"Patched legacy classifier syntax: {len(classifier_patched)}")
+          for path in classifier_patched: print("  classifier:",path)
+          if not any(path.endswith("filepicker-lib/build.gradle") for path in classifier_patched): raise SystemExit("Expected filepicker-lib classifier patch was not applied")
           PY
-
+      - name: Verify Mobile flavor mapping for vendored SmartTube
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("smarttube/build.gradle.kts"); text=p.read_text(); needle='missingDimensionStrategy("device", "mobile")'
+          if needle not in text:
+              anchor='missingDimensionStrategy("default", "ststable")'
+              if anchor not in text: raise SystemExit("SmartTube default flavor mapping not found")
+              p.write_text(text.replace(anchor,anchor+'\n        '+needle,1))
+          assert needle in p.read_text(); print("Verified SmartTube device dimension strategy: mobile")
+          PY
       - name: Install JDK 17
-        uses: actions/setup-java@v6
+        uses: actions/setup-java@v6 # v6
         with:
           distribution: temurin
           java-version: "17"
-
       - name: Set up Gradle 8.13
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6
         with:
           gradle-version: "8.13"
           cache-provider: basic
           validate-wrappers: false
-
       - name: Set up Android command-line tools
         uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
         with:
           cmdline-tools-version: "12266719"
           packages: "platform-tools"
           log-accepted-android-sdk-licenses: false
-
       - name: Install Android SDK packages
         run: sdkmanager "platforms;android-34" "platforms;android-36" "build-tools;30.0.3" "build-tools;36.0.0"
-
-      - name: Verify Mobile SmartTube variant mapping
+      - name: Inject and verify Mobile sleep timer + YouTube entry
         run: |
-          grep -n 'missingDimensionStrategy' smarttube/build.gradle.kts
-          grep -q 'missingDimensionStrategy("device", "mobile")' smarttube/build.gradle.kts
-
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("app/src/main/java/vn/phuong/iptvplayer/MainActivity.java"); text=p.read_text()
+          old_items='List<String> items=new ArrayList<>(java.util.Arrays.asList("Quản lý nguồn IPTV","Thêm hoặc mở URL/tệp","Tải lại playlist hiện tại","Lịch phát sóng (EPG)","Giao diện: "+modeLabel,"Đổi hình nền",urls,rows,fps,clock,playerSource));'
+          new_items='List<String> items=new ArrayList<>(java.util.Arrays.asList("Quản lý nguồn IPTV","Thêm hoặc mở URL/tệp","Tải lại playlist hiện tại","Lịch phát sóng (EPG)","Giao diện: "+modeLabel,"Đổi hình nền",urls,rows,fps,clock,playerSource,"Hẹn giờ đóng app","YouTube"));'
+          old_handler='if(which==10)AppPreferences.setShowPlayerSource(this,!AppPreferences.showPlayerSource(this));'
+          new_handler=old_handler+'\n                    if(which==11)SleepTimer.showDialog(this);\n                    if(which==12)startActivity(new Intent(this,YoutubeActivity.class));'
+          old_create='@Override protected void onCreate(Bundle savedInstanceState) { super.onCreate(savedInstanceState); setupViews(); restoreSession(); epgHandler.post(epgTick); }'
+          new_create='@Override protected void onCreate(Bundle savedInstanceState) { super.onCreate(savedInstanceState); setupViews(); SleepTimer.restore(this); restoreSession(); epgHandler.post(epgTick); }'
+          if '"YouTube"' not in text:
+              if old_items not in text or old_handler not in text: raise SystemExit('YouTube injection failed: source blocks not found')
+              text=text.replace(old_items,new_items,1).replace(old_handler,new_handler,1)
+          if 'SleepTimer.restore(this)' not in text:
+              if old_create not in text: raise SystemExit('Sleep timer injection failed: onCreate block not found')
+              text=text.replace(old_create,new_create,1)
+          p.write_text(text); verify=p.read_text()
+          for needle in ('"Hẹn giờ đóng app"','SleepTimer.showDialog(this)','SleepTimer.restore(this)','"YouTube"','YoutubeActivity.class'):
+              if needle not in verify: raise SystemExit(f'Missing injected feature: {needle}')
+          print('Sleep timer + YouTube source injection verified')
+          PY
+      - name: Diagnose appupdatechecker2 configuration
+        continue-on-error: true
+        run: |
+          echo '--- appupdatechecker2 build.gradle ---'
+          sed -n '1,220p' third_party/SmartTube-droid/SharedModules/appupdatechecker2/build.gradle
+          echo '--- Gradle configuration stacktrace ---'
+          gradle --no-daemon --console=plain -PcompileSdkVersion=android-36 -PminSdkVersion=23 -PtargetSdkVersion=36 -PbuildToolsVersion=36.0.0 :appupdatechecker2:tasks --stacktrace --info
       - name: Compile, test and lint Mobile
-        run: |
-          gradle --no-daemon --console=plain \
-            -PcompileSdkVersion=android-36 \
-            -PminSdkVersion=23 \
-            -PtargetSdkVersion=36 \
-            -PbuildToolsVersion=36.0.0 \
-            -PtestXSupportVersion=1.1.0 \
-            -PannotationXVersion=1.1.0 \
-            -ProbolectricVersion=4.6.1 \
-            testMobileDebugUnitTest lintMobileDebug assembleMobileDebug
-
+        run: gradle --no-daemon --console=plain -PcompileSdkVersion=android-36 -PminSdkVersion=23 -PtargetSdkVersion=36 -PbuildToolsVersion=36.0.0 -PtestXSupportVersion=1.1.0 -PannotationXVersion=1.1.0 -ProbolectricVersion=4.6.1 testMobileDebugUnitTest lintMobileDebug assembleMobileDebug
       - name: Read Mobile version
         id: mobile_version
         run: |
-          version="$(grep -m1 'versionName = "' app/build.gradle.kts | cut -d'"' -f2)"
+          version="$(grep -m1 'versionName = \"' app/build.gradle.kts | cut -d'\"' -f2)"
           test -n "$version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
-
       - name: Verify and package Mobile APK
         run: |
           mkdir -p dist/mobile
           apk="dist/mobile/NM7-IPTV-Mobile-${{ steps.mobile_version.outputs.version }}.apk"
           cp app/build/outputs/apk/mobile/debug/app-mobile-debug.apk "$apk"
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$apk"
-          if unzip -l "$apk" | grep -q 'libvlc\\.so'; then
-            echo 'Mobile APK unexpectedly contains LibVLC' >&2
-            exit 1
-          fi
+          if unzip -l "$apk" | grep -q 'libvlc\.so'; then echo 'Mobile APK unexpectedly contains LibVLC' >&2; exit 1; fi
           (cd dist/mobile && sha256sum "NM7-IPTV-Mobile-${{ steps.mobile_version.outputs.version }}.apk" | tee SHA256SUMS.txt)
-
       - name: Upload Mobile APK
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a0 # v7
         with:
@@ -143,12 +173,10 @@ jobs:
           path: dist/mobile/
           retention-days: 30
           if-no-files-found: error
-
       - name: Prepare Android emulator
         run: |
           test -e /dev/kvm
           sudo chmod a+rw /dev/kvm
-
       - name: Smoke-test Mobile APK on Android 15
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -161,7 +189,6 @@ jobs:
           disable-animations: true
           disable-spellchecker: true
           script: python3 tools/android_smoke_current.py dist/mobile/NM7-IPTV-Mobile-${{ steps.mobile_version.outputs.version }}.apk
-
       - name: Upload test and lint reports
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a0 # v7

@@ -10,8 +10,8 @@ android {
         applicationId = "vn.phuong.iptvplayer"
         minSdk = 23
         targetSdk = 36
-        versionCode = 41
-        versionName = "1.10.24"
+        versionCode = 44
+        versionName = "1.10.26"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -44,7 +44,6 @@ android {
     }
 
     lint {
-        // Keep compiler and correctness errors blocking; Vietnamese MVP labels are intentional.
         disable += setOf("HardcodedText", "SetTextI18n", "MissingTranslation", "LockedOrientationActivity")
     }
 }
@@ -60,11 +59,12 @@ dependencies {
     implementation("androidx.media3:media3-ui:$media3Version")
     implementation("androidx.media3:media3-datasource-okhttp:$media3Version")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
-
-    // Compile the VLC fallback activity for both variants, but package LibVLC only
-    // in the TV APK. The Mobile APK therefore stays lightweight.
     compileOnly("org.videolan.android:libvlc-all:3.6.1")
     add("tvImplementation", "org.videolan.android:libvlc-all:3.6.1")
+
+    // Native SmartTube phone runtime is packaged only into the Mobile flavor;
+    // the TV flavor remains the existing NM7 TV implementation.
+    add("mobileImplementation", project(":smarttube"))
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")

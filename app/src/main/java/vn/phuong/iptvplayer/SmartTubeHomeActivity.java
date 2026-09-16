@@ -1,25 +1,28 @@
 package vn.phuong.iptvplayer;
 
+import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
-import android.widget.LinearLayout;
 
-import com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity;
+/** Bridge entry point to the native SmartTube Droid phone UI. */
+public final class SmartTubeHomeActivity extends Activity {
+    private static final String BROWSE = "com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity";
 
-/** Native SmartTube Droid home rendered inside the NM7 Mobile process. */
-public final class SmartTubeHomeActivity extends BrowseActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        SmartTubeRuntime.initialize(this);
         super.onCreate(savedInstanceState);
-
-        View root = findViewById(android.R.id.content);
-        if (root instanceof android.view.ViewGroup) {
-            android.view.View child = ((android.view.ViewGroup) root).getChildCount() > 0
-                    ? ((android.view.ViewGroup) root).getChildAt(0) : null;
-            if (child instanceof LinearLayout) {
-                HomeTabBar.attach((android.app.Activity) this, (LinearLayout) child, true);
-            }
+        SmartTubeRuntime.initialize(this);
+        try {
+            Class<?> browse = Class.forName(BROWSE);
+            Intent intent = new Intent(this, browse);
+            if (getIntent().getData() != null) intent.setData(getIntent().getData());
+            Bundle extras = getIntent().getExtras();
+            if (extras != null) intent.putExtras(extras);
+            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+            startActivity(intent);
+        } catch (ClassNotFoundException e) {
+            finish();
         }
+        finish();
     }
 }

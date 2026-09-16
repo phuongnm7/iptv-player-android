@@ -47,7 +47,7 @@ public final class MainActivity extends Activity {
     private int duplicateCount, missingUrlCount, activeSection;
     private String currentSource = "", selectedGroup = "", epgUrl = "";
     private boolean loading, importExpanded = true;
-    private int wallpaperGeneration;
+    private int wallpaperGeneration, playlistRequestGeneration;
     private final android.os.Handler epgHandler=new android.os.Handler(android.os.Looper.getMainLooper());
     private final Runnable epgTick=new Runnable(){@Override public void run(){if(adapter!=null)adapter.notifyDataSetChanged();epgHandler.postDelayed(this,60_000);}};
 
@@ -70,7 +70,16 @@ public final class MainActivity extends Activity {
 
     private void restoreSession() {
         setLoading(true);
-        io.execute(()->{try{SessionStore.State state=SessionStore.load(getApplicationContext());ui(()->{String savedSource=state==null?"":state.source.split("\\n",2)[0].trim();if(PlaylistSourceStore.isLegacyDefault(savedSource)){loadDefaultPlaylist();return;}if(state!=null&&state.result!=null&&!state.result.channels.isEmpty()){showPlaylist(state.result,state.source);if(state.source.startsWith("http"))inputUrl.setText(state.source.split("\\n")[0]);setLoading(false);}else loadDefaultPlaylist();});}catch(Exception e){ui(this::loadDefaultPlaylist);}});
+        io.execute(()->{try{SessionStore.State state=SessionStore.load(getApplicationContext());ui(()->{
+            String savedSource=state==null?"":PlaylistSourceStore.sourceUrl(state.source);
+            if(PlaylistSourceStore.isLegacyDefault(savedSource)){loadDefaultPlaylist();return;}
+            if(state!=null&&state.result!=null&&!state.result.channels.isEmpty()){
+                showPlaylist(state.result,state.source);
+                if(PlaylistSourceStore.isValid(savedSource))inputUrl.setText(savedSource);
+                setLoading(false);
+                if(PlaylistSourceStore.shouldRefreshOnStartup(state.source))refreshPlaylistOnStartup(savedSource);
+            }else loadDefaultPlaylist();
+        });}catch(Exception e){ui(this::loadDefaultPlaylist);}});
     }
 
     private void loadDefaultPlaylist(){inputUrl.setText(DEFAULT_PLAYLIST);loadFromUrl();}
@@ -84,10 +93,17 @@ public final class MainActivity extends Activity {
 
     private void reloadPlaylistUrl(){String source=currentSource==null?"":currentSource.split("\\n",2)[0].trim();if(!PlaylistSourceStore.isValid(source)){toast("Playlist hiện tại không phải link URL");return;}inputUrl.setText(source);loadFromUrl();}
 
-    private void loadFromUrl(){
-        String source=inputUrl.getText().toString().trim();
-        if(!M3uParser.isNetworkUrl(source)||!(source.startsWith("http://")||source.startsWith("https://"))){toast("URL phải bắt đầu bằng http:// hoặc https://");setLoading(false);return;}
-        setLoading(true);
+    private void loadFromUrl(){loadFromUrl(inputUrl.getText().toString().trim(),false);}
+
+    private void refreshPlaylistOnStartup(String source){loadFromUrl(source,true);}
+
+    private void loadFromUrl(String source,boolean backgroundRefresh){
+        if(!M3uParser.isNetworkUrl(source)||!(source.startsWith("http://")||source.startsWith("https://"))){
+            if(!backgroundRefresh)toast("URL phải bắt đầu bằng http:// hoặc https://");
+            setLoading(false);return;
+        }
+        final int requestGeneration=++playlistRequestGeneration;
+        if(!backgroundRefresh)setLoading(true);
         final boolean tv=AppPreferences.isPhysicalTv(this);
         final int maxAttempts=tv?3:1;
         io.execute(()->{
@@ -96,53 +112,73 @@ public final class MainActivity extends Activity {
                 HttpURLConnection c=null;
                 try{
                     URL requestUrl=new URL(source);
-          if("raw.githubusercontent.com".equalsIgnoreCase(requestUrl.getHost())){
-              String separator=source.contains("?")?"&":"?";
-              requestUrl=new URL(source+separator+"_nm7_reload="+System.currentTimeMillis());
-          }
-          c=(HttpURLConnection)requestUrl.openConnection();
-          c.setUseCaches(false);
+                    if("raw.githubusercontent.com".equalsIgnoreCase(requestUrl.getHost())){
+                        String separator=source.contains("?")?"&":"?";
+                        requestUrl=new URL(source+separator+"_nm7_reload="+System.currentTimeMillis());
+                    }
+                    c=(HttpURLConnection)requestUrl.openConnection();
+                    c.setUseCaches(false);
                     c.setConnectTimeout(tv?25000:15000);
                     c.setReadTimeout(tv?60000:20000);
                     c.setInstanceFollowRedirects(true);
-                    c.setRequestProperty("User-Agent",tv?"Nm7-IPTV/1.10.19 Android-TV":"Nm7-IPTV/1.10.19 Android");
+                    c.setRequestProperty("User-Agent",tv?"Nm7-IPTV/1.10.25 Android-TV":"Nm7-IPTV/1.10.25 Android");
                     c.setRequestProperty("Accept","application/vnd.apple.mpegurl,application/x-mpegURL,text/plain,*/*");
                     c.setRequestProperty("Connection","keep-alive");
-          c.setRequestProperty("Cache-Control","no-cache, no-store, max-age=0");
-          c.setRequestProperty("Pragma","no-cache");
+                    c.setRequestProperty("Cache-Control","no-cache, no-store, max-age=0");
+                    c.setRequestProperty("Pragma","no-cache");
                     int status=c.getResponseCode();
                     if(status<200||status>=300)throw new Exception("HTTP "+status);
                     String effective=c.getURL().toString(),type=c.getContentType(),description=source.equals(effective)?source:source+"\nChuyển hướng: "+effective;
                     if(type!=null&&(type.startsWith("video/")||type.contains("dash+xml"))){
                         Channel direct=new Channel("Luồng trực tiếp","Phát trực tiếp",effective,"","",java.util.Collections.emptyMap());
                         if(type.contains("dash+xml"))direct.options().add("#KODIPROP:inputstream.adaptive.manifest_type=mpd");
-                        ui(()->showPlaylist(new M3uParser.Result(java.util.Collections.singletonList(direct),0,0),description));
+                        ui(()->{if(requestGeneration==playlistRequestGeneration)showPlaylist(new M3uParser.Result(java.util.Collections.singletonList(direct),0,0),description,backgroundRefresh);});
                         return;
                     }
                     String content;
                     try(InputStream s=new BufferedInputStream(c.getInputStream())){content=readText(s);}
                     M3uParser.Result result=parser.parse(content,effective);
-                    ui(()->showPlaylist(result,description));
+                    ui(()->{if(requestGeneration==playlistRequestGeneration)showPlaylist(result,description,backgroundRefresh);});
                     return;
                 }catch(Exception e){
                     lastError=e;
                     if(attempt<maxAttempts){
                         int nextAttempt=attempt+1;
-                        ui(()->{TextView summary=findViewById(R.id.txtSummary);if(summary!=null)summary.setText("Kết nối chậm • đang thử lại "+nextAttempt+"/"+maxAttempts+"…");});
+                        if(!backgroundRefresh)ui(()->{if(requestGeneration==playlistRequestGeneration){TextView summary=findViewById(R.id.txtSummary);if(summary!=null)summary.setText("Kết nối chậm • đang thử lại "+nextAttempt+"/"+maxAttempts+"…");}});
                         try{Thread.sleep(attempt==1?700L:1600L);}catch(InterruptedException interrupted){Thread.currentThread().interrupt();break;}
                     }
                 }finally{if(c!=null)c.disconnect();}
             }
             Exception failure=lastError;
-            ui(()->showError("Không tải được playlist"+(maxAttempts>1?" sau "+maxAttempts+" lần":"")+": "+readable(failure)));
+            ui(()->{
+                if(requestGeneration!=playlistRequestGeneration)return;
+                if(backgroundRefresh){setLoading(false);updateSummary();}
+                else showError("Không tải được playlist"+(maxAttempts>1?" sau "+maxAttempts+" lần":"")+": "+readable(failure));
+            });
         });
     }
 
     private void openFilePicker(){Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("*/*");startActivityForResult(i,OPEN_M3U);}
     @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(result!=RESULT_OK||data==null||data.getData()==null)return;Uri uri=data.getData();if(request==OPEN_M3U)readLocalFile(uri);if(request==PICK_WALLPAPER){io.execute(()->{try{WallpaperStore.importPhoto(getApplicationContext(),uri);ui(()->{applyWallpaper();toast("Đã đổi hình nền");});}catch(Exception e){ui(()->toast("Không mở được hình nền: "+readable(e)));}});}}
-    private void readLocalFile(Uri uri){setLoading(true);io.execute(()->{try(InputStream s=getContentResolver().openInputStream(uri)){if(s==null)throw new Exception("Không thể mở tệp");M3uParser.Result r=parser.parse(readText(s),"");ui(()->showPlaylist(r,uri.toString()));}catch(Exception e){ui(()->showError("Không đọc được tệp: "+readable(e)));}});}
+    private void readLocalFile(Uri uri){int requestGeneration=++playlistRequestGeneration;setLoading(true);io.execute(()->{try(InputStream s=getContentResolver().openInputStream(uri)){if(s==null)throw new Exception("Không thể mở tệp");M3uParser.Result r=parser.parse(readText(s),"");ui(()->{if(requestGeneration==playlistRequestGeneration)showPlaylist(r,uri.toString());});}catch(Exception e){ui(()->{if(requestGeneration==playlistRequestGeneration)showError("Không đọc được tệp: "+readable(e));});}});}
     private String readText(InputStream s)throws Exception{ByteArrayOutputStream b=new ByteArrayOutputStream();byte[] chunk=new byte[8192];int total=0,n;while((n=s.read(chunk))!=-1){total+=n;if(total>MAX_PLAYLIST_BYTES)throw new Exception("Playlist lớn hơn 8 MB. Với link video, dùng Phát URL.");b.write(chunk,0,n);}return b.toString(StandardCharsets.UTF_8.name());}
-    private void showPlaylist(M3uParser.Result r,String source){if(r.channels.isEmpty()){setLoading(false);new AlertDialog.Builder(this).setTitle("Không có kênh hợp lệ").setMessage("Không thay thế playlist đang mở.").setPositiveButton("Đóng",null).show();return;}String previous=currentSource.isEmpty()?"":currentSource.split("\\n",2)[0],next=source.split("\\n",2)[0];if(!r.epgUrl.isEmpty())epgUrl=r.epgUrl;else if(!previous.equals(next))epgUrl="";allChannels.clear();allChannels.addAll(r.channels);duplicateCount=r.duplicateCount;missingUrlCount=r.missingUrlCount;currentSource=source;inputSearch.setText("");selectedGroup="";rebuildGroups();filter();setLoading(false);setImportExpanded(false);saveSession();if(!epgUrl.isEmpty())loadEpg(false);else adapter.submitGuide(null);String first=source.split("\\n",2)[0];if(!PlaylistSourceStore.isDefault(first)&&(first.startsWith("http://")||first.startsWith("https://")))try{PlaylistSourceStore.add(this,"",first);}catch(Exception ignored){}}
+    private void showPlaylist(M3uParser.Result r,String source){showPlaylist(r,source,false);}
+
+    private void showPlaylist(M3uParser.Result r,String source,boolean preserveNavigation){
+        if(r.channels.isEmpty()){
+            setLoading(false);
+            if(preserveNavigation){updateSummary();return;}
+            new AlertDialog.Builder(this).setTitle("Không có kênh hợp lệ").setMessage("Không thay thế playlist đang mở.").setPositiveButton("Đóng",null).show();return;
+        }
+        String previous=currentSource.isEmpty()?"":PlaylistSourceStore.sourceUrl(currentSource),next=PlaylistSourceStore.sourceUrl(source);
+        if(!r.epgUrl.isEmpty())epgUrl=r.epgUrl;else if(!previous.equals(next))epgUrl="";
+        allChannels.clear();allChannels.addAll(r.channels);duplicateCount=r.duplicateCount;missingUrlCount=r.missingUrlCount;currentSource=source;
+        if(!preserveNavigation){inputSearch.setText("");selectedGroup="";}
+        rebuildGroups();filter();setLoading(false);setImportExpanded(false);saveSession();
+        if(!epgUrl.isEmpty())loadEpg(false);else adapter.submitGuide(null);
+        if(!PlaylistSourceStore.isDefault(next)&&PlaylistSourceStore.isValid(next))try{PlaylistSourceStore.add(this,"",next);}catch(Exception ignored){}
+    }
+
     private void rebuildGroups(){Set<String> u=new LinkedHashSet<>();for(Channel c:allChannels)u.add(c.group());List<String> groups=new ArrayList<>(u);if(!selectedGroup.isEmpty()&&!u.contains(selectedGroup))selectedGroup="";groupRow.removeAllViews();addGroupButton(getString(R.string.all_groups),"");for(String g:groups)addGroupButton(g,g);updateGroupButtons();}
     private void addGroupButton(String label,String value){Button b=new Button(this);b.setTag(value);b.setText(label);b.setTextSize(13);b.setAllCaps(false);b.setSingleLine(true);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,dp(46));p.setMarginEnd(dp(8));groupRow.addView(b,p);b.setOnClickListener(v->{selectedGroup=(String)v.getTag();updateGroupButtons();filter();findViewById(R.id.listChannels).requestFocus();});}
     private void updateGroupButtons(){if(groupRow==null)return;for(int i=0;i<groupRow.getChildCount();i++){View c=groupRow.getChildAt(i);boolean active=selectedGroup.equals(c.getTag());c.setSelected(active);c.setBackgroundResource(active?R.drawable.button_primary:R.drawable.button_secondary);if(c instanceof Button)((Button)c).setTextColor(getColor(active?R.color.navy:R.color.text_primary));}}
