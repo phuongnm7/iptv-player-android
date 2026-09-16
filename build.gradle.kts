@@ -117,6 +117,18 @@ subprojects {
     }
 }
 
+// AGP 8.13 validates Java/Kotlin target compatibility strictly. SmartTube's
+// legacy library modules compile Java at 1.8, so force their Kotlin compiler to
+// the same JVM target. The rule is scoped to SmartTube library modules and does
+// not alter the NM7 app module's Kotlin target.
+subprojects {
+    if (path in smartTubeAndroidLibraryModules) {
+        tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+            kotlinOptions.jvmTarget = "1.8"
+        }
+    }
+}
+
 allprojects {
     repositories {
         google()
