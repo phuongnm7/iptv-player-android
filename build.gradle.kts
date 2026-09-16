@@ -78,40 +78,13 @@ gradle.addProjectEvaluationListener(object : org.gradle.api.ProjectEvaluationLis
     override fun afterEvaluate(
         project: org.gradle.api.Project,
         state: org.gradle.api.ProjectState
-    ) {
-        if (project.path in smartTubeAndroidLibraryModules) {
-            project.pluginManager.withPlugin("com.android.library") {
-                project.extensions.configure<com.android.build.gradle.LibraryExtension> {
-                    if (!flavorDimensions.contains("device")) {
-                        flavorDimensions += "device"
-                    }
-                    if (productFlavors.findByName("mobile") == null) {
-                        productFlavors.create("mobile") {
-                            dimension = "device"
-                        }
-                    }
-                }
-            }
-        }
-    }
+    ) { }
 })
 
 subprojects {
     if (path in smartTubeAndroidLibraryModules) {
         pluginManager.apply("com.android.library")
         pluginManager.apply("org.jetbrains.kotlin.android")
-        pluginManager.withPlugin("com.android.library") {
-            extensions.configure<com.android.build.gradle.LibraryExtension> {
-                if (!flavorDimensions.contains("device")) {
-                    flavorDimensions += "device"
-                }
-                if (productFlavors.findByName("mobile") == null) {
-                    productFlavors.create("mobile") {
-                        dimension = "device"
-                    }
-                }
-            }
-        }
     }
     if (path == ":appupdatechecker2") {
         pluginManager.withPlugin("com.android.library") {
