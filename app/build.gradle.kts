@@ -65,28 +65,3 @@ dependencies {
     testImplementation("org.json:json:20240303")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }
-
-// CI injects the sleep-timer entry into MainActivity.java before Gradle starts.
-// This task is kept for local development but is intentionally not attached to
-// a variant task because AGP task names vary by version.
-tasks.register("injectSleepTimerFeature") {
-    doLast {
-        val source = file("src/main/java/vn/phuong/iptvplayer/MainActivity.java")
-        var text = source.readText()
-        if (!text.contains("SleepTimer.showDialog(this)")) {
-            val oldItems = "List<String> items=new ArrayList<>(java.util.Arrays.asList(\"Quản lý nguồn IPTV\",\"Thêm hoặc mở URL/tệp\",\"Tải lại playlist hiện tại\",\"Lịch phát sóng (EPG)\",\"Giao diện: \"+modeLabel,\"Đổi hình nền\",urls,rows,fps,clock,playerSource));"
-            val newItems = "List<String> items=new ArrayList<>(java.util.Arrays.asList(\"Quản lý nguồn IPTV\",\"Thêm hoặc mở URL/tệp\",\"Tải lại playlist hiện tại\",\"Lịch phát sóng (EPG)\",\"Giao diện: \"+modeLabel,\"Đổi hình nền\",urls,rows,fps,clock,playerSource,\"Hẹn giờ đóng app\"));"
-            val oldHandler = "if(which==10)AppPreferences.setShowPlayerSource(this,!AppPreferences.showPlayerSource(this));"
-            val newHandler = oldHandler + "\n                    if(which==11)SleepTimer.showDialog(this);"
-            val oldCreate = "@Override protected void onCreate(Bundle savedInstanceState) { super.onCreate(savedInstanceState); setupViews(); restoreSession(); epgHandler.post(epgTick); }"
-            val newCreate = "@Override protected void onCreate(Bundle savedInstanceState) { super.onCreate(savedInstanceState); setupViews(); SleepTimer.restore(this); restoreSession(); epgHandler.post(epgTick); }"
-            check(text.contains(oldItems)) { "Cannot inject sleep timer: Settings item block changed" }
-            check(text.contains(oldHandler)) { "Cannot inject sleep timer: Settings handler changed" }
-            check(text.contains(oldCreate)) { "Cannot inject sleep timer: onCreate changed" }
-            text = text.replace(oldItems, newItems, 1)
-            text = text.replace(oldHandler, newHandler, 1)
-            text = text.replace(oldCreate, newCreate, 1)
-            source.writeText(text)
-        }
-    }
-}
