@@ -4,13 +4,12 @@ plugins {
     id("org.jetbrains.kotlin.android") version "1.8.10" apply false
 }
 
-// Make the pinned SmartTube/SharedModules version constants available to their
-// legacy Groovy Android library build scripts without using SmartTube's own root build.
-gradle.ext.sharedModulesRoot = file("third_party/SmartTube-droid/SharedModules")
-gradle.ext.sharedModulesConstants = file("third_party/SmartTube-droid/SharedModules/constants.gradle")
-gradle.ext.mediaServiceCoreRoot = file("third_party/SmartTube-droid/MediaServiceCore")
-gradle.ext.exoplayerRoot = file("third_party/SmartTube-droid/exoplayer-amzn-2.10.6")
-gradle.ext.exoplayerModulePrefix = "exoplayer-"
+// SmartTube's legacy Groovy scripts read these through Gradle's extra properties.
+gradle.extensions.extraProperties.set("sharedModulesRoot", file("third_party/SmartTube-droid/SharedModules"))
+gradle.extensions.extraProperties.set("sharedModulesConstants", file("third_party/SmartTube-droid/SharedModules/constants.gradle"))
+gradle.extensions.extraProperties.set("mediaServiceCoreRoot", file("third_party/SmartTube-droid/MediaServiceCore"))
+gradle.extensions.extraProperties.set("exoplayerRoot", file("third_party/SmartTube-droid/exoplayer-amzn-2.10.6"))
+gradle.extensions.extraProperties.set("exoplayerModulePrefix", "exoplayer-")
 
 allprojects {
     repositories {
