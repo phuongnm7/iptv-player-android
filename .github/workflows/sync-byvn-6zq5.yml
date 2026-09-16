@@ -1,0 +1,54 @@
+name: Sync BYVN 6ZQ5 playlist
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/15 * * * *'
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fetch and extract playlist
+        run: |
+          python3 - <<'PY'
+          import html, re, requests
+          from pathlib import Path
+          source = 'https://byvn.net/6ZQ5'
+          out = Path('playlists/byvn-6ZQ5.m3u')
+          r = requests.get(source, timeout=30, headers={'User-Agent':'Mozilla/5.0'})
+          r.raise_for_status()
+          text = html.unescape(r.text)
+          text = re.sub(r'<br\s*/?>', '\n', text, flags=re.I)
+          text = re.sub(r'</(p|div|pre|textarea|li)>', '\n', text, flags=re.I)
+          text = re.sub(r'<[^>]+>', '', text)
+          text = html.unescape(text)
+          pos = text.find('#EXTM3U')
+          if pos < 0:
+              raise RuntimeError('BYVN source did not expose an #EXTM3U playlist')
+          playlist = text[pos:].replace('\r\n','\n').replace('\r','\n')
+          playlist = re.sub(r'\n{3,}', '\n\n', playlist).strip() + '\n'
+          if playlist.count('#EXTINF') == 0:
+              raise RuntimeError('Extracted content contains no #EXTINF entries')
+          out.parent.mkdir(parents=True, exist_ok=True)
+          out.write_text(playlist, encoding='utf-8')
+          print(f'Updated {out}: {playlist.count("#EXTINF")} entries')
+          PY
+
+      - name: Commit updated playlist
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add playlists/byvn-6ZQ5.m3u
+          if git diff --cached --quiet; then
+            echo 'No playlist changes.'
+          else
+            git commit -m 'Auto-update BYVN 6ZQ5 playlist'
+            git push
+          fi
