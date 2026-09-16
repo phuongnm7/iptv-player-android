@@ -1,10 +1,10 @@
 package vn.phuong.iptvplayer;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.graphics.Color;
-import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
@@ -91,6 +91,7 @@ public final class YoutubeActivity extends Activity {
         webView.loadUrl(YOUTUBE_URL);
     }
 
+    @SuppressLint("SetJavaScriptEnabled")
     private void configureWebView(WebView wv) {
         WebSettings s = wv.getSettings();
         s.setJavaScriptEnabled(true);
@@ -144,6 +145,7 @@ public final class YoutubeActivity extends Activity {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void onBackPressed() {
         if (webView != null && webView.canGoBack()) {
