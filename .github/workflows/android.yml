@@ -5,7 +5,10 @@ on:
     branches: [main, "fix/mobile-*", "feature/mobile-youtube-smarttube"]
     paths:
       - "app/**"
+      - "smarttube/**"
+      - "third_party/**"
       - "*.gradle.kts"
+      - ".gitmodules"
       - "gradle.properties"
       - "gradle/**"
       - "tools/**"
@@ -23,12 +26,13 @@ jobs:
   build:
     if: github.event.repository.private == true
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 50
     steps:
-      - name: Checkout private source
+      - name: Checkout private source and SmartTube submodules
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
+          submodules: recursive
       - name: Install JDK 17
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
@@ -46,7 +50,7 @@ jobs:
           packages: "platform-tools"
           log-accepted-android-sdk-licenses: false
       - name: Install Android SDK packages
-        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+        run: sdkmanager "platforms;android-34" "platforms;android-36" "build-tools;30.0.3" "build-tools;36.0.0"
       - name: Inject and verify Mobile sleep timer + YouTube entry
         run: |
           python3 - <<'PY'
@@ -59,17 +63,14 @@ jobs:
           new_handler = old_handler + '\n                    if(which==11)SleepTimer.showDialog(this);\n                    if(which==12)startActivity(new Intent(this,YoutubeActivity.class));'
           old_create = '@Override protected void onCreate(Bundle savedInstanceState) { super.onCreate(savedInstanceState); setupViews(); restoreSession(); epgHandler.post(epgTick); }'
           new_create = '@Override protected void onCreate(Bundle savedInstanceState) { super.onCreate(savedInstanceState); setupViews(); SleepTimer.restore(this); restoreSession(); epgHandler.post(epgTick); }'
-          changed = False
           if '"YouTube"' not in text:
               if old_items not in text: raise SystemExit('YouTube injection failed: settings item block not found')
               if old_handler not in text: raise SystemExit('YouTube injection failed: settings handler not found')
               text = text.replace(old_items, new_items, 1)
               text = text.replace(old_handler, new_handler, 1)
-              changed = True
           if 'SleepTimer.restore(this)' not in text:
               if old_create not in text: raise SystemExit('Sleep timer injection failed: onCreate block not found')
               text = text.replace(old_create, new_create, 1)
-              changed = True
           p.write_text(text)
           verify = p.read_text()
           for needle in ('"Hẹn giờ đóng app"', 'SleepTimer.showDialog(this)', 'SleepTimer.restore(this)', '"YouTube"', 'YoutubeActivity.class'):
