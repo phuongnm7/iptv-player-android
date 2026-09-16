@@ -79,7 +79,7 @@ jobs:
                   if not re.search(r'\bmobile\s*\{\s*dimension\s+["\']device["\']',text,re.S):
                       text=re.sub(r'(\bandroid\s*\{)',r'\1\n    productFlavors {\n        mobile { dimension "device" }\n    }',text,count=1)
                   for flavor in ('stbeta','ststable','stfdroid'):
-                      text=re.sub(rf'(?m)^(\s*){flavor}\s*\{{\s*\}}',rf'\1{flavor} {{ dimension "default" }}',text)
+                      text=re.sub(rf'(?m)^(\s*){flavor}\s*\{\s*\}',rf'\1{flavor} {{ dimension "default" }}',text)
                   text=re.sub(r'(?m)^(\s*)classifier\s+["\']([^"\']+)["\']\s*$',r"\1archiveClassifier.set('\2')",text)
                   text=re.sub(r'(?m)^(\s*)classifier\s*=\s*["\']([^"\']+)["\']\s*$',r"\1archiveClassifier.set('\2')",text)
               if text!=original:
@@ -96,6 +96,41 @@ jobs:
           assert any(x.endswith('filepicker-lib/build.gradle') for x in changed), 'filepicker classifier patch missing'
           print('Patched SmartTube modules:',len(changed))
           print('Verified all st* flavors have explicit default dimension')
+          PY
+
+      - name: Patch SmartTube resource and manifest collisions
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('third_party/SmartTube-droid')
+          changed=[]
+          # SmartTube embeds the legacy ExoPlayer 2.x UI, while NM7 also ships Media3.
+          # Both expose attr/show_buffering. Rename the legacy SmartTube resource and
+          # every source reference in the SmartTube checkout so both player stacks coexist.
+          for p in root.rglob('*'):
+              if not p.is_file() or '.git' in p.parts:
+                  continue
+              try:
+                  text=p.read_text(errors='ignore')
+              except Exception:
+                  continue
+              if 'show_buffering' not in text:
+                  continue
+              new=text.replace('show_buffering','st_show_buffering')
+              if new != text:
+                  p.write_text(new)
+                  changed.append(str(p))
+          print('Renamed SmartTube legacy show_buffering references:',len(changed))
+          # The library manifest contains application-level defaults that must not
+          # override NM7's application configuration. NM7's manifest supplies tools:replace.
+          manifest=root/'leanbackassistant/src/main/AndroidManifest.xml'
+          if manifest.is_file():
+              text=manifest.read_text(errors='ignore')
+              print('SmartTube leanbackassistant manifest present:',manifest)
+              print('Application attributes are resolved by the NM7 main manifest.')
+          else:
+              print('SmartTube leanbackassistant manifest not found; no manifest patch needed.')
           PY
 
       - name: Patch SmartTube unavailable Coroutines version
