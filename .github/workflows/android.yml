@@ -89,7 +89,7 @@ jobs:
           for p in root.rglob('build.gradle'):
               t=p.read_text(errors='ignore')
               for f in ('stbeta','ststable','stfdroid'):
-                  if re.search(rf'(?m)^\s*{f}\s*\{{\s*\}}',t): bad.append(f'{p}:{f}')
+                  if re.search(rf'(?m)^\s*{f}\s*\{\s*\}',t): bad.append(f'{p}:{f}')
           if bad:
               raise SystemExit('Unpatched legacy flavors: '+', '.join(bad))
           assert any(x.endswith('filepicker-lib/build.gradle') for x in changed), 'filepicker classifier patch missing'
@@ -104,8 +104,11 @@ jobs:
           from pathlib import Path
           import re
           root=Path('third_party/SmartTube-droid')
+          patterns=[
+              re.compile(r'(org\.jetbrains\.kotlinx:kotlinx-coroutines-(?:android|core|core-jvm|jdk8)):(?:1\.8\.10)\b'),
+              re.compile(r'("org\.jetbrains\.kotlinx"\s*:\s*"kotlinx-coroutines-(?:android|core|core-jvm|jdk8)"\s*:\s*)"1\.8\.10"'),
+          ]
           changed=[]
-          pattern=re.compile(r'(org\.jetbrains\.kotlinx:kotlinx-coroutines-(?:android|core|core-jvm|jdk8)):(?:1\.8\.10)\b')
           for p in root.rglob('*'):
               if not p.is_file() or '.git' in p.parts:
                   continue
@@ -113,7 +116,9 @@ jobs:
                   text=p.read_text(errors='ignore')
               except Exception:
                   continue
-              new=pattern.sub(r'\1:1.8.1', text)
+              new=text
+              new=patterns[0].sub(r'\1:1.8.1', new)
+              new=patterns[1].sub(r'\1"1.8.1"', new)
               if new != text:
                   p.write_text(new)
                   changed.append(str(p))
