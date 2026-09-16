@@ -126,12 +126,13 @@ subprojects {
     }
 }
 
-// Legacy SmartTube/ExoPlayer extension unit-test manifests are test-only and
-// fail AGP 8.13 validation. They are not required to assemble the NM7 runtime.
-// Skip MobileDebugUnitTest tasks for all legacy ExoPlayer extension modules while
-// keeping their production/runtime libraries fully enabled.
+// Legacy SmartTube/ExoPlayer unit-test manifests are incompatible with the
+// current AGP/AndroidX Test Core combination. They are test-only and are not
+// required by the NM7 runtime. Disable MobileDebugUnitTest tasks for every
+// legacy ExoPlayer module (including core/library/extensions), while preserving
+// all production/runtime ExoPlayer code and the app's own Mobile unit tests.
 subprojects {
-    if (path.startsWith(":exoplayer-extension-")) {
+    if (path.startsWith(":exoplayer-")) {
         tasks.matching { it.name.contains("MobileDebugUnitTest") }.configureEach {
             enabled = false
         }
