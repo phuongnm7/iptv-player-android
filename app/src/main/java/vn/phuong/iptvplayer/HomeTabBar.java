@@ -2,15 +2,20 @@ package vn.phuong.iptvplayer;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
-import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
 import android.view.Gravity;
-import android.widget.Button;
+import android.view.View;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 
-/** Shared top-level NM7 tabs used by both the IPTV home and the YouTube screen. */
+/** Bottom navigation modeled after the supplied SmartTube mobile UI. */
 public final class HomeTabBar {
     private static final int TAG_KEY = 0x4E4D3701;
+    private static final int BG = Color.rgb(23, 23, 28);
+    private static final int SELECTED = Color.rgb(255, 122, 0);
+    private static final int UNSELECTED = Color.rgb(135, 137, 145);
 
     private HomeTabBar() {}
 
@@ -18,46 +23,50 @@ public final class HomeTabBar {
         if (root == null || root.getTag(TAG_KEY) != null) return;
         root.setTag(TAG_KEY, Boolean.TRUE);
 
-        LinearLayout tabs = new LinearLayout(activity);
-        tabs.setOrientation(LinearLayout.HORIZONTAL);
-        tabs.setGravity(Gravity.CENTER_VERTICAL);
-        tabs.setPadding(dp(activity, 2), dp(activity, 2), dp(activity, 2), dp(activity, 6));
+        LinearLayout bar = new LinearLayout(activity);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setGravity(Gravity.CENTER);
+        bar.setBackground(new ColorDrawable(BG));
+        bar.setPadding(0, dp(activity, 4), 0, dp(activity, 4));
 
-        Button iptv = tabButton(activity, "IPTV", !youtubeSelected);
-        Button youtube = tabButton(activity, "YouTube", youtubeSelected);
-
-        LinearLayout.LayoutParams iptvLp = new LinearLayout.LayoutParams(0, dp(activity, 46), 1f);
-        iptvLp.setMarginEnd(dp(activity, 6));
-        tabs.addView(iptv, iptvLp);
-        tabs.addView(youtube, new LinearLayout.LayoutParams(0, dp(activity, 46), 1f));
-
-        iptv.setOnClickListener(v -> {
-            if (youtubeSelected) activity.finish();
-        });
-        youtube.setOnClickListener(v -> {
+        addItem(activity, bar, R.drawable.nm7_nav_youtube, youtubeSelected, () -> {
             if (!youtubeSelected) {
-                Intent intent = new Intent(activity, YoutubeActivity.class);
+                Intent intent = new Intent(activity, SmartTubeHomeActivity.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
                 activity.startActivity(intent);
             }
         });
+        addItem(activity, bar, R.drawable.nm7_nav_iptv, !youtubeSelected, () -> {
+            if (youtubeSelected) {
+                Intent intent = new Intent(activity, MainActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                activity.startActivity(intent);
+                activity.finish();
+            }
+        });
+        addItem(activity, bar, R.drawable.nm7_nav_media, false, () -> { });
+        addItem(activity, bar, R.drawable.nm7_nav_settings, false, () -> { });
 
-        root.addView(tabs, 0, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        root.addView(bar, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(activity, 64)));
     }
 
-    private static Button tabButton(Activity activity, String text, boolean selected) {
-        Button b = new Button(activity);
-        b.setText(text);
-        b.setAllCaps(false);
-        b.setTextSize(14);
-        b.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        b.setMinHeight(0);
-        b.setMinimumHeight(0);
-        b.setPadding(dp(activity, 4), 0, dp(activity, 4), 0);
-        b.setTextColor(selected ? Color.WHITE : Color.LTGRAY);
-        b.setBackgroundResource(selected ? R.drawable.button_primary : R.drawable.button_secondary);
-        return b;
+    private static void addItem(Activity activity, LinearLayout bar, int iconRes, boolean selected, Runnable action) {
+        LinearLayout item = new LinearLayout(activity);
+        item.setGravity(Gravity.CENTER);
+        item.setOrientation(LinearLayout.VERTICAL);
+        item.setClickable(true);
+        item.setFocusable(true);
+        item.setOnClickListener(v -> action.run());
+
+        ImageView icon = new ImageView(activity);
+        icon.setImageResource(iconRes);
+        icon.setImageTintList(ColorStateList.valueOf(selected ? SELECTED : UNSELECTED));
+        icon.setContentDescription(null);
+        int size = dp(activity, 32);
+        item.addView(icon, new LinearLayout.LayoutParams(size, size));
+
+        bar.addView(item, new LinearLayout.LayoutParams(0, dp(activity, 56), 1f));
     }
 
     private static int dp(Activity activity, int value) {
