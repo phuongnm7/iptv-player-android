@@ -4,8 +4,6 @@ plugins {
     id("org.jetbrains.kotlin.android") version "1.8.10" apply false
 }
 
-// Legacy SmartTube modules use `apply plugin:` and therefore need the
-// Android/Kotlin plugins on the buildscript classpath as well.
 buildscript {
     repositories {
         google()
@@ -18,23 +16,46 @@ buildscript {
     }
 }
 
-// SmartTube's legacy Groovy scripts read these through Gradle's extra properties.
+// SmartTube's legacy Gradle scripts read these through Gradle extra properties.
 gradle.extensions.extraProperties.set("sharedModulesRoot", file("third_party/SmartTube-droid/SharedModules"))
 gradle.extensions.extraProperties.set("sharedModulesConstants", file("third_party/SmartTube-droid/SharedModules/constants.gradle"))
 gradle.extensions.extraProperties.set("mediaServiceCoreRoot", file("third_party/SmartTube-droid/MediaServiceCore"))
 gradle.extensions.extraProperties.set("exoplayerRoot", file("third_party/SmartTube-droid/exoplayer-amzn-2.10.6"))
 gradle.extensions.extraProperties.set("exoplayerModulePrefix", "exoplayer-")
 
-// Legacy build.gradle files use `apply plugin:`. The plugin classpath must be
-// available on each project before that project's build script is evaluated.
-gradle.beforeProject { project ->
-    project.buildscript.repositories.apply {
-        google()
-        mavenCentral()
-        gradlePluginPortal()
+// These vendored SmartTube modules are Android libraries but use legacy
+// `apply plugin:` scripts. Apply the Android/Kotlin plugins from the root
+// so they expose variants before :smarttube resolves their dependencies.
+val smartTubeAndroidLibraryModules = setOf(
+    ":common",
+    ":leanbackassistant",
+    ":leanback-1.0.0",
+    ":fragment-1.1.0",
+    ":filepicker-lib",
+    ":doubletapplayerview",
+    ":slidableactivity",
+    ":sharedutils",
+    ":sharedtests",
+    ":appupdatechecker2",
+    ":mediaserviceinterfaces",
+    ":youtubeapi",
+    ":exoplayer-library",
+    ":exoplayer-library-core",
+    ":exoplayer-library-dash",
+    ":exoplayer-library-sabr",
+    ":exoplayer-library-hls",
+    ":exoplayer-library-smoothstreaming",
+    ":exoplayer-library-ui",
+    ":exoplayer-extension-mediasession",
+    ":exoplayer-extension-okhttp",
+    ":exoplayer-extension-cronet"
+)
+
+subprojects {
+    if (path in smartTubeAndroidLibraryModules) {
+        pluginManager.apply("com.android.library")
+        pluginManager.apply("org.jetbrains.kotlin.android")
     }
-    project.buildscript.dependencies.add("classpath", "com.android.tools.build:gradle:8.13.2")
-    project.buildscript.dependencies.add("classpath", "org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.10")
 }
 
 allprojects {
