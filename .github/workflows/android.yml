@@ -47,7 +47,7 @@ jobs:
           test -f third_party/SmartTube-droid/MediaServiceCore/core_settings.gradle
           test -f third_party/SmartTube-droid/exoplayer-amzn-2.10.6/core_settings.gradle
           echo "SmartTube nested submodules are ready"
-      - name: Patch SmartTube legacy Android DSL and Gradle syntax
+      - name: Patch SmartTube legacy Android DSL, Gradle syntax and device flavor
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -57,6 +57,7 @@ jobs:
           patched = []
           compile_sdk_added = []
           classifier_patched = []
+          device_flavor_added = []
           for gradle_file in sorted(root.rglob("build.gradle")):
               if "/gradle/" in gradle_file.as_posix():
                   continue
@@ -69,11 +70,17 @@ jobs:
                   m = re.search(r'\bpackage\s*=\s*["\']([^"\']+)["\']', manifest.read_text(errors="ignore"))
                   if m:
                       pkg = m.group(1)
-              if pkg and not re.search(r'\bnamespace\s*[= ]', text):
+              has_android = bool(re.search(r'\bandroid\s*\{', text))
+              if pkg and has_android and not re.search(r'\bnamespace\s*[= ]', text):
                   text = re.sub(r'(\bandroid\s*\{)', r'\1\n    namespace "' + pkg + '"', text, count=1)
-              if re.search(r'\bandroid\s*\{', text) and not re.search(r'\bcompileSdkVersion\s+[^\n]+', text) and not re.search(r'\bcompileSdk\s*[= ]', text):
+              if has_android and not re.search(r'\bcompileSdkVersion\s+[^\n]+', text) and not re.search(r'\bcompileSdk\s*[= ]', text):
                   text = re.sub(r'(\bandroid\s*\{)', r'\1\n    compileSdkVersion project.properties.compileSdkVersion', text, count=1)
                   compile_sdk_added.append(str(gradle_file))
+              if has_android and not re.search(r'\bflavorDimensions\s+["\']device["\']', text) and not re.search(r'\bflavorDimensions\s*\+?=', text):
+                  text = re.sub(r'(\bandroid\s*\{)', r'\1\n    flavorDimensions "device"', text, count=1)
+              if has_android and not re.search(r'\bmobile\s*\{\s*dimension\s+["\']device["\']', text, re.S):
+                  text = re.sub(r'(\bandroid\s*\{)', r'\1\n    productFlavors {\n        mobile { dimension "device" }\n    }', text, count=1)
+                  device_flavor_added.append(str(gradle_file))
               new_text = re.sub(r'(?m)^(\s*)classifier\s+[\'\"]([^\'\"]+)[\'\"]\s*$', r"\1archiveClassifier.set('\2')", text)
               new_text = re.sub(r'(?m)^(\s*)classifier\s*=\s*[\'\"]([^\'\"]+)[\'\"]\s*$', r"\1archiveClassifier.set('\2')", new_text)
               if new_text != text:
@@ -85,6 +92,9 @@ jobs:
 
           print(f"Patched SmartTube Gradle files: {len(patched)}")
           print(f"Added compileSdk declarations: {len(compile_sdk_added)}")
+          print(f"Added mobile device flavor: {len(device_flavor_added)}")
+          for path in device_flavor_added:
+              print("  device flavor:", path)
           print(f"Patched legacy classifier syntax: {len(classifier_patched)}")
           for path in classifier_patched:
               print("  classifier:", path)
