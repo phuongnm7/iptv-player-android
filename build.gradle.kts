@@ -144,22 +144,21 @@ subprojects {
 
 // SmartTube's common module references a few application-level resources that
 // are not present in the library module after the app was split into NM7's
-// :smarttube library. Materialize small compatibility resources during Gradle
-// configuration so common compiles without changing the upstream submodule.
+// :smarttube library. Generate a tiny compatibility resource file during
+// Gradle configuration so common compiles without changing the upstream tree.
 val smartTubeCompatResources = rootProject.file(
     "third_party/SmartTube-droid/common/src/main/res/values/nm7_smarttube_compat.xml"
 )
 smartTubeCompatResources.parentFile.mkdirs()
-smartTubeCompatResources.writeText(
-    """<?xml version=\"1.0\" encoding=\"utf-8\"?>
-<resources>
-    <string name=\"app_name\">SmartTube</string>
-    <string name=\"cancel\">Cancel</string>
-    <style name=\"AppDialog\" parent=\"android:style/Theme.Material.Dialog.Alert\" />
-    <item name=\"lb_control_closed_captioning\" type=\"id\" />
-    <item name=\"lb_control_high_quality\" type=\"id\" />
-</resources>
-""".trimIndent()
+val smartTubeCompatXml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" +
+    "<resources>\n" +
+    "    <string name=\"app_name\">SmartTube</string>\n" +
+    "    <string name=\"cancel\">Cancel</string>\n" +
+    "    <style name=\"AppDialog\" parent=\"android:style/Theme.Material.Dialog.Alert\" />\n" +
+    "    <item name=\"lb_control_closed_captioning\" type=\"id\" />\n" +
+    "    <item name=\"lb_control_high_quality\" type=\"id\" />\n" +
+    "</resources>\n"
+smartTubeCompatResources.writeText(smartTubeCompatXml)
 
 allprojects {
     repositories {
