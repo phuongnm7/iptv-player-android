@@ -156,7 +156,6 @@ public final class MobileNm7Application extends DroidApplication implements andr
             WebSettings settings = ((WebView) view).getSettings();
             settings.setStandardFontFamily("sans-serif");
             settings.setSansSerifFontFamily("sans-serif");
-            settings.setDefaultFontFamily("sans-serif");
         }
         if (view instanceof ViewGroup) {
             ViewGroup group = (ViewGroup) view;
