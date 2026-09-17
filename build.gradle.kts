@@ -82,6 +82,8 @@ subprojects {
     }
 }
 
+// SmartTube's common library references these legacy app resources directly.
+// They must live in common, because common compiles those Java sources.
 val smartTubeCompatResources = rootProject.file("third_party/SmartTube-droid/common/src/main/res/values/nm7_smarttube_compat.xml")
 smartTubeCompatResources.parentFile.mkdirs()
 val smartTubeCompatXml = """
@@ -95,6 +97,19 @@ val smartTubeCompatXml = """
 </resources>
 """.trimIndent() + "\n"
 smartTubeCompatResources.writeText(smartTubeCompatXml)
+
+// SmartTube phone Activities compile against their own R class. These two
+// strings are therefore provided in the SmartTube library as well.
+val smartTubePhoneResources = rootProject.file("third_party/SmartTube-droid/smarttubedroid/src/main/res/values/nm7_smarttube_phone_compat.xml")
+smartTubePhoneResources.parentFile.mkdirs()
+val smartTubePhoneXml = """
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="signin_view_description">Sign in to SmartTube %1$s</string>
+    <string name="action_search">Search</string>
+</resources>
+""".trimIndent() + "\n"
+smartTubePhoneResources.writeText(smartTubePhoneXml)
 
 allprojects {
     repositories {
