@@ -80,31 +80,44 @@ public final class MobileNm7Application extends DroidApplication implements andr
         String name = activity.getClass().getName();
         if (activity instanceof PlayerActivity) {
             iptvPlayerActivity = activity;
-            pauseExternalMedia(activity);
-            clearTabSwitch();
+            // Switching tabs must not pause YouTube. A real IPTV channel launch has no
+            // pending tab-switch marker, so it still pauses any active external media.
+            if (!tabSwitchPending) pauseExternalMedia(activity);
         } else if (SMARTTUBE_BROWSE.equals(name)) {
             smartTubeBrowseActivity = activity;
-            clearTabSwitch();
         } else if (SMARTTUBE_PLAYBACK.equals(name)) {
             // A real YouTube video has started. Only now pause the IPTV player.
             pauseIptvPlayer();
-            clearTabSwitch();
         }
     }
 
     @Override public void onActivityStopped(Activity activity) {
         if (activity == iptvPlayerActivity && activity.isFinishing()) iptvPlayerActivity = null;
         if (SMARTTUBE_PLAYBACK.equals(activity.getClass().getName()) && activity.isFinishing()) {
-            Activity browse = smartTubeBrowseActivity;
-            if (browse != null && !browse.isFinishing() && !browse.isDestroyed()) {
-                try {
-                    Intent intent = new Intent(browse, browse.getClass());
-                    intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-                    browse.startActivity(intent);
-                } catch (RuntimeException ignored) { }
-            }
+            bringSmartTubeBrowseToFront();
         }
         if (startedActivities > 0 && --startedActivities == 0) releaseWifiPerformanceLock();
+    }
+
+    private void bringSmartTubeBrowseToFront() {
+        Activity browse = smartTubeBrowseActivity;
+        try {
+            if (browse != null && !browse.isFinishing() && !browse.isDestroyed()) {
+                Intent intent = new Intent(browse, browse.getClass());
+                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                browse.startActivity(intent);
+                browse.overridePendingTransition(0, 0);
+                return;
+            }
+            Class<?> clazz = Class.forName(SMARTTUBE_BROWSE);
+            Activity source = iptvPlayerActivity;
+            if (source != null && !source.isFinishing() && !source.isDestroyed()) {
+                Intent intent = new Intent(source, clazz);
+                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                source.startActivity(intent);
+                source.overridePendingTransition(0, 0);
+            }
+        } catch (ReflectiveOperationException | RuntimeException ignored) { }
     }
 
     @Override public void onActivityCreated(Activity activity, Bundle state) {
@@ -138,6 +151,13 @@ public final class MobileNm7Application extends DroidApplication implements andr
                 field.setAccessible(true);
                 field.setBoolean(activity, true);
             } catch (ReflectiveOperationException | RuntimeException ignored) { }
+        }
+    }
+
+    @Override public void onActivityResumed(Activity activity) {
+        String name = activity.getClass().getName();
+        if (activity instanceof PlayerActivity || SMARTTUBE_BROWSE.equals(name)) {
+            clearTabSwitch();
         }
     }
 
@@ -204,6 +224,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
             WebSettings settings = ((WebView) view).getSettings();
             settings.setStandardFontFamily("sans-serif");
             settings.setSansSerifFontFamily("sans-serif");
+            settings.setDefaultFontFamily("sans-serif");
             settings.setDefaultTextEncodingName("UTF-8");
         }
         if (view instanceof ViewGroup) {
@@ -230,7 +251,6 @@ public final class MobileNm7Application extends DroidApplication implements andr
         return false;
     }
 
-    @Override public void onActivityResumed(Activity activity) { }
     @Override public void onActivitySaveInstanceState(Activity activity, Bundle state) { }
     @Override public void onActivityDestroyed(Activity activity) {
         if (activity == iptvPlayerActivity) iptvPlayerActivity = null;
