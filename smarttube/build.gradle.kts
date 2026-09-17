@@ -49,4 +49,18 @@ dependencies {
     implementation(project(":exoplayer-library-ui"))
     implementation(project(":exoplayer-extension-mediasession"))
     implementation(project(":doubletapplayerview"))
+
+    // SmartTube phone UI dependencies retained from the upstream droid app.
+    implementation("androidx.annotation:annotation:" + project.extra["annotationXVersion"])
+    implementation("androidx.recyclerview:recyclerview:" + project.extra["recyclerviewXVersion"])
+    implementation("androidx.constraintlayout:constraintlayout:" + project.extra["constraintLayoutXVersion"])
+    implementation("androidx.media:media:" + project.extra["mediaXVersion"])
+    implementation("androidx.multidex:multidex:" + project.extra["multiDexVersion"])
+    implementation("com.google.android.material:material:" + project.extra["materialVersion"])
+    implementation("com.github.bumptech.glide:glide:" + project.extra["glideVersion"])
+    implementation("com.github.bumptech.glide:annotations:" + project.extra["glideVersion"])
+    annotationProcessor("com.github.bumptech.glide:compiler:" + project.extra["glideVersion"])
+    implementation("io.reactivex.rxjava2:rxandroid:" + project.extra["rxAndroidVersion"])
+    implementation("io.reactivex.rxjava2:rxjava:" + project.extra["rxJavaVersion"])
+    implementation("org.conscrypt:conscrypt-android:" + project.extra["conscryptVersion"])
 }
