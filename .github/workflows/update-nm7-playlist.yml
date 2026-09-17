@@ -41,21 +41,17 @@ jobs:
           import base64, gzip, re
           from html import unescape
 
-          # Reconstruct the current bundled playlist first. This preserves all
-          # existing NM7 groups (Vua San Co, Socolive, Giu Vang, etc.) instead
-          # of replacing them with one schedule source.
           packed=''.join(Path(f'playlist/nm7-private.part{i}.b64').read_text(encoding='utf-8').strip() for i in range(1,5))
           raw=base64.b64decode(packed)
-          for _ in range(3):
-              try: raw=gzip.decompress(raw)
-              except OSError: break
+          raw=gzip.decompress(raw)
           source=raw.decode('utf-8','ignore').replace('\r','')
 
-          # Keep every existing playable EXTINF entry exactly as supplied by
-          # the user, deduplicated by stream URL.
+          # Preserve the existing inventory. Deduplicate by the complete
+          # EXTINF metadata + stream URL, not by URL alone: one channel URL
+          # can legitimately carry many different matches.
           blocks=re.split(r'(?=#EXTINF:)', source)
           existing=[]
-          seen_urls=set()
+          existing_keys=set()
           for block in blocks:
               if not block.startswith('#EXTINF:'):
                   continue
@@ -63,10 +59,12 @@ jobs:
               if not m:
                   continue
               url=m.group(1).rstrip('.,)')
-              if url == 'None' or url in seen_urls:
+              header=block[:m.start()].strip()
+              key=header+'\n'+url
+              if key in existing_keys:
                   continue
-              seen_urls.add(url)
-              existing.append(block.strip())
+              existing_keys.add(key)
+              existing.append(header+'\n'+url)
 
           channels={
               'Chuối Lá': 'https://stm9ee346727718.stream.hdplaylink.com/cctvlive/chuoilahd/playlist.m3u8',
@@ -85,13 +83,15 @@ jobs:
               cells=re.findall(r'<t[dh][^>]*>(.*?)</t[dh]>',row,re.I|re.S)
               cells=[re.sub(r'<[^>]+>',' ',c) for c in cells]
               cells=[re.sub(r'\s+',' ',unescape(c)).strip() for c in cells]
-              if len(cells)<4: continue
-              match=next((c for c in cells if re.search(r'\bvs\b',c,re.I)),None)
+              if len(cells)<2:
+                  continue
               tm=next((re.search(r'\b\d{1,2}:\d{2}\b',c) for c in cells),None)
-              if not match or not tm: continue
-              blv=cells[3]
-              channel=next((k for k in channels if k.lower() in blv.lower()),None)
-              if not channel: continue
+              match=next((c for c in cells if re.search(r'\bvs\b',c,re.I)),None)
+              if not tm or not match:
+                  continue
+              channel=next((k for k in channels if re.search(re.escape(k), ' '.join(cells), re.I)),None)
+              if not channel:
+                  continue
               label=f'{tm.group(0)} ⚽ {match} ({channel}) [FHD] [hls]'
               generated.append('\n'.join([
                   f'#EXTINF:-1 group-title="Chuối Chiên TV", {label}',
@@ -99,12 +99,12 @@ jobs:
                   channels[channel],
               ]))
 
-          # Fallback for markup changes: parse visible text for time + match + BLV.
+          # Fallback parser for markup changes.
           if not generated:
               text=re.sub(r'<script.*?</script>|<style.*?</style>',' ',html,flags=re.I|re.S)
               text=re.sub(r'<[^>]+>','\n',text)
               text=re.sub(r'\s+',' ',unescape(text))
-              pat=re.compile(r'(\d{1,2}:\d{2})\s+(.{3,120}?\s+vs\s+.{3,120}?)(?:\s+)(Chuối\s+(?:Lá|Nhỏ|To|Chao|Kem|Tây))\b',re.I)
+              pat=re.compile(r'(\d{1,2}:\d{2})\s+(.{3,100}?\bvs\b.{3,100}?)\s+(Chuối\s+(?:Lá|Nhỏ|To|Chao|Kem|Tây))\b',re.I)
               for m in pat.finditer(text):
                   channel=next((k for k in channels if k.lower()==m.group(3).lower()),None)
                   if channel:
@@ -114,14 +114,14 @@ jobs:
                           channels[channel],
                       ]))
 
-          # Add only newly discovered schedule entries. Existing playlist remains
-          # the source of truth for stream URLs; the public page supplies only
-          # current match metadata and channel assignment.
           new_entries=[]
           for entry in generated:
-              url=entry.splitlines()[-1].strip()
-              if url not in seen_urls:
-                  seen_urls.add(url)
+              lines=entry.splitlines()
+              url=lines[-1].strip()
+              header=lines[0].strip()
+              key=header+'\n'+url
+              if key not in existing_keys:
+                  existing_keys.add(key)
                   new_entries.append(entry)
 
           all_entries=existing+new_entries
