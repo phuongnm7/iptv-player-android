@@ -1,6 +1,6 @@
 # Tiến độ dự án NM7 IPTV
 
-_Cập nhật: 16/09/2026_
+_Cập nhật: 17/09/2026_
 
 ## Trạng thái hiện tại
 
@@ -28,3 +28,22 @@ Phiên bản đang triển khai trên nhánh `feature/mobile-youtube-smarttube` 
 - Branch: `feature/mobile-youtube-smarttube`
 - APK mục tiêu: `NM7-IPTV-Mobile-1.10.26.apk`
 
+## NM7 playlist / Vercel proxy — cập nhật 17/09/2026
+
+### Đã xử lý
+
+- Đã phân tích file playlist được bàn giao.
+- Phát hiện 566 block `#EXTINF`, 542 entry phát duy nhất sau chuẩn hóa/dedup, 302 URL HTTP/HTTPS duy nhất.
+- File gồm nhiều nhóm nguồn; không phải một M3U nguồn duy nhất.
+- Đã lưu phân tích chi tiết tại `docs/nm7-source-analysis.md`.
+- Vercel API hiện dùng bốn chunk `playlist/nm7-private.part1.b64` đến `part4.b64`.
+- Endpoint production giữ nguyên: `https://byvn-m3u-proxy.vercel.app/api/nm7-private.m3u`.
+- Parser API đã được sửa để đọc đúng snapshot M3U dạng một dòng/đa nguồn và các URL HLS thực tế.
+- GitHub Actions updater chạy mỗi 10 phút.
+- Workflow đã được sửa để không fail liên tục khi chưa có `NM7_SOURCE_URL`: trong trường hợp thiếu nguồn trực tiếp, workflow sử dụng snapshot bốn chunk hiện có làm dữ liệu an toàn.
+
+### Phần còn lại
+
+- Cần một upstream M3U/M3U8/API **được phép sử dụng** để biến updater thành cập nhật live thực sự. Snapshot hiện tại chỉ chứa playlist đã tổng hợp và các URL phát; nó không xác định chắc chắn một URL nguồn duy nhất.
+- Không tự tạo hoặc đoán URL nguồn.
+- Không sử dụng `byvn.net`.
