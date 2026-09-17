@@ -22,14 +22,42 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/nm7
-          curl -L --fail --retry 3 --retry-delay 2 \
-            -A 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/140 Safari/537.36' \
-            -H 'Accept: text/plain,text/html;q=0.9,*/*;q=0.8' \
-            -H 'Cache-Control: no-cache' \
-            -H 'x-no-cache: true' \
-            -H 'x-engine: browser' \
-            'https://r.jina.ai/https://byvn.net/6ZQ5' \
-            -o /tmp/nm7/source.txt
+
+          # byvn.net is protected by Cloudflare, so try several read-only public
+          # fetch paths. We only accept a response that actually contains M3U.
+          urls=(
+            'https://byvn.net/6ZQ5'
+            'https://r.jina.ai/https://byvn.net/6ZQ5'
+            'https://r.jina.ai/http://byvn.net/6ZQ5'
+            'https://api.allorigins.win/raw?url=https%3A%2F%2Fbyvn.net%2F6ZQ5'
+            'https://corsproxy.io/?url=https%3A%2F%2Fbyvn.net%2F6ZQ5'
+          )
+
+          found=0
+          for url in "${urls[@]}"; do
+            echo "Trying source: $url"
+            rm -f /tmp/nm7/candidate.txt
+            if curl -L --fail --max-time 30 --retry 2 --retry-delay 2 \
+              -A 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/140 Safari/537.36' \
+              -H 'Accept: text/plain,text/html;q=0.9,*/*;q=0.8' \
+              -H 'Cache-Control: no-cache' \
+              "$url" -o /tmp/nm7/candidate.txt; then
+              if grep -aq '#EXTM3U' /tmp/nm7/candidate.txt; then
+                cp /tmp/nm7/candidate.txt /tmp/nm7/source.txt
+                echo "Accepted source: $url"
+                found=1
+                break
+              fi
+              echo "Response received but no #EXTM3U."
+            else
+              echo "Fetch failed."
+            fi
+          done
+
+          if [ "$found" -ne 1 ]; then
+            echo "ERROR: No source path returned a valid M3U playlist."
+            exit 1
+          fi
 
           python3 - <<'PY'
           from pathlib import Path
@@ -40,7 +68,6 @@ jobs:
           if start < 0:
               raise SystemExit('Source did not contain #EXTM3U')
           text = text[start:]
-          # Keep only M3U content and remove obvious HTML/markdown wrappers.
           text = re.sub(r'```(?:m3u|text)?\s*', '', text, flags=re.I)
           text = text.replace('```', '')
           blocks = re.split(r'(?=#EXTINF:)', text)
@@ -51,7 +78,8 @@ jobs:
               if not block.startswith('#EXTINF:'):
                   continue
               lines = [x.strip() for x in block.split('\n') if x.strip()]
-              if not any(x.startswith('http://') or x.startswith('https://') for x in lines[1:]):
+              urls = [x for x in lines[1:] if x.startswith('http://') or x.startswith('https://')]
+              if not urls:
                   continue
               key = '\n'.join(lines)
               if key in seen:
