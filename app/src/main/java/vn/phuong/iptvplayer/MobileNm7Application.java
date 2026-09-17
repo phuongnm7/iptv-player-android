@@ -131,7 +131,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
             activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
             activity.getWindow().getDecorView().post(() -> {
                 HomeTabBar.attach(activity, true);
-                installSmartTubeFontFix(activity);
+                installSmartTubeBrowseFixes(activity);
             });
         } else if (name.startsWith(SMARTTUBE_PACKAGE) && !SMARTTUBE_PLAYBACK.equals(name)) {
             if (!SMARTTUBE_WEB.equals(name)) {
@@ -191,6 +191,52 @@ public final class MobileNm7Application extends DroidApplication implements andr
             audio.dispatchMediaKeyEvent(new android.view.KeyEvent(now, now, android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_MEDIA_PAUSE, 0));
             audio.dispatchMediaKeyEvent(new android.view.KeyEvent(now, now, android.view.KeyEvent.ACTION_UP, android.view.KeyEvent.KEYCODE_MEDIA_PAUSE, 0));
         } catch (RuntimeException ignored) { }
+    }
+
+    private void installSmartTubeBrowseFixes(Activity activity) {
+        installSmartTubeFontFix(activity);
+        View root = activity.findViewById(android.R.id.content);
+        if (root == null) return;
+        forceSingleColumn(root);
+        ViewTreeObserver observer = root.getViewTreeObserver();
+        if (observer.isAlive()) observer.addOnGlobalLayoutListener(() -> {
+            if (!activity.isFinishing() && !activity.isDestroyed()) forceSingleColumn(root);
+        });
+    }
+
+    /** Convert the phone Browse feed from the fork's 2-column grid to a single-column feed. */
+    private void forceSingleColumn(View view) {
+        String className = view.getClass().getName();
+        try {
+            if (className.contains("BaseGridView") || className.contains("VerticalGridView")) {
+                Method setNumColumns = findMethod(view.getClass(), "setNumColumns", int.class);
+                if (setNumColumns != null) setNumColumns.invoke(view, 1);
+            }
+            if (className.contains("RecyclerView")) {
+                Method getLayoutManager = findMethod(view.getClass(), "getLayoutManager");
+                if (getLayoutManager != null) {
+                    Object lm = getLayoutManager.invoke(view);
+                    if (lm != null) {
+                        Method setSpanCount = findMethod(lm.getClass(), "setSpanCount", int.class);
+                        if (setSpanCount != null) setSpanCount.invoke(lm, 1);
+                    }
+                }
+            }
+        } catch (ReflectiveOperationException | RuntimeException ignored) { }
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) forceSingleColumn(group.getChildAt(i));
+        }
+    }
+
+    private Method findMethod(Class<?> type, String name, Class<?>... args) {
+        try {
+            Method method = type.getMethod(name, args);
+            method.setAccessible(true);
+            return method;
+        } catch (ReflectiveOperationException | RuntimeException ignored) {
+            return null;
+        }
     }
 
     /** Force Android/WebView to use UTF-8 and a system sans-serif font for Vietnamese text. */
