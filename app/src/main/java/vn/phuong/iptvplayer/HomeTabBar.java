@@ -50,6 +50,14 @@ public final class HomeTabBar {
         host.addView(bar, lp);
     }
 
+    private static void startWithoutAnimation(Activity activity, Intent intent) {
+        intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+        activity.startActivity(intent);
+        // Keep the two integrated activities visually stable instead of showing two windows
+        // side-by-side during Android's default slide transition.
+        activity.overridePendingTransition(0, 0);
+    }
+
     private static void openIptv(Activity activity) {
         // This is a navigation event, not a request to stop the current IPTV player.
         MobileNm7Application.markTabSwitch();
@@ -60,7 +68,7 @@ public final class HomeTabBar {
             intent = new Intent(activity, MainActivity.class);
         }
         intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-        activity.startActivity(intent);
+        startWithoutAnimation(activity, intent);
     }
 
     private static void openBrowse(Activity activity) {
@@ -70,11 +78,11 @@ public final class HomeTabBar {
             Class<?> browse = Class.forName(BROWSE);
             Intent intent = new Intent(activity, browse);
             intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-            activity.startActivity(intent);
+            startWithoutAnimation(activity, intent);
         } catch (ReflectiveOperationException | RuntimeException ignored) {
             Intent fallback = new Intent(activity, SmartTubeHomeActivity.class);
             fallback.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-            activity.startActivity(fallback);
+            startWithoutAnimation(activity, fallback);
         }
     }
 
