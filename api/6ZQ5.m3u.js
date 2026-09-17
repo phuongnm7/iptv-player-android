@@ -1,9 +1,9 @@
 export default async function handler(req, res) {
   const source = 'https://byvn.net/6ZQ5';
 
-  const headers = {
-    'User-Agent': 'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/131.0.0.0 Mobile Safari/537.36',
-    'Accept': 'text/plain,application/vnd.apple.mpegurl,application/x-mpegURL,*/*;q=0.8',
+  const browserHeaders = {
+    'User-Agent': 'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36',
+    'Accept': 'text/plain,application/vnd.apple.mpegurl,application/x-mpegURL,text/html,*/*;q=0.8',
     'Accept-Language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7',
     'Referer': 'https://byvn.net/',
     'Origin': 'https://byvn.net',
@@ -11,58 +11,70 @@ export default async function handler(req, res) {
     'Pragma': 'no-cache'
   };
 
-  async function fetchSource(url, extraHeaders = {}) {
-    return fetch(url, {
-      redirect: 'follow',
-      cache: 'no-store',
-      headers: { ...headers, ...extraHeaders }
-    });
-  }
-
   function cleanM3U(text) {
     const start = text.indexOf('#EXTM3U');
-    if (start >= 0) text = text.slice(start);
-
+    if (start < 0) return '';
+    text = text.slice(start);
     const bodyEnd = text.indexOf('</body>');
     if (bodyEnd >= 0) text = text.slice(0, bodyEnd);
-
     return text.trim() + '\n';
   }
 
   function isValidM3U(text) {
-    return text.includes('#EXTM3U') && text.includes('#EXTINF');
+    return /#EXTM3U/i.test(text) && /#EXTINF/i.test(text);
+  }
+
+  async function get(url, headers = {}) {
+    const r = await fetch(url, {
+      redirect: 'follow',
+      cache: 'no-store',
+      headers: { ...browserHeaders, ...headers }
+    });
+    const text = await r.text();
+    return { r, text };
   }
 
   try {
-    // First try the origin directly with browser-like headers.
-    let upstream = await fetchSource(source);
-    let text = await upstream.text();
+    // 1) Direct request to the original short URL.
+    let result = await get(source);
+    let text = result.text;
 
-    // If byvn blocks Vercel with 403, use Jina Reader as a browser-capable
-    // fallback. A timestamp prevents the Reader URL itself from being reused
-    // from its short cache window.
-    if (!upstream.ok || !isValidM3U(text)) {
-      const readerUrl = `https://r.jina.ai/http://byvn.net/6ZQ5?nm7_cb=${Date.now()}`;
-      const reader = await fetch(readerUrl, {
-        redirect: 'follow',
-        cache: 'no-store',
-        headers: {
-          'User-Agent': 'NM7-IPTV-M3U-Proxy/1.0',
-          'Accept': 'text/plain,*/*;q=0.8'
-        }
+    // 2) Jina Reader can reach sites that reject Vercel serverless IPs.
+    if (!isValidM3U(text)) {
+      const jina = `https://r.jina.ai/https://byvn.net/6ZQ5?nm7_cb=${Date.now()}`;
+      result = await get(jina, {
+        'User-Agent': 'Mozilla/5.0',
+        'Accept': 'text/plain,*/*;q=0.8'
       });
+      text = result.text;
+    }
 
-      if (!reader.ok) {
-        throw new Error(`Source HTTP ${upstream.status}; fallback HTTP ${reader.status}`);
-      }
+    // 3) AllOrigins raw proxy as a second independent fallback.
+    if (!isValidM3U(text)) {
+      const encoded = encodeURIComponent(source);
+      const allOrigins = `https://api.allorigins.win/raw?url=${encoded}&nm7_cb=${Date.now()}`;
+      result = await get(allOrigins, {
+        'User-Agent': 'NM7-IPTV-M3U-Proxy/1.0',
+        'Accept': 'text/plain,*/*;q=0.8'
+      });
+      text = result.text;
+    }
 
-      text = await reader.text();
+    // 4) corsproxy.io fallback.
+    if (!isValidM3U(text)) {
+      const encoded = encodeURIComponent(source);
+      const corsProxy = `https://corsproxy.io/?url=${encoded}&nm7_cb=${Date.now()}`;
+      result = await get(corsProxy, {
+        'User-Agent': 'NM7-IPTV-M3U-Proxy/1.0',
+        'Accept': 'text/plain,*/*;q=0.8'
+      });
+      text = result.text;
     }
 
     text = cleanM3U(text);
 
     if (!isValidM3U(text)) {
-      throw new Error('Source did not return a valid M3U playlist');
+      throw new Error('Nguồn không trả về danh sách phát M3U hợp lệ');
     }
 
     res.setHeader('Content-Type', 'audio/x-mpegurl; charset=utf-8');
