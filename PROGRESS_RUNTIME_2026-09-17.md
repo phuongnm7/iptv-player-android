@@ -39,35 +39,53 @@ Commit `41398edd9498633a376cdafc107d1b3a154dc252`:
 - quá 180 phút sau giờ bắt đầu sẽ tự bị lọc;
 - canonical 424 entry không bị xóa để tránh lặp lại lỗi mất nhóm.
 
-## Ví dụ lịch công khai đã xác nhận ngày 17/09/2026
-Nguồn lịch hiện có:
-- Coventry vs Aston Villa — 02:00 — Chuối Lá — 1-3
-- Manchester United vs Brighton — 02:00 — Chuối Nhỏ, Trốc Tru — 2-3
-- Barcelona vs Racing Santander — 02:30 — Chuối Chao — Đang đá 4-1
-- Inter Miami vs Cruz Azul — 07:00 — Chuối Chao — Chưa đá
-- Bogota FC vs Independiente Medellin — 08:20 — Chuối To — Chưa đá
+## 4. Multi-source overlay cho các nhóm còn lại
+Các commit mới sau khi Chuối Chiên đã xác nhận hoạt động:
+- `83169dc8cbebde453aaf3ba05f9502ce70ee749a` — thêm module `api/nm7-schedule-overlay.mjs`.
+- `f684095426a2cf9118ee58a0fd9e1f0e44422dd9` — thêm router `api/nm7-private-router.m3u.js` để giữ endpoint cũ nhưng chạy lớp metadata overlay mới.
+- `c4c0aafbc2b15e34939670c4dc8496a273a06212` — cập nhật `vercel.json`: endpoint `/api/nm7-private.m3u` được rewrite qua router và các chunk playlist được include cho router.
+- `b7e3994be5f89e7290604e903a1da640ab240c64` — xóa endpoint debug tạm thời sau khi hoàn tất kiểm tra kiến trúc.
 
-Các trận này phải xuất hiện ở đầu M3U sau khi endpoint production nhận commit mới. Nguồn lịch chỉ cung cấp kênh BLV được ánh xạ; các nhóm khác vẫn đang dùng canonical inventory cho tới khi tìm được nguồn cập nhật hợp lệ tương ứng.
+Overlay mới hoạt động theo nguyên tắc an toàn:
+- không thay URL stream canonical;
+- không xóa canonical entries;
+- lấy lịch từ các nguồn công khai đã xác định cho Vua Sân Cỏ, Giờ Vàng, Bia Ôm, Xôi Lạc Z, Sao Kê, Gà Vàng, Cola, Khán Đài và Socolive;
+- chỉ đổi tên entry khi có mức khớp đủ mạnh với dữ liệu trận;
+- nếu nguồn lịch lỗi hoặc không khớp thì giữ nguyên entry cũ, tránh gán sai trận vào stream.
+
+## Ví dụ nguồn công khai đã xác nhận
+- Vua Sân Cỏ có trang live/lịch với giờ, đội và trạng thái trận.
+- Bia Ôm hiển thị trực tiếp và lịch theo BLV.
+- Giờ Vàng có dữ liệu trận/lịch trực tiếp.
+- Sao Kê có lịch và trận theo ngày.
+- Gà Vàng có trang lịch thi đấu.
+- Cola có hệ thống danh sách trận.
+- Khán Đài có danh sách trận theo giờ và BLV.
 
 ## Kiến trúc hiện tại
 
-`canonical 4 chunks` → `API normalize` → `runtime fetch Chuối schedule` → `prepend current matches` → `filter finished (>180 phút)` → `M3U response`
+`canonical 4 chunks` → `legacy API` → `Chuối runtime overlay` → `multi-source metadata overlay` → `filter/response` → app
+
+Endpoint người dùng vẫn giữ nguyên:
+`https://byvn-m3u-proxy.vercel.app/api/nm7-private.m3u`
 
 ## Vercel
-Project production dự kiến: `byvn-m3u-proxy`
-Endpoint: `https://byvn-m3u-proxy.vercel.app/api/nm7-private.m3u`
+Project production: `byvn-m3u-proxy`
+Git repository: `phuongnm7/iptv-player-android`
+Production branch: `main`
 
-Trong phiên hiện tại chưa có bằng chứng xác nhận deployment production đã nhận commit `41398ed...`. Cần kiểm tra production sau deploy.
+Vercel Git integration tự động tạo deployment khi có push vào production branch. Sau các commit mới ở trên, cần chờ deployment Production mới chuyển sang Ready trước khi test app. Vercel xác nhận Git-connected projects deploy theo push và `main` là production branch mặc định trong cấu hình thông thường.
 
 ## Kiểm tra bắt buộc sau deploy
 1. HTTP 200 tại `/api/nm7-private.m3u`.
 2. Response bắt đầu bằng `#EXTM3U`.
 3. Có đủ 12 `group-title` canonical.
 4. Có ít nhất 424 playable entries trước/không làm suy giảm canonical inventory.
-5. Entry động `Chuối Chiên TV` xuất hiện ở đầu response và chứa giờ + DD/MM + `Đội A vs Đội B`.
-6. Reload lại sau khi lịch thay đổi phải nhận tên trận/link hiện hành, không cộng dồn entry động cũ.
-7. Khi trận quá 180 phút sau giờ bắt đầu, entry động được lọc khỏi response.
-8. Khi trang lịch Chuối Chiên lỗi, API vẫn trả canonical playlist.
+5. Chuối Chiên vẫn hiển thị trận động ở đầu response.
+6. Các nhóm khác chỉ được đổi tên khi có mapping đủ mạnh; không gán bừa stream.
+7. Reload lại app phải giữ nguyên URL endpoint và nhận metadata mới.
+8. Khi trận quá 180 phút sau giờ bắt đầu, entry động Chuối được lọc khỏi response.
+9. Khi nguồn lịch phụ lỗi, canonical playlist vẫn được phục vụ.
 
 ## Ràng buộc
 - Không sửa APK.
