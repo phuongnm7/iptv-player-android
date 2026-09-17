@@ -98,6 +98,34 @@ jobs:
               p.write_text(pat.sub(repl,x))
           PY
 
+      - name: Isolate SmartTube legacy player resources from Media3
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import shutil
+          root = Path('third_party/SmartTube-droid')
+          ui = root / 'exoplayer-amzn-2.10.6/library/ui'
+          res = ui / 'src/main/res/layout'
+          player = ui / 'src/main/java/com/google/android/exoplayer2/ui/PlayerView.java'
+          required = [res / 'exo_player_view.xml', res / 'exo_simple_player_view.xml', player]
+          for p in required:
+              if not p.is_file():
+                  raise SystemExit(f'Missing SmartTube player source: {p}')
+          shutil.copy2(res / 'exo_player_view.xml', res / 'st_exo_player_view.xml')
+          shutil.copy2(res / 'exo_simple_player_view.xml', res / 'st_exo_simple_player_view.xml')
+          simple = res / 'st_exo_player_view.xml'
+          t = simple.read_text()
+          t2 = t.replace('@layout/exo_simple_player_view', '@layout/st_exo_simple_player_view')
+          simple.write_text(t2)
+          t = player.read_text()
+          t2 = t.replace('R.layout.exo_player_view', 'R.layout.st_exo_player_view')
+          if t2 == t:
+              raise SystemExit('PlayerView layout reference not found')
+          player.write_text(t2)
+          print('Isolated SmartTube legacy PlayerView resources from Media3')
+          PY
+
       - name: Configure build tools
         uses: actions/setup-java@v6
         with:
