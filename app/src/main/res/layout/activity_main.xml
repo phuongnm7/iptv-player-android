@@ -30,4 +30,8 @@
         <ListView android:id="@+id/listChannels" android:layout_width="match_parent" android:layout_height="match_parent" android:divider="@android:color/transparent" android:dividerHeight="5dp" android:listSelector="@drawable/list_focus" />
         <TextView android:id="@+id/txtEmpty" android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center" android:padding="20dp" android:text="Chưa có kênh phù hợp." android:textColor="@color/text_secondary" android:visibility="gone" />
     </FrameLayout>
+    <vn.phuong.iptvplayer.MobileNavigationView
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:layout_marginTop="4dp" />
 </LinearLayout>
