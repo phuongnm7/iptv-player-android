@@ -8,10 +8,10 @@
       "includeFiles": "playlist/*.b64"
     }
   },
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/nm7-private.m3u",
-      "destination": "/api/nm7-private-router.m3u"
+      "src": "^/api/nm7-private\\.m3u$",
+      "dest": "/api/nm7-private-router.m3u"
     }
   ],
   "headers": [
