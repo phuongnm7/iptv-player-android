@@ -51,9 +51,8 @@ public final class HomeTabBar {
     }
 
     private static void openIptv(Activity activity) {
-        // Reorder the existing player first so an active channel is preserved. Only fall back
-        // to MainActivity when there is no live PlayerActivity. REORDER_TO_FRONT deliberately
-        // avoids CLEAR_TOP, which would finish PlayerActivity above MainActivity.
+        // This is a navigation event, not a request to stop the current IPTV player.
+        MobileNm7Application.markTabSwitch();
         Intent intent;
         if (MobileNm7Application.hasIptvPlayer()) {
             intent = new Intent(activity, PlayerActivity.class);
@@ -65,6 +64,8 @@ public final class HomeTabBar {
     }
 
     private static void openBrowse(Activity activity) {
+        // Mark the transition so PlayerActivity keeps its ExoPlayer instance while Browse is on top.
+        MobileNm7Application.markTabSwitch();
         try {
             Class<?> browse = Class.forName(BROWSE);
             Intent intent = new Intent(activity, browse);
