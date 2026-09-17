@@ -49,9 +49,8 @@ public final class MobileIptvUi {
         if (all != null) all.setVisibility(View.GONE);
         if (favorites != null) favorites.setVisibility(View.GONE);
         if (recent != null) recent.setVisibility(View.GONE);
-
-        if (searchParent != null && searchParent.getChildCount() == 0) searchParent.setVisibility(View.GONE);
-        if (reloadParent != null && reloadParent.getChildCount() == 0) reloadParent.setVisibility(View.GONE);
+        if (searchParent != null) searchParent.setVisibility(View.GONE);
+        if (reloadParent != null) reloadParent.setVisibility(View.GONE);
 
         LinearLayout toolbar = new LinearLayout(activity);
         toolbar.setOrientation(LinearLayout.HORIZONTAL);
