@@ -1,0 +1,96 @@
+name: Update NM7 private playlist
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-playlist:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Fetch latest source playlist
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/nm7
+          curl -L --fail --retry 3 --retry-delay 2 \
+            -A 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/140 Safari/537.36' \
+            -H 'Accept: text/plain,text/html;q=0.9,*/*;q=0.8' \
+            -H 'Cache-Control: no-cache' \
+            -H 'x-no-cache: true' \
+            -H 'x-engine: browser' \
+            'https://r.jina.ai/https://byvn.net/6ZQ5' \
+            -o /tmp/nm7/source.txt
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p = Path('/tmp/nm7/source.txt')
+          text = p.read_text(encoding='utf-8', errors='ignore').replace('\r','')
+          start = text.find('#EXTM3U')
+          if start < 0:
+              raise SystemExit('Source did not contain #EXTM3U')
+          text = text[start:]
+          # Keep only M3U content and remove obvious HTML/markdown wrappers.
+          text = re.sub(r'```(?:m3u|text)?\s*', '', text, flags=re.I)
+          text = text.replace('```', '')
+          blocks = re.split(r'(?=#EXTINF:)', text)
+          out = ['#EXTM3U']
+          seen = set()
+          for block in blocks[1:]:
+              block = block.strip()
+              if not block.startswith('#EXTINF:'):
+                  continue
+              lines = [x.strip() for x in block.split('\n') if x.strip()]
+              if not any(x.startswith('http://') or x.startswith('https://') for x in lines[1:]):
+                  continue
+              key = '\n'.join(lines)
+              if key in seen:
+                  continue
+              seen.add(key)
+              out.extend(lines)
+          if len(out) <= 1:
+              raise SystemExit('No playable #EXTINF entries found')
+          Path('/tmp/nm7/latest.m3u').write_text('\n'.join(out) + '\n', encoding='utf-8')
+          print('entries:', len(out) - 1)
+          PY
+
+      - name: Pack playlist into the four fixed chunks
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p playlist
+          gzip -9 -c /tmp/nm7/latest.m3u | base64 -w0 > /tmp/nm7/latest.b64
+          python3 - <<'PY'
+          from pathlib import Path
+          s = Path('/tmp/nm7/latest.b64').read_text().strip()
+          n = 4
+          size = (len(s) + n - 1) // n
+          for i in range(n):
+              part = s[i*size:(i+1)*size]
+              Path(f'playlist/nm7-private.part{i+1}.b64').write_text(part, encoding='utf-8')
+          print('base64 chars:', len(s))
+          PY
+
+      - name: Commit only when playlist changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add playlist/nm7-private.part*.b64
+          if git diff --cached --quiet; then
+            echo 'Playlist unchanged.'
+            exit 0
+          fi
+          git commit -m 'auto: update NM7 playlist'
+          git push
