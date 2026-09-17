@@ -50,17 +50,18 @@ dependencies {
     implementation(project(":exoplayer-extension-mediasession"))
     implementation(project(":doubletapplayerview"))
 
-    // SmartTube phone UI dependencies retained from the upstream droid app.
-    implementation("androidx.annotation:annotation:" + project.extra["annotationXVersion"])
-    implementation("androidx.recyclerview:recyclerview:" + project.extra["recyclerviewXVersion"])
-    implementation("androidx.constraintlayout:constraintlayout:" + project.extra["constraintLayoutXVersion"])
-    implementation("androidx.media:media:" + project.extra["mediaXVersion"])
-    implementation("androidx.multidex:multidex:" + project.extra["multiDexVersion"])
-    implementation("com.google.android.material:material:" + project.extra["materialVersion"])
-    implementation("com.github.bumptech.glide:glide:" + project.extra["glideVersion"])
-    implementation("com.github.bumptech.glide:annotations:" + project.extra["glideVersion"])
-    annotationProcessor("com.github.bumptech.glide:compiler:" + project.extra["glideVersion"])
-    implementation("io.reactivex.rxjava2:rxandroid:" + project.extra["rxAndroidVersion"])
-    implementation("io.reactivex.rxjava2:rxjava:" + project.extra["rxJavaVersion"])
-    implementation("org.conscrypt:conscrypt-android:" + project.extra["conscryptVersion"])
+    // SmartTube phone UI dependencies. Keep the upstream versions explicit
+    // because SharedModules constants are not exposed to this Kotlin DSL module.
+    implementation("androidx.annotation:annotation:1.1.0")
+    implementation("androidx.recyclerview:recyclerview:1.1.0")
+    implementation("androidx.constraintlayout:constraintlayout:1.1.2")
+    implementation("androidx.media:media:1.2.0")
+    implementation("androidx.multidex:multidex:2.0.1")
+    implementation("com.google.android.material:material:1.5.0")
+    implementation("com.github.bumptech.glide:glide:4.11.0")
+    implementation("com.github.bumptech.glide:annotations:4.11.0")
+    annotationProcessor("com.github.bumptech.glide:compiler:4.11.0")
+    implementation("io.reactivex.rxjava2:rxandroid:2.1.1")
+    implementation("io.reactivex.rxjava2:rxjava:2.2.21")
+    implementation("org.conscrypt:conscrypt-android:2.5.3")
 }
