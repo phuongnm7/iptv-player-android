@@ -9,6 +9,18 @@ const PARTS = [
   'nm7-private.part4.b64'
 ];
 
+const CHUOI_CHANNELS = {
+  'Chuối Lá': 'https://stm9ee346727718.stream.hdplaylink.com/cctvlive/chuoilahd/playlist.m3u8',
+  'Chuối Nhỏ': 'https://stm9ee346727718.stream.hdplaylink.com/cctvlive/chuoinhohd/playlist.m3u8',
+  'Chuối To': 'https://stm9ee346727718.stream.hdplaylink.com/cctvlive/chuoitohd/playlist.m3u8',
+  'Chuối Chao': 'https://stm9ee346727718.stream.hdplaylink.com/cctvlive/chuoichaohd/playlist.m3u8',
+  'Chuối Kem': 'https://stm9ee346727718.stream.hdplaylink.com/cctvlive/chuoikemhd/playlist.m3u8',
+  'Chuối Tây': 'https://stm9ee346727718.stream.hdplaylink.com/cctvlive/chuoitayhd/playlist.m3u8'
+};
+
+const CHUOI_SCHEDULE_URL = 'https://chuoichientv.link/lich-thi-dau/';
+const CHUOI_REFERRER = 'https://live.chuoichien.tv/';
+
 async function loadPlaylistFromBundle() {
   const chunks = await Promise.all(
     PARTS.map((name) => fs.readFile(path.join(process.cwd(), 'playlist', name), 'utf8'))
@@ -39,11 +51,8 @@ function normalizeM3U(text) {
     const lines = block.split('\n').map((line) => line.trim()).filter(Boolean);
     if (!/^#EXTINF\s*:/i.test(lines[0] || '')) continue;
 
-    // Standard M3U has the stream URI on the next non-comment line.
-    // Some NM7 sources place the URI directly after the EXTINF metadata.
     let streamLine = null;
     let streamIndex = -1;
-
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i];
       if (/^[a-z][a-z0-9+.-]*:\/\//i.test(line)) {
@@ -58,7 +67,6 @@ function normalizeM3U(text) {
       }
     }
 
-    // Also support '#EXTINF:... ,Name https://stream...' style entries.
     if (!streamLine) {
       const inline = lines[0].match(/\s(https?:\/\/\S+)\s*$/i);
       if (inline) {
@@ -69,12 +77,9 @@ function normalizeM3U(text) {
 
     if (!streamLine) continue;
 
-    let clean;
-    if (streamIndex === 0) {
-      clean = `${lines[0]}\n${streamLine}`;
-    } else {
-      clean = lines.slice(0, streamIndex + 1).join('\n');
-    }
+    const clean = streamIndex === 0
+      ? `${lines[0]}\n${streamLine}`
+      : lines.slice(0, streamIndex + 1).join('\n');
 
     if (seen.has(clean)) continue;
     seen.add(clean);
@@ -132,6 +137,112 @@ function filterFinished(text) {
   return `#EXTM3U\n${kept.join('\n')}\n`;
 }
 
+function htmlText(value) {
+  return String(value ?? '')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&ndash;|&mdash;/gi, '-')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+async function fetchChuoiDynamicEntries() {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch(CHUOI_SCHEDULE_URL, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 NM7-IPTV/1.0',
+        'Cache-Control': 'no-cache'
+      },
+      signal: controller.signal
+    });
+    if (!response.ok) throw new Error(`Chuoi schedule HTTP ${response.status}`);
+    const html = await response.text();
+    const entries = [];
+
+    // Current page format: date headings (h3/h4) followed by an HTML table.
+    const sectionRe = /<h[34][^>]*>(.*?)<\/h[34]>(.*?)(?=<h[1-6][^>]*>|\Z)/gis;
+    for (const match of html.matchAll(sectionRe)) {
+      const heading = htmlText(match[1]);
+      const dm = heading.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (!dm) continue;
+      const dateLabel = `${String(Number(dm[1])).padStart(2, '0')}/${String(Number(dm[2])).padStart(2, '0')}`;
+      const section = match[2];
+      for (const row of section.matchAll(/<tr[^>]*>(.*?)<\/tr>/gis)) {
+        const cells = [...row[1].matchAll(/<t[dh][^>]*>(.*?)<\/[tdh]+>/gis)]
+          .map((x) => htmlText(x[1]));
+        if (cells.length < 2) continue;
+        const time = cells.map((x) => x.match(/\b\d{1,2}:\d{2}\b/)).find(Boolean)?.[0];
+        const matchName = cells.find((x) => /\bvs\b/i.test(x));
+        const channel = Object.keys(CHUOI_CHANNELS).find((name) =>
+          new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(cells.join(' '))
+        );
+        if (!time || !matchName || !channel) continue;
+        entries.push([
+          '#NM7-DYNAMIC:ChuoiChien',
+          `#EXTINF:-1 group-title="Chuối Chiên TV", ${time} ${dateLabel} ⚽ ${matchName} (${channel}) [FHD] [hls]`,
+          `#EXTVLCOPT:http-referrer=${CHUOI_REFERRER}`,
+          CHUOI_CHANNELS[channel]
+        ].join('\n'));
+      }
+    }
+
+    // Text fallback for future markup changes.
+    if (!entries.length) {
+      const text = htmlText(html);
+      const dates = [...text.matchAll(/(?:Hôm nay|Ngày mai|Ngay hom nay|Ngay mai)[^0-9]*(\d{1,2})\/(\d{1,2})\/(\d{4})/gi)];
+      for (let i = 0; i < dates.length; i++) {
+        const dateLabel = `${String(Number(dates[i][1])).padStart(2, '0')}/${String(Number(dates[i][2])).padStart(2, '0')}`;
+        const start = dates[i].index + dates[i][0].length;
+        const end = i + 1 < dates.length ? dates[i + 1].index : text.length;
+        const section = text.slice(start, end);
+        const rowRe = /(\d{1,2}:\d{2})\s+(.{3,180}?\bvs\b.{3,180}?)(?=\s+Chuối\s+(?:Lá|Nhỏ|To|Chao|Kem|Tây)\b)/gi;
+        for (const row of section.matchAll(rowRe)) {
+          const tail = section.slice(row.index + row[0].length, row.index + row[0].length + 80);
+          const channel = Object.keys(CHUOI_CHANNELS).find((name) =>
+            new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(tail)
+          );
+          if (!channel) continue;
+          entries.push([
+            '#NM7-DYNAMIC:ChuoiChien',
+            `#EXTINF:-1 group-title="Chuối Chiên TV", ${row[1]} ${dateLabel} ⚽ ${row[2].trim()} (${channel}) [FHD] [hls]`,
+            `#EXTVLCOPT:http-referrer=${CHUOI_REFERRER}`,
+            CHUOI_CHANNELS[channel]
+          ].join('\n'));
+        }
+      }
+    }
+
+    return [...new Set(entries)];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function appendDynamicChuoiEntries(playlist) {
+  try {
+    const dynamicEntries = await fetchChuoiDynamicEntries();
+    if (!dynamicEntries.length) return playlist;
+
+    const existing = playlist.toLowerCase();
+    const fresh = dynamicEntries.filter((entry) => {
+      const marker = entry.split('\n')[1]?.replace(/^#EXTINF:-1\s*/i, '').trim().toLowerCase();
+      return marker && !existing.includes(marker);
+    });
+    if (!fresh.length) return playlist;
+    return `${playlist.trim()}\n${fresh.join('\n')}\n`;
+  } catch (error) {
+    // The canonical bundle remains authoritative. A temporary public schedule
+    // outage must never make the endpoint fail or shrink the playlist.
+    console.warn('Chuoi dynamic schedule unavailable; serving canonical bundle:', error?.message || error);
+    return playlist;
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -142,7 +253,8 @@ export default async function handler(req, res) {
   try {
     const source = await loadPlaylistFromBundle();
     const normalized = normalizeM3U(source);
-    const playlist = normalizeM3U(filterFinished(normalized));
+    const withDynamic = await appendDynamicChuoiEntries(normalized);
+    const playlist = normalizeM3U(filterFinished(withDynamic));
 
     res.setHeader('Content-Type', 'audio/x-mpegurl; charset=utf-8');
     res.setHeader('Content-Disposition', 'inline; filename="nm7-private.m3u"');
