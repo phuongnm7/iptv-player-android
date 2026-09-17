@@ -1,6 +1,9 @@
 name: Update NM7 private playlist
 
 on:
+  push:
+    paths:
+      - '.github/workflows/update-nm7-playlist.yml'
   schedule:
     - cron: "*/10 * * * *"
   workflow_dispatch:
@@ -22,9 +25,6 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/nm7
-
-          # byvn.net is protected by Cloudflare, so try several read-only public
-          # fetch paths. We only accept a response that actually contains M3U.
           urls=(
             'https://byvn.net/6ZQ5'
             'https://r.jina.ai/https://byvn.net/6ZQ5'
@@ -32,7 +32,6 @@ jobs:
             'https://api.allorigins.win/raw?url=https%3A%2F%2Fbyvn.net%2F6ZQ5'
             'https://corsproxy.io/?url=https%3A%2F%2Fbyvn.net%2F6ZQ5'
           )
-
           found=0
           for url in "${urls[@]}"; do
             echo "Trying source: $url"
@@ -53,7 +52,6 @@ jobs:
               echo "Fetch failed."
             fi
           done
-
           if [ "$found" -ne 1 ]; then
             echo "ERROR: No source path returned a valid M3U playlist."
             exit 1
@@ -62,14 +60,11 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import re
-          p = Path('/tmp/nm7/source.txt')
-          text = p.read_text(encoding='utf-8', errors='ignore').replace('\r','')
+          text = Path('/tmp/nm7/source.txt').read_text(encoding='utf-8', errors='ignore').replace('\r','')
           start = text.find('#EXTM3U')
           if start < 0:
               raise SystemExit('Source did not contain #EXTM3U')
-          text = text[start:]
-          text = re.sub(r'```(?:m3u|text)?\s*', '', text, flags=re.I)
-          text = text.replace('```', '')
+          text = re.sub(r'```(?:m3u|text)?\s*', '', text[start:], flags=re.I).replace('```', '')
           blocks = re.split(r'(?=#EXTINF:)', text)
           out = ['#EXTM3U']
           seen = set()
@@ -78,8 +73,7 @@ jobs:
               if not block.startswith('#EXTINF:'):
                   continue
               lines = [x.strip() for x in block.split('\n') if x.strip()]
-              urls = [x for x in lines[1:] if x.startswith('http://') or x.startswith('https://')]
-              if not urls:
+              if not any(x.startswith(('http://','https://')) for x in lines[1:]):
                   continue
               key = '\n'.join(lines)
               if key in seen:
@@ -104,8 +98,7 @@ jobs:
           n = 4
           size = (len(s) + n - 1) // n
           for i in range(n):
-              part = s[i*size:(i+1)*size]
-              Path(f'playlist/nm7-private.part{i+1}.b64').write_text(part, encoding='utf-8')
+              Path(f'playlist/nm7-private.part{i+1}.b64').write_text(s[i*size:(i+1)*size], encoding='utf-8')
           print('base64 chars:', len(s))
           PY
 
