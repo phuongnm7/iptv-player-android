@@ -34,6 +34,17 @@ android {
         }
     }
 
+    // Mobile is intentionally split into exactly the two ARM ABIs used by the
+    // supported devices. Do not generate x86/x86_64 or a universal APK.
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a")
+            isUniversalApk = false
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
