@@ -2,6 +2,7 @@ package vn.phuong.iptvplayer;
 
 import android.content.Context;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 /** Initializes the vendored SmartTube phone runtime without compile-time SmartTube imports. */
@@ -18,6 +19,19 @@ public final class SmartTubeRuntime {
             // defaults; disabling keep-alive here caused avoidable reconnect latency.
             System.setProperty("http.keepAlive", "true");
             System.setProperty("http.maxConnections", "8");
+
+            // SmartTube exposes IPv4 DNS as a player/network preference because some
+            // networks resolve YouTube over IPv6 slowly or unreliably. Apply the same
+            // setting through reflection so the mobile fork uses the optimized path
+            // without taking a compile-time dependency on SmartTube internals.
+            try {
+                Class<?> tweaks = Class.forName(PREFIX + ".common.prefs.PlayerTweaksData");
+                Object data = tweaks.getMethod("instance", Context.class).invoke(null, context.getApplicationContext());
+                Field ipv4 = tweaks.getField("DNS_TYPE_IPV4");
+                Method setDns = tweaks.getMethod("setPreferredDnsType", int.class);
+                setDns.invoke(data, ipv4.getInt(null));
+            } catch (ReflectiveOperationException | RuntimeException ignored) { }
+
             Class<?> mother = Class.forName(PREFIX + ".common.misc.MotherActivity");
             mother.getMethod("setTvDpiScalingEnabled", boolean.class).invoke(null, false);
             Class<?> screensaver = Class.forName(PREFIX + ".common.misc.ScreensaverManager");
