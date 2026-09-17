@@ -1,6 +1,8 @@
 package vn.phuong.iptvplayer;
 
 import android.app.Activity;
+import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.graphics.Typeface;
 import android.media.AudioManager;
 import android.os.Bundle;
@@ -29,12 +31,14 @@ public final class MobileNm7Application extends DroidApplication implements andr
     private static final String SMARTTUBE_BROWSE = SMARTTUBE_PACKAGE + "browse.BrowseActivity";
     private static final String SMARTTUBE_WEB = SMARTTUBE_PACKAGE + "webbrowser.WebBrowserActivity";
     private static final String SMARTTUBE_SIGNIN = SMARTTUBE_PACKAGE + "signin.SignInActivity";
-    private static final String SMARTTUBE_DIALOG = SMARTTUBE_PACKAGE + "dialog.AppDialogActivity";
+    private static final String SMARTTUBE_DIALOG = SMARTTUBE_PACKAGE + "dialogs.AppDialogActivity";
 
     private static MobileNm7Application instance;
     private WifiManager.WifiLock wifiLock;
     private int startedActivities;
     private Activity iptvPlayerActivity;
+    private Activity smartTubeBrowseActivity;
+    private volatile boolean tabSwitchPending;
 
     @Override public void onCreate() {
         super.onCreate();
@@ -43,6 +47,14 @@ public final class MobileNm7Application extends DroidApplication implements andr
         System.setProperty("http.maxConnections", "8");
         System.setProperty("http.keepAliveDuration", "300000");
         registerActivityLifecycleCallbacks(this);
+    }
+
+    public static void markTabSwitch() {
+        if (instance != null) instance.tabSwitchPending = true;
+    }
+
+    private void clearTabSwitch() {
+        tabSwitchPending = false;
     }
 
     private void acquireWifiPerformanceLock() {
@@ -65,31 +77,67 @@ public final class MobileNm7Application extends DroidApplication implements andr
 
     @Override public void onActivityStarted(Activity activity) {
         if (++startedActivities == 1) acquireWifiPerformanceLock();
+        String name = activity.getClass().getName();
         if (activity instanceof PlayerActivity) {
             iptvPlayerActivity = activity;
             pauseExternalMedia(activity);
-        } else if (SMARTTUBE_PLAYBACK.equals(activity.getClass().getName())) {
+            clearTabSwitch();
+        } else if (SMARTTUBE_BROWSE.equals(name)) {
+            smartTubeBrowseActivity = activity;
+            clearTabSwitch();
+        } else if (SMARTTUBE_PLAYBACK.equals(name)) {
+            // A real YouTube video has started. Only now pause the IPTV player.
             pauseIptvPlayer();
+            clearTabSwitch();
         }
     }
 
     @Override public void onActivityStopped(Activity activity) {
         if (activity == iptvPlayerActivity && activity.isFinishing()) iptvPlayerActivity = null;
+        if (SMARTTUBE_PLAYBACK.equals(activity.getClass().getName()) && activity.isFinishing()) {
+            Activity browse = smartTubeBrowseActivity;
+            if (browse != null && !browse.isFinishing() && !browse.isDestroyed()) {
+                try {
+                    Intent intent = new Intent(browse, browse.getClass());
+                    intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                    browse.startActivity(intent);
+                } catch (RuntimeException ignored) { }
+            }
+        }
         if (startedActivities > 0 && --startedActivities == 0) releaseWifiPerformanceLock();
     }
 
     @Override public void onActivityCreated(Activity activity, Bundle state) {
         String name = activity.getClass().getName();
-        if (activity instanceof MainActivity || activity instanceof PlayerActivity) {
-            boolean youtubeSelected = false;
-            activity.getWindow().getDecorView().post(() -> HomeTabBar.attach(activity, youtubeSelected));
+        if (activity instanceof MainActivity) {
+            activity.getWindow().getDecorView().post(() -> {
+                MobileIptvUi.install(activity);
+                HomeTabBar.attach(activity, false);
+            });
         } else if (SMARTTUBE_BROWSE.equals(name)) {
+            activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
             activity.getWindow().getDecorView().post(() -> {
                 HomeTabBar.attach(activity, true);
                 installSmartTubeFontFix(activity);
             });
-        } else if (SMARTTUBE_WEB.equals(name) || SMARTTUBE_SIGNIN.equals(name) || SMARTTUBE_DIALOG.equals(name)) {
+        } else if (name.startsWith(SMARTTUBE_PACKAGE) && !SMARTTUBE_PLAYBACK.equals(name)) {
+            if (!SMARTTUBE_WEB.equals(name)) {
+                activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+            }
             activity.getWindow().getDecorView().post(() -> installSmartTubeFontFix(activity));
+        }
+    }
+
+    @Override public void onActivityPaused(Activity activity) {
+        if (activity instanceof PlayerActivity && tabSwitchPending) {
+            // PlayerActivity normally releases ExoPlayer in onStop when background playback is off.
+            // During a tab transition keep the player object alive so returning to IPTV restores
+            // the exact player surface instead of reopening the channel from scratch.
+            try {
+                Field field = PlayerActivity.class.getDeclaredField("backgroundPlaybackActive");
+                field.setAccessible(true);
+                field.setBoolean(activity, true);
+            } catch (ReflectiveOperationException | RuntimeException ignored) { }
         }
     }
 
@@ -125,7 +173,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
         } catch (RuntimeException ignored) { }
     }
 
-    /** Force a final system sans-serif span for Vietnamese text while preserving other spans. */
+    /** Force Android/WebView to use UTF-8 and a system sans-serif font for Vietnamese text. */
     private void installSmartTubeFontFix(Activity activity) {
         View root = activity.findViewById(android.R.id.content);
         if (root == null) return;
@@ -156,6 +204,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
             WebSettings settings = ((WebView) view).getSettings();
             settings.setStandardFontFamily("sans-serif");
             settings.setSansSerifFontFamily("sans-serif");
+            settings.setDefaultTextEncodingName("UTF-8");
         }
         if (view instanceof ViewGroup) {
             ViewGroup group = (ViewGroup) view;
@@ -182,9 +231,9 @@ public final class MobileNm7Application extends DroidApplication implements andr
     }
 
     @Override public void onActivityResumed(Activity activity) { }
-    @Override public void onActivityPaused(Activity activity) { }
     @Override public void onActivitySaveInstanceState(Activity activity, Bundle state) { }
     @Override public void onActivityDestroyed(Activity activity) {
         if (activity == iptvPlayerActivity) iptvPlayerActivity = null;
+        if (activity == smartTubeBrowseActivity) smartTubeBrowseActivity = null;
     }
 }
