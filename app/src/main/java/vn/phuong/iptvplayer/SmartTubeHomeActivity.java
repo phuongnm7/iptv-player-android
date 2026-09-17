@@ -11,7 +11,6 @@ public final class SmartTubeHomeActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        SmartTubeRuntime.initialize(this);
         try {
             Class<?> browse = Class.forName(BROWSE);
             Intent intent = new Intent(this, browse);
@@ -22,6 +21,7 @@ public final class SmartTubeHomeActivity extends Activity {
             startActivity(intent);
         } catch (ClassNotFoundException e) {
             finish();
+            return;
         }
         finish();
     }
