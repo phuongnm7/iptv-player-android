@@ -14,31 +14,24 @@ android {
         versionName = "1.10.26"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        manifestPlaceholders["applicationClass"] = "vn.phuong.iptvplayer.Nm7Application"
+        manifestPlaceholders["applicationClass"] = "vn.phuong.iptvplayer.MobileNm7Application"
 
-        // SmartTube's legacy modules retain the "default" flavor dimension
-        // (stbeta/ststable/stfdroid). Select the stable runtime for NM7 Mobile.
+        // SmartTube legacy modules have a separate internal dimension.
+        // Mobile consumes only the stable SmartTube runtime.
         missingDimensionStrategy("default", "ststable")
     }
 
+    // This project branch is the Mobile product only.
+    // Do not create a TV flavor or package any TV-only implementation here.
     flavorDimensions += "device"
     productFlavors {
         create("mobile") {
             dimension = "device"
-            versionNameSuffix = "-mobile"
             manifestPlaceholders["vlcFallbackEnabled"] = "false"
             manifestPlaceholders["applicationClass"] = "vn.phuong.iptvplayer.MobileNm7Application"
         }
-        create("tv") {
-            dimension = "device"
-            versionNameSuffix = "-tv"
-            manifestPlaceholders["vlcFallbackEnabled"] = "true"
-        }
     }
 
-    // ABI splits are opt-in for the Mobile final build only. This keeps the
-    // existing TV packaging unchanged while producing exactly two ARM APKs
-    // for the release workflow: arm64-v8a and armeabi-v7a.
     if (project.findProperty("mobileAbiSplits") == "true") {
         splits {
             abi {
@@ -52,7 +45,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -79,11 +73,8 @@ dependencies {
     implementation("androidx.media3:media3-ui:$media3Version")
     implementation("androidx.media3:media3-datasource-okhttp:$media3Version")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    compileOnly("org.videolan.android:libvlc-all:3.6.1")
-    add("tvImplementation", "org.videolan.android:libvlc-all:3.6.1")
 
-    // Native SmartTube phone runtime is packaged only into the Mobile flavor;
-    // the TV flavor remains the existing NM7 TV implementation.
+    // SmartTube is the only additional runtime for this Mobile product.
     add("mobileImplementation", project(":smarttube"))
 
     testImplementation("junit:junit:4.13.2")
