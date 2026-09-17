@@ -4,7 +4,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 
-/** Bridge entry point to the native SmartTube Droid phone UI. */
+/** Mobile-only bridge into SmartTube's native phone BrowseActivity. */
 public final class SmartTubeHomeActivity extends Activity {
     private static final String BROWSE = "com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity";
 
@@ -19,9 +19,8 @@ public final class SmartTubeHomeActivity extends Activity {
             if (extras != null) intent.putExtras(extras);
             intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
             startActivity(intent);
-        } catch (ClassNotFoundException e) {
-            finish();
-            return;
+        } catch (ReflectiveOperationException | RuntimeException ignored) {
+            // MobileNm7Application already initializes SmartTube's ViewManager.
         }
         finish();
     }
