@@ -21,6 +21,10 @@ const CHUOI_CHANNELS = {
 const CHUOI_SCHEDULE_URL = 'https://chuoichientv.link/lich-thi-dau/';
 const CHUOI_REFERRER = 'https://live.chuoichien.tv/';
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 async function loadPlaylistFromBundle() {
   const chunks = await Promise.all(
     PARTS.map((name) => fs.readFile(path.join(process.cwd(), 'playlist', name), 'utf8'))
@@ -164,8 +168,7 @@ async function fetchChuoiDynamicEntries() {
     const html = await response.text();
     const entries = [];
 
-    // Current page format: date headings (h3/h4) followed by an HTML table.
-    const sectionRe = /<h[34][^>]*>(.*?)<\/h[34]>(.*?)(?=<h[1-6][^>]*>|\Z)/gis;
+    const sectionRe = /<h[34][^>]*>(.*?)<\/h[34]>(.*?)(?=<h[1-6][^>]*>|$)/gis;
     for (const match of html.matchAll(sectionRe)) {
       const heading = htmlText(match[1]);
       const dm = heading.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
@@ -179,7 +182,7 @@ async function fetchChuoiDynamicEntries() {
         const time = cells.map((x) => x.match(/\b\d{1,2}:\d{2}\b/)).find(Boolean)?.[0];
         const matchName = cells.find((x) => /\bvs\b/i.test(x));
         const channel = Object.keys(CHUOI_CHANNELS).find((name) =>
-          new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(cells.join(' '))
+          new RegExp(escapeRegExp(name), 'i').test(cells.join(' '))
         );
         if (!time || !matchName || !channel) continue;
         entries.push([
@@ -191,7 +194,6 @@ async function fetchChuoiDynamicEntries() {
       }
     }
 
-    // Text fallback for future markup changes.
     if (!entries.length) {
       const text = htmlText(html);
       const dates = [...text.matchAll(/(?:Hôm nay|Ngày mai|Ngay hom nay|Ngay mai)[^0-9]*(\d{1,2})\/(\d{1,2})\/(\d{4})/gi)];
@@ -204,7 +206,7 @@ async function fetchChuoiDynamicEntries() {
         for (const row of section.matchAll(rowRe)) {
           const tail = section.slice(row.index + row[0].length, row.index + row[0].length + 80);
           const channel = Object.keys(CHUOI_CHANNELS).find((name) =>
-            new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(tail)
+            new RegExp(escapeRegExp(name), 'i').test(tail)
           );
           if (!channel) continue;
           entries.push([
@@ -236,8 +238,6 @@ async function appendDynamicChuoiEntries(playlist) {
     if (!fresh.length) return playlist;
     return `${playlist.trim()}\n${fresh.join('\n')}\n`;
   } catch (error) {
-    // The canonical bundle remains authoritative. A temporary public schedule
-    // outage must never make the endpoint fail or shrink the playlist.
     console.warn('Chuoi dynamic schedule unavailable; serving canonical bundle:', error?.message || error);
     return playlist;
   }
