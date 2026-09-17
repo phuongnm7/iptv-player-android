@@ -89,8 +89,6 @@ val smartTubeCompatXml = """
 <resources>
     <string name="app_name">SmartTube</string>
     <string name="cancel">Cancel</string>
-    <string name="signin_view_description">Sign in to SmartTube</string>
-    <string name="action_search">Search</string>
     <style name="AppDialog" parent="android:style/Theme.Material.Dialog.Alert" />
     <item name="lb_control_closed_captioning" type="id" />
     <item name="lb_control_high_quality" type="id" />
