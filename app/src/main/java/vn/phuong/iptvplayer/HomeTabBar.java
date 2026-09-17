@@ -13,7 +13,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-/** Single Mobile navigation bar, overlaid at the bottom of NM7 and SmartTube Browse. */
+/** Single Mobile navigation bar, overlaid at the bottom of NM7, player, and SmartTube Browse. */
 public final class HomeTabBar {
     private static final int TAG_KEY = R.id.mainRoot;
     private static final int BG = Color.rgb(23, 23, 28);
@@ -42,16 +42,26 @@ public final class HomeTabBar {
         });
 
         addItem(activity, bar, R.drawable.nm7_nav_iptv, !youtubeSelected, () -> {
-            if (youtubeSelected) {
-                Intent intent = new Intent(activity, MainActivity.class);
-                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                activity.startActivity(intent);
-            }
+            if (youtubeSelected) openIptv(activity);
         });
 
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(activity, 64), Gravity.BOTTOM);
         host.addView(bar, lp);
+    }
+
+    private static void openIptv(Activity activity) {
+        // Reorder the existing player first so an active channel is preserved. Only fall back
+        // to MainActivity when there is no live PlayerActivity. REORDER_TO_FRONT deliberately
+        // avoids CLEAR_TOP, which would finish PlayerActivity above MainActivity.
+        Intent intent;
+        if (MobileNm7Application.hasIptvPlayer()) {
+            intent = new Intent(activity, PlayerActivity.class);
+        } else {
+            intent = new Intent(activity, MainActivity.class);
+        }
+        intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+        activity.startActivity(intent);
     }
 
     private static void openBrowse(Activity activity) {
@@ -83,7 +93,7 @@ public final class HomeTabBar {
         item.addView(icon, new LinearLayout.LayoutParams(size, size));
 
         TextView label = new TextView(activity);
-        label.setText(selected ? (iconRes == R.drawable.nm7_nav_youtube ? "YouTube" : "IPTV") : (iconRes == R.drawable.nm7_nav_youtube ? "YouTube" : "IPTV"));
+        label.setText(iconRes == R.drawable.nm7_nav_youtube ? "YouTube" : "IPTV");
         label.setTextSize(11);
         label.setGravity(Gravity.CENTER);
         label.setTextColor(selected ? Color.WHITE : UNSELECTED);
