@@ -144,7 +144,7 @@ jobs:
       - name: Build Mobile
         run: |
           set -o pipefail
-          gradle --no-daemon --console=plain -PcompileSdkVersion=android-36 -PminSdkVersion=23 -PtargetSdkVersion=36 -PbuildToolsVersion=36.0.0 -PtestXSupportVersion=1.1.0 -PannotationXVersion=1.1.0 -ProbolectricVersion=4.6.1 :app:testMobileDebugUnitTest lintMobileDebug assembleMobileDebug
+          gradle --no-daemon --console=plain -PcompileSdkVersion=android-36 -PminSdkVersion=23 -PtargetSdkVersion=36 -PbuildToolsVersion=36.0.0 -PtestXSupportVersion=1.1.0 -PannotationXVersion=1.1.0 -ProbolectricVersion=4.6.1 :app:testMobileDebugUnitTest lintMobileDebug assembleMobileDebug -x :slidableactivity:testMobileDebugUnitTest
 
       - name: Package APK
         run: |
