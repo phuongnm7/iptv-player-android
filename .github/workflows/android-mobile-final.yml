@@ -144,25 +144,54 @@ jobs:
       - name: Build Mobile
         run: |
           set -o pipefail
-          # The aggregate lint task is broken under the current AGP/Gradle toolchain because
-          # legacy SmartTube/ExoPlayer test lint models are missing. Unit tests remain enabled.
-          gradle --no-daemon --console=plain -PcompileSdkVersion=android-36 -PminSdkVersion=23 -PtargetSdkVersion=36 -PbuildToolsVersion=36.0.0 -PtestXSupportVersion=1.1.0 -PannotationXVersion=1.1.0 -ProbolectricVersion=4.6.1 :app:testMobileDebugUnitTest assembleMobileDebug -x :slidableactivity:testMobileDebugUnitTest
+          # Aggregate lint is bypassed because legacy SmartTube/ExoPlayer lint models
+          # are incompatible with the current AGP/Gradle toolchain. Unit tests remain enabled.
+          gradle --no-daemon --console=plain -PcompileSdkVersion=android-36 -PminSdkVersion=23 -PtargetSdkVersion=36 -PbuildToolsVersion=36.0.0 -PtestXSupportVersion=1.1.0 -PannotationXVersion=1.1.0 -ProbolectricVersion=4.6.1 -PmobileAbiSplits=true :app:testMobileDebugUnitTest assembleMobileDebug -x :slidableactivity:testMobileDebugUnitTest
           set -euxo pipefail
           version="$(grep -m1 'versionName = "' app/build.gradle.kts | cut -d'"' -f2)"
+          out="app/build/outputs/apk/mobile/debug"
           mkdir -p dist/mobile
 
-          arm64="app/build/outputs/apk/mobile/debug/app-mobile-arm64-v8a-debug.apk"
-          armv7="app/build/outputs/apk/mobile/debug/app-mobile-armeabi-v7a-debug.apk"
-          test -f "$arm64"
-          test -f "$armv7"
+          mapfile -t apks < <(find "$out" -maxdepth 1 -type f -name 'app-mobile-*-debug.apk' -printf '%f\n' | sort)
+          test "${#apks[@]}" -eq 2
+          printf 'Mobile ARM APKs produced:\n%s\n' "${apks[@]}"
 
-          for apk in "$arm64" "$armv7"; do
-            "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$apk"
-            if unzip -l "$apk" | grep -q 'lib/x86/\|lib/x86_64/\|libvlc\.so'; then exit 1; fi
+          arm64=""
+          armv7=""
+          for name in "${apks[@]}"; do
+            case "$name" in
+              *arm64-v8a*) arm64="$out/$name" ;;
+              *armeabi-v7a*) armv7="$out/$name" ;;
+              *) echo "Unexpected ABI APK: $name"; exit 1 ;;
+            esac
           done
+          test -n "$arm64" && test -f "$arm64"
+          test -n "$armv7" && test -f "$armv7"
+
+          verify_abi() {
+            local apk="$1"
+            local expected="$2"
+            "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$apk"
+            if unzip -l "$apk" | grep -q 'lib/x86/\|lib/x86_64/\|libvlc\.so'; then
+              echo "Forbidden native library/ABI found in $apk"
+              exit 1
+            fi
+            if unzip -l "$apk" | grep -q 'lib/armeabi-v7a/'; then
+              test "$expected" = "armeabi-v7a"
+            fi
+            if unzip -l "$apk" | grep -q 'lib/arm64-v8a/'; then
+              test "$expected" = "arm64-v8a"
+            fi
+            if unzip -l "$apk" | grep -q 'lib/\(x86\|x86_64\)/'; then exit 1; fi
+          }
+
+          verify_abi "$arm64" "arm64-v8a"
+          verify_abi "$armv7" "armeabi-v7a"
 
           cp "$arm64" "dist/mobile/NM7-IPTV-Mobile-${version}-arm64-v8a.apk"
           cp "$armv7" "dist/mobile/NM7-IPTV-Mobile-${version}-armeabi-v7a.apk"
+
+          test "$(find dist/mobile -maxdepth 1 -type f -name '*.apk' | wc -l)" -eq 2
           sha256sum dist/mobile/*.apk | tee dist/mobile/SHA256SUMS.txt
 
       - name: Upload Mobile APK
