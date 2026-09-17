@@ -3,11 +3,6 @@
     <ImageView android:layout_width="match_parent" android:layout_height="64dp"
         android:src="@drawable/nm7_main_logo" android:scaleType="centerInside"
         android:adjustViewBounds="true" android:contentDescription="Logo Phuongnm7 TV" />
-    <vn.phuong.iptvplayer.MobileNavigationView
-        android:id="@+id/mobileNavigation"
-        android:layout_width="match_parent"
-        android:layout_height="70dp"
-        android:layout_marginBottom="6dp" />
     <LinearLayout android:layout_width="match_parent" android:layout_height="46dp" android:layout_marginBottom="5dp">
         <Button android:id="@+id/btnAllChannels" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@drawable/button_primary" android:text="Tất cả" android:textSize="12sp" android:textAllCaps="false" android:textColor="@color/navy" />
         <Button android:id="@+id/btnFavorites" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:layout_marginHorizontal="6dp" android:background="@drawable/button_secondary" android:text="★ Yêu thích" android:textSize="12sp" android:textAllCaps="false" android:textColor="@color/text_primary" />
