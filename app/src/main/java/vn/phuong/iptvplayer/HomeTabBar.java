@@ -12,7 +12,8 @@ import android.widget.LinearLayout;
 
 /** Main Mobile navigation: exactly two top-level sections, YouTube and IPTV. */
 public final class HomeTabBar {
-    private static final int TAG_KEY = 0x4E4D3701;
+    /* Use a real application resource id for View.setTag(int, Object). */
+    private static final int TAG_KEY = R.id.mainRoot;
     private static final int BG = Color.rgb(23, 23, 28);
     private static final int SELECTED = Color.rgb(255, 122, 0);
     private static final int UNSELECTED = Color.rgb(135, 137, 145);
