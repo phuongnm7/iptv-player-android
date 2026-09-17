@@ -73,18 +73,29 @@ jobs:
               raise SystemExit('No #EXTM3U marker found')
           text = text[start:]
 
-          # Parse both normal multi-line M3U and the one-line format used by the supplied snapshot.
-          pattern = re.compile(r'(#EXTINF:[^\n#]*?)(?:\s+(#EXTVLCOPT:[^\n#]*?))?\s+(https?://[^\s#]+)', re.I)
+          # The supplied NM7 source can be one long line. Parse each EXTINF block
+          # so URLs inside tvg-logo attributes are never mistaken for stream URLs.
+          blocks = re.split(r'(?=#EXTINF:)', text)
           entries=[]
-          seen=set()
-          for m in pattern.finditer(text):
+          seen_urls=set()
+          pattern = re.compile(
+              r'(#EXTINF:.*?group-title="[^"]*"\s*,\s*.*?)'
+              r'(?:\s+#EXTVLCOPT:http-referrer=(\S+))?'
+              r'\s+(https?://\S+|None)',
+              re.S | re.I,
+          )
+          for block in blocks:
+              if not block.startswith('#EXTINF:'):
+                  continue
+              m = pattern.search(block)
+              if not m:
+                  continue
               ext=m.group(1).strip()
               opt=(m.group(2) or '').strip()
               url=m.group(3).strip().rstrip('.,)')
-              key=(ext,opt,url)
-              if key in seen:
+              if url == 'None' or url in seen_urls:
                   continue
-              seen.add(key)
+              seen_urls.add(url)
               entries.append((ext,opt,url))
 
           if not entries:
@@ -94,10 +105,10 @@ jobs:
           for ext,opt,url in entries:
               out.append(ext)
               if opt:
-                  out.append(opt)
+                  out.append('#EXTVLCOPT:http-referrer='+opt)
               out.append(url)
           Path('/tmp/nm7/latest.m3u').write_text('\n'.join(out)+'\n',encoding='utf-8')
-          print('playable entries:',len(entries))
+          print('playable unique entries:',len(entries))
           print('playlist bytes:',Path('/tmp/nm7/latest.m3u').stat().st_size)
           PY
 
