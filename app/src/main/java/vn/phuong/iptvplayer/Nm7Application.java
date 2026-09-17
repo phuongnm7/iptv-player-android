@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.app.Application;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
-import android.widget.LinearLayout;
 
 /** Process-wide networking defaults for long-running IPTV streams. */
 public final class Nm7Application extends Application implements Application.ActivityLifecycleCallbacks {
@@ -47,17 +46,7 @@ public final class Nm7Application extends Application implements Application.Act
     }
     @Override public void onActivityCreated(Activity activity, Bundle state) {
         if (activity instanceof MainActivity) {
-            activity.getWindow().getDecorView().post(() -> {
-                if (activity.isFinishing()) return;
-                android.view.View content = activity.findViewById(android.R.id.content);
-                if (content instanceof android.widget.FrameLayout) {
-                    android.view.View root = ((android.view.ViewGroup) content).getChildCount() > 0
-                            ? ((android.view.ViewGroup) content).getChildAt(0) : null;
-                    if (root instanceof LinearLayout) {
-                        HomeTabBar.attach(activity, (LinearLayout) root, false);
-                    }
-                }
-            });
+            activity.getWindow().getDecorView().post(() -> HomeTabBar.attach(activity, false));
         }
     }
     @Override public void onActivityResumed(Activity activity) { }
