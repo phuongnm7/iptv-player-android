@@ -33,14 +33,16 @@ Phiên bản đang triển khai trên nhánh `feature/mobile-youtube-smarttube` 
 ### Đã xử lý
 
 - Đã phân tích file playlist được bàn giao.
-- Phát hiện 566 block `#EXTINF`, 542 entry phát duy nhất sau chuẩn hóa/dedup, 302 URL HTTP/HTTPS duy nhất.
+- File gốc gồm **684 block `#EXTINF`**.
+- Sau chuẩn hóa, bỏ entry không có URL HTTP/HTTPS, loại `None` và dedup, còn **303 entry phát duy nhất / 303 URL HTTP(S) duy nhất**.
 - File gồm nhiều nhóm nguồn; không phải một M3U nguồn duy nhất.
-- Đã lưu phân tích chi tiết tại `docs/nm7-source-analysis.md`.
-- Vercel API hiện dùng bốn chunk `playlist/nm7-private.part1.b64` đến `part4.b64`.
+- Đã tạo snapshot chuẩn hóa từ chính file bàn giao và đóng gói gzip + base64 thành 4 chunk.
+- Đã cập nhật cả 4 chunk vào `playlist/nm7-private.part1.b64` đến `part4.b64` trên `main`.
+- Vercel API tiếp tục đọc bốn chunk này và tự lọc các sự kiện đã quá thời gian.
 - Endpoint production giữ nguyên: `https://byvn-m3u-proxy.vercel.app/api/nm7-private.m3u`.
 - Parser API đã được sửa để đọc đúng snapshot M3U dạng một dòng/đa nguồn và các URL HLS thực tế.
 - GitHub Actions updater chạy mỗi 10 phút.
-- Workflow đã được sửa để không fail liên tục khi chưa có `NM7_SOURCE_URL`: trong trường hợp thiếu nguồn trực tiếp, workflow sử dụng snapshot bốn chunk hiện có làm dữ liệu an toàn.
+- Workflow không tự đoán nguồn ngoài; khi chưa có upstream URL được phép, snapshot hiện tại được giữ an toàn.
 
 ### Phần còn lại
 
