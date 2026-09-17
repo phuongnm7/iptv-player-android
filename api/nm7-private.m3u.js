@@ -20,6 +20,7 @@ const CHUOI_CHANNELS = {
 
 const CHUOI_SCHEDULE_URL = 'https://chuoichientv.link/lich-thi-dau/';
 const CHUOI_REFERRER = 'https://live.chuoichien.tv/';
+const DYNAMIC_MARKER = '#NM7-DYNAMIC:ChuoiChien';
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -168,6 +169,17 @@ async function fetchChuoiDynamicEntries() {
     const html = await response.text();
     const entries = [];
 
+    const addEntry = (time, dateLabel, matchName, channel, status) => {
+      const cleanStatus = String(status || '').trim();
+      const suffix = cleanStatus && !/^chưa đá$/i.test(cleanStatus) ? ` — ${cleanStatus}` : '';
+      entries.push([
+        DYNAMIC_MARKER,
+        `#EXTINF:-1 group-title="Chuối Chiên TV", ${time} ${dateLabel} ⚽ ${matchName.trim()} (${channel})${suffix} [FHD] [hls]`,
+        `#EXTVLCOPT:http-referrer=${CHUOI_REFERRER}`,
+        CHUOI_CHANNELS[channel]
+      ].join('\n'));
+    };
+
     const sectionRe = /<h[34][^>]*>(.*?)<\/h[34]>(.*?)(?=<h[1-6][^>]*>|$)/gis;
     for (const match of html.matchAll(sectionRe)) {
       const heading = htmlText(match[1]);
@@ -185,12 +197,8 @@ async function fetchChuoiDynamicEntries() {
           new RegExp(escapeRegExp(name), 'i').test(cells.join(' '))
         );
         if (!time || !matchName || !channel) continue;
-        entries.push([
-          '#NM7-DYNAMIC:ChuoiChien',
-          `#EXTINF:-1 group-title="Chuối Chiên TV", ${time} ${dateLabel} ⚽ ${matchName} (${channel}) [FHD] [hls]`,
-          `#EXTVLCOPT:http-referrer=${CHUOI_REFERRER}`,
-          CHUOI_CHANNELS[channel]
-        ].join('\n'));
+        const status = cells[cells.length - 1];
+        addEntry(time, dateLabel, matchName, channel, status);
       }
     }
 
@@ -204,17 +212,12 @@ async function fetchChuoiDynamicEntries() {
         const section = text.slice(start, end);
         const rowRe = /(\d{1,2}:\d{2})\s+(.{3,180}?\bvs\b.{3,180}?)(?=\s+Chuối\s+(?:Lá|Nhỏ|To|Chao|Kem|Tây)\b)/gi;
         for (const row of section.matchAll(rowRe)) {
-          const tail = section.slice(row.index + row[0].length, row.index + row[0].length + 80);
+          const tail = section.slice(row.index + row[0].length, row.index + row[0].length + 100);
           const channel = Object.keys(CHUOI_CHANNELS).find((name) =>
             new RegExp(escapeRegExp(name), 'i').test(tail)
           );
           if (!channel) continue;
-          entries.push([
-            '#NM7-DYNAMIC:ChuoiChien',
-            `#EXTINF:-1 group-title="Chuối Chiên TV", ${row[1]} ${dateLabel} ⚽ ${row[2].trim()} (${channel}) [FHD] [hls]`,
-            `#EXTVLCOPT:http-referrer=${CHUOI_REFERRER}`,
-            CHUOI_CHANNELS[channel]
-          ].join('\n'));
+          addEntry(row[1], dateLabel, row[2], channel, '');
         }
       }
     }
@@ -230,13 +233,14 @@ async function appendDynamicChuoiEntries(playlist) {
     const dynamicEntries = await fetchChuoiDynamicEntries();
     if (!dynamicEntries.length) return playlist;
 
-    const existing = playlist.toLowerCase();
-    const fresh = dynamicEntries.filter((entry) => {
-      const marker = entry.split('\n')[1]?.replace(/^#EXTINF:-1\s*/i, '').trim().toLowerCase();
-      return marker && !existing.includes(marker);
-    });
-    if (!fresh.length) return playlist;
-    return `${playlist.trim()}\n${fresh.join('\n')}\n`;
+    // Dynamic entries are a runtime overlay: remove only previous runtime entries,
+    // never touch the canonical 424-entry inventory.
+    const blocks = playlist.replace(/\r/g, '')
+      .split(/(?=#EXTINF\s*:)/i)
+      .filter((block) => /^\s*#EXTINF\s*:/i.test(block));
+    const canonicalBlocks = blocks.filter((block) => !block.includes(DYNAMIC_MARKER));
+    const canonical = `#EXTM3U\n${canonicalBlocks.join('\n').trim()}\n`;
+    return `#EXTM3U\n${dynamicEntries.join('\n')}\n${canonical.replace(/^#EXTM3U\n/i, '')}`;
   } catch (error) {
     console.warn('Chuoi dynamic schedule unavailable; serving canonical bundle:', error?.message || error);
     return playlist;
