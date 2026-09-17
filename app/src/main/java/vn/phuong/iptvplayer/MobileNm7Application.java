@@ -8,6 +8,7 @@ import android.os.SystemClock;
 import android.net.wifi.WifiManager;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.widget.TextView;
@@ -19,10 +20,11 @@ import com.liskovsoft.smartyoutubetv2.droid.DroidApplication;
 
 /** Mobile-only Application class. */
 public final class MobileNm7Application extends DroidApplication implements android.app.Application.ActivityLifecycleCallbacks {
-    private static final String SMARTTUBE_PLAYBACK = "com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity";
-    private static final String SMARTTUBE_BROWSE = "com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity";
-    private static final String SMARTTUBE_WEB = "com.liskovsoft.smartyoutubetv2.droid.ui.webbrowser.WebBrowserActivity";
-    private static final String SMARTTUBE_SIGNIN = "com.liskovsoft.smartyoutubetv2.droid.ui.signin.SignInActivity";
+    private static final String SMARTTUBE_PACKAGE = "com.liskovsoft.smartyoutubetv2.droid.ui.";
+    private static final String SMARTTUBE_PLAYBACK = SMARTTUBE_PACKAGE + "playback.PlaybackActivity";
+    private static final String SMARTTUBE_BROWSE = SMARTTUBE_PACKAGE + "browse.BrowseActivity";
+    private static final String SMARTTUBE_WEB = SMARTTUBE_PACKAGE + "webbrowser.WebBrowserActivity";
+    private static final String SMARTTUBE_SIGNIN = SMARTTUBE_PACKAGE + "signin.SignInActivity";
 
     private WifiManager.WifiLock wifiLock;
     private int startedActivities;
@@ -75,9 +77,12 @@ public final class MobileNm7Application extends DroidApplication implements andr
         if (activity instanceof MainActivity) {
             activity.getWindow().getDecorView().post(() -> HomeTabBar.attach(activity, false));
         } else if (SMARTTUBE_BROWSE.equals(name)) {
-            activity.getWindow().getDecorView().post(() -> HomeTabBar.attach(activity, true));
+            activity.getWindow().getDecorView().post(() -> {
+                HomeTabBar.attach(activity, true);
+                installSmartTubeFontFix(activity);
+            });
         } else if (SMARTTUBE_WEB.equals(name) || SMARTTUBE_SIGNIN.equals(name)) {
-            activity.getWindow().getDecorView().post(() -> applySmartTubeFontFix(activity.findViewById(android.R.id.content)));
+            activity.getWindow().getDecorView().post(() -> installSmartTubeFontFix(activity));
         }
     }
 
@@ -108,12 +113,33 @@ public final class MobileNm7Application extends DroidApplication implements andr
         } catch (RuntimeException ignored) { }
     }
 
-    /** Apply Android's standard sans-serif family only where SmartTube needs Vietnamese glyph fallback. */
+    /**
+     * SmartTube's bundled font can lack Vietnamese glyphs. Apply Android's standard sans-serif
+     * only to text containing Vietnamese/Latin-extended characters, preserving SmartTube icon
+     * fonts and other custom typefaces. A global-layout hook also covers settings dialogs that
+     * are created after BrowseActivity itself has already been created.
+     */
+    private void installSmartTubeFontFix(Activity activity) {
+        View root = activity.findViewById(android.R.id.content);
+        if (root == null) return;
+        applySmartTubeFontFix(root);
+        ViewTreeObserver observer = root.getViewTreeObserver();
+        if (observer.isAlive()) {
+            observer.addOnGlobalLayoutListener(() -> {
+                if (!activity.isFinishing() && !activity.isDestroyed()) {
+                    applySmartTubeFontFix(root);
+                }
+            });
+        }
+    }
+
     private void applySmartTubeFontFix(View view) {
         if (view instanceof TextView) {
             TextView text = (TextView) view;
-            int style = text.getTypeface() != null ? text.getTypeface().getStyle() : Typeface.NORMAL;
-            text.setTypeface(Typeface.create("sans-serif", style));
+            if (containsVietnameseText(text.getText())) {
+                int style = text.getTypeface() != null ? text.getTypeface().getStyle() : Typeface.NORMAL;
+                text.setTypeface(Typeface.create("sans-serif", style));
+            }
         }
         if (view instanceof WebView) {
             WebSettings settings = ((WebView) view).getSettings();
@@ -125,6 +151,17 @@ public final class MobileNm7Application extends DroidApplication implements andr
             ViewGroup group = (ViewGroup) view;
             for (int i = 0; i < group.getChildCount(); i++) applySmartTubeFontFix(group.getChildAt(i));
         }
+    }
+
+    private boolean containsVietnameseText(CharSequence text) {
+        if (text == null) return false;
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c == '\uFFFD' || (c >= '\u00C0' && c <= '\u024F') || (c >= '\u1E00' && c <= '\u1EFF') || (c >= '\u0300' && c <= '\u036F')) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override public void onActivityResumed(Activity activity) { }
