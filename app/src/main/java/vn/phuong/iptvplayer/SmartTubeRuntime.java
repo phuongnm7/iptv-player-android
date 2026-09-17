@@ -14,7 +14,10 @@ public final class SmartTubeRuntime {
     public static synchronized void initialize(Context context) {
         if (initialized) return;
         try {
-            System.setProperty("http.keepAlive", "false");
+            // Keep pooled HTTP connections enabled. MobileNm7Application sets the same
+            // defaults; disabling keep-alive here caused avoidable reconnect latency.
+            System.setProperty("http.keepAlive", "true");
+            System.setProperty("http.maxConnections", "8");
             Class<?> mother = Class.forName(PREFIX + ".common.misc.MotherActivity");
             mother.getMethod("setTvDpiScalingEnabled", boolean.class).invoke(null, false);
             Class<?> screensaver = Class.forName(PREFIX + ".common.misc.ScreensaverManager");
