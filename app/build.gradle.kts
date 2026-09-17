@@ -74,6 +74,10 @@ dependencies {
     implementation("androidx.media3:media3-datasource-okhttp:$media3Version")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
+    // SmartTube's DroidApplication extends AndroidX MultiDexApplication.
+    // Keep the dependency direct so the Mobile app compiler can resolve that superclass.
+    implementation("androidx.multidex:multidex:2.0.1")
+
     // SmartTube is the only additional runtime for this Mobile product.
     // Keep TV/VLC implementation completely out of the Mobile dependency graph.
     add("mobileImplementation", project(":smarttube"))
