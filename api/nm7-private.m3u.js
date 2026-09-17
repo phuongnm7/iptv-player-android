@@ -10,28 +10,44 @@ const PARTS = [
 ];
 
 async function loadPlaylistFromBundle() {
-  // Vercel bundles playlist/*.b64 with this function. Read the local snapshot
-  // first so each request is independent of GitHub/private-repository access.
   const chunks = await Promise.all(
     PARTS.map((name) => fs.readFile(path.join(process.cwd(), 'playlist', name), 'utf8'))
   );
+
   const encoded = chunks.map((x) => x.trim()).join('');
   const compressed = Buffer.from(encoded, 'base64');
-  return gunzipSync(compressed).toString('utf8');
+  let source = gunzipSync(compressed).toString('utf8');
+
+  // Be tolerant of a snapshot that was gzip-wrapped more than once.
+  for (let i = 0; i < 2; i++) {
+    const bytes = Buffer.from(source, 'utf8');
+    if (bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b) {
+      source = gunzipSync(bytes).toString('utf8');
+    } else {
+      break;
+    }
+  }
+
+  return source;
 }
 
 function normalizeM3U(text) {
-  const source = String(text ?? '')
+  let source = String(text ?? '')
     .replace(/^\uFEFF/, '')
     .replace(/\r/g, '');
 
-  const start = source.indexOf('#EXTM3U');
+  const extinfIndex = source.search(/#EXTINF\s*:/i);
+  if (extinfIndex >= 0 && source.slice(0, extinfIndex).indexOf('#EXTM3U') < 0) {
+    source = `#EXTM3U\n${source.slice(extinfIndex)}`;
+  }
+
+  const start = source.search(/#EXTM3U/i);
   if (start < 0) throw new Error('Playlist does not contain #EXTM3U');
 
   const blocks = source
     .slice(start)
-    .split(/(?=#EXTINF:)/)
-    .filter((block) => block.trim().startsWith('#EXTINF:'));
+    .split(/(?=#EXTINF\s*:)/i)
+    .filter((block) => /^\s*#EXTINF\s*:/i.test(block));
 
   const out = ['#EXTM3U'];
   const seen = new Set();
@@ -43,14 +59,14 @@ function normalizeM3U(text) {
       .map((line) => line.trim())
       .filter(Boolean);
 
-    if (!lines[0]?.startsWith('#EXTINF:')) continue;
+    if (!/^#EXTINF\s*:/i.test(lines[0] || '')) continue;
 
+    // Accept any URI scheme (http/https/rtsp/etc.), not just a fixed allow-list.
     const streamIndex = lines.findIndex((line, index) =>
-      index > 0 && /^(https?|rtsp|rtsps|rtmp|rtmps|udp|rtp|srt):\/\//i.test(line)
+      index > 0 && /^[a-z][a-z0-9+.-]*:\/\//i.test(line)
     );
     if (streamIndex < 0) continue;
 
-    // Keep EXTINF + metadata directives such as EXTVLCOPT, then the stream URL.
     const clean = lines.slice(0, streamIndex + 1).join('\n');
     if (seen.has(clean)) continue;
     seen.add(clean);
@@ -58,7 +74,11 @@ function normalizeM3U(text) {
     playable++;
   }
 
-  if (!playable) throw new Error('Playlist contains no playable EXTINF entries');
+  if (!playable) {
+    const sample = source.slice(0, 120).replace(/\s+/g, ' ').trim();
+    throw new Error(`Playlist contains no playable EXTINF entries (sourceBytes=${Buffer.byteLength(source, 'utf8')}, hasEXTINF=${blocks.length > 0}, sample=${sample})`);
+  }
+
   return `${out.join('\n')}\n`;
 }
 
@@ -98,8 +118,8 @@ function filterFinished(text) {
 
   const blocks = text
     .replace(/\r/g, '')
-    .split(/(?=#EXTINF:)/)
-    .filter((block) => block.trim().startsWith('#EXTINF:'));
+    .split(/(?=#EXTINF\s*:)/i)
+    .filter((block) => /^\s*#EXTINF\s*:/i.test(block));
 
   const seen = new Set();
   const kept = [];
@@ -126,7 +146,8 @@ export default async function handler(req, res) {
 
   try {
     const source = await loadPlaylistFromBundle();
-    const playlist = normalizeM3U(filterFinished(source));
+    const normalized = normalizeM3U(source);
+    const playlist = normalizeM3U(filterFinished(normalized));
 
     res.setHeader('Content-Type', 'audio/x-mpegurl; charset=utf-8');
     res.setHeader('Content-Disposition', 'inline; filename="nm7-private.m3u"');
