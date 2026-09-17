@@ -46,9 +46,6 @@ jobs:
           raw=gzip.decompress(raw)
           source=raw.decode('utf-8','ignore').replace('\r','')
 
-          # Preserve the existing inventory. Deduplicate by the complete
-          # EXTINF metadata + stream URL, not by URL alone: one channel URL
-          # can legitimately carry many different matches.
           blocks=re.split(r'(?=#EXTINF:)', source)
           existing=[]
           existing_keys=set()
@@ -99,7 +96,6 @@ jobs:
                   channels[channel],
               ]))
 
-          # Fallback parser for markup changes.
           if not generated:
               text=re.sub(r'<script.*?</script>|<style.*?</style>',' ',html,flags=re.I|re.S)
               text=re.sub(r'<[^>]+>','\n',text)
@@ -117,9 +113,7 @@ jobs:
           new_entries=[]
           for entry in generated:
               lines=entry.splitlines()
-              url=lines[-1].strip()
-              header=lines[0].strip()
-              key=header+'\n'+url
+              key=lines[0].strip()+'\n'+lines[-1].strip()
               if key not in existing_keys:
                   existing_keys.add(key)
                   new_entries.append(entry)
@@ -163,3 +157,5 @@ jobs:
           fi
           git commit -m 'auto: update NM7 playlist from current match schedule'
           git push
+
+          # Baseline restored from the handover playlist on 2026-09-17.
