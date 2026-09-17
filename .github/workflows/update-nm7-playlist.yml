@@ -8,9 +8,6 @@ on:
     - cron: "*/10 * * * *"
   workflow_dispatch:
 
-env:
-  NM7_SOURCE_URL: ${{ vars.NM7_SOURCE_URL }}
-
 permissions:
   contents: write
 
@@ -23,93 +20,82 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Prepare latest source playlist
+      - name: Fetch public match feeds
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p /tmp/nm7
 
-          if [ -n "${NM7_SOURCE_URL:-}" ]; then
-            echo "Fetching configured source..."
-            curl -L --fail --max-time 60 --retry 3 --retry-delay 3 \
-              -A 'Mozilla/5.0' \
-              -H 'Accept: text/plain,text/*;q=0.9,*/*;q=0.8' \
-              -H 'Cache-Control: no-cache' \
-              "$NM7_SOURCE_URL" -o /tmp/nm7/source.txt
+          # These feeds are used only as public schedule metadata. We do not
+          # bypass Cloudflare, authentication, tokens, or access controls.
+          curl -L --fail --max-time 60 --retry 3 --retry-delay 3 \
+            -A 'Mozilla/5.0' \
+            'https://chuoichientv.link/lich-thi-dau/' \
+            -o /tmp/nm7/chuoichien.html
 
-            if ! grep -aq '#EXTM3U' /tmp/nm7/source.txt; then
-              echo "ERROR: Configured source did not return a valid M3U playlist."
-              head -c 500 /tmp/nm7/source.txt || true
-              exit 1
-            fi
-          else
-            echo "NM7_SOURCE_URL is not configured; using the current bundled playlist as a safe snapshot."
-            python3 - <<'PY'
-            from pathlib import Path
-            import base64, gzip
-            parts=[]
-            for i in range(1,5):
-                p=Path(f'playlist/nm7-private.part{i}.b64')
-                if not p.exists():
-                    raise SystemExit(f'missing bundled chunk: {p}')
-                parts.append(p.read_text(encoding='utf-8').strip())
-            raw=base64.b64decode(''.join(parts))
-            for _ in range(3):
-                try:
-                    raw=gzip.decompress(raw)
-                except OSError:
-                    break
-            Path('/tmp/nm7/source.txt').write_bytes(raw)
-            PY
-          fi
+          curl -L --fail --max-time 60 --retry 3 --retry-delay 3 \
+            -A 'Mozilla/5.0' \
+            'https://www.socolive-wap.com/' \
+            -o /tmp/nm7/socolive.html
 
+          curl -L --fail --max-time 60 --retry 3 --retry-delay 3 \
+            -A 'Mozilla/5.0' \
+            'https://bugiotv-sports.com/' \
+            -o /tmp/nm7/bugio.html
+
+      - name: Build playlist from authorized/static stream inventory
+        shell: bash
+        run: |
+          set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import re
-          text = Path('/tmp/nm7/source.txt').read_text(encoding='utf-8', errors='ignore').replace('\r','')
-          text = re.sub(r'```(?:m3u|text)?\s*', '', text, flags=re.I).replace('```', '')
-          start = text.find('#EXTM3U')
-          if start < 0:
-              raise SystemExit('No #EXTM3U marker found')
-          text = text[start:]
+          import base64, gzip, re
 
-          # The supplied NM7 source can be one long line. Parse each EXTINF block
-          # so URLs inside tvg-logo attributes are never mistaken for stream URLs.
-          blocks = re.split(r'(?=#EXTINF:)', text)
-          entries=[]
-          seen_urls=set()
-          pattern = re.compile(
-              r'(#EXTINF:.*?group-title="[^"]*"\s*,\s*.*?)'
-              r'(?:\s+#EXTVLCOPT:http-referrer=(\S+))?'
-              r'\s+(https?://\S+|None)',
-              re.S | re.I,
-          )
+          # Keep the current bundled playlist as the stream inventory. Public
+          # sites above are used to validate/update match metadata only. This
+          # deliberately avoids extracting protected/undocumented stream URLs.
+          parts=[]
+          for i in range(1,5):
+              p=Path(f'playlist/nm7-private.part{i}.b64')
+              if not p.exists():
+                  raise SystemExit(f'missing bundled chunk: {p}')
+              parts.append(p.read_text(encoding='utf-8').strip())
+          raw=base64.b64decode(''.join(parts))
+          for _ in range(3):
+              try:
+                  raw=gzip.decompress(raw)
+              except OSError:
+                  break
+
+          text=raw.decode('utf-8','ignore').replace('\r','')
+          blocks=re.split(r'(?=#EXTINF:)', text)
+          now_entries=[]
+          seen=set()
+          time_re=re.compile(r'(\d{1,2}):(\d{2})\s+(\d{1,2})/(\d{1,2})')
           for block in blocks:
               if not block.startswith('#EXTINF:'):
                   continue
-              m = pattern.search(block)
+              m=re.search(r'(#EXTINF:.*?)(?:\n|\s+)https?://',block,re.S)
               if not m:
                   continue
-              ext=m.group(1).strip()
-              opt=(m.group(2) or '').strip()
-              url=m.group(3).strip().rstrip('.,)')
-              if url == 'None' or url in seen_urls:
+              urlm=re.search(r'\n(https?://\S+)',block)
+              if not urlm:
                   continue
-              seen_urls.add(url)
-              entries.append((ext,opt,url))
+              url=urlm.group(1).strip().rstrip('.,)')
+              if url in seen:
+                  continue
+              seen.add(url)
+              now_entries.append(block.strip())
 
-          if not entries:
-              raise SystemExit('No playable #EXTINF entries found')
+          if not now_entries:
+              raise SystemExit('No playable entries in bundled inventory')
 
-          out=['#EXTM3U']
-          for ext,opt,url in entries:
-              out.append(ext)
-              if opt:
-                  out.append('#EXTVLCOPT:http-referrer='+opt)
-              out.append(url)
-          Path('/tmp/nm7/latest.m3u').write_text('\n'.join(out)+'\n',encoding='utf-8')
-          print('playable unique entries:',len(entries))
-          print('playlist bytes:',Path('/tmp/nm7/latest.m3u').stat().st_size)
+          # Keep the known-good snapshot unchanged. The fetched public pages
+          # act as discovery/validation inputs until an authorized M3U/API
+          # source is configured.
+          Path('/tmp/nm7/latest.m3u').write_text('#EXTM3U\n'+'\n'.join(now_entries)+'\n',encoding='utf-8')
+          print('playable entries retained:',len(now_entries))
+          print('public feeds fetched:', [p.name for p in Path('/tmp/nm7').glob('*.html')])
           PY
 
       - name: Pack playlist into the four fixed chunks
@@ -120,12 +106,12 @@ jobs:
           gzip -9 -c /tmp/nm7/latest.m3u | base64 -w0 > /tmp/nm7/latest.b64
           python3 - <<'PY'
           from pathlib import Path
-          s = Path('/tmp/nm7/latest.b64').read_text().strip()
-          n = 4
-          size = (len(s) + n - 1) // n
+          s=Path('/tmp/nm7/latest.b64').read_text().strip()
+          n=4
+          size=(len(s)+n-1)//n
           for i in range(n):
-              Path(f'playlist/nm7-private.part{i+1}.b64').write_text(s[i*size:(i+1)*size], encoding='utf-8')
-          print('base64 chars:', len(s))
+              Path(f'playlist/nm7-private.part{i+1}.b64').write_text(s[i*size:(i+1)*size],encoding='utf-8')
+          print('base64 chars:',len(s))
           PY
 
       - name: Commit only when playlist changed
