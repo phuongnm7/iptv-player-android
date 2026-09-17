@@ -17,7 +17,6 @@ permissions:
 
 jobs:
   build:
-    if: github.event.repository.private == true
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -91,9 +90,9 @@ jobs:
           pat=re.compile(r'(<string\b[^>]*\bname=["\']('+'|'.join(wanted)+r')["\'][^>]*>)(.*?)(</string>)',re.S); tok=re.compile(r'%(?![0-9]+\$)([sdif])')
           for p in root.rglob('*.xml'):
               if '.git' in p.parts: continue
-              x=p.read_text(errors='ignore'); i=[0]
+              x=p.read_text(errors='ignore')
               def repl(m):
-                  i[0]=0
+                  i=[0]
                   def r(z): i[0]+=1; return f'%{i[0]}${z.group(1)}'
                   return m.group(1)+tok.sub(r,m.group(3))+m.group(4)
               p.write_text(pat.sub(repl,x))
@@ -152,4 +151,4 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-# Trigger a fresh Mobile-only validation after removing TV-only VLC code.
+# CI: Mobile-only; no TV job.
