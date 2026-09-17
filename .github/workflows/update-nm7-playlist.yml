@@ -20,98 +20,104 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Fetch public match schedule
+      - name: Fetch current public match schedule
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p /tmp/nm7
           curl -L --fail --max-time 60 --retry 3 --retry-delay 3 \
-            -A 'Mozilla/5.0' -H 'Cache-Control: no-cache' \
+            -A 'Mozilla/5.0' \
+            -H 'Cache-Control: no-cache' \
             'https://chuoichientv.link/lich-thi-dau/' \
             -o /tmp/nm7/chuoichien.html
+          test -s /tmp/nm7/chuoichien.html
 
-      - name: Merge new matches with known NM7 stream channels
+      - name: Build playlist from current schedule and known NM7 channel URLs
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import base64, gzip, re
+          import re
           from html import unescape
 
-          # Reconstruct the last known-good user-supplied playlist. Its stream
-          # URLs are the only stream inventory used by this updater.
-          s=''.join(Path(f'playlist/nm7-private.part{i}.b64').read_text(encoding='utf-8').strip() for i in range(1,5))
-          raw=base64.b64decode(s)
-          for _ in range(3):
-              try: raw=gzip.decompress(raw)
-              except OSError: break
-          source=raw.decode('utf-8','ignore').replace('\r','')
+          html = Path('/tmp/nm7/chuoichien.html').read_text(encoding='utf-8', errors='ignore')
 
-          # Extract the known Chuoi Chien channel -> stream mapping from the
-          # supplied playlist. No stream URL is discovered from the website.
-          channels={}
-          blocks=re.split(r'(?=#EXTINF:)',source)
-          keys=['Chuối Lá','Chuối Nhỏ','Chuối To','Chuối Chao','Chuối Kem','Chuối Tây','Chuối Tiêu','Chuối Hột','Chuối Bơ','Chuối Đồng']
-          for block in blocks:
-              if not block.startswith('#EXTINF:') or 'Chuối Chiên TV' not in block: continue
-              urlm=re.search(r'(?<!["=])(https?://[^\s#]+)',block,re.I)
-              if not urlm: continue
-              url=urlm.group(1).rstrip('.,)')
-              refm=re.search(r'#EXTVLCOPT:http-referrer=(\S+)',block,re.I)
-              ref=refm.group(1) if refm else ''
-              # The display name is everything after the EXTINF comma.
-              name=block.split(',',1)[1] if ',' in block else ''
-              for key in keys:
-                  if key.lower() in name.lower() and key not in channels:
-                      channels[key]=(url,ref)
+          # These are stable channel/player URLs already present in the user's
+          # supplied NM7 playlist. We reuse the channel URL for a newly scheduled
+          # match instead of attempting to discover protected/tokenized streams.
+          channels = {
+              'Chuối Lá': 'https://stm9ee346727718.stream.hdplaylink.com/cctvlive/chuoilahd/playlist.m3u8',
+              'Chuối Nhỏ': 'https://stm9ee346727718.stream.hdplaylink.com/cctvlive/chuoinhohd/playlist.m3u8',
+              'Chuối To': 'https://stm9ee346727718.stream.hdplaylink.com/cctvlive/chuoitohd/playlist.m3u8',
+              'Chuối Chao': 'https://stm9ee346727718.stream.hdplaylink.com/cctvlive/chuoichaohd/playlist.m3u8',
+              'Chuối Kem': 'https://stm9ee346727718.stream.hdplaylink.com/cctvlive/chuoikemhd/playlist.m3u8',
+              'Chuối Tây': 'https://stm9ee346727718.stream.hdplaylink.com/cctvlive/chuoitayhd/playlist.m3u8',
+          }
+          referrer = 'https://live.chuoichien.tv/'
 
-          if not channels:
-              raise SystemExit('No known Chuoi Chien stream channels found in bundled playlist')
+          # Prefer real HTML table rows, but also tolerate a server-rendered
+          # markdown-like table if the page changes its markup.
+          rows = re.findall(r'<tr[^>]*>(.*?)</tr>', html, re.I | re.S)
+          generated = []
 
-          # Parse public schedule table rows: date/time, match, BLV, status.
-          html=Path('/tmp/nm7/chuoichien.html').read_text(encoding='utf-8',errors='ignore')
-          rows=re.findall(r'<tr[^>]*>(.*?)</tr>',html,re.S|re.I)
-          generated=[]
           for row in rows:
-              cells=[re.sub(r'<[^>]+>',' ',x) for x in re.findall(r'<t[dh][^>]*>(.*?)</t[dh]>',row,re.S|re.I)]
-              cells=[re.sub(r'\s+',' ',unescape(x)).strip() for x in cells]
-              if len(cells)<4: continue
-              match=next((x for x in cells if ' vs ' in x.lower()),None)
-              tm=next((re.search(r'\b\d{1,2}:\d{2}\b',x) for x in cells if re.search(r'\b\d{1,2}:\d{2}\b',x)),None)
-              if not match or not tm: continue
-              blv=cells[3]
-              key=next((k for k in channels if k.lower() in blv.lower()),None)
-              if not key: continue
-              url,ref=channels[key]
-              label=f'{tm.group(0)} ⚽ {match} ({key}) [NM7-auto]'
-              entry=f'#EXTINF:-1 group-title="Chuối Chiên TV", {label}\n'
-              if ref: entry+=f'#EXTVLCOPT:http-referrer={ref}\n'
-              entry+=url
-              generated.append(entry)
+              cells = re.findall(r'<t[dh][^>]*>(.*?)</t[dh]>', row, re.I | re.S)
+              cells = [re.sub(r'<[^>]+>', ' ', c) for c in cells]
+              cells = [re.sub(r'\s+', ' ', unescape(c)).strip() for c in cells]
+              if len(cells) < 4:
+                  continue
+              match = next((c for c in cells if re.search(r'\bvs\b', c, re.I)), None)
+              tm = next((re.search(r'\b\d{1,2}:\d{2}\b', c) for c in cells), None)
+              if not match or not tm:
+                  continue
+              blv = cells[3]
+              channel = next((name for name in channels if name.lower() in blv.lower()), None)
+              if not channel:
+                  continue
 
-          # Retain all known playable entries, while removing expired events
-          # from the snapshot only when their embedded start time is >3h old.
-          # The public schedule is used to add fresh matches, not to discover
-          # hidden/player-token URLs.
-          existing=[]
+              # Preserve the exact visible match text and BLV mapping.
+              label = f'{tm.group(0)} ⚽ {match} ({channel}) [FHD] [hls]'
+              block = [
+                  f'#EXTINF:-1 group-title="Chuối Chiên TV", {label}',
+                  f'#EXTVLCOPT:http-referrer={referrer}',
+                  channels[channel],
+              ]
+              generated.append('\n'.join(block))
+
+          # If the page's table is not represented as <tr>, use its textual
+          # content as a fallback. This still only maps explicitly named BLVs.
+          if not generated:
+              text = re.sub(r'<script.*?</script>|<style.*?</style>', ' ', html, flags=re.I | re.S)
+              text = re.sub(r'<[^>]+>', '\n', text)
+              text = re.sub(r'\s+', ' ', unescape(text))
+              pat = re.compile(r'(\d{1,2}:\d{2})\s+(.{3,100}?\s+vs\s+.{3,100}?)(?:\s+)(Chuối\s+(?:Lá|Nhỏ|To|Chao|Kem|Tây))\b', re.I)
+              for m in pat.finditer(text):
+                  channel = next((k for k in channels if k.lower() == m.group(3).lower()), None)
+                  if channel:
+                      label = f'{m.group(1)} ⚽ {m.group(2).strip()} ({channel}) [FHD] [hls]'
+                      generated.append('\n'.join([
+                          f'#EXTINF:-1 group-title="Chuối Chiên TV", {label}',
+                          f'#EXTVLCOPT:http-referrer={referrer}',
+                          channels[channel],
+                      ]))
+
+          # Deduplicate by stream URL + visible match name.
+          unique=[]
           seen=set()
-          for block in blocks:
-              if not block.startswith('#EXTINF:'): continue
-              urlm=re.search(r'(?<!["=])(https?://[^\s#]+)',block,re.I)
-              if not urlm: continue
-              url=urlm.group(1).rstrip('.,)')
-              if url in seen: continue
-              seen.add(url)
-              existing.append(block.strip())
+          for entry in generated:
+              key=entry.split('\n',1)[0] + '\n' + entry.rsplit('\n',1)[-1]
+              if key not in seen:
+                  seen.add(key)
+                  unique.append(entry)
 
-          # Do not duplicate auto-generated entries across runs.
-          existing=[b for b in existing if '[NM7-auto]' not in b]
-          all_entries=existing+list(dict.fromkeys(generated))
-          Path('/tmp/nm7/latest.m3u').write_text('#EXTM3U\n'+'\n'.join(all_entries)+'\n',encoding='utf-8')
-          print('known channels:',sorted(channels))
-          print('schedule rows:',len(rows),'generated:',len(generated))
-          print('final entries:',len(all_entries))
+          if not unique:
+              raise SystemExit('No current Chuoi Chien matches with a known NM7 channel were found')
+
+          out = '#EXTM3U\n' + '\n'.join(unique) + '\n'
+          Path('/tmp/nm7/latest.m3u').write_text(out, encoding='utf-8')
+          print('generated matches:', len(unique))
+          print('playlist bytes:', len(out.encode('utf-8')))
           PY
 
       - name: Pack playlist into four fixed chunks
@@ -122,11 +128,12 @@ jobs:
           gzip -9 -c /tmp/nm7/latest.m3u | base64 -w0 > /tmp/nm7/latest.b64
           python3 - <<'PY'
           from pathlib import Path
-          s=Path('/tmp/nm7/latest.b64').read_text().strip(); n=4
-          size=(len(s)+n-1)//n
+          s = Path('/tmp/nm7/latest.b64').read_text().strip()
+          n = 4
+          size = (len(s) + n - 1) // n
           for i in range(n):
-              Path(f'playlist/nm7-private.part{i+1}.b64').write_text(s[i*size:(i+1)*size],encoding='utf-8')
-          print('base64 chars:',len(s))
+              Path(f'playlist/nm7-private.part{i+1}.b64').write_text(s[i*size:(i+1)*size], encoding='utf-8')
+          print('base64 chars:', len(s))
           PY
 
       - name: Commit only when playlist changed
@@ -140,5 +147,5 @@ jobs:
             echo 'Playlist unchanged.'
             exit 0
           fi
-          git commit -m 'auto: update NM7 playlist from public schedule'
+          git commit -m 'auto: update NM7 playlist from current match schedule'
           git push
