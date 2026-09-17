@@ -14,6 +14,7 @@ android {
         versionName = "1.10.26"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        manifestPlaceholders["applicationClass"] = "vn.phuong.iptvplayer.Nm7Application"
 
         // SmartTube's legacy modules retain the "default" flavor dimension
         // (stbeta/ststable/stfdroid). Select the stable runtime for NM7 Mobile.
@@ -26,6 +27,7 @@ android {
             dimension = "device"
             versionNameSuffix = "-mobile"
             manifestPlaceholders["vlcFallbackEnabled"] = "false"
+            manifestPlaceholders["applicationClass"] = "vn.phuong.iptvplayer.MobileNm7Application"
         }
         create("tv") {
             dimension = "device"
