@@ -150,11 +150,20 @@ jobs:
           set -euxo pipefail
           version="$(grep -m1 'versionName = "' app/build.gradle.kts | cut -d'"' -f2)"
           mkdir -p dist/mobile
-          apk="dist/mobile/NM7-IPTV-Mobile-${version}.apk"
-          cp app/build/outputs/apk/mobile/debug/app-mobile-debug.apk "$apk"
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$apk"
-          if unzip -l "$apk" | grep -q 'libvlc\.so'; then exit 1; fi
-          sha256sum "$apk" | tee dist/mobile/SHA256SUMS.txt
+
+          arm64="app/build/outputs/apk/mobile/debug/app-mobile-arm64-v8a-debug.apk"
+          armv7="app/build/outputs/apk/mobile/debug/app-mobile-armeabi-v7a-debug.apk"
+          test -f "$arm64"
+          test -f "$armv7"
+
+          for apk in "$arm64" "$armv7"; do
+            "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$apk"
+            if unzip -l "$apk" | grep -q 'lib/x86/\|lib/x86_64/\|libvlc\.so'; then exit 1; fi
+          done
+
+          cp "$arm64" "dist/mobile/NM7-IPTV-Mobile-${version}-arm64-v8a.apk"
+          cp "$armv7" "dist/mobile/NM7-IPTV-Mobile-${version}-armeabi-v7a.apk"
+          sha256sum dist/mobile/*.apk | tee dist/mobile/SHA256SUMS.txt
 
       - name: Upload Mobile APK
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a0
