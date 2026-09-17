@@ -6,11 +6,15 @@ import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.net.wifi.WifiManager;
+import android.text.Spannable;
+import android.text.SpannableString;
+import android.text.style.TypefaceSpan;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import java.lang.reflect.Field;
@@ -25,6 +29,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
     private static final String SMARTTUBE_BROWSE = SMARTTUBE_PACKAGE + "browse.BrowseActivity";
     private static final String SMARTTUBE_WEB = SMARTTUBE_PACKAGE + "webbrowser.WebBrowserActivity";
     private static final String SMARTTUBE_SIGNIN = SMARTTUBE_PACKAGE + "signin.SignInActivity";
+    private static final String SMARTTUBE_DIALOG = SMARTTUBE_PACKAGE + "dialog.AppDialogActivity";
 
     private WifiManager.WifiLock wifiLock;
     private int startedActivities;
@@ -76,14 +81,27 @@ public final class MobileNm7Application extends DroidApplication implements andr
         String name = activity.getClass().getName();
         if (activity instanceof MainActivity) {
             activity.getWindow().getDecorView().post(() -> HomeTabBar.attach(activity, false));
+        } else if (activity instanceof PlayerActivity) {
+            activity.getWindow().getDecorView().post(() -> HomeTabBar.attach(activity, false));
         } else if (SMARTTUBE_BROWSE.equals(name)) {
             activity.getWindow().getDecorView().post(() -> {
                 HomeTabBar.attach(activity, true);
                 installSmartTubeFontFix(activity);
             });
-        } else if (SMARTTUBE_WEB.equals(name) || SMARTTUBE_SIGNIN.equals(name)) {
+        } else if (SMARTTUBE_WEB.equals(name) || SMARTTUBE_SIGNIN.equals(name) || SMARTTUBE_DIALOG.equals(name)) {
             activity.getWindow().getDecorView().post(() -> installSmartTubeFontFix(activity));
         }
+    }
+
+    /** True while an IPTV PlayerActivity exists and can be brought back to the foreground. */
+    public static boolean hasIptvPlayer() {
+        return applicationPlayer() != null;
+    }
+
+    private static Activity applicationPlayer() {
+        android.app.Application app = android.app.ActivityThread.currentApplication();
+        if (app instanceof MobileNm7Application) return ((MobileNm7Application) app).iptvPlayerActivity;
+        return null;
     }
 
     /** Pause the integrated IPTV player as soon as a real SmartTube playback Activity starts. */
@@ -114,10 +132,10 @@ public final class MobileNm7Application extends DroidApplication implements andr
     }
 
     /**
-     * SmartTube's bundled font can lack Vietnamese glyphs. Apply Android's standard sans-serif
-     * only to text containing Vietnamese/Latin-extended characters, preserving SmartTube icon
-     * fonts and other custom typefaces. A global-layout hook also covers settings dialogs that
-     * are created after BrowseActivity itself has already been created.
+     * SmartTube's bundled text styling can prevent Android font fallback. Force a final
+     * sans-serif TypefaceSpan over Vietnamese text while preserving all other spans such as
+     * color, size, bold and links. This also runs for the separate dialog Activity used by
+     * SmartTube settings.
      */
     private void installSmartTubeFontFix(Activity activity) {
         View root = activity.findViewById(android.R.id.content);
@@ -126,19 +144,27 @@ public final class MobileNm7Application extends DroidApplication implements andr
         ViewTreeObserver observer = root.getViewTreeObserver();
         if (observer.isAlive()) {
             observer.addOnGlobalLayoutListener(() -> {
-                if (!activity.isFinishing() && !activity.isDestroyed()) {
-                    applySmartTubeFontFix(root);
-                }
+                if (!activity.isFinishing() && !activity.isDestroyed()) applySmartTubeFontFix(root);
             });
         }
     }
 
     private void applySmartTubeFontFix(View view) {
-        if (view instanceof TextView) {
+        if (view instanceof TextView && !(view instanceof EditText)) {
             TextView text = (TextView) view;
-            if (containsVietnameseText(text.getText())) {
+            CharSequence value = text.getText();
+            if (containsVietnameseText(value)) {
                 int style = text.getTypeface() != null ? text.getTypeface().getStyle() : Typeface.NORMAL;
                 text.setTypeface(Typeface.create("sans-serif", style));
+                if (value.length() > 0) {
+                    SpannableString fixed = value instanceof Spannable
+                            ? new SpannableString(value)
+                            : new SpannableString(value.toString());
+                    TypefaceSpan[] old = fixed.getSpans(0, fixed.length(), TypefaceSpan.class);
+                    for (TypefaceSpan span : old) fixed.removeSpan(span);
+                    fixed.setSpan(new TypefaceSpan("sans-serif"), 0, fixed.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    text.setText(fixed, TextView.BufferType.SPANNABLE);
+                }
             }
         }
         if (view instanceof WebView) {
@@ -157,9 +183,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
         if (text == null) return false;
         for (int i = 0; i < text.length(); i++) {
             char c = text.charAt(i);
-            if (c == '\uFFFD' || (c >= '\u00C0' && c <= '\u024F') || (c >= '\u1E00' && c <= '\u1EFF') || (c >= '\u0300' && c <= '\u036F')) {
-                return true;
-            }
+            if (c == '\uFFFD' || (c >= '\u00C0' && c <= '\u024F') || (c >= '\u1E00' && c <= '\u1EFF') || (c >= '\u0300' && c <= '\u036F')) return true;
         }
         return false;
     }
