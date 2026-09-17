@@ -7,6 +7,7 @@ import java.lang.reflect.Method;
 
 /** Initializes the vendored SmartTube phone runtime without compile-time SmartTube imports. */
 public final class SmartTubeRuntime {
+    // Mobile 1.10.26 CI rebuild trigger after YouTube integration fixes.
     private static boolean initialized;
     private static final String PREFIX = "com.liskovsoft.smartyoutubetv2";
 
