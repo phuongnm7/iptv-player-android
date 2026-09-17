@@ -3,8 +3,17 @@
   "functions": {
     "api/nm7-private.m3u.js": {
       "includeFiles": "playlist/*.b64"
+    },
+    "api/nm7-private-router.m3u.js": {
+      "includeFiles": "playlist/*.b64"
     }
   },
+  "rewrites": [
+    {
+      "source": "/api/nm7-private.m3u",
+      "destination": "/api/nm7-private-router.m3u"
+    }
+  ],
   "headers": [
     {
       "source": "/api/6ZQ5.m3u",
