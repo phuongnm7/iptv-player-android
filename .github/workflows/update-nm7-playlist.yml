@@ -23,55 +23,82 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Fetch latest source playlist
+      - name: Prepare latest source playlist
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p /tmp/nm7
-          if [ -z "${NM7_SOURCE_URL:-}" ]; then
-            echo "ERROR: Repository variable NM7_SOURCE_URL is not configured."
-            echo "Add a direct M3U/M3U8/playlist URL that you are authorized to use."
-            exit 1
-          fi
 
-          echo "Fetching configured source..."
-          curl -L --fail --max-time 60 --retry 3 --retry-delay 3 \
-            -A 'Mozilla/5.0' \
-            -H 'Accept: text/plain,text/*;q=0.9,*/*;q=0.8' \
-            -H 'Cache-Control: no-cache' \
-            "$NM7_SOURCE_URL" -o /tmp/nm7/source.txt
+          if [ -n "${NM7_SOURCE_URL:-}" ]; then
+            echo "Fetching configured source..."
+            curl -L --fail --max-time 60 --retry 3 --retry-delay 3 \
+              -A 'Mozilla/5.0' \
+              -H 'Accept: text/plain,text/*;q=0.9,*/*;q=0.8' \
+              -H 'Cache-Control: no-cache' \
+              "$NM7_SOURCE_URL" -o /tmp/nm7/source.txt
 
-          if ! grep -aq '#EXTM3U' /tmp/nm7/source.txt; then
-            echo "ERROR: Configured source did not return a valid M3U playlist."
-            head -c 500 /tmp/nm7/source.txt || true
-            exit 1
+            if ! grep -aq '#EXTM3U' /tmp/nm7/source.txt; then
+              echo "ERROR: Configured source did not return a valid M3U playlist."
+              head -c 500 /tmp/nm7/source.txt || true
+              exit 1
+            fi
+          else
+            echo "NM7_SOURCE_URL is not configured; using the current bundled playlist as a safe snapshot."
+            python3 - <<'PY'
+            from pathlib import Path
+            import base64, gzip
+            parts=[]
+            for i in range(1,5):
+                p=Path(f'playlist/nm7-private.part{i}.b64')
+                if not p.exists():
+                    raise SystemExit(f'missing bundled chunk: {p}')
+                parts.append(p.read_text(encoding='utf-8').strip())
+            raw=base64.b64decode(''.join(parts))
+            for _ in range(3):
+                try:
+                    raw=gzip.decompress(raw)
+                except OSError:
+                    break
+            Path('/tmp/nm7/source.txt').write_bytes(raw)
+            PY
           fi
 
           python3 - <<'PY'
           from pathlib import Path
           import re
           text = Path('/tmp/nm7/source.txt').read_text(encoding='utf-8', errors='ignore').replace('\r','')
+          text = re.sub(r'```(?:m3u|text)?\s*', '', text, flags=re.I).replace('```', '')
           start = text.find('#EXTM3U')
-          text = re.sub(r'```(?:m3u|text)?\s*', '', text[start:], flags=re.I).replace('```', '')
-          blocks = re.split(r'(?=#EXTINF:)', text)
-          out = ['#EXTM3U']
-          seen = set()
-          for block in blocks[1:]:
-              block = block.strip()
-              if not block.startswith('#EXTINF:'):
-                  continue
-              lines = [x.strip() for x in block.split('\n') if x.strip()]
-              if not any(x.startswith(('http://','https://')) for x in lines[1:]):
-                  continue
-              key = '\n'.join(lines)
+          if start < 0:
+              raise SystemExit('No #EXTM3U marker found')
+          text = text[start:]
+
+          # Parse both normal multi-line M3U and the one-line format used by the supplied snapshot.
+          pattern = re.compile(r'(#EXTINF:[^\n#]*?)(?:\s+(#EXTVLCOPT:[^\n#]*?))?\s+(https?://[^\s#]+)', re.I)
+          entries=[]
+          seen=set()
+          for m in pattern.finditer(text):
+              ext=m.group(1).strip()
+              opt=(m.group(2) or '').strip()
+              url=m.group(3).strip().rstrip('.,)')
+              key=(ext,opt,url)
               if key in seen:
                   continue
               seen.add(key)
-              out.extend(lines)
-          if len(out) <= 1:
+              entries.append((ext,opt,url))
+
+          if not entries:
               raise SystemExit('No playable #EXTINF entries found')
-          Path('/tmp/nm7/latest.m3u').write_text('\n'.join(out) + '\n', encoding='utf-8')
-          print('entries:', len(out) - 1)
+
+          out=['#EXTM3U']
+          for ext,opt,url in entries:
+              out.append(ext)
+              if opt:
+                  out.append(opt)
+              out.append(url)
+          Path('/tmp/nm7/latest.m3u').write_text('\n'.join(out)+'\n',encoding='utf-8')
+          print('playable entries:',len(entries))
+          print('playlist bytes:',Path('/tmp/nm7/latest.m3u').stat().st_size)
           PY
 
       - name: Pack playlist into the four fixed chunks
