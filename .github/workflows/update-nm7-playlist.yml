@@ -8,6 +8,9 @@ on:
     - cron: "*/10 * * * *"
   workflow_dispatch:
 
+env:
+  NM7_SOURCE_URL: ${{ vars.NM7_SOURCE_URL }}
+
 permissions:
   contents: write
 
@@ -25,35 +28,22 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/nm7
-          urls=(
-            'https://byvn.net/6ZQ5'
-            'https://r.jina.ai/https://byvn.net/6ZQ5'
-            'https://r.jina.ai/http://byvn.net/6ZQ5'
-            'https://api.allorigins.win/raw?url=https%3A%2F%2Fbyvn.net%2F6ZQ5'
-            'https://corsproxy.io/?url=https%3A%2F%2Fbyvn.net%2F6ZQ5'
-          )
-          found=0
-          for url in "${urls[@]}"; do
-            echo "Trying source: $url"
-            rm -f /tmp/nm7/candidate.txt
-            if curl -L --fail --max-time 30 --retry 2 --retry-delay 2 \
-              -A 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/140 Safari/537.36' \
-              -H 'Accept: text/plain,text/html;q=0.9,*/*;q=0.8' \
-              -H 'Cache-Control: no-cache' \
-              "$url" -o /tmp/nm7/candidate.txt; then
-              if grep -aq '#EXTM3U' /tmp/nm7/candidate.txt; then
-                cp /tmp/nm7/candidate.txt /tmp/nm7/source.txt
-                echo "Accepted source: $url"
-                found=1
-                break
-              fi
-              echo "Response received but no #EXTM3U."
-            else
-              echo "Fetch failed."
-            fi
-          done
-          if [ "$found" -ne 1 ]; then
-            echo "ERROR: No source path returned a valid M3U playlist."
+          if [ -z "${NM7_SOURCE_URL:-}" ]; then
+            echo "ERROR: Repository variable NM7_SOURCE_URL is not configured."
+            echo "Add a direct M3U/M3U8/playlist URL that you are authorized to use."
+            exit 1
+          fi
+
+          echo "Fetching configured source..."
+          curl -L --fail --max-time 60 --retry 3 --retry-delay 3 \
+            -A 'Mozilla/5.0' \
+            -H 'Accept: text/plain,text/*;q=0.9,*/*;q=0.8' \
+            -H 'Cache-Control: no-cache' \
+            "$NM7_SOURCE_URL" -o /tmp/nm7/source.txt
+
+          if ! grep -aq '#EXTM3U' /tmp/nm7/source.txt; then
+            echo "ERROR: Configured source did not return a valid M3U playlist."
+            head -c 500 /tmp/nm7/source.txt || true
             exit 1
           fi
 
@@ -62,8 +52,6 @@ jobs:
           import re
           text = Path('/tmp/nm7/source.txt').read_text(encoding='utf-8', errors='ignore').replace('\r','')
           start = text.find('#EXTM3U')
-          if start < 0:
-              raise SystemExit('Source did not contain #EXTM3U')
           text = re.sub(r'```(?:m3u|text)?\s*', '', text[start:], flags=re.I).replace('```', '')
           blocks = re.split(r'(?=#EXTINF:)', text)
           out = ['#EXTM3U']
