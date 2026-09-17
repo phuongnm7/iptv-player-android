@@ -34,14 +34,17 @@ android {
         }
     }
 
-    // Mobile is intentionally split into exactly the two ARM ABIs used by the
-    // supported devices. Do not generate x86/x86_64 or a universal APK.
-    splits {
-        abi {
-            isEnable = true
-            reset()
-            include("armeabi-v7a", "arm64-v8a")
-            isUniversalApk = false
+    // ABI splits are opt-in for the Mobile final build only. This keeps the
+    // existing TV packaging unchanged while producing exactly two ARM APKs
+    // for the release workflow: arm64-v8a and armeabi-v7a.
+    if (project.findProperty("mobileAbiSplits") == "true") {
+        splits {
+            abi {
+                isEnable = true
+                reset()
+                include("armeabi-v7a", "arm64-v8a")
+                isUniversalApk = false
+            }
         }
     }
 
