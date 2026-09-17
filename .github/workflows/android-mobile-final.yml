@@ -151,4 +151,4 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-# CI: Mobile-only; no TV job.
+# CI trigger refresh: Mobile-only 1.10.26; no TV job.
