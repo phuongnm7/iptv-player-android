@@ -8,13 +8,29 @@ const PARTS = [
   'nm7-private.part3.b64',
   'nm7-private.part4.b64'
 ];
+const REPO_RAW = 'https://raw.githubusercontent.com/phuongnm7/iptv-player-android/main/playlist/';
 
 async function loadPlaylist() {
-  const chunks = await Promise.all(
-    PARTS.map((name) => fs.readFile(path.join(process.cwd(), 'playlist', name), 'utf8'))
-  );
-  const compressed = Buffer.from(chunks.join('').trim(), 'base64');
-  return gunzipSync(compressed).toString('utf8');
+  // Read the latest snapshot from GitHub first. This means playlist updates do
+  // not require a new Vercel deployment. Local files remain a safe fallback.
+  try {
+    const chunks = await Promise.all(PARTS.map(async (name) => {
+      const r = await fetch(`${REPO_RAW}${name}?ts=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      if (!r.ok) throw new Error(`GitHub ${name}: HTTP ${r.status}`);
+      return r.text();
+    }));
+    const compressed = Buffer.from(chunks.join('').trim(), 'base64');
+    return gunzipSync(compressed).toString('utf8');
+  } catch (remoteError) {
+    const chunks = await Promise.all(
+      PARTS.map((name) => fs.readFile(path.join(process.cwd(), 'playlist', name), 'utf8'))
+    );
+    const compressed = Buffer.from(chunks.join('').trim(), 'base64');
+    return gunzipSync(compressed).toString('utf8');
+  }
 }
 
 function vietnamNowParts() {
@@ -36,15 +52,13 @@ function eventTimeVN(text, now) {
   let year = now.year;
   if (month - now.month > 6) year--;
   if (now.month - month > 6) year++;
-  // Vietnam is UTC+7; construct the event as an absolute timestamp.
   return Date.UTC(year, month - 1, day, hour - 7, minute, 0, 0);
 }
 
 function filterFinished(text) {
   const now = vietnamNowParts();
   const nowMs = Date.UTC(now.year, now.month - 1, now.day, now.hour - 7, now.minute);
-  const keepAfterMinutes = 180; // 3 hours after scheduled start
-
+  const keepAfterMinutes = 180;
   const blocks = text
     .replace(/\r/g, '')
     .split(/(?=#EXTINF:)/)
@@ -52,19 +66,14 @@ function filterFinished(text) {
 
   const seen = new Set();
   const kept = [];
-
   for (const block of blocks) {
     const clean = block.trim();
     if (!clean || seen.has(clean)) continue;
     seen.add(clean);
-
     const started = eventTimeVN(clean, now);
-    if (started !== null && started + keepAfterMinutes * 60 * 1000 < nowMs) {
-      continue;
-    }
+    if (started !== null && started + keepAfterMinutes * 60 * 1000 < nowMs) continue;
     kept.push(clean);
   }
-
   return '#EXTM3U\n' + kept.join('\n') + '\n';
 }
 
@@ -72,7 +81,6 @@ export default async function handler(req, res) {
   try {
     const source = await loadPlaylist();
     const playlist = filterFinished(source);
-
     res.setHeader('Content-Type', 'audio/x-mpegurl; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
     res.setHeader('CDN-Cache-Control', 'no-store, max-age=0');
