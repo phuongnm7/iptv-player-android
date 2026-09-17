@@ -75,12 +75,8 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     // SmartTube is the only additional runtime for this Mobile product.
+    // Keep TV/VLC implementation completely out of the Mobile dependency graph.
     add("mobileImplementation", project(":smarttube"))
-
-    // VlcFallbackActivity remains source-compatible, but VLC is compile-only.
-    // This prevents libvlc.so and VLC runtime code from entering the Mobile APK.
-    compileOnly("org.videolan.android:libvlc-all:3.6.1")
-    implementation("androidx.multidex:multidex:2.0.1")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
