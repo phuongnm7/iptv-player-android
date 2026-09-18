@@ -16,6 +16,7 @@ public final class SharedPlaybackSession {
 
     private static final String PREFS = "nm7_shared_playback";
     private static final String KEY_TAB = "tab";
+    private static final String KEY_YOUTUBE_BACKGROUND = "youtube_background";
     private static final String KEY_NAME = "name";
     private static final String KEY_URL = "url";
     private static final String KEY_MIME = "mime";
@@ -32,6 +33,22 @@ public final class SharedPlaybackSession {
 
     public static synchronized String tab(Context context) {
         return prefs(context).getString(KEY_TAB, TAB_IPTV);
+    }
+
+    /** True only while the current process is intentionally keeping YouTube alive behind HOME. */
+    public static synchronized void setYoutubeBackground(Context context, boolean active) {
+        prefs(context).edit()
+                .putBoolean(KEY_YOUTUBE_BACKGROUND, active)
+                .apply();
+    }
+
+    public static synchronized boolean isYoutubeBackground(Context context) {
+        return prefs(context).getBoolean(KEY_YOUTUBE_BACKGROUND, false);
+    }
+
+    /** Clear transient YouTube-background state when a new app process is created. */
+    public static synchronized void clearTransientState(Context context) {
+        prefs(context).edit().putBoolean(KEY_YOUTUBE_BACKGROUND, false).apply();
     }
 
     public static synchronized void saveIptv(Context context, String name, String url,
