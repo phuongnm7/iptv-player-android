@@ -86,18 +86,22 @@ public final class HomeTabBar {
         MobileNm7Application.markTabSwitch();
         // The first YouTube tap must never race SmartTube ViewManager initialization.
         // A delayed-only prewarm could open Browse while view mappings were still being registered.
+        // The IPTV Activity must be completely out of the playback stack before
+        // SmartTube creates its ExoPlayer. Starting YouTube first left a short overlap window.
+        if (activity instanceof PlayerActivity && !activity.isFinishing()) {
+            activity.finish();
+            activity.overridePendingTransition(0, 0);
+        }
         SmartTubeRuntime.initialize(activity.getApplicationContext());
         try {
             Class<?> browse = Class.forName(BROWSE);
             Intent intent = new Intent(activity, browse);
             intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
             startWithoutAnimation(activity, intent);
-            if (activity instanceof PlayerActivity && !activity.isFinishing()) activity.finish();
         } catch (ReflectiveOperationException | RuntimeException ignored) {
             Intent fallback = new Intent(activity, SmartTubeHomeActivity.class);
             fallback.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
             startWithoutAnimation(activity, fallback);
-            if (activity instanceof PlayerActivity && !activity.isFinishing()) activity.finish();
         }
     }
 
