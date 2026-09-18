@@ -108,134 +108,56 @@ Get-ChildItem $ST -Recurse -File | Where-Object {
 $play=Join-Path $ST "smarttubedroid\src\main\java\com\liskovsoft\smartyoutubetv2\droid\ui\playback\PlaybackActivity.java"
 if(-not(Test-Path $play)){Fail "PlaybackActivity.java not found."}
 $t=ReadT $play
-$t=$t.Replace("import android.content.Context;"+$nl,"import android.content.Context;"+$nl+"import android.content.Intent;"+$nl)
-$old=@"
-    @Override
-    protected void onStop() {
-        super.onStop();
+$marker="private boolean mIsBackPressed;"
+if($t.Contains($marker) -and $t -notmatch "nm7HomePaused"){$t=$t.Replace($marker,$marker+$nl+"    private boolean nm7HomePaused;")}
 
-        if (VERSION.SDK_INT > 23) {
-            maybeReleasePlayer();
-        }
-    }
-"@
-$new=@"
-    @Override
-    protected void onStop() {
-        super.onStop();
-
-        if (VERSION.SDK_INT > 23) {
-            if (isNm7HomeLeave()) {
-                pauseNm7ForHome();
-                return;
-            }
-            if (isNm7TabSwitch()) {
-                return;
-            }
-            maybeReleasePlayer();
-        }
-    }
-
-    @Override
-    protected void onUserLeaveHint() {
-        super.onUserLeaveHint();
-        if (!isNm7TabSwitch()) {
-            System.setProperty("nm7.youtube.home", "1");
-        }
-    }
+# Patch the phone fork existing onUserLeaveHint instead of adding a duplicate callback.
+if($t -notmatch "nm7PauseForHome\(\)"){
+    $u=[regex]::Match($t,"(?s)(protected void onUserLeaveHint\(\)\s*\{\s*super\.onUserLeaveHint\(\);)")
+    if(-not $u.Success){Fail "PlaybackActivity onUserLeaveHint() not found."}
+    $replacement=$u.Groups[1].Value+$nl+"        if (!isNm7TabSwitch()) { nm7PauseForHome(); return; }"
+    $t=$t.Remove($u.Index,$u.Length).Insert($u.Index,$replacement)
+    $helper="
 
     private boolean isNm7TabSwitch() {
         try {
-            String until = System.getProperty("nm7.tab.switch.until", "0");
+            String until = System.getProperty(""nm7.tab.switch.until"", ""0"");
             return Long.parseLong(until) > android.os.SystemClock.uptimeMillis();
         } catch (RuntimeException ignored) {
             return false;
         }
     }
 
-    private boolean isNm7HomeLeave() {
-        return "1".equals(System.getProperty("nm7.youtube.home", "0"));
-    }
-
-    private Object findNm7Player() {
-        Class<?> type = getClass();
-        while (type != null) {
-            for (java.lang.reflect.Field field : type.getDeclaredFields()) {
-                try {
-                    field.setAccessible(true);
-                    Object value = field.get(this);
-                    if (value == null) continue;
-                    value.getClass().getMethod("getPlayWhenReady");
-                    value.getClass().getMethod("setPlayWhenReady", boolean.class);
-                    return value;
-                } catch (ReflectiveOperationException | RuntimeException ignored) { }
+    private void nm7PauseForHome() {
+        if (mPlayer == null) return;
+        try {
+            if (mPlayer.getPlayWhenReady()) {
+                nm7HomePaused = true;
+                mPlayer.setPlayWhenReady(false);
             }
-            type = type.getSuperclass();
-        }
-        return null;
+        } catch (RuntimeException ignored) { }
     }
 
-    private void pauseNm7ForHome() {
-        Object player = findNm7Player();
-        if (player == null) return;
-        try {
-            boolean wanted = (Boolean) player.getClass().getMethod("getPlayWhenReady").invoke(player);
-            System.setProperty("nm7.youtube.home.resume", wanted ? "1" : "0");
-            player.getClass().getMethod("setPlayWhenReady", boolean.class).invoke(player, false);
-        } catch (ReflectiveOperationException | RuntimeException ignored) { }
+    private void nm7ResumeAfterHome() {
+        if (!nm7HomePaused || mPlayer == null) return;
+        try { mPlayer.setPlayWhenReady(true); } catch (RuntimeException ignored) { }
+        nm7HomePaused = false;
     }
-
-    private void resumeNm7AfterHome() {
-        if (!"1".equals(System.getProperty("nm7.youtube.home.resume", "0"))) return;
-        Object player = findNm7Player();
-        if (player == null) return;
-        try {
-            player.getClass().getMethod("setPlayWhenReady", boolean.class).invoke(player, true);
-        } catch (ReflectiveOperationException | RuntimeException ignored) { }
-        System.clearProperty("nm7.youtube.home.resume");
-        System.clearProperty("nm7.youtube.home");
-    }
-"@
-if($t.Contains($old)){$t=$t.Replace($old,$new)} elseif($t -notmatch 'isNm7TabSwitch\(\)'){Fail "PlaybackActivity onStop block mismatch."}
-
-# Resume a Home-paused player from an existing lifecycle callback; do not add a duplicate callback.
-if($t -match '(?s)protected void onResume\(\)\s*\{'){
-    $t=[regex]::Replace($t,'(protected void onResume\(\)\s*\{\s*)','$1resumeNm7AfterHome();'+$nl,1)
-} elseif($t -match '(?s)protected void onStart\(\)\s*\{'){
-    $t=[regex]::Replace($t,'(protected void onStart\(\)\s*\{\s*)','$1resumeNm7AfterHome();'+$nl,1)
-} else {
-    Fail "PlaybackActivity has no onResume/onStart callback for Home resume."
+"
+    $t=$t.Replace("`r`n}",$nl+$helper+"}")
 }
-$old=@"
-    @Override
-    public void onBackPressed() {
-        mIsBackPressed = true;
 
-        super.onBackPressed();
-    }
-"@
-$new=@"
-    @Override
-    public void onBackPressed() {
-        if (mIsBackPressed) {
-            return;
-        }
+# Resume the same player instance after Home.
+if($t -notmatch "nm7ResumeAfterHome\(\)"){
+    $t=[regex]::Replace($t,"(protected void onResume\(\)\s*\{\s*super\.onResume\(\);)","$1"+$nl+"        nm7ResumeAfterHome();",1)
+}
 
-        mIsBackPressed = true;
-        try {
-            Intent intent = new Intent(this,
-                    Class.forName("com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity"));
-            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NO_ANIMATION | Intent.FLAG_ACTIVITY_NO_USER_ACTION);
-            startActivity(intent);
-            overridePendingTransition(0, 0);
-            finish();
-            overridePendingTransition(0, 0);
-        } catch (ReflectiveOperationException | RuntimeException e) {
-            super.onBackPressed();
-        }
-    }
-"@
-if($t.Contains($old)){$t=$t.Replace($old,$new)} elseif($t -notmatch 'Class\.forName\("com\.liskovsoft\.smartyoutubetv2\.droid\.ui\.browse\.BrowseActivity"\)'){Fail "PlaybackActivity back block mismatch."}
+# Home must not trigger maybeReleasePlayer; real tab switch and Back still release normally.
+$stop=[regex]::Match($t,"(?s)(protected void onStop\(\)\s*\{\s*super\.onStop\(\);\s*if \(VERSION\.SDK_INT > 23\) \{)\s*maybeReleasePlayer\(\);\s*(\}\s*\})")
+if($stop.Success){
+    $rep=$stop.Groups[1].Value+$nl+"            if (!nm7HomePaused && !isNm7TabSwitch()) {"+$nl+"                maybeReleasePlayer();"+$nl+"            }"+$nl+$stop.Groups[2].Value
+    $t=$t.Remove($stop.Index,$stop.Length).Insert($stop.Index,$rep)
+} elseif($t -notmatch "!nm7HomePaused && !isNm7TabSwitch"){Fail "PlaybackActivity onStop release block not found."}
 WriteT $play $t
 
 $ui=Join-Path $ST "exoplayer-amzn-2.10.6\library\ui"; $res=Join-Path $ui "src\main\res\layout"; $pv=Join-Path $ui "src\main\java\com\google\android\exoplayer2\ui\PlayerView.java"
