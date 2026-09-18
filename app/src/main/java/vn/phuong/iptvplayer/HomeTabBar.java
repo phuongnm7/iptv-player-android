@@ -70,7 +70,7 @@ public final class HomeTabBar {
         // This is a navigation event, not a request to stop the current IPTV player.
         MobileNm7Application.markTabSwitch();
         Intent intent;
-        if (MobileNm7Application.hasIptvPlayer()) {
+        if (MobileNm7Application.hasIptvPlayer() || SharedPlaybackSession.loadIptv(activity) != null) {
             intent = new Intent(activity, PlayerActivity.class);
         } else {
             intent = new Intent(activity, MainActivity.class);
