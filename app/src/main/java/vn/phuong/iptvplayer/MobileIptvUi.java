@@ -74,10 +74,23 @@ public final class MobileIptvUi {
         styleButton(options, "⚙", "Tùy chọn");
         toolbar.addView(options, optionLp);
 
-        int insertAt = root.getChildCount();
-        root.addView(toolbar, insertAt);
+        root.addView(toolbar, Math.min(1, root.getChildCount()));
+        repositionToolbar(root, toolbar);
+        root.getViewTreeObserver().addOnGlobalLayoutListener(() -> repositionToolbar(root, toolbar));
 
         options.setOnClickListener(v -> showNavigationOptions(activity, all, favorites, recent));
+    }
+
+    private static void repositionToolbar(LinearLayout root, View toolbar) {
+        int playerIndex = -1;
+        for (int i = 0; i < root.getChildCount(); i++) {
+            View child = root.getChildAt(i);
+            if ("nm7_inline_player".equals(child.getTag())) { playerIndex = i; break; }
+        }
+        if (playerIndex >= 0 && root.indexOfChild(toolbar) != playerIndex + 1) {
+            root.removeView(toolbar);
+            root.addView(toolbar, Math.min(playerIndex + 1, root.getChildCount()));
+        }
     }
 
     private static void styleButton(Button button, String text, String description) {
