@@ -1,5 +1,5 @@
 # NM7 IPTV Mobile 1.10.26 - Windows local build
-# SCRIPT_VERSION: 2026-09-19-PATCH12
+# SCRIPT_VERSION: 2026-09-19-PATCH13
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 $Root = Split-Path -Parent $PSScriptRoot
@@ -292,8 +292,11 @@ $newLeave=@'
         try {
             Class<?> session = Class.forName("vn.phuongnm7.iptvplayer.SharedPlaybackSession");
             java.lang.reflect.Field tabField = session.getField("TAB_YOUTUBE");
+            String tab = (String) tabField.get(null);
             session.getMethod("setTab", android.content.Context.class, String.class)
-                    .invoke(null, this, tabField.get(null));
+                    .invoke(null, this, tab);
+            session.getMethod("setYoutubeBackground", android.content.Context.class, boolean.class)
+                    .invoke(null, this, true);
         } catch (ReflectiveOperationException | RuntimeException ignored) {
         }
         blockEngine(true);
@@ -311,7 +314,8 @@ if($t -notmatch 'void\s+onUserLeaveHint\s*\(' -or
    $t -notmatch 'setBackgroundMode\(PlayerData\.BACKGROUND_MODE_SOUND\)' -or
    $t -notmatch 'setProperty\("nm7\.youtube\.background", "1"\)' -or
    $t -notmatch 'boolean\s+nm7YoutubeBackground' -or
-   $t -notmatch 'Class\.forName\("vn\.phuongnm7\.iptvplayer\.SharedPlaybackSession"\)'){
+   $t -notmatch 'Class\.forName\("vn\.phuongnm7\.iptvplayer\.SharedPlaybackSession"\)' -or
+   $t -notmatch 'setYoutubeBackground'){
     Fail "SmartTube HOME lifecycle patch is incomplete."
 }
 
@@ -365,7 +369,7 @@ if($appJava -notmatch "replaceSmartTubeBranding|finishReally"){Fail "NM7 runtime
 if($appJava -notmatch "SmartTubeRuntime\.enableBackgroundPlayback|releasePlayer"){Fail "Cross-player handoff/background playback fix is missing from source."}
 if((ReadT (Join-Path $Root "app\src\main\java\vn\phuong\iptvplayer\SmartTubeRuntime.java")) -notmatch "PLAYER_DATA_SOURCE_CRONET|BACKGROUND_MODE_PLAY_BEHIND|BACKGROUND_PLAYBACK_SHORTCUT_HOME"){Fail "SmartTube fast/background playback runtime patch is missing from source."}
 if($appUi -notmatch "nm7_inline_player|repositionToolbar"){Fail "IPTV toolbar placement fix is missing from source."}
-if($appManifest -notmatch 'MainActivity.*launchMode="singleTask"'){Fail "MainActivity singleTask preservation fix is missing."}
+if($appManifest -notmatch 'MainActivity.*launchMode="standard".*alwaysRetainTaskState="true"'){Fail "MainActivity task preservation fix is missing."}
 
 $ui=Join-Path $ST "exoplayer-amzn-2.10.6\library\ui"; $res=Join-Path $ui "src\main\res\layout"; $pv=Join-Path $ui "src\main\java\com\google\android\exoplayer2\ui\PlayerView.java"
 foreach($p in @((Join-Path $res "exo_player_view.xml"),(Join-Path $res "exo_simple_player_view.xml"),$pv)){if(-not(Test-Path $p)){Fail "Missing player source: $p"}}
