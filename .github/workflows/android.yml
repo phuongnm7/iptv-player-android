@@ -63,6 +63,16 @@ jobs:
           test -s app/src/main/assets/revanced/patches.rvp
           unzip -t app/src/main/assets/revanced/patches.rvp >/dev/null
           sha256sum app/src/main/assets/revanced/patches.rvp | tee app/src/main/assets/revanced/patches.rvp.sha256
+      - name: Prepare embedded ReVanced GmsCore
+        run: |
+          set -euo pipefail
+          mkdir -p app/src/main/assets/revanced
+          curl --fail --location --retry 3 --retry-delay 2 \
+            https://github.com/ReVanced/GmsCore/releases/download/v0.3.13.2.250932/app.revanced.android.gms-250932004-signed.apk \
+            -o app/src/main/assets/revanced/gmscore-0.3.13.2.250932.apk
+          test -s app/src/main/assets/revanced/gmscore-0.3.13.2.250932.apk
+          sha256sum app/src/main/assets/revanced/gmscore-0.3.13.2.250932.apk
+
       - name: Prepare embedded YouTube ReVanced 20.40.45
         run: |
           set -euo pipefail
