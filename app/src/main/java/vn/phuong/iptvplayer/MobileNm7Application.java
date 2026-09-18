@@ -164,7 +164,9 @@ public final class MobileNm7Application extends DroidApplication implements andr
                 installSmartTubeBrowseFixes(activity);
             });
         } else if (SMARTTUBE_PLAYBACK.equals(name)) {
-            installSmartTubeBackHandling(activity);
+            // Use SmartTube's native Android Back dispatch. The custom callback previously
+            // called onBackPressed() from onBackInvoked(), which could bypass the patched
+            // parent-view/PIP path and close PlaybackActivity immediately.
             activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
             activity.getWindow().getDecorView().post(() -> {
                 installSmartTubeFontFix(activity);
