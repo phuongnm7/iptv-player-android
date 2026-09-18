@@ -61,9 +61,10 @@ dependencies {
     implementation("androidx.media3:media3-datasource-okhttp:$media3Version")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
-    // ReVanced experimental integration (Mobile 1.10.25 feature branch only).
+    // ReVanced Patcher runtime for the experimental Mobile 1.10.25 branch.
+    // revanced-library is the integration payload for patched target apps, not a
+    // dependency of the IPTV host application; keeping it out preserves minSdk 23.
     implementation("app.revanced:patcher-android:22.0.2-dev.1")
-    implementation("app.revanced:library-android:4.0.0")
 
     // Compile the VLC fallback activity for both variants, but package LibVLC only
     // in the TV APK. The Mobile APK therefore stays lightweight.
