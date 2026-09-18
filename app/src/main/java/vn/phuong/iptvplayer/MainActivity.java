@@ -54,6 +54,10 @@ public final class MainActivity extends Activity {
     @Override protected void onCreate(Bundle savedInstanceState) { super.onCreate(savedInstanceState); setupViews(); restoreSession(); epgHandler.post(epgTick); }
     @Override protected void onResume(){
         super.onResume();
+        // If SmartTube entered HOME/background, the YouTube tab is authoritative.
+        if ("1".equals(System.getProperty("nm7.youtube.background", "0"))) {
+            SharedPlaybackSession.setTab(this, SharedPlaybackSession.TAB_YOUTUBE);
+        }
         if(SharedPlaybackSession.TAB_YOUTUBE.equals(SharedPlaybackSession.tab(this))){
             findViewById(android.R.id.content).postDelayed(()->{
                 if (isFinishing() || isDestroyed()) return;
