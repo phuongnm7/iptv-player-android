@@ -13,6 +13,7 @@ import android.text.SpannableString;
 import android.text.style.TypefaceSpan;
 import android.view.View;
 import android.view.ViewGroup;
+import android.os.Build;
 import android.view.ViewTreeObserver;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -39,6 +40,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
     private Activity iptvPlayerActivity;
     private Activity smartTubeBrowseActivity;
     private volatile boolean tabSwitchPending;
+    private final java.util.Map<Activity, android.window.OnBackInvokedCallback> smartTubeBackCallbacks = new java.util.HashMap<>();
 
     @Override public void onCreate() {
         super.onCreate();
@@ -143,6 +145,8 @@ public final class MobileNm7Application extends DroidApplication implements andr
                 HomeTabBar.attach(activity, true);
                 installSmartTubeBrowseFixes(activity);
             });
+        } else if (SMARTTUBE_PLAYBACK.equals(name)) {
+            installSmartTubeBackHandling(activity);
         } else if (name.startsWith(SMARTTUBE_PACKAGE) && !SMARTTUBE_PLAYBACK.equals(name)) {
             if (!SMARTTUBE_WEB.equals(name)) {
                 activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
@@ -306,8 +310,28 @@ public final class MobileNm7Application extends DroidApplication implements andr
         return false;
     }
 
+    private void installSmartTubeBackHandling(Activity activity) {
+        if (Build.VERSION.SDK_INT < 33) return;
+        try {
+            android.window.OnBackInvokedCallback callback = () -> {
+                bringSmartTubeBrowseToFront();
+                try { activity.finish(); } catch (RuntimeException ignored) { }
+            };
+            activity.getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                    android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, callback);
+            smartTubeBackCallbacks.put(activity, callback);
+        } catch (RuntimeException ignored) { }
+    }
+
     @Override public void onActivitySaveInstanceState(Activity activity, Bundle state) { }
     @Override public void onActivityDestroyed(Activity activity) {
+        if (Build.VERSION.SDK_INT >= 33) {
+            android.window.OnBackInvokedCallback callback = smartTubeBackCallbacks.remove(activity);
+            if (callback != null) {
+                try { activity.getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(callback); }
+                catch (RuntimeException ignored) { }
+            }
+        }
         if (activity == iptvPlayerActivity) iptvPlayerActivity = null;
         if (activity == smartTubeBrowseActivity) smartTubeBrowseActivity = null;
     }
