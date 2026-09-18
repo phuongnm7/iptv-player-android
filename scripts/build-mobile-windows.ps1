@@ -87,6 +87,24 @@ if(-not(Test-Path $browse)){Fail "BrowseActivity.java not found."}
 $t=ReadT $browse; $n=$t.Replace("private static final int GRID_COLUMNS = 2;","private static final int GRID_COLUMNS = 1;")
 if($n -eq $t){Fail "GRID_COLUMNS declaration not found."}; WriteT $browse $n
 
+$gridPatched=0
+Get-ChildItem $ST -Recurse -File | Where-Object {$_.FullName -notmatch "\\.git\\" -and $_.Extension -in @(".java",".kt")} | ForEach-Object {
+    try{$x=ReadT $_.FullName}catch{return}
+    $n=[regex]::Replace($x,'(GRID_COLUMNS\s*=\s*)\d+','$1'+'1')
+    if($n -ne $x){WriteT $_.FullName $n;$script:gridPatched++}
+}
+if($gridPatched -eq 0){Fail "No additional SmartTube GRID_COLUMNS declaration found."}
+
+Get-ChildItem $ST -Recurse -File | Where-Object {
+    $_.FullName -notmatch "\\.git\\" -and $_.Extension -in @(".xml",".properties")
+} | ForEach-Object {
+    try{$x=ReadT $_.FullName}catch{return}
+    if($x -match "SmartTube"){
+        $n=$x.Replace("SmartTube","NM7 TV")
+        if($n -ne $x){WriteT $_.FullName $n}
+    }
+}
+
 $play=Join-Path $ST "smarttubedroid\src\main\java\com\liskovsoft\smartyoutubetv2\droid\ui\playback\PlaybackActivity.java"
 if(-not(Test-Path $play)){Fail "PlaybackActivity.java not found."}
 $t=ReadT $play
@@ -103,11 +121,32 @@ $old=@"
 "@
 $new=@"
     @Override
+    protected void onStart() {
+        super.onStart();
+        resumeNm7AfterHome();
+    }
+
+    @Override
     protected void onStop() {
         super.onStop();
 
-        if (VERSION.SDK_INT > 23 && !isNm7TabSwitch()) {
+        if (VERSION.SDK_INT > 23) {
+            if (isNm7HomeLeave()) {
+                pauseNm7ForHome();
+                return;
+            }
+            if (isNm7TabSwitch()) {
+                return;
+            }
             maybeReleasePlayer();
+        }
+    }
+
+    @Override
+    protected void onUserLeaveHint() {
+        super.onUserLeaveHint();
+        if (!isNm7TabSwitch()) {
+            System.setProperty("nm7.youtube.home", "1");
         }
     }
 
@@ -118,6 +157,49 @@ $new=@"
         } catch (RuntimeException ignored) {
             return false;
         }
+    }
+
+    private boolean isNm7HomeLeave() {
+        return "1".equals(System.getProperty("nm7.youtube.home", "0"));
+    }
+
+    private Object findNm7Player() {
+        Class<?> type = getClass();
+        while (type != null) {
+            for (java.lang.reflect.Field field : type.getDeclaredFields()) {
+                try {
+                    field.setAccessible(true);
+                    Object value = field.get(this);
+                    if (value == null) continue;
+                    value.getClass().getMethod("getPlayWhenReady");
+                    value.getClass().getMethod("setPlayWhenReady", boolean.class);
+                    return value;
+                } catch (ReflectiveOperationException | RuntimeException ignored) { }
+            }
+            type = type.getSuperclass();
+        }
+        return null;
+    }
+
+    private void pauseNm7ForHome() {
+        Object player = findNm7Player();
+        if (player == null) return;
+        try {
+            boolean wanted = (Boolean) player.getClass().getMethod("getPlayWhenReady").invoke(player);
+            System.setProperty("nm7.youtube.home.resume", wanted ? "1" : "0");
+            player.getClass().getMethod("setPlayWhenReady", boolean.class).invoke(player, false);
+        } catch (ReflectiveOperationException | RuntimeException ignored) { }
+    }
+
+    private void resumeNm7AfterHome() {
+        if (!"1".equals(System.getProperty("nm7.youtube.home.resume", "0"))) return;
+        Object player = findNm7Player();
+        if (player == null) return;
+        try {
+            player.getClass().getMethod("setPlayWhenReady", boolean.class).invoke(player, true);
+        } catch (ReflectiveOperationException | RuntimeException ignored) { }
+        System.clearProperty("nm7.youtube.home.resume");
+        System.clearProperty("nm7.youtube.home");
     }
 "@
 if($t.Contains($old)){$t=$t.Replace($old,$new)} elseif($t -notmatch 'isNm7TabSwitch\(\)'){Fail "PlaybackActivity onStop block mismatch."}
@@ -140,7 +222,7 @@ $new=@"
         try {
             Intent intent = new Intent(this,
                     Class.forName("com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity"));
-            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NO_ANIMATION);
+            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NO_ANIMATION | Intent.FLAG_ACTIVITY_NO_USER_ACTION);
             startActivity(intent);
             overridePendingTransition(0, 0);
             finish();
