@@ -81,6 +81,16 @@ jobs:
               raise SystemExit('Browse GRID_COLUMNS declaration not found')
           browse.write_text(t2)
 
+          # Channel uploads is another phone grid and must be explicitly one-column too.
+          uploads = root / 'smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/channeluploads/ChannelUploadsActivity.java'
+          if uploads.is_file():
+              u = uploads.read_text()
+              u2 = u.replace('private static final int GRID_COLUMNS = 2;', 'private static final int GRID_COLUMNS = 1;')
+              if 'GRID_COLUMNS' in u2 and 'GRID_COLUMNS = 1' not in u2:
+                  u2 = u2.replace('public class ChannelUploadsActivity {',
+                                  'public class ChannelUploadsActivity {\\n    private static final int GRID_COLUMNS = 1;')
+              uploads.write_text(u2)
+
           # Mobile player: preserve the ExoPlayer instance during NM7 tab switches.
           # NM7 sets a short-lived process property before bringing the other tab to front.
           playback = root / 'smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java'
