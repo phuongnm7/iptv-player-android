@@ -233,7 +233,7 @@ jobs:
       - name: Read Mobile version
         id: mobile_version
         run: |
-          version="$(grep -m1 'versionName = \"' app/build.gradle.kts | cut -d'\"' -f2)"
+          version="$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts | head -n1)"
           test -n "$version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
