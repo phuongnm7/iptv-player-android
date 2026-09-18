@@ -141,7 +141,7 @@ $helper=@'
     }
 '@
 if($t -notmatch 'boolean\s+isNm7TabSwitch\(\)'){
-    $marker='    @Override\n    protected void onStop() {'
+    $marker="    @Override"+$nl+"    protected void onStop() {"
     if($t.Contains($marker)){$t=$t.Replace($marker,$helper+$nl+$marker)}else{Fail "PlaybackActivity onStop marker not found."}
 }
 $newStop=@'
