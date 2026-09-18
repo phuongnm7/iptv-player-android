@@ -54,22 +54,25 @@ public final class MainActivity extends Activity {
     @Override protected void onCreate(Bundle savedInstanceState) { super.onCreate(savedInstanceState); setupViews(); restoreSession(); epgHandler.post(epgTick); }
     @Override protected void onResume(){
         super.onResume();
-        // If SmartTube entered HOME/background, the YouTube tab is authoritative.
+        // A launcher relaunch must not rebuild the YouTube Browse page when a live
+        // SmartTube PlaybackActivity is already running in the same task.
         if ("1".equals(System.getProperty("nm7.youtube.background", "0"))) {
             SharedPlaybackSession.setTab(this, SharedPlaybackSession.TAB_YOUTUBE);
         }
-        if(SharedPlaybackSession.TAB_YOUTUBE.equals(SharedPlaybackSession.tab(this))){
+        if (SharedPlaybackSession.isYoutubeBackground(this)) {
+            if (MobileNm7Application.bringSmartTubeToFront()) {
+                return;
+            }
+            // Only fall back to Browse when the actual PlaybackActivity no longer exists.
             findViewById(android.R.id.content).postDelayed(()->{
-                if (isFinishing() || isDestroyed()) return;
-                if (!MobileNm7Application.bringSmartTubeToFront()) {
-                    try{
-                        Intent intent=new Intent(this,Class.forName("com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity"));
-                        intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT|Intent.FLAG_ACTIVITY_NO_ANIMATION);
-                        startActivity(intent);
-                        overridePendingTransition(0,0);
-                    }catch(Exception ignored){}
-                }
-            },120L);
+                if (isFinishing() || isDestroyed() || !SharedPlaybackSession.isYoutubeBackground(this)) return;
+                try{
+                    Intent intent=new Intent(this,Class.forName("com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity"));
+                    intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT|Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                    startActivity(intent);
+                    overridePendingTransition(0,0);
+                }catch(Exception ignored){}
+            },80L);
         }
     }
     @Override protected void onDestroy(){epgHandler.removeCallbacksAndMessages(null);super.onDestroy();}
@@ -89,6 +92,12 @@ public final class MainActivity extends Activity {
     }
 
     private void restoreSession() {
+        // When YouTube is actively playing in background, do not fetch/parse the IPTV
+        // playlist on the launcher critical path.
+        if (SharedPlaybackSession.isYoutubeBackground(this)) {
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         io.execute(()->{try{SessionStore.State state=SessionStore.load(getApplicationContext());ui(()->{
             String savedSource=state==null?"":PlaylistSourceStore.sourceUrl(state.source);
