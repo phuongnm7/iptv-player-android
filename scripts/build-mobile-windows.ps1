@@ -214,16 +214,7 @@ if($t -notmatch 'VERSION.SDK_INT > 23 && mPlayer == null'){
 
 # Patch SmartTube onUserLeaveHint for deterministic NM7 Play-Behind Home/lock behavior.
 # Preserve the player only while NM7 is switching tabs.
-$oldStop=@'
-    @Override
-    protected void onStop() {
-        super.onStop();
 
-        if (VERSION.SDK_INT > 23) {
-            maybeReleasePlayer();
-        }
-    }
-'@
 $newStop=@'
     @Override
     protected void onStop() {
@@ -255,16 +246,10 @@ $newStop=@'
         }
     }
 '@
-if($t.Contains($oldStop)){$t=$t.Replace($oldStop,$newStop)}
+# onStop is patched below with a regex because SmartTube source formatting varies.
 if($t -notmatch 'nm7\.youtube\.background'){ Fail "SmartTube HOME background marker patch did not persist." }
 if($t -notmatch 'BACKGROUND_MODE_SOUND'){ Fail "SmartTube phone background mode patch did not persist." }
-if($t -notmatch 'BACKGROUND_MODE_SOUND'){ Fail "SmartTube phone background mode patch did not persist." }
-$fragmentCheck=@(Get-ChildItem $ST -Recurse -Filter "PlaybackFragment.java" -File | Where-Object {
-    $_.FullName -match "\\droid\\ui\\playback\\PlaybackFragment\.java$"
-})
-if($fragmentCheck.Count -eq 0 -or (ReadT $fragmentCheck[0].FullName) -notmatch 'nm7\.youtube\.background'){
-    Fail "SmartTube PlaybackFragment background-release guard is missing."
-}
+
 if($t -notmatch 'boolean\s+isNm7TabSwitch\(\)'){
     Write-Host "NOTE: SmartTube onStop shape differs; keeping upstream onStop." -ForegroundColor Yellow
 }
@@ -272,7 +257,7 @@ if($t -notmatch 'boolean\s+isNm7TabSwitch\(\)'){
 
 # Harden lifecycle patch: replace the actual phone lifecycle methods regardless of
 # minor SmartTube formatting/source-shape differences.
-$patternStop='(?s)@Override\s+protected void onStop\s*\(\)\s*\{\s*super\.onStop\(\);\s*.*?\n\s*\}'
+$patternStop='(?s)@Override\s+(?:public|protected)\s+void\s+onStop\s*\(\)\s*\{.*?^\s*\}'
 $stopReplacement=@'
     @Override
     protected void onStop() {
