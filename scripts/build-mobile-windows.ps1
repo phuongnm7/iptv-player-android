@@ -1,5 +1,5 @@
 # NM7 IPTV Mobile 1.10.26 - Windows local build
-# SCRIPT_VERSION: 2026-09-18-PATCH8
+# SCRIPT_VERSION: 2026-09-18-PATCH9
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 $Root = Split-Path -Parent $PSScriptRoot
@@ -85,7 +85,9 @@ Get-ChildItem $ST -Recurse -Filter "build.gradle" -File | Where-Object {$_.FullN
 
 $browse=Join-Path $ST "smarttubedroid\src\main\java\com\liskovsoft\smartyoutubetv2\droid\ui\browse\BrowseActivity.java"
 if(-not(Test-Path $browse)){Fail "BrowseActivity.java not found."}
-$t=ReadT $browse; $n=$t.Replace("private static final int GRID_COLUMNS = 2;","private static final int GRID_COLUMNS = 1;")
+$t=ReadT $browse
+if($t -notmatch "extends DroidActivity"){Fail "SmartTube phone BrowseActivity is not active; TV UI source detected."}
+$n=$t.Replace("private static final int GRID_COLUMNS = 2;","private static final int GRID_COLUMNS = 1;")
 if($n -eq $t){Fail "GRID_COLUMNS declaration not found."}; WriteT $browse $n
 
 $uploads=Join-Path $ST "smarttubedroid\\src\\main\\java\\com\\liskovsoft\\smartyoutubetv2\\droid\\ui\\channeluploads\\ChannelUploadsActivity.java"
@@ -182,6 +184,8 @@ $appJava=ReadT (Join-Path $Root "app\src\main\java\vn\phuong\iptvplayer\MobileNm
 $appUi=ReadT (Join-Path $Root "app\src\main\java\vn\phuong\iptvplayer\MobileIptvUi.java")
 $appManifest=ReadT (Join-Path $Root "app\src\main\AndroidManifest.xml")
 if($appJava -notmatch "replaceSmartTubeBranding|finishReally"){Fail "NM7 runtime fixes are missing from source."}
+if($appJava -notmatch "SmartTubeRuntime\.enableBackgroundPlayback|releasePlayer"){Fail "Cross-player handoff/background playback fix is missing from source."}
+if((ReadT (Join-Path $Root "app\src\main\java\vn\phuong\iptvplayer\SmartTubeRuntime.java")) -notmatch "PLAYER_DATA_SOURCE_CRONET|BACKGROUND_MODE_PLAY_BEHIND|BACKGROUND_PLAYBACK_SHORTCUT_HOME"){Fail "SmartTube fast/background playback runtime patch is missing from source."}
 if($appUi -notmatch "nm7_inline_player|repositionToolbar"){Fail "IPTV toolbar placement fix is missing from source."}
 if($appManifest -notmatch 'MainActivity.*launchMode="singleTask"'){Fail "MainActivity singleTask preservation fix is missing."}
 
