@@ -95,7 +95,8 @@ public final class MobileNm7Application extends DroidApplication implements andr
         String name = activity.getClass().getName();
         if (activity instanceof PlayerActivity) {
             iptvPlayerActivity = activity;
-            SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_IPTV);
+            // The active tab is written only by explicit tab navigation. Do not overwrite
+            // a persisted YouTube tab during Android lifecycle callbacks.
             // Entering IPTV is an explicit media switch. Pause any active SmartTube
             // session, including Play-Behind/background playback.
             pauseExternalMedia(activity);
