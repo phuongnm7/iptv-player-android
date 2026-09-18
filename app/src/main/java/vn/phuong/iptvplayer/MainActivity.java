@@ -33,6 +33,7 @@ import java.util.concurrent.ExecutorService;
 public final class MainActivity extends Activity {
     private static final int OPEN_M3U = 101;
     private static final int PICK_WALLPAPER = 103;
+    private static final int OPEN_REVANCED_APK = 104;
     private static final int MAX_PLAYLIST_BYTES = 8 * 1024 * 1024;
     private static final String DEFAULT_PLAYLIST = PlaylistSourceStore.DEFAULT_URL;
 
@@ -53,6 +54,18 @@ public final class MainActivity extends Activity {
 
     @Override protected void onCreate(Bundle savedInstanceState) { super.onCreate(savedInstanceState); setupViews(); restoreSession(); epgHandler.post(epgTick); }
     @Override protected void onDestroy(){epgHandler.removeCallbacksAndMessages(null);super.onDestroy();}
+    @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
+        super.onActivityResult(requestCode,resultCode,data);
+        if(requestCode==OPEN_REVANCED_APK && resultCode==RESULT_OK && data!=null && data.getData()!=null){
+            Uri apk=data.getData();
+            io.execute(()->{String info;
+                try{info=RevancedBridge.inspectYouTubeApk(this,apk);}
+                catch(Exception e){info="Không đọc được APK: "+readable(e);}
+                final String result=info;
+                ui(()->new AlertDialog.Builder(this).setTitle("Kiểm tra APK YouTube").setMessage(result).setPositiveButton("Đóng",null).show());
+            });
+        }
+    }
 
     private void setupViews() {
         setContentView(R.layout.activity_main); Insets.apply(findViewById(R.id.mainRoot)); applyWallpaper();
@@ -282,27 +295,34 @@ public final class MainActivity extends Activity {
                     if(which==10)AppPreferences.setShowPlayerSource(this,!AppPreferences.showPlayerSource(this));
                     if(which==backgroundIndex){boolean enabled=!AppPreferences.backgroundPlayback(this);AppPreferences.setBackgroundPlayback(this,enabled);if(!enabled)stopService(new Intent(this,BackgroundPlaybackService.class));if(enabled&&android.os.Build.VERSION.SDK_INT>=33)requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS},104);toast(enabled?"Đã bật phát nền":"Đã tắt phát nền");}
                     if(which==recentIndex){AppPreferences.clearRecent(this);if(activeSection==2)filter();toast("Đã xóa lịch sử");}
-                    if(which==youtubeIndex)openYouTubeReVanced();
+                    if(which==youtubeIndex)showYouTubeReVancedTools();
                     if(which==aboutIndex)showAbout();
+                }).setNegativeButton("Đóng",null).show();
+    }
+    private void showYouTubeReVancedTools(){
+        new AlertDialog.Builder(this)
+                .setTitle("YouTube / ReVanced (thử nghiệm)")
+                .setItems(new String[]{"Chọn APK YouTube để kiểm tra","Mở YouTube / ReVanced đã cài"},(d,w)->{
+                    if(w==0){
+                        Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                        intent.addCategory(Intent.CATEGORY_OPENABLE);
+                        intent.setType("application/vnd.android.package-archive");
+                        startActivityForResult(intent,OPEN_REVANCED_APK);
+                    }else openYouTubeReVanced();
                 }).setNegativeButton("Đóng",null).show();
     }
     private void openYouTubeReVanced(){
         final String packageName="com.google.android.youtube";
         Intent launch=getPackageManager().getLaunchIntentForPackage(packageName);
         if(launch!=null){
-            try{
-                launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(launch);
-                toast("Đã mở YouTube / ReVanced");
-                return;
-            }catch(Exception ignored){}
+            try{ launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); startActivity(launch); toast("Đã mở YouTube / ReVanced"); return; }
+            catch(Exception ignored){}
         }
-        new AlertDialog.Builder(this)
-                .setTitle("YouTube / ReVanced chưa được cài")
-                .setMessage("NM7 không đóng gói lại APK YouTube. Khi YouTube/ReVanced được cài với package com.google.android.youtube, NM7 sẽ mở trực tiếp ứng dụng đó từ đây.")
-                .setPositiveButton("Đóng",null)
-                .show();
-    }\n    private void chooseInterfaceMode(){
+        new AlertDialog.Builder(this).setTitle("YouTube / ReVanced chưa được cài")
+                .setMessage("Chưa tìm thấy ứng dụng có package com.google.android.youtube trên thiết bị.")
+                .setPositiveButton("Đóng",null).show();
+    }
+    private void chooseInterfaceMode(){
         String[] labels={"Tự động theo thiết bị","Mobile — cảm ứng","TV — điều khiển D-pad"};
         String[] values={"auto","mobile","tv"};
         new AlertDialog.Builder(this).setTitle("Chọn giao diện")
