@@ -253,11 +253,17 @@ $leaveMethod=@'
     @Override
     public void onUserLeaveHint() {
         super.onUserLeaveHint();
-        if (mIsBackPressed || isFinishing() || getViewManager().isNewViewPending()) {
+        if (mIsBackPressed || isFinishing() || getViewManager().isNewViewPending()
+                || getGeneralData().getBackgroundPlaybackShortcut() == GeneralData.BACKGROUND_PLAYBACK_SHORTCUT_BACK) {
             return;
         }
+        // HOME/lock must explicitly enter Play-Behind before onStop. Do not rely on
+        // the previous background-mode preference because NM7 can start in DEFAULT mode.
         getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_PLAY_BEHIND);
-        enterBackgroundPlayMode();
+        if (doNotDestroy()) {
+            blockEngine(true);
+            getViewManager().blockTop(this);
+        }
     }
 
 '@
@@ -281,7 +287,7 @@ if($t -match 'void\s+onUserLeaveHint\s*\('){
 # Lock-screen transitions can arrive through onPause without onUserLeaveHint.
 # Force Play-Behind before the engine is blocked so video/audio continues.
 $pauseScreen = 'boolean isScreenOff = getPlayerData().getBackgroundMode() != PlayerData.BACKGROUND_MODE_DEFAULT && Utils.isHardScreenOff(this);'
-$pauseScreenNew = 'boolean isScreenOff = Utils.isHardScreenOff(this);' + $nl + '        if (isScreenOff) {' + $nl + '            getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_PLAY_BEHIND);' + $nl + '            startNm7BackgroundService();' + $nl + '        }'
+$pauseScreenNew = 'boolean isScreenOff = Utils.isHardScreenOff(this);' + $nl + '        if (isScreenOff) {' + $nl + '            getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_PLAY_BEHIND);' + $nl + '            if (doNotDestroy()) {' + $nl + '                blockEngine(true);' + $nl + '                getViewManager().blockTop(this);' + $nl + '            }' + $nl + '        }'
 if($t.Contains($pauseScreen)){
     $t=$t.Replace($pauseScreen,$pauseScreenNew)
 }
