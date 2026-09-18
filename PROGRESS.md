@@ -702,3 +702,137 @@ Cập nhật: **2026-09-18 09:14 +07:00**.
 Đã sửa mã theo các lỗi vừa tái hiện. Chưa đánh dấu build mới thành công cho đến khi chạy script Windows và cài APK mới.
 
 Test lại: IPTV → YouTube → IPTV; YouTube phát → Home → quay lại; YouTube Back; recommendations một cột; branding; IPTV toolbar dưới player; và thời gian mở YouTube.
+
+---
+
+# BÀN GIAO TIẾN ĐỘ — NM7 IPTV MOBILE 1.10.26 — 2026-09-19 01:56 +07:00
+
+## Trạng thái sau vòng sửa mới nhất
+
+Người dùng đã build lại Mobile 1.10.26 trên Windows và **BUILD SUCCESSFUL**.
+
+Kết quả APK xác nhận:
+- `NM7-IPTV-Mobile-1.10.26-arm64-v8a.apk` — **61,915,325 bytes**
+- `NM7-IPTV-Mobile-1.10.26-armeabi-v7a.apk` — **51,421,065 bytes**
+- Chỉ bàn giao 2 ABI Mobile: ARM64 + ARMv7.
+- Không build Android TV trong vòng này.
+- Các cảnh báo `META-INF/... not protected by signature` xuất hiện trong quá trình đóng gói là warning, không phải lỗi làm build thất bại.
+
+## Lỗi compile vừa gặp và đã xử lý
+
+Build trước đó dừng với:
+```
+error: duplicate class: vn.phuong.iptvplayer.HomeTabBar
+```
+
+Nguyên nhân là tồn tại đồng thời hai source có cùng class `HomeTabBar`:
+- `app/src/main/java/vn/phuong/iptvplayer/HomeTabBar.java`
+- `app/src/main/java/vn/phuongnm7/iptvplayer/HomeTabBar.java`
+
+Đã xóa bản trùng trong `vn/phuongnm7/iptvplayer`, giữ lại bản đúng trong `vn/phuong/iptvplayer`, đồng thời giữ các thay đổi mới cho luồng IPTV → YouTube.
+
+Commit xử lý cuối cùng:
+- `4b55b3c4005245151ba0b7f68f77e389f4a67e87` — xóa source `HomeTabBar` trùng.
+- `6d332fed6bbe6b0a0d6ca3ff06d6a76276fa23f2` — khôi phục/hoàn thiện `HomeTabBar` đúng package và luồng Mobile.
+
+Đã kiểm tra cây source sau sửa: chỉ còn **một** `HomeTabBar.java`.
+
+## IPTV → YouTube: trạng thái mã hiện tại
+
+Yêu cầu đã được sửa theo hướng:
+- Đang phát IPTV.
+- Chỉ bấm chuyển sang tab YouTube, **chưa chọn video** → IPTV phải tiếp tục phát.
+- Khi người dùng thực sự chọn một video và SmartTube `PlaybackActivity` bắt đầu → lúc đó NM7 mới pause/release IPTV để nhường decoder cho YouTube.
+
+Các commit chính:
+- `02c7f32f9d4d58f1fe01aaf94623576a95f38b45` — giữ IPTV chạy cho tới khi YouTube thực sự bắt đầu phát.
+- `2cc0d9901b3848569364f1a4d8bcee85e2e10102` — không finish `PlayerActivity` khi chỉ mở Browse YouTube.
+
+Trong `HomeTabBar.openBrowse()`, việc chuyển tab không còn gọi `activity.finish()`; SmartTube Browse được mở bằng `REORDER_TO_FRONT`. `PlayerActivity.prepareForYoutubeHandoff()` cũng không release player.
+
+## YouTube BACK → mini-player: trạng thái mã hiện tại
+
+Mục tiêu:
+- YouTube đang phát video.
+- Nhấn Back lần đầu → quay về Browse/Home YouTube và giữ video ở mini-player.
+- Không đóng ngay playback session.
+
+Đã xác định nguyên nhân của bản patch BACK trước:
+- SmartTube `PlaybackActivity.onBackPressed()` đặt `mIsBackPressed = true`.
+- `finish()` có đường dẫn `enterPipMode()` + `startParentView()`.
+- Nhưng `skipPip()` có thể trả về true khi background shortcut là HOME, khiến playback Activity bị finish trực tiếp và bỏ qua đường dẫn mini-player.
+
+Đã đổi patch sang sửa **`skipPip()`**, thay vì phụ thuộc vào hình dạng `onBackPressed()`:
+```java
+private boolean skipPip() {
+    // NM7 Mobile: BACK from a playing video must return to YouTube Browse/mini-player,
+    // not close the playback session. HOME/background handling remains separate.
+    return false;
+}
+```
+
+Commit:
+- `f877e149c4fa593958f4c4cfe5e897c797356434` — Fix BACK via SmartTube parent view path.
+- `ba63b09ad79318f0de7c476c76580edb252c9dda` — Validate SmartTube BACK patch.
+- `28e78c504a99732f0002aa221b4a2b9d7e757cb4` — Preserve YouTube mini-player on first BACK.
+
+Build script hiện dùng **PATCH15** và không còn patch trực tiếp `onBackPressed()` theo source shape cũ.
+
+## YouTube background / quay lại ứng dụng
+
+Cơ chế đã có từ vòng trước và vẫn được giữ:
+- HOME/khóa màn hình khi YouTube đang phát được xử lý theo lifecycle/background mode của SmartTube.
+- Tab YouTube được lưu vào `SharedPlaybackSession`.
+- Khi mở lại NM7, có cơ chế đưa SmartTube Playback/Browse hiện hữu lên trước thay vì tạo lại luồng không cần thiết.
+- Manifest Mobile giữ task state và launch mode phù hợp để bảo toàn phiên.
+- Không coi đây là xác nhận cuối cùng cho đến khi test máy thật trên APK build mới.
+
+## Tối ưu tốc độ YouTube hiện có
+
+- SmartTube runtime dùng Cronet/player data source và connection keep-alive/connection pool.
+- Có pre-warm SmartTube runtime.
+- Giảm traversal UI không cần thiết.
+- Browse/recommendations được ép theo hướng phone/mobile và một cột.
+- MainActivity fallback khi khôi phục YouTube đã giảm delay xuống khoảng 80ms.
+- Các tối ưu này là tối ưu khởi động/runtime; tốc độ tải video thực tế vẫn phải xác minh trên thiết bị thật.
+
+## Các thay đổi Mobile khác đang giữ nguyên
+
+- Phạm vi vẫn là **NM7 IPTV Mobile**, không đưa Android TV vào bản này.
+- SmartTube phone/touch fork + upstream 32.47s.
+- Media3/ExoPlayer resource collision đã được xử lý.
+- OkHttp/AGP/Kotlin/compile compatibility của SmartTube đã xử lý.
+- IPTV vẫn dùng Media3 player.
+- ABI output chỉ ARM64 + ARMv7.
+- Branding/logo Mobile đã được điều chỉnh theo các yêu cầu trước.
+- Thanh tìm kiếm/tùy chọn IPTV đã được đưa xuống dưới player để tăng không gian hiển thị video.
+
+## Trạng thái kiểm thử — CHỜ NGƯỜI DÙNG TEST
+
+Build hiện tại đã **compile/package thành công**, nhưng các hành vi dưới đây chưa được đánh dấu PASS trên máy thật:
+
+1. IPTV đang phát → bấm YouTube, **không chọn video** → IPTV vẫn phát.
+2. Sau đó chọn video YouTube → IPTV chỉ dừng khi YouTube PlaybackActivity thực sự bắt đầu.
+3. YouTube đang phát → Back 1 lần → Browse/Home + mini-player, video tiếp tục.
+4. YouTube đang phát → Home/khóa màn hình → xử lý background đúng yêu cầu.
+5. Mở lại NM7 → vẫn ở YouTube và khôi phục đúng video.
+6. Chuyển IPTV ↔ YouTube nhiều lần không overlap/thoát bất thường.
+7. YouTube load nhanh hơn và không bị thoát khi mở video.
+8. UI YouTube vẫn đúng phone/mobile, không quay lại layout TV.
+9. Chữ tiếng Việt trong SmartTube hiển thị đúng.
+10. IPTV player và thanh tìm kiếm/tùy chọn không bị che hoặc mất diện tích bất thường.
+
+## Quy tắc xử lý vòng tiếp theo
+
+- Chờ kết quả test thực tế từ người dùng trước khi tiếp tục sửa.
+- Nếu có lỗi: ghi lại bước tái hiện, kết quả thực tế, ảnh/video/log nếu có; sau đó mới xác định nguyên nhân và sửa.
+- Không quay lại phương án dùng một ExoPlayer literal chung nếu chưa có thiết kế lifecycle chắc chắn; các thử nghiệm shared-player trước đây đã gây regression.
+- Không đưa TV code/UI vào Mobile.
+- Không đánh dấu 1.10.26 ổn định hoàn toàn chỉ vì build thành công.
+- Khi cần tạo APK mới sau khi sửa mã ứng dụng, phải cập nhật version theo quy trình của dự án trước khi bàn giao.
+
+## Điểm dừng để tiếp tục
+
+**Hiện tại không cần sửa thêm trước khi test.**
+
+Người dùng đã có APK build thành công và sẽ cài/test trên điện thoại. Kết quả test tiếp theo sẽ là đầu vào trực tiếp cho vòng sửa tiếp theo.
