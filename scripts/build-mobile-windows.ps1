@@ -119,6 +119,8 @@ if($stxt -notmatch 'name="section_is_empty"'){
     WriteT $smartStrings $stxt
 }
 $t=ReadT $play
+$t=$t.Replace('getString(R.string.section_is_empty)', '"Section is empty"')
+# The SmartTube snapshot may omit this generated string resource; keep the build independent of it.
 if($t -notmatch 'import android.content.Intent;'){$t=$t.Replace("import android.content.Context;",("import android.content.Context;"+$nl+"import android.content.Intent;"))}
 
 # Keep the phone SmartTube ExoPlayer instance alive across Android HOME/background.
