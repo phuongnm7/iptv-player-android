@@ -110,7 +110,7 @@ if(-not(Test-Path $play)){Fail "PlaybackActivity.java not found."}
 $t=ReadT $play
 if($t -notmatch 'import android.content.Intent;'){$t=$t.Replace("import android.content.Context;",("import android.content.Context;"+$nl+"import android.content.Intent;"))}
 
-# Upstream SmartTube 32.47s already defines onUserLeaveHint(). Do not inject a second callback.
+# Patch SmartTube onUserLeaveHint for deterministic NM7 Play-Behind Home/lock behavior.
 # Preserve the player only while NM7 is switching tabs.
 $oldStop=@'
     @Override
@@ -141,9 +141,26 @@ $newStop=@'
     }
 '@
 if($t.Contains($oldStop)){$t=$t.Replace($oldStop,$newStop)}
-elseif($t -notmatch 'boolean\s+isNm7TabSwitch\(\)'){
+if($t -notmatch 'boolean\s+isNm7TabSwitch\(\)'){
     Fail "PlaybackActivity onStop block not found in SmartTube 32.47s."
 }
+
+# Force Play-Behind when the user leaves the app. Android calls onUserLeaveHint()
+# for HOME; lock-screen handling is covered by the onPause screen-off patch below.
+$leaveStart=$t.IndexOf("    public void onUserLeaveHint()")
+$leaveEnd=$t.IndexOf("    public boolean isInPipMode()", $leaveStart)
+if($leaveStart -lt 0 -or $leaveEnd -lt 0){Fail "PlaybackActivity onUserLeaveHint block not found."}
+$leaveMethod=@'
+    public void onUserLeaveHint() {
+        if (mIsBackPressed || isFinishing() || getViewManager().isNewViewPending()) {
+            return;
+        }
+        getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_PLAY_BEHIND);
+        enterBackgroundPlayMode();
+    }
+
+'@
+$t=$t.Substring(0,$leaveStart)+$leaveMethod+$t.Substring($leaveEnd)
 
 # Back from the SmartTube player must return to the phone Browse screen.
 if($t -notmatch 'FLAG_ACTIVITY_REORDER_TO_FRONT\s*\|\s*Intent\.FLAG_ACTIVITY_NO_ANIMATION'){
