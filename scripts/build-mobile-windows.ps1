@@ -289,6 +289,7 @@ $newLeave=@'
 
         getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_SOUND);
         System.setProperty("nm7.youtube.background", "1");
+        vn.phuongnm7.iptvplayer.SharedPlaybackSession.setTab(this, vn.phuongnm7.iptvplayer.SharedPlaybackSession.TAB_YOUTUBE);
         blockEngine(true);
         getViewManager().blockTop(this);
     }
