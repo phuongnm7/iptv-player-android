@@ -45,6 +45,9 @@ public final class MobileNm7Application extends DroidApplication implements andr
     @Override public void onCreate() {
         super.onCreate();
         instance = this;
+        // This flag is process-transient: if Android killed the process, the YouTube
+        // player is gone too, so a new launch must not be forced back into YouTube.
+        SharedPlaybackSession.clearTransientState(getApplicationContext());
         System.setProperty("http.keepAlive", "true");
         System.setProperty("http.maxConnections", "8");
         System.setProperty("http.keepAliveDuration", "300000");
@@ -107,6 +110,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
         } else if (SMARTTUBE_PLAYBACK.equals(name)) {
             smartTubePlaybackActivity = activity;
             SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_YOUTUBE);
+            SharedPlaybackSession.setYoutubeBackground(activity, false);
             // Do not enable Play-Behind merely because PlaybackActivity was created.
             // Background mode is entered only from SmartTube's HOME/lock lifecycle. This
             // prevents the initial YouTube play request from being treated as background media.
@@ -269,24 +273,13 @@ public final class MobileNm7Application extends DroidApplication implements andr
     }
 
     private void installSmartTubeBrowseFixes(Activity activity) {
-        installSmartTubeFontFix(activity);
         View root = activity.findViewById(android.R.id.content);
         if (root == null) return;
+        // GRID_COLUMNS is patched directly in SmartTube BrowseActivity.java during build.
+        // Do not recursively rewrite every RecyclerView after layout; that work caused
+        // unnecessary measure/layout passes and delayed the first YouTube frame.
         replaceSmartTubeBranding(root);
-        forceSingleColumn(root);
-        // SmartTube attaches some recommendation RecyclerViews after the first layout.
-        // Use bounded one-shot passes rather than an onGlobalLayout recursion, which can
-        // continuously invalidate GridLayoutManager and stall the phone UI.
-        android.os.Handler h = new android.os.Handler(android.os.Looper.getMainLooper());
-        h.postDelayed(() -> {
-            if (!activity.isFinishing() && !activity.isDestroyed()) forceSingleColumn(root);
-        }, 150L);
-        h.postDelayed(() -> {
-            if (!activity.isFinishing() && !activity.isDestroyed()) forceSingleColumn(root);
-        }, 500L);
-        h.postDelayed(() -> {
-            if (!activity.isFinishing() && !activity.isDestroyed()) forceSingleColumn(root);
-        }, 1200L);
+        installSmartTubeFontFix(activity);
     }
 
     /** Convert the phone Browse feed from the fork's 2-column grid to a single-column feed. */
