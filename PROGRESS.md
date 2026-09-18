@@ -1,3 +1,40 @@
+# ĐIỂM DỪNG MỚI NHẤT — NM7 IPTV MOBILE 1.10.26 (2026-09-18)
+
+## Trạng thái tiếp tục sau khi mất lịch sử chat
+
+- Nhánh: `fix/mobile-1.10.26-sleep-timer-icon`
+- Commit hiện tại: `ab720746d96ad48b5dab6a24dc36a140f8a00265`
+- Chỉ làm **Mobile**, không đưa phần TV vào bản Mobile.
+- Build local trước đó đã thành công và tạo 2 APK: `arm64-v8a` và `armeabi-v7a`.
+- Lỗi người dùng xác nhận trên bản đó:
+  1. IPTV đang phát -> chuyển YouTube -> video YouTube không giữ PLAY, bấm PLAY lại dừng.
+  2. Nhấn HOME khi YouTube đang phát -> YouTube không tiếp tục chạy nền.
+  3. Quay lại ứng dụng -> thường bị quay về tab IPTV thay vì tab YouTube.
+  4. Logo Phuongnm7 TV ở tab IPTV còn quá lớn.
+  5. Yêu cầu nâng vùng player IPTV bằng cách đưa thanh tìm kênh lên cao hơn.
+  6. Yêu cầu mô hình **một playback owner/player hoạt động tại một thời điểm** cho IPTV/YouTube.
+
+## Các thay đổi đã thực hiện ở điểm dừng này
+
+- Thêm `SharedPlaybackSession.java`: lưu tab hiện tại và trạng thái IPTV (URL, tên, MIME, headers, options, position, playing) để chuyển giữa IPTV/YouTube mà không mất phiên.
+- Khi chuyển IPTV -> YouTube, `PlayerActivity.prepareForYoutubeHandoff()` lưu vị trí và release IPTV player **trước** khi SmartTube PlaybackActivity khởi động, tránh race lifecycle.
+- Bỏ việc `MobileNm7Application` release IPTV lần nữa trong `onActivityStarted(YouTube PlaybackActivity)`; SmartTube không còn bị can thiệp ngay lúc player khởi tạo.
+- Thêm thanh tab YouTube/IPTV trực tiếp trên `PlayerActivity`; vùng player được chừa 64dp phía dưới cho thanh tab.
+- Khi quay YouTube -> IPTV, nếu player IPTV không còn sống thì khôi phục player từ `SharedPlaybackSession`.
+- Bỏ `singleTask` khỏi `MainActivity`, bật `alwaysRetainTaskState`; nguyên nhân là `singleTask` có thể đưa MainActivity lên và loại các Activity YouTube nằm phía trên khỏi task.
+- Nếu launcher tạo lại MainActivity trong khi tab cuối là YouTube, MainActivity tự đưa SmartTube Browse lên lại.
+- Thu nhỏ logo Mobile IPTV từ 42dp xuống 26dp; giảm chiều cao thanh tìm kiếm và nhóm kênh để tăng không gian nội dung.
+- SmartTube build patch: khi HOME, đặt `BACKGROUND_MODE_PLAY_BEHIND`, khởi động `BackgroundPlaybackService`, rồi vào background play mode.
+- Build script đã được cập nhật để kiểm tra shared playback session và đảm bảo Mobile không dùng `MainActivity singleTask`.
+
+## Lưu ý kiến trúc
+
+- “Dùng chung một player” được triển khai theo nghĩa **một playback owner/decoder hoạt động tại một thời điểm**: IPTV được release trước khi SmartTube player khởi động và được khôi phục sau khi quay lại.
+- SmartTube vẫn phải dùng engine playback của SmartTube để resolve/phát stream YouTube; không thể đơn giản ép cùng Media3 ExoPlayer của IPTV nhận trực tiếp toàn bộ pipeline YouTube mà vẫn giữ nguyên SmartTube extraction/authentication.
+- Không chạy lại từ đầu. Bước kế tiếp là build Mobile 1.10.26 từ commit mới nhất và test 6 trường hợp: IPTV -> YouTube -> PLAY; HOME; quay lại app; YouTube -> IPTV; IPTV resume; logo/search layout.
+
+---
+
 # GHI NHẬN LỖI MỚI — NM7 IPTV MOBILE 1.10.24: chưa tự tải lại playlist khi mở ứng dụng (2026-09-14)
 
 ## Trạng thái Mobile hiện tại
