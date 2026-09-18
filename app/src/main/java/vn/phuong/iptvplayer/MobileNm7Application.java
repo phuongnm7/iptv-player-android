@@ -105,9 +105,9 @@ public final class MobileNm7Application extends DroidApplication implements andr
             smartTubeBrowseActivity = activity;
         } else if (SMARTTUBE_PLAYBACK.equals(name)) {
             smartTubePlaybackActivity = activity;
-            // A real YouTube video has started. Configure Play-Behind and release the
-            // IPTV decoder so the two video engines never contend for hardware resources.
-            pauseIptvPlayer();
+            // IPTV is handed off before Browse/PlaybackActivity is launched. Do not release
+            // it again from this lifecycle callback: that race can interrupt SmartTube startup.
+            SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_YOUTUBE);
         }
     }
 
