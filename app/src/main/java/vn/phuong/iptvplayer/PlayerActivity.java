@@ -58,6 +58,8 @@ public final class PlayerActivity extends Activity {
     public static final String EXTRA_NAME = "name", EXTRA_URL = "url";
     public static final String EXTRA_USER_AGENT = "user_agent", EXTRA_REFERER = "referer", EXTRA_ORIGIN = "origin";
     public static final String EXTRA_HEADERS = "headers", EXTRA_MIME = "mime", EXTRA_OPTIONS = "options";
+    public static final String EXTRA_POSITION = "position", EXTRA_PLAYING = "playing";
+    private static PlayerActivity currentInstance;
     private ExoPlayer player;
     private PlayerView playerView;
     private TextView status;
@@ -123,11 +125,22 @@ public final class PlayerActivity extends Activity {
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
+        currentInstance = this;
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
         setContentView(R.layout.activity_player);
         Insets.apply(findViewById(R.id.playerRoot));
         url = value(EXTRA_URL); name = value(EXTRA_NAME); mime = value(EXTRA_MIME);
+        if (url.isEmpty()) {
+            SharedPlaybackSession.State saved = SharedPlaybackSession.loadIptv(this);
+            if (saved != null) {
+                name = saved.name; url = saved.url; mime = saved.mime;
+                currentHeaders = saved.headers; options = saved.options;
+                position = saved.position; resumePlayback = saved.playing;
+            }
+        }
+        if (getIntent().hasExtra(EXTRA_POSITION)) position = getIntent().getLongExtra(EXTRA_POSITION, position);
+        if (getIntent().hasExtra(EXTRA_PLAYING)) resumePlayback = getIntent().getBooleanExtra(EXTRA_PLAYING, resumePlayback);
         ArrayList<String> passedOptions = getIntent().getStringArrayListExtra(EXTRA_OPTIONS);
         if (passedOptions != null) options = passedOptions;
         Bundle passedHeaders = getIntent().getBundleExtra(EXTRA_HEADERS);
@@ -298,7 +311,24 @@ public final class PlayerActivity extends Activity {
     private int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);} private void acquireMulticast(){WifiManager wifi=(WifiManager)getApplicationContext().getSystemService(WIFI_SERVICE);if(wifi!=null){multicastLock=wifi.createMulticastLock("iptv-stream");multicastLock.setReferenceCounted(false);multicastLock.acquire();}}
     private void showSource(){TextView v=new TextView(this);v.setText(url);v.setTextIsSelectable(true);v.setPadding(24,16,24,16);android.widget.ScrollView s=new android.widget.ScrollView(this);s.addView(v);new AlertDialog.Builder(this).setTitle("URL nguồn").setView(s).setPositiveButton("Đóng",null).show();}
     private void showError(String m){findViewById(R.id.playerError).setVisibility(View.VISIBLE);((TextView)findViewById(R.id.txtPlayerError)).setText(m);playerView.showController();} private String value(String k){String v=getIntent().getStringExtra(k);return v==null?"":v;}
-    private void rememberPosition(){if(player!=null){position=player.isCurrentMediaItemLive()?0:player.getCurrentPosition();resumePlayback=player.getPlayWhenReady();}}
+    private void rememberPosition(){
+        if(player!=null){
+            position=player.isCurrentMediaItemLive()?0:player.getCurrentPosition();
+            resumePlayback=player.getPlayWhenReady();
+        }
+        if(url!=null&&!url.isEmpty()){
+            SharedPlaybackSession.saveIptv(this,name,url,mime,currentHeaders,options,position,resumePlayback);
+        }
+    }
+    public static void prepareForYoutubeHandoff(android.content.Context context){
+        PlayerActivity activity=currentInstance;
+        if(activity==null||activity.isFinishing()||activity.isDestroyed()) return;
+        activity.rememberPosition();
+        activity.backgroundPlaybackActive=false;
+        activity.releasePlayer();
+        activity.stopService(new android.content.Intent(activity,BackgroundPlaybackService.class));
+        SharedPlaybackSession.setTab(activity,SharedPlaybackSession.TAB_YOUTUBE);
+    }
     @Override protected void onSaveInstanceState(Bundle out){rememberPosition();out.putLong("position",position);out.putBoolean("playing",resumePlayback);out.putInt("quality",quality);out.putInt("resize",resizeMode);out.putString("mime",mime);super.onSaveInstanceState(out);} @Override protected void onStop(){activityStarted=false;fpsHandler.removeCallbacks(fpsUpdate);clockHandler.removeCallbacks(clockUpdate);rememberPosition();if(!backgroundPlaybackActive){recoveryHandler.removeCallbacksAndMessages(null);releasePlayer();}super.onStop();}
-    private void releasePlayer(){bufferingSinceMs=0;recoveryHandler.removeCallbacks(stalledPlaybackCheck);if(player!=null){playerView.setPlayer(null);player.release();player=null;}videoCounters=null;fpsMeter.reset();if(multicastLock!=null){if(multicastLock.isHeld())multicastLock.release();multicastLock=null;}} @Override protected void onDestroy(){drmIo.shutdownNow();if(isFinishing()||!backgroundPlaybackActive){stopService(new android.content.Intent(this,BackgroundPlaybackService.class));releasePlayer();}super.onDestroy();}
+    private void releasePlayer(){bufferingSinceMs=0;recoveryHandler.removeCallbacks(stalledPlaybackCheck);if(player!=null){playerView.setPlayer(null);player.release();player=null;}videoCounters=null;fpsMeter.reset();if(multicastLock!=null){if(multicastLock.isHeld())multicastLock.release();multicastLock=null;}} @Override protected void onDestroy(){if(currentInstance==this)currentInstance=null;drmIo.shutdownNow();if(isFinishing()||!backgroundPlaybackActive){stopService(new android.content.Intent(this,BackgroundPlaybackService.class));releasePlayer();}super.onDestroy();}
 }
