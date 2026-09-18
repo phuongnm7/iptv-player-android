@@ -54,19 +54,6 @@ public final class MainActivity extends Activity {
 
     @Override protected void onCreate(Bundle savedInstanceState) { super.onCreate(savedInstanceState); setupViews(); restoreSession(); epgHandler.post(epgTick); }
     @Override protected void onDestroy(){epgHandler.removeCallbacksAndMessages(null);super.onDestroy();}
-    @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
-        super.onActivityResult(requestCode,resultCode,data);
-        if(requestCode==OPEN_REVANCED_APK && resultCode==RESULT_OK && data!=null && data.getData()!=null){
-            Uri apk=data.getData();
-            io.execute(()->{String info;
-                try{info=RevancedBridge.inspectYouTubeApk(this,apk);}
-                catch(Exception e){info="Không đọc được APK: "+readable(e);}
-                final String result=info;
-                ui(()->new AlertDialog.Builder(this).setTitle("Kiểm tra APK YouTube").setMessage(result).setPositiveButton("Đóng",null).show());
-            });
-        }
-    }
-
     private void setupViews() {
         setContentView(R.layout.activity_main); Insets.apply(findViewById(R.id.mainRoot)); applyWallpaper();
         inputUrl=findViewById(R.id.inputUrl); inputSearch=findViewById(R.id.inputSearch); groupRow=findViewById(R.id.groupRow);
@@ -172,7 +159,23 @@ public final class MainActivity extends Activity {
     }
 
     private void openFilePicker(){Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("*/*");startActivityForResult(i,OPEN_M3U);}
-    @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(result!=RESULT_OK||data==null||data.getData()==null)return;Uri uri=data.getData();if(request==OPEN_M3U)readLocalFile(uri);if(request==PICK_WALLPAPER){io.execute(()->{try{WallpaperStore.importPhoto(getApplicationContext(),uri);ui(()->{applyWallpaper();toast("Đã đổi hình nền");});}catch(Exception e){ui(()->toast("Không mở được hình nền: "+readable(e)));}});}}
+    @Override protected void onActivityResult(int request,int result,Intent data){
+        super.onActivityResult(request,result,data);
+        if(request==OPEN_REVANCED_APK && result==RESULT_OK && data!=null && data.getData()!=null){
+            Uri apk=data.getData();
+            io.execute(()->{String info;
+                try{info=RevancedBridge.inspectYouTubeApk(this,apk);}
+                catch(Exception e){info="Không đọc được APK: "+readable(e);}
+                final String resultMessage=info;
+                ui(()->new AlertDialog.Builder(this).setTitle("Kiểm tra APK YouTube").setMessage(resultMessage).setPositiveButton("Đóng",null).show());
+            });
+            return;
+        }
+        if(result!=RESULT_OK||data==null||data.getData()==null)return;
+        Uri uri=data.getData();
+        if(request==OPEN_M3U)readLocalFile(uri);
+        if(request==PICK_WALLPAPER){io.execute(()->{try{WallpaperStore.importPhoto(getApplicationContext(),uri);ui(()->{applyWallpaper();toast("Đã đổi hình nền");});}catch(Exception e){ui(()->toast("Không mở được hình nền: "+readable(e)));}});}
+    }
     private void readLocalFile(Uri uri){int requestGeneration=++playlistRequestGeneration;setLoading(true);io.execute(()->{try(InputStream s=getContentResolver().openInputStream(uri)){if(s==null)throw new Exception("Không thể mở tệp");M3uParser.Result r=parser.parse(readText(s),"");ui(()->{if(requestGeneration==playlistRequestGeneration)showPlaylist(r,uri.toString());});}catch(Exception e){ui(()->{if(requestGeneration==playlistRequestGeneration)showError("Không đọc được tệp: "+readable(e));});}});}
     private String readText(InputStream s)throws Exception{ByteArrayOutputStream b=new ByteArrayOutputStream();byte[] chunk=new byte[8192];int total=0,n;while((n=s.read(chunk))!=-1){total+=n;if(total>MAX_PLAYLIST_BYTES)throw new Exception("Playlist lớn hơn 8 MB. Với link video, dùng Phát URL.");b.write(chunk,0,n);}return b.toString(StandardCharsets.UTF_8.name());}
     private void showPlaylist(M3uParser.Result r,String source){showPlaylist(r,source,false);}
