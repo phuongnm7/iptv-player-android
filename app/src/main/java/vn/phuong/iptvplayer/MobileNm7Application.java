@@ -52,7 +52,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
         // Pre-warm SmartTube's ViewManager/class graph after the IPTV UI is usable.
         // This moves one-time reflection/class-loading cost out of the first YouTube tap.
         new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(
-                () -> SmartTubeRuntime.initialize(getApplicationContext()), 900L);
+                () -> SmartTubeRuntime.initialize(getApplicationContext()), 150L);
     }
 
     public static void markTabSwitch() {
@@ -61,7 +61,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
             // Shared process marker read by the vendored SmartTube phone player.
             // Keep it alive long enough for the outgoing Activity to reach onStop().
             System.setProperty("nm7.tab.switch.until",
-                    Long.toString(SystemClock.uptimeMillis() + 5000L));
+                    Long.toString(System.currentTimeMillis() + 5000L));
         }
     }
 
