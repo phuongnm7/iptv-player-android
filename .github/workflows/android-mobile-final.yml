@@ -85,15 +85,63 @@ jobs:
           # NM7 sets a short-lived process property before bringing the other tab to front.
           playback = root / 'smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java'
           t = playback.read_text()
-          t2 = t.replace('import android.content.Context;\\n', 'import android.content.Context;\\nimport android.content.Intent;\\n')
-          old_stop = '''    @Override\\n    protected void onStop() {\\n        super.onStop();\\n\\n        if (VERSION.SDK_INT > 23) {\\n            maybeReleasePlayer();\\n        }\\n    }'''
-          new_stop = '''    @Override\\n    protected void onStop() {\\n        super.onStop();\\n\\n        // NM7 tab navigation must not destroy the YouTube player. The property is a\\n        // short-lived handoff marker shared by the two integrated Activities.\\n        if (VERSION.SDK_INT > 23 && !isNm7TabSwitch()) {\\n            maybeReleasePlayer();\\n        }\\n    }\\n\\n    private boolean isNm7TabSwitch() {\\n        try {\\n            String until = System.getProperty("nm7.tab.switch.until", "0");\\n            return Long.parseLong(until) > android.os.SystemClock.uptimeMillis();\\n        } catch (RuntimeException ignored) {\\n            return false;\\n        }\\n    }'''
+          t2 = t.replace('import android.content.Context;\n', 'import android.content.Context;\nimport android.content.Intent;\n')
+          old_stop = '''    @Override
+    protected void onStop() {
+        super.onStop();
+
+        if (VERSION.SDK_INT > 23) {
+            maybeReleasePlayer();
+        }
+    }'''
+          new_stop = '''    @Override
+    protected void onStop() {
+        super.onStop();
+
+        // NM7 tab navigation must not destroy the YouTube player.
+        if (VERSION.SDK_INT > 23 && !isNm7TabSwitch()) {
+            maybeReleasePlayer();
+        }
+    }
+
+    private boolean isNm7TabSwitch() {
+        try {
+            String until = System.getProperty("nm7.tab.switch.until", "0");
+            return Long.parseLong(until) > android.os.SystemClock.uptimeMillis();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
+    }'''
           if old_stop not in t2:
               raise SystemExit('PlaybackActivity onStop block not found')
           t2 = t2.replace(old_stop, new_stop)
 
-          # Back from the player always returns to the phone Browse screen instead of\\n          # finishing the whole SmartTube task.\\n          old_back = '''    @Override\\n    public void onBackPressed() {\\n        mIsBackPressed = true;\\n\\n        super.onBackPressed();\\n    }'''
-          new_back = '''    @Override\\n    public void onBackPressed() {\\n        if (mIsBackPressed) {\\n            return;\\n        }\\n\\n        mIsBackPressed = true;\\n        try {\\n            Intent intent = new Intent(this,\\n                    Class.forName("com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity"));\\n            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NO_ANIMATION);\\n            startActivity(intent);\\n            overridePendingTransition(0, 0);\\n            finish();\\n            overridePendingTransition(0, 0);\\n        } catch (ReflectiveOperationException | RuntimeException e) {\\n            super.onBackPressed();\\n        }\\n    }'''
+          # Back from the player always returns to the phone Browse screen.
+          old_back = '''    @Override
+    public void onBackPressed() {
+        mIsBackPressed = true;
+
+        super.onBackPressed();
+    }'''
+          new_back = '''    @Override
+    public void onBackPressed() {
+        if (mIsBackPressed) {
+            return;
+        }
+
+        mIsBackPressed = true;
+        try {
+            Intent intent = new Intent(this,
+                    Class.forName("com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity"));
+            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NO_ANIMATION);
+            startActivity(intent);
+            overridePendingTransition(0, 0);
+            finish();
+            overridePendingTransition(0, 0);
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            super.onBackPressed();
+        }
+    }'''
           if old_back not in t2:
               raise SystemExit('PlaybackActivity onBackPressed block not found')
           t2 = t2.replace(old_back, new_back)
