@@ -401,10 +401,12 @@ public final class MobileNm7Application extends DroidApplication implements andr
                     callbackType.getClassLoader(), new Class<?>[]{callbackType},
                     (proxy, method, args) -> {
                         if ("onBackInvoked".equals(method.getName())) {
-                            bringSmartTubeBrowseToFront();
+                            // Let the patched SmartTube PlaybackActivity handle BACK.
+                            // Its first BACK navigates to Browse/mini-player instead of
+                            // destroying the playback session immediately.
                             try {
-                                Method finishReally = activity.getClass().getMethod("finishReally");
-                                finishReally.invoke(activity);
+                                Method back = activity.getClass().getMethod("onBackPressed");
+                                back.invoke(activity);
                             } catch (ReflectiveOperationException | RuntimeException ignored) {
                                 try { activity.finish(); } catch (RuntimeException ignoredAgain) { }
                             }
