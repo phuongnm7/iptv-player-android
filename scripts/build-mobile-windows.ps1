@@ -180,6 +180,9 @@ if($t.Contains($oldResume)){$t=$t.Replace($oldResume,$newResume)}
 if($t -notmatch 'setBackgroundMode(PlayerData.BACKGROUND_MODE_DEFAULT)'){
     Fail "PlaybackActivity onResume block not found in SmartTube 32.47s."
 }
+if($t -notmatch 'VERSION.SDK_INT > 23 && mPlayer == null'){
+    Fail "PlaybackActivity HOME resume-preservation patch is missing."
+}
 
 # Patch SmartTube onUserLeaveHint for deterministic NM7 Play-Behind Home/lock behavior.
 # Preserve the player only while NM7 is switching tabs.
