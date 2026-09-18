@@ -48,10 +48,17 @@ public final class HomeTabBar {
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(activity, 64), Gravity.BOTTOM);
         host.addView(bar, lp);
+        if (activity instanceof MainActivity) {
+            View root = activity.findViewById(R.id.mainRoot);
+            if (root != null) {
+                root.setPadding(root.getPaddingLeft(), root.getPaddingTop(), root.getPaddingRight(),
+                        root.getPaddingBottom() + dp(activity, 64));
+            }
+        }
     }
 
     private static void startWithoutAnimation(Activity activity, Intent intent) {
-        intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION | Intent.FLAG_ACTIVITY_NO_USER_ACTION);
         activity.startActivity(intent);
         // Keep the two integrated activities visually stable instead of showing two windows
         // side-by-side during Android's default slide transition.
