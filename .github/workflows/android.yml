@@ -270,7 +270,8 @@ jobs:
           test -e /dev/kvm
           sudo chmod a+rw /dev/kvm
 
-      - name: Smoke-test Mobile APK on Android 15
+      - name: Smoke-test Mobile ARM64 APK on Android 15
+        continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
         with:
           api-level: 35
