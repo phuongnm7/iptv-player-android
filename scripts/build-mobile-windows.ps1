@@ -58,6 +58,8 @@ New-Item -ItemType Directory -Force (Split-Path $ST) | Out-Null
 Run git @("clone","--depth","1","--recurse-submodules","https://github.com/systematiq-one/SmartTube-droid.git",$ST)
 Run git @("-C",$ST,"submodule","update","--init","--force","--recursive")
 Run git @("-C",$ST,"remote","add","upstream","https://github.com/yuliskov/SmartTube.git")
+Run git @("-C",$ST,"config","user.name","NM7 Windows Build")
+Run git @("-C",$ST,"config","user.email","nm7-build@users.noreply.github.com")
 Run git @("-C",$ST,"fetch","--unshallow","origin")
 Run git @("-C",$ST,"fetch","upstream","refs/tags/32.47s")
 Run git @("-C",$ST,"merge","--no-edit","FETCH_HEAD")
