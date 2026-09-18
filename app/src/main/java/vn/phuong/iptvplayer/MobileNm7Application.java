@@ -208,6 +208,30 @@ public final class MobileNm7Application extends DroidApplication implements andr
                 && !instance.iptvPlayerActivity.isFinishing();
     }
 
+    /** Bring the actual YouTube playback/browse Activity back after HOME/process recreation. */
+    public static boolean bringSmartTubeToFront() {
+        if (instance == null) return false;
+        try {
+            Activity playback = instance.smartTubePlaybackActivity;
+            if (playback != null && !playback.isFinishing() && !playback.isDestroyed()) {
+                Intent intent = new Intent(playback, playback.getClass());
+                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                playback.startActivity(intent);
+                playback.overridePendingTransition(0, 0);
+                return true;
+            }
+            Activity browse = instance.smartTubeBrowseActivity;
+            if (browse != null && !browse.isFinishing() && !browse.isDestroyed()) {
+                Intent intent = new Intent(browse, browse.getClass());
+                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                browse.startActivity(intent);
+                browse.overridePendingTransition(0, 0);
+                return true;
+            }
+        } catch (RuntimeException ignored) { }
+        return false;
+    }
+
     /** Pause the integrated IPTV player as soon as a real SmartTube playback Activity starts. */
     private void pauseIptvPlayer() {
         Activity activity = iptvPlayerActivity;
