@@ -79,6 +79,9 @@ public final class PlayerActivity extends Activity {
     private boolean resolvingStreamMime;
     private boolean activityStarted;
     private boolean backgroundPlaybackActive;
+    // Explicit handoff guard: switching to YouTube is navigation only; keep the IPTV
+    // ExoPlayer alive until SmartTube PlaybackActivity actually starts a video.
+    private boolean keepPlayerForTabSwitch;
     private final Handler fpsHandler = new Handler(Looper.getMainLooper());
     private final Handler clockHandler = new Handler(Looper.getMainLooper());
     private final Handler recoveryHandler = new Handler(Looper.getMainLooper());
@@ -165,9 +168,9 @@ public final class PlayerActivity extends Activity {
         findViewById(R.id.btnDrm).setOnClickListener(v -> configureDrm()); findViewById(R.id.btnResize).setOnClickListener(v -> chooseResizeMode());
         findViewById(R.id.btnRetry).setOnClickListener(v -> { position = 0; resumePlayback = true; releasePlayer(); startPlayer(); }); setupMobileEdgeGestures(); loadQuickChannels();
     }
-    @Override protected void onStart() { super.onStart(); activityStarted = true; stopService(new android.content.Intent(this,BackgroundPlaybackService.class)); backgroundPlaybackActive=false; fpsHandler.post(fpsUpdate); clockHandler.post(clockUpdate); startPlayer(); }
+    @Override protected void onStart() { super.onStart(); activityStarted = true; keepPlayerForTabSwitch = false; stopService(new android.content.Intent(this,BackgroundPlaybackService.class)); backgroundPlaybackActive=false; fpsHandler.post(fpsUpdate); clockHandler.post(clockUpdate); startPlayer(); }
     @Override protected void onResume(){super.onResume();if(player!=null)player.setWakeMode(C.WAKE_MODE_NONE);}
-    @Override protected void onPause(){if(!MobileNm7Application.isTabSwitchPending()&&shouldUseBackgroundPlayback()&&!isFinishing()&&player!=null){backgroundPlaybackActive=true;player.setWakeMode(C.WAKE_MODE_NETWORK);android.content.Intent service=new android.content.Intent(this,BackgroundPlaybackService.class).putExtra(BackgroundPlaybackService.EXTRA_CHANNEL_NAME,name);if(android.os.Build.VERSION.SDK_INT>=26)startForegroundService(service);else startService(service);}super.onPause();}
+    @Override protected void onPause(){if(!keepPlayerForTabSwitch&&!MobileNm7Application.isTabSwitchPending()&&shouldUseBackgroundPlayback()&&!isFinishing()&&player!=null){backgroundPlaybackActive=true;player.setWakeMode(C.WAKE_MODE_NETWORK);android.content.Intent service=new android.content.Intent(this,BackgroundPlaybackService.class).putExtra(BackgroundPlaybackService.EXTRA_CHANNEL_NAME,name);if(android.os.Build.VERSION.SDK_INT>=26)startForegroundService(service);else startService(service);}super.onPause();}
     private boolean shouldUseBackgroundPlayback(){return !AppPreferences.isTvInterface(this)&&AppPreferences.backgroundPlayback(this);}
     private boolean playbackContextActive(){return activityStarted||backgroundPlaybackActive;}
     private static DefaultLoadControl stableLoadControl(){return new DefaultLoadControl.Builder().setBufferDurationsMs(15_000,60_000,500,1_500).setBackBuffer(10_000,true).setPrioritizeTimeOverSizeThresholds(true).build();}
@@ -328,9 +331,12 @@ public final class PlayerActivity extends Activity {
         // Merely opening the YouTube tab must not stop IPTV. IPTV remains the active
         // player until SmartTube PlaybackActivity actually starts a video.
         activity.rememberPosition();
+        // Explicitly mark the outgoing IPTV Activity. Do not rely on lifecycle callback
+        // ordering when Android moves BrowseActivity to the foreground.
+        activity.keepPlayerForTabSwitch = true;
         activity.backgroundPlaybackActive=false;
         SharedPlaybackSession.setTab(activity,SharedPlaybackSession.TAB_YOUTUBE);
     }
-    @Override protected void onSaveInstanceState(Bundle out){rememberPosition();out.putLong("position",position);out.putBoolean("playing",resumePlayback);out.putInt("quality",quality);out.putInt("resize",resizeMode);out.putString("mime",mime);super.onSaveInstanceState(out);} @Override protected void onStop(){activityStarted=false;fpsHandler.removeCallbacks(fpsUpdate);clockHandler.removeCallbacks(clockUpdate);rememberPosition();if(!backgroundPlaybackActive){recoveryHandler.removeCallbacksAndMessages(null);releasePlayer();}super.onStop();}
+    @Override protected void onSaveInstanceState(Bundle out){rememberPosition();out.putLong("position",position);out.putBoolean("playing",resumePlayback);out.putInt("quality",quality);out.putInt("resize",resizeMode);out.putString("mime",mime);super.onSaveInstanceState(out);} @Override protected void onStop(){activityStarted=false;fpsHandler.removeCallbacks(fpsUpdate);clockHandler.removeCallbacks(clockUpdate);rememberPosition();if(MobileNm7Application.isTabSwitchPending()){keepPlayerForTabSwitch=true;}if(!backgroundPlaybackActive&&!keepPlayerForTabSwitch){recoveryHandler.removeCallbacksAndMessages(null);releasePlayer();}super.onStop();}
     private void releasePlayer(){bufferingSinceMs=0;recoveryHandler.removeCallbacks(stalledPlaybackCheck);if(player!=null){playerView.setPlayer(null);player.release();player=null;}videoCounters=null;fpsMeter.reset();if(multicastLock!=null){if(multicastLock.isHeld())multicastLock.release();multicastLock=null;}} @Override protected void onDestroy(){if(currentInstance==this) currentInstance=null; drmIo.shutdownNow();if(isFinishing()||!backgroundPlaybackActive){stopService(new android.content.Intent(this,BackgroundPlaybackService.class));releasePlayer();}super.onDestroy();}
 }
