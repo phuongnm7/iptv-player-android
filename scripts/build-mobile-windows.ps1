@@ -107,6 +107,17 @@ if(Test-Path $uploads){
 # targeted string resources only, never by rewriting style/layout resource names.
 $play=Join-Path $ST "smarttubedroid\src\main\java\com\liskovsoft\smartyoutubetv2\droid\ui\playback\PlaybackActivity.java"
 if(-not(Test-Path $play)){Fail "PlaybackActivity.java not found."}
+# SmartTube 32.47s PlaybackActivity references this resource, but some upstream
+# source snapshots omit it. Add the missing resource before Java compilation.
+$smartStrings=Join-Path $ST "smarttubedroid\src\main\res\values\strings.xml"
+if(-not(Test-Path $smartStrings)){Fail "SmartTube strings.xml not found."}
+$stxt=ReadT $smartStrings
+if($stxt -notmatch 'name="section_is_empty"'){
+    $resource='    <string name="section_is_empty">Section is empty</string>'+[Environment]::NewLine
+    if($stxt -notmatch '</resources>'){Fail "SmartTube strings.xml has no resources terminator."}
+    $stxt=$stxt.Replace('</resources>',$resource+'</resources>')
+    WriteT $smartStrings $stxt
+}
 $t=ReadT $play
 if($t -notmatch 'import android.content.Intent;'){$t=$t.Replace("import android.content.Context;",("import android.content.Context;"+$nl+"import android.content.Intent;"))}
 
