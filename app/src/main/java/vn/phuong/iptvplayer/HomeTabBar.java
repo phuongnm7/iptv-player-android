@@ -66,6 +66,7 @@ public final class HomeTabBar {
     }
 
     private static void openIptv(Activity activity) {
+        SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_IPTV);
         // This is a navigation event, not a request to stop the current IPTV player.
         MobileNm7Application.markTabSwitch();
         Intent intent;
@@ -79,7 +80,9 @@ public final class HomeTabBar {
     }
 
     private static void openBrowse(Activity activity) {
-        // Mark the transition so PlayerActivity keeps its ExoPlayer instance while Browse is on top.
+        // Persist the active tab and hand IPTV ownership back before SmartTube starts.
+        SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_YOUTUBE);
+        PlayerActivity.prepareForYoutubeHandoff(activity);
         MobileNm7Application.markTabSwitch();
         // The first YouTube tap must never race SmartTube ViewManager initialization.
         // A delayed-only prewarm could open Browse while view mappings were still being registered.
