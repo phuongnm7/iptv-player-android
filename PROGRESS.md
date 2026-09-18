@@ -1,3 +1,87 @@
+# CẬP NHẬT QUAN TRỌNG — KHÔI PHỤC LỊCH SỬ WINDOWS POWERSHELL VÀ KẾT QUẢ TEST THỰC TẾ — 2026-09-18
+
+## Mục đích của mốc này
+
+- Người dùng xác nhận bản Mobile 1.10.26 vừa cài vẫn còn **các lỗi cũ**: chuyển IPTV → YouTube vẫn lỗi, YouTube/Home lifecycle chưa đúng, quay lại tab YouTube chưa ổn định, YouTube mở video còn chậm và giao diện YouTube chưa hoàn toàn mobile.
+- Không coi việc build thành công là đã sửa lỗi runtime.
+- Phần này ghi lại lại đầy đủ chuỗi sửa lỗi đã được thực hiện trước đó bằng **PowerShell trên Windows**, để vòng xử lý tiếp theo không làm mất các thay đổi/giả thuyết đã thử.
+- Phạm vi tiếp tục: **chỉ NM7 IPTV Mobile 1.10.26**. Không đưa mã Android TV vào bản Mobile.
+
+## Điểm mã đang dùng để tiếp tục
+
+- Nhánh: `fix/mobile-1.10.26-sleep-timer-icon`.
+- Mốc SmartTube lifecycle đã kiểm tra gần nhất: `5bf1fbec30ea7a19512f1df743174746bb4754f8` — `validate YouTube background lifecycle patch`.
+- Sau đó nhánh đã từng đi qua chuỗi thay đổi SharedPlaybackSession/lifecycle, nhưng các thay đổi đó đã bị loại khỏi nhánh chính để tránh tiếp tục trên nền đang gây hồi quy.
+- Hiện tại **không được coi `5bf1fbec` là bản đã hết lỗi**; test máy thật mới nhất xác nhận lỗi vẫn tái hiện. Đây là điểm rất quan trọng để vòng sửa tiếp theo không nhầm “baseline” với “đã sửa xong”.
+
+## Lịch sử các sửa lỗi Windows/PowerShell đã thực hiện
+
+### 1. Nền SmartTube + Windows build
+- `d403a20aa1988b7850d369b84ce784363b271cf9` — ổn định SmartTube Windows và các patch source/CI.
+- `b70293744f157a062e4b6fa7a8189909d64fbea3` — ghi nhận tiến độ Mobile 1.10.26 và Windows build.
+- `0a600a430b1298cef496fc4b2b2f42cf79a056e1` — harden script Windows cho Mobile UI/playback.
+- `42e0a136d2d68f8d29d8feaa696ca3992d43fcc2` — bỏ global-layout recursion tốn chi phí trong SmartTube.
+- `9d017590483f2e6e0a7b...` — dọn import của performance patch SmartTube.
+- Môi trường Windows đã xác nhận: **JDK 17, Gradle 8.13, Android SDK 36, Build Tools 36.0.0**.
+
+### 2. YouTube UI/lifecycle và chuyển tab
+- `b988bd81cda4` — sửa clock cho tab switch và timing prewarm.
+- `7dfa72e6b0fa` — sửa SmartTube Play-Behind và lock handling.
+- `3246bd97654a` — ép feed YouTube một cột sau khi RecyclerView attach.
+- `3c0edbf5b380` — xử lý background playback khi khóa màn hình.
+- `8d0280508db2` — sửa feed patch và force YouTube background playback.
+- `629118aad795` — áp dụng background mode trước player resume.
+- `43c504672b88` — gắn nhãn foreground service cho YouTube background playback.
+- `e259a39a02c3` — dừng YouTube keepalive khi foreground media thay đổi.
+- `089c2b61782e` — thêm helper giữ YouTube foreground.
+- `7ac76d885fb7` — giữ SmartTube player trong background.
+- `bebe7bc15303` — giữ YouTube playback sống khi chạy nền.
+- `e76c1323b20f` — sửa cách CI tạo/apply YouTube background patch.
+- `5ec48c6e5afb` — sửa lifecycle IPTV khi chỉ chuyển tab, tránh khởi động background service sai lúc đổi tab.
+- `e5d461aeae93` — sửa handoff foreground YouTube.
+- `91724438d7f5` — không ép YouTube background mode trong lúc prewarm.
+- `ac471c452bb7` — không ép SmartTube background mode khi mở video.
+- `ef77dbba582b` — sửa lifecycle HOME của YouTube Mobile.
+- `5bf1fbec30ea` — thêm validation trong script để bảo đảm patch HOME-resume-preservation tồn tại.
+
+### 3. UI Mobile
+- `8729326843c9` — thu nhỏ và nâng logo NM7 Mobile.
+- Trước đó đã có các sửa đưa toolbar/search/tùy chọn xuống dưới player và ép YouTube recommendations một cột; các thay đổi này phải được phân biệt với bản TV.
+
+## Nhánh SharedPlaybackSession đã thử và lý do không dùng làm baseline
+
+Chuỗi thử nghiệm sau `5bf1fbec` đã đưa vào:
+- `SharedPlaybackSession.java` để lưu tab IPTV/YouTube, IPTV URL/name/mime/headers/position/playing.
+- `PlayerActivity` lưu/khôi phục IPTV position và handoff sang YouTube.
+- `HomeTabBar` cố gắng giữ đúng tab và dùng `REORDER_TO_FRONT`.
+- `MainActivity` khôi phục tab YouTube sau process recreation.
+- `MobileNm7Application` thay đổi thứ tự pause/release khi SmartTube Playback khởi động.
+- Manifest bỏ `singleTask`, thêm `alwaysRetainTaskState=true`.
+- UI giảm logo và tăng vùng player.
+
+Đây là **thử nghiệm kiến trúc**, không phải kết quả đã xác nhận. Video máy thật sau đó cho thấy YouTube vẫn có thể load rồi xuất hiện splash/launcher và quay lại app, vì vậy không tiếp tục cộng thêm logic vào nhánh thử nghiệm này khi chưa có logcat xác định exception/lifecycle transition.
+
+## Kết quả build Windows sau khi quay về baseline
+
+- Nhánh đã được đưa về `5bf1fbec` để tách lỗi runtime khỏi chuỗi SharedPlaybackSession đang gây hồi quy.
+- Các commit CI sau đó chỉ phục vụ đóng gói Mobile ARM:
+  - `688b84b83505` — khôi phục ARM ABI split.
+  - `577f8aee94be` — không để emulator smoke test chặn APK Mobile.
+  - `0ea25e5e4f67` — sửa tìm đầu ra ARM64/ARMv7 trong thư mục output.
+- Build thành công với đúng **2 APK ARM**, không universal:
+  - ARM64-v8a: khoảng 61.9 MB.
+  - armeabi-v7a: khoảng 51.4 MB.
+- Đây chỉ xác nhận **compile/package**, không xác nhận lỗi YouTube/Android lifecycle đã hết.
+
+## Kết luận để tiếp tục xử lý
+
+- Không reset lại lịch sử các patch Windows/PowerShell ở trên.
+- Không tiếp tục khẳng định SharedPlaybackSession là lời giải.
+- Lỗi hiện tại phải được xử lý theo chuỗi: **tái hiện → lấy logcat đúng thời điểm YouTube chuyển từ IPTV → YouTube → xác định Activity/task/process nào bị finish/recreate → sửa một nguyên nhân → build Windows → test máy thật**.
+- Đặc biệt phải phân biệt ba tình huống: (1) YouTube Activity bị finish, (2) SmartTube player bị release nhưng Activity còn, (3) toàn bộ NM7 process bị crash/restart. Video hiện tại chỉ chứng minh có hiện tượng rơi ra khỏi trạng thái YouTube và xuất hiện splash/launcher; chưa đủ để kết luận exception cụ thể.
+
+---
+
 # GHI NHẬN LỖI MỚI — NM7 IPTV MOBILE 1.10.24: chưa tự tải lại playlist khi mở ứng dụng (2026-09-14)
 
 ## Trạng thái Mobile hiện tại
