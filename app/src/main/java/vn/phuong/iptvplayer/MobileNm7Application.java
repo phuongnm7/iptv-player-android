@@ -69,6 +69,10 @@ public final class MobileNm7Application extends DroidApplication implements andr
         tabSwitchPending = false;
     }
 
+    public static boolean isTabSwitchPending() {
+        return instance != null && instance.tabSwitchPending;
+    }
+
     private void acquireWifiPerformanceLock() {
         if (wifiLock != null && wifiLock.isHeld()) return;
         try {
@@ -103,7 +107,6 @@ public final class MobileNm7Application extends DroidApplication implements andr
             smartTubePlaybackActivity = activity;
             // A real YouTube video has started. Configure Play-Behind and release the
             // IPTV decoder so the two video engines never contend for hardware resources.
-            SmartTubeRuntime.enableBackgroundPlayback(getApplicationContext());
             pauseIptvPlayer();
         }
     }
