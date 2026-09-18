@@ -231,6 +231,7 @@ $leaveMethod=@'
             return;
         }
         getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_PLAY_BEHIND);
+        startNm7BackgroundService();
         enterBackgroundPlayMode();
     }
 
