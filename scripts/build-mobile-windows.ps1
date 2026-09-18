@@ -241,10 +241,8 @@ if($t -notmatch 'boolean\s+isNm7TabSwitch\(\)'){
 
 # Force Play-Behind when the user leaves the app. Android calls onUserLeaveHint()
 # for HOME; lock-screen handling is covered by the onPause screen-off patch below.
-$leaveStart=$t.IndexOf("    public void onUserLeaveHint()")
-$leaveEnd=$t.IndexOf("    public boolean isInPipMode()", $leaveStart)
-if($leaveStart -lt 0 -or $leaveEnd -lt 0){Fail "PlaybackActivity onUserLeaveHint block not found."}
 $leaveMethod=@'
+    @Override
     public void onUserLeaveHint() {
         super.onUserLeaveHint();
         if (mIsBackPressed || isFinishing() || getViewManager().isNewViewPending()) {
@@ -255,7 +253,22 @@ $leaveMethod=@'
     }
 
 '@
-$t=$t.Substring(0,$leaveStart)+$leaveMethod+$t.Substring($leaveEnd)
+# SmartTube source variants may omit onUserLeaveHint entirely. In that case inject
+# the NM7 HOME/background handler immediately before isInPipMode().
+if($t -match 'void\s+onUserLeaveHint\s*\('){
+    $leaveStart=$t.IndexOf("    public void onUserLeaveHint()")
+    if($leaveStart -lt 0){ $leaveStart=$t.IndexOf("    protected void onUserLeaveHint()") }
+    $leaveEnd=$t.IndexOf("    public boolean isInPipMode()", $leaveStart)
+    if($leaveStart -ge 0 -and $leaveEnd -gt $leaveStart){
+        $t=$t.Substring(0,$leaveStart)+$leaveMethod+$t.Substring($leaveEnd)
+    }
+} else {
+    $marker="    public boolean isInPipMode()"
+    $leavePos=$t.IndexOf($marker)
+    if($leavePos -lt 0){ $marker="    protected boolean isInPipMode()"; $leavePos=$t.IndexOf($marker) }
+    if($leavePos -lt 0){ Fail "PlaybackActivity has no isInPipMode insertion point." }
+    $t=$t.Substring(0,$leavePos)+$leaveMethod+$t.Substring($leavePos)
+}
 
 # Lock-screen transitions can arrive through onPause without onUserLeaveHint.
 # Force Play-Behind before the engine is blocked so video/audio continues.
