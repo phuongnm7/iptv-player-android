@@ -36,19 +36,19 @@ jobs:
           from pathlib import Path
           import re
 
-          src=Path('/tmp/nm7/upstream.m3u').read_text(encoding='utf-8',errors='ignore').replace('\\r','')
+          src=Path('/tmp/nm7/upstream.m3u').read_text(encoding='utf-8',errors='ignore').replace('\r','')
           groups={
             'Vua Sân Cỏ TV','Khán Đài TV','Cola TV','Gà Vàng TV',
             'Xôi Lạc Z TV','Gà Vàng 33 TV','S8 TV','Sao Kê TV',
             'Bia Ôm TV','Chuối Chiên TV','Giờ Vàng TV','Socolive TV'
           }
 
-          blocks=re.split(r'(?=#EXTINF\\s*:)',src)
+          blocks=re.split(r'(?=#EXTINF\s*:)',src)
           out=['#EXTM3U']
           seen=set()
 
           for block in blocks:
-              if not re.match(r'\\s*#EXTINF\\s*:',block,re.I):
+              if not re.match(r'\s*#EXTINF\s*:',block,re.I):
                   continue
               gm=re.search(r'group-title="([^"]+)"',block,re.I)
               if not gm or gm.group(1).strip() not in groups:
@@ -59,7 +59,7 @@ jobs:
                   continue
               url=urls[0]
               idx=lines.index(url)
-              item='\\n'.join(lines[:idx+1])
+              item='\n'.join(lines[:idx+1])
               if item in seen:
                   continue
               seen.add(item)
@@ -68,7 +68,7 @@ jobs:
           if len(out) <= 1:
               raise SystemExit('No playable sports entries found; refusing to overwrite output')
 
-          Path('playlist/sports.m3u').write_text('\\n'.join(out)+'\\n',encoding='utf-8')
+          Path('playlist/sports.m3u').write_text('\n'.join(out)+'\n',encoding='utf-8')
           print('sports entries:',len(out)-1)
           PY
 
