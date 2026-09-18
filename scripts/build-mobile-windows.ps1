@@ -144,11 +144,13 @@ if($t -notmatch "nm7PauseForHome\(\)"){
         nm7HomePaused = false;
     }
 "
-    $t=$t.Replace("`r`n}",$nl+$helper+"}")
+    $last=$t.LastIndexOf("}")
+    if($last -lt 0){Fail "PlaybackActivity closing brace not found."}
+    $t=$t.Insert($last,$nl+$helper)
 }
 
 # Resume the same player instance after Home.
-if($t -notmatch "nm7ResumeAfterHome\(\)"){
+if($t -notmatch "super\.onResume\(\);\s*nm7ResumeAfterHome\(\);"){
     $t=[regex]::Replace($t,"(protected void onResume\(\)\s*\{\s*super\.onResume\(\);)","$1"+$nl+"        nm7ResumeAfterHome();",1)
 }
 
