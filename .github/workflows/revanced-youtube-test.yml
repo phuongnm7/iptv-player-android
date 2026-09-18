@@ -50,24 +50,20 @@ jobs:
           unzip -t patches.rvp >/dev/null
           sha256sum patches.rvp
 
-      - name: Download exact YouTube 21.37.42 APK from Google Drive
+      - name: Download compatible YouTube 20.40.45 APK from APKMirror
         run: |
           set -euo pipefail
-          file_id='1Y6KXljGRTccX9dC4IsUlVfPfTLlGNavU'
-          curl -fL --retry 5 --retry-delay 2 \
-            "https://drive.usercontent.google.com/download?id=$file_id&export=download&confirm=t" \
-            -o youtube-21.37.42.apk
-          test -s youtube-21.37.42.apk
-          echo "Downloaded bytes: $(stat -c%s youtube-21.37.42.apk)"
-          sha256sum youtube-21.37.42.apk
-          expected='87ec9734319f7437d8da24b10d7ec35b0d3f65ae404d9d845917bc2705cfee42'
-          actual="$(sha256sum youtube-21.37.42.apk | awk '{print $1}')"
-          test "$actual" = "$expected"
+          curl -L --fail --retry 3 -A "Mozilla/5.0" \
+            "https://www.apkmirror.com/apk/google-inc/youtube/youtube-20-40-45-release/youtube-20-40-45-2-android-apk-download/download/?forcebaseapk=true&key=bd89e7c340faa5556eca2021544fe01ccc817296" \
+            -o youtube-20.40.45.apk
+          test -s youtube-20.40.45.apk
+          echo "b7659da492a1ebd8bd7cea2909be4ee1f58e00a2586d65a1c91b2e1e5ec6acd1  youtube-20.40.45.apk" | sha256sum -c -
+          echo "https://www.apkmirror.com/apk/google-inc/youtube/youtube-20-40-45-release/youtube-20-40-45-2-android-apk-download/" > apk-download-url.txt
 
       - name: Verify YouTube package
         run: |
           set -euo pipefail
-          $ANDROID_HOME/build-tools/35.0.0/aapt dump badging youtube-21.37.42.apk | head -n 3
+          $ANDROID_HOME/build-tools/35.0.0/aapt dump badging youtube-20.40.45.apk | head -n 3
 
       - name: List compatible patches
         run: |
@@ -77,7 +73,7 @@ jobs:
           grep -i -A12 -B3 'Spoof video streams' patches-list.txt || true
           grep -i -A20 -B3 'com.google.android.youtube' patches-list.txt | head -n 120 || true
 
-      - name: Patch YouTube 21.37.42
+      - name: Patch YouTube 20.40.45
         run: |
           set -euo pipefail
           java -jar revanced-cli.jar patch \
@@ -85,23 +81,23 @@ jobs:
             -e "GmsCore support" \
             -e "Spoof video streams" \
             --purge \
-            -o youtube-21.37.42-revanced.apk \
-            youtube-21.37.42.apk
+            -o youtube-20.40.45-revanced.apk \
+            youtube-20.40.45.apk
 
       - name: Verify patched APK
         run: |
           set -euo pipefail
-          test -s youtube-21.37.42-revanced.apk
-          $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose youtube-21.37.42-revanced.apk
-          $ANDROID_HOME/build-tools/35.0.0/aapt dump badging youtube-21.37.42-revanced.apk | head -n 3
-          sha256sum youtube-21.37.42-revanced.apk
+          test -s youtube-20.40.45-revanced.apk
+          $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose youtube-20.40.45-revanced.apk
+          $ANDROID_HOME/build-tools/35.0.0/aapt dump badging youtube-20.40.45-revanced.apk | head -n 3
+          sha256sum youtube-20.40.45-revanced.apk
 
       - name: Upload patched YouTube APK
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: NM7-ReVanced-YouTube-21.37.42-test
           path: |
-            youtube-21.37.42-revanced.apk
+            youtube-20.40.45-revanced.apk
             patches-list.txt
             apk-download-url.txt
           retention-days: 30
