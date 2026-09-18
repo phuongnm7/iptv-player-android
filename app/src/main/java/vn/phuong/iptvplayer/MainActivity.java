@@ -286,7 +286,23 @@ public final class MainActivity extends Activity {
                     if(which==aboutIndex)showAbout();
                 }).setNegativeButton("Đóng",null).show();
     }
-    private void openYouTubeReVanced(){\n        final String packageName="com.google.android.youtube";\n        Intent launch=getPackageManager().getLaunchIntentForPackage(packageName);\n        if(launch!=null){\n            try{\n                launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);\n                startActivity(launch);\n                toast("Đã mở YouTube / ReVanced");\n                return;\n            }catch(Exception ignored){}\n        }\n        new AlertDialog.Builder(this)\n                .setTitle("YouTube / ReVanced chưa được cài")\n                .setMessage("NM7 không đóng gói lại APK YouTube. Khi YouTube/ReVanced được cài với package com.google.android.youtube, NM7 sẽ mở trực tiếp ứng dụng đó từ đây.")\n                .setPositiveButton("Đóng",null)\n                .show();\n    }\n    private void chooseInterfaceMode(){
+    private void openYouTubeReVanced(){
+        final String packageName="com.google.android.youtube";
+        Intent launch=getPackageManager().getLaunchIntentForPackage(packageName);
+        if(launch!=null){
+            try{
+                launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(launch);
+                toast("Đã mở YouTube / ReVanced");
+                return;
+            }catch(Exception ignored){}
+        }
+        new AlertDialog.Builder(this)
+                .setTitle("YouTube / ReVanced chưa được cài")
+                .setMessage("NM7 không đóng gói lại APK YouTube. Khi YouTube/ReVanced được cài với package com.google.android.youtube, NM7 sẽ mở trực tiếp ứng dụng đó từ đây.")
+                .setPositiveButton("Đóng",null)
+                .show();
+    }\n    private void chooseInterfaceMode(){
         String[] labels={"Tự động theo thiết bị","Mobile — cảm ứng","TV — điều khiển D-pad"};
         String[] values={"auto","mobile","tv"};
         new AlertDialog.Builder(this).setTitle("Chọn giao diện")
