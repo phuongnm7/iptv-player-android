@@ -1,5 +1,5 @@
 # NM7 IPTV Mobile 1.10.26 - Windows local build
-# SCRIPT_VERSION: 2026-09-18-PATCH2
+# SCRIPT_VERSION: 2026-09-18-PATCH3
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 $Root = Split-Path -Parent $PSScriptRoot
@@ -161,7 +161,8 @@ if($t -notmatch "private void nm7PauseForHome\(\)") {
 
 # Resume the same player instance after Home.
 if($t -notmatch "super\.onResume\(\);\s*nm7ResumeAfterHome\(\);"){
-    $t=[regex]::Replace($t,"(protected void onResume\(\)\s*\{\s*super\.onResume\(\);)", { param($m) $m.Groups[1].Value + $nl + "        nm7ResumeAfterHome();" }, 1)
+    $onResumePat='(protected void onResume\(\)\s*\{\s*super\.onResume\(\);)'
+    $t=[regex]::Replace($t,$onResumePat, { param($m) $m.Value + $nl + '        nm7ResumeAfterHome();' }, 1)
 }
 
 # Home must not trigger maybeReleasePlayer; real tab switch and Back still release normally.
