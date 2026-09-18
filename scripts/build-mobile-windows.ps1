@@ -1,5 +1,5 @@
 # NM7 IPTV Mobile 1.10.26 - Windows local build
-# SCRIPT_VERSION: 2026-09-18-PATCH11
+# SCRIPT_VERSION: 2026-09-19-PATCH12
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 $Root = Split-Path -Parent $PSScriptRoot
@@ -289,7 +289,13 @@ $newLeave=@'
 
         getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_SOUND);
         System.setProperty("nm7.youtube.background", "1");
-        vn.phuongnm7.iptvplayer.SharedPlaybackSession.setTab(this, vn.phuongnm7.iptvplayer.SharedPlaybackSession.TAB_YOUTUBE);
+        try {
+            Class<?> session = Class.forName("vn.phuongnm7.iptvplayer.SharedPlaybackSession");
+            java.lang.reflect.Field tabField = session.getField("TAB_YOUTUBE");
+            session.getMethod("setTab", android.content.Context.class, String.class)
+                    .invoke(null, this, tabField.get(null));
+        } catch (ReflectiveOperationException | RuntimeException ignored) {
+        }
         blockEngine(true);
         getViewManager().blockTop(this);
     }
@@ -304,7 +310,8 @@ if($t.Contains($oldLeave)){
 if($t -notmatch 'void\s+onUserLeaveHint\s*\(' -or
    $t -notmatch 'setBackgroundMode\(PlayerData\.BACKGROUND_MODE_SOUND\)' -or
    $t -notmatch 'setProperty\("nm7\.youtube\.background", "1"\)' -or
-   $t -notmatch 'boolean\s+nm7YoutubeBackground'){
+   $t -notmatch 'boolean\s+nm7YoutubeBackground' -or
+   $t -notmatch 'Class\.forName\("vn\.phuongnm7\.iptvplayer\.SharedPlaybackSession"\)'){
     Fail "SmartTube HOME lifecycle patch is incomplete."
 }
 
