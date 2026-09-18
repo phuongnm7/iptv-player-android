@@ -227,6 +227,7 @@ $leaveEnd=$t.IndexOf("    public boolean isInPipMode()", $leaveStart)
 if($leaveStart -lt 0 -or $leaveEnd -lt 0){Fail "PlaybackActivity onUserLeaveHint block not found."}
 $leaveMethod=@'
     public void onUserLeaveHint() {
+        super.onUserLeaveHint();
         if (mIsBackPressed || isFinishing() || getViewManager().isNewViewPending()) {
             return;
         }
