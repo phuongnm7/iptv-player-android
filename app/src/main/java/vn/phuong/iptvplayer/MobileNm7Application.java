@@ -50,7 +50,13 @@ public final class MobileNm7Application extends DroidApplication implements andr
     }
 
     public static void markTabSwitch() {
-        if (instance != null) instance.tabSwitchPending = true;
+        if (instance != null) {
+            instance.tabSwitchPending = true;
+            // Shared process marker read by the vendored SmartTube phone player.
+            // Keep it alive long enough for the outgoing Activity to reach onStop().
+            System.setProperty("nm7.tab.switch.until",
+                    Long.toString(SystemClock.uptimeMillis() + 5000L));
+        }
     }
 
     private void clearTabSwitch() {
