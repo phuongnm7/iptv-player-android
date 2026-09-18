@@ -95,6 +95,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
         String name = activity.getClass().getName();
         if (activity instanceof PlayerActivity) {
             iptvPlayerActivity = activity;
+            SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_IPTV);
             // Entering IPTV is an explicit media switch. Pause any active SmartTube
             // session, including Play-Behind/background playback.
             pauseExternalMedia(activity);
@@ -104,6 +105,8 @@ public final class MobileNm7Application extends DroidApplication implements andr
             smartTubeBrowseActivity = activity;
         } else if (SMARTTUBE_PLAYBACK.equals(name)) {
             smartTubePlaybackActivity = activity;
+            SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_YOUTUBE);
+            SmartTubeRuntime.enableBackgroundPlayback(activity);
             // A real YouTube video has started. Configure Play-Behind and release the
             // IPTV decoder so the two video engines never contend for hardware resources.
             pauseIptvPlayer();
