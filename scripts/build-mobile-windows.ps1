@@ -95,7 +95,7 @@ $gridPatched=0
 $gridFiles=@($browse)
 foreach($gp in $gridFiles){
     $x=ReadT $gp
-    $n=[regex]::Replace($x,'(GRID_COLUMNS\\s*=\\s*)\\d+','$1'+'1')
+    $n=[regex]::Replace($x,'GRID_COLUMNS','1')
     if($n -ne $x){WriteT $gp $n;$gridPatched++}
 }
 
@@ -131,6 +131,19 @@ $oldStop=@'
         }
     }
 '@
+$helper=@'
+    private boolean isNm7TabSwitch() {
+        try {
+            return Long.parseLong(System.getProperty("nm7.tab.switch.until", "0")) > System.currentTimeMillis();
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
+'@
+if($t -notmatch 'boolean\s+isNm7TabSwitch\(\)'){
+    $marker='    @Override\n    protected void onStop() {'
+    if($t.Contains($marker)){$t=$t.Replace($marker,$helper+$nl+$marker)}else{Fail "PlaybackActivity onStop marker not found."}
+}
 $newStop=@'
     @Override
     protected void onStop() {
