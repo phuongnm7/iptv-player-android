@@ -119,10 +119,9 @@ if($stxt -notmatch 'name="section_is_empty"'){
     WriteT $smartStrings $stxt
 }
 $t=ReadT $play
-# Remove the missing generated resource reference from the SmartTube source itself.
-# Use regex so whitespace/formatting differences cannot bypass the patch.
-$t=[regex]::Replace($t,'getString\\s*\\(\\s*R\\.string\\.section_is_empty\\s*\\)','"Section is empty"')
-if($t -match 'R\\.string\\.section_is_empty'){
+# Replace the missing generated resource reference directly in the cloned Java source.
+$t=$t.Replace('R.string.section_is_empty', '"Section is empty"')
+if($t -match 'R.string.section_is_empty'){
     Fail "SmartTube section_is_empty source patch did not apply."
 }
 # The SmartTube snapshot may omit this generated string resource; keep the build independent of it.
