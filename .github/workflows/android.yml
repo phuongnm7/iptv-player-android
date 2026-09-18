@@ -241,13 +241,17 @@ jobs:
         run: |
           set -euxo pipefail
           mkdir -p dist/mobile
-          out="app/build/outputs/apk/mobile/debug"
+          out="app/build/outputs/apk"
           arm64="dist/mobile/NM7-IPTV-Mobile-${{ steps.mobile_version.outputs.version }}-arm64-v8a.apk"
           armv7="dist/mobile/NM7-IPTV-Mobile-${{ steps.mobile_version.outputs.version }}-armeabi-v7a.apk"
-          test -f "$out/app-mobile-debug-arm64-v8a.apk"
-          test -f "$out/app-mobile-debug-armeabi-v7a.apk"
-          cp "$out/app-mobile-debug-arm64-v8a.apk" "$arm64"
-          cp "$out/app-mobile-debug-armeabi-v7a.apk" "$armv7"
+          arm64_src="$(find "$out" -type f -name '*arm64-v8a*.apk' | head -n1)"
+          armv7_src="$(find "$out" -type f -name '*armeabi-v7a*.apk' | head -n1)"
+          test -n "$arm64_src"
+          test -n "$armv7_src"
+          echo "ARM64 APK: $arm64_src"
+          echo "ARMv7 APK: $armv7_src"
+          cp "$arm64_src" "$arm64"
+          cp "$armv7_src" "$armv7"
           for apk in "$arm64" "$armv7"; do
             "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$apk"
             if unzip -l "$apk" | grep -q 'libvlc\.so'; then
