@@ -229,6 +229,17 @@ $newStop=@'
     protected void onStop() {
         super.onStop();
 
+        boolean nm7YoutubeBackground = "1".equals(System.getProperty("nm7.youtube.background", "0"));
+        if (VERSION.SDK_INT > 23 && !nm7YoutubeBackground) {
+            maybeReleasePlayer();
+        }
+    }
+'@
+$newStop=@'
+    @Override
+    protected void onStop() {
+        super.onStop();
+
         boolean backgroundRequested = getPlayerData().getBackgroundMode() != PlayerData.BACKGROUND_MODE_DEFAULT;
         boolean nm7YoutubeBackground = "1".equals(System.getProperty("nm7.youtube.background", "0"));
         if (VERSION.SDK_INT > 23 && !isNm7TabSwitch() && !backgroundRequested && !isEngineBlocked() && !nm7YoutubeBackground) {
@@ -247,6 +258,7 @@ $newStop=@'
 if($t.Contains($oldStop)){$t=$t.Replace($oldStop,$newStop)}
 if($t -notmatch 'nm7\.youtube\.background'){ Fail "SmartTube HOME background marker patch did not persist." }
 if($t -notmatch 'BACKGROUND_MODE_SOUND'){ Fail "SmartTube phone background mode patch did not persist." }
+if($t -notmatch 'BACKGROUND_MODE_SOUND'){ Fail "SmartTube phone background mode patch did not persist." }
 $fragmentCheck=@(Get-ChildItem $ST -Recurse -Filter "PlaybackFragment.java" -File | Where-Object {
     $_.FullName -match "\\droid\\ui\\playback\\PlaybackFragment\.java$"
 })
@@ -257,17 +269,59 @@ if($t -notmatch 'boolean\s+isNm7TabSwitch\(\)'){
     Write-Host "NOTE: SmartTube onStop shape differs; keeping upstream onStop." -ForegroundColor Yellow
 }
 
+
+# Harden lifecycle patch: replace the actual phone lifecycle methods regardless of
+# minor SmartTube formatting/source-shape differences.
+$patternStop='(?s)@Override\s+protected void onStop\s*\(\)\s*\{\s*super\.onStop\(\);\s*.*?\n\s*\}'
+$stopReplacement=@'
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        boolean nm7YoutubeBackground = "1".equals(System.getProperty("nm7.youtube.background", "0"));
+        if (VERSION.SDK_INT > 23 && !nm7YoutubeBackground) {
+            maybeReleasePlayer();
+        }
+    }
+'@
+if($t -match $patternStop){
+    $t=[regex]::Replace($t,$patternStop,$stopReplacement,1)
+}else{ Fail "SmartTube phone onStop method not found." }
+
+$patternLeave='(?s)@Override\s+public void onUserLeaveHint\s*\(\)\s*\{.*?\n\s*\}'
+$leaveReplacement=@'
+    @Override
+    public void onUserLeaveHint() {
+        super.onUserLeaveHint();
+
+        if (mIsBackPressed || isFinishing() || getViewManager().isNewViewPending()
+                || getGeneralData().getBackgroundPlaybackShortcut() == GeneralData.BACKGROUND_PLAYBACK_SHORTCUT_BACK) {
+            return;
+        }
+
+        getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_SOUND);
+        System.setProperty("nm7.youtube.background", "1");
+        blockEngine(true);
+        getViewManager().blockTop(this);
+    }
+'@
+if($t -match $patternLeave){
+    $t=[regex]::Replace($t,$patternLeave,$leaveReplacement,1)
+}else{ Fail "SmartTube phone onUserLeaveHint method not found." }
+
 # Force Play-Behind when the user leaves the app. Android calls onUserLeaveHint()
 # for HOME; lock-screen handling is covered by the onPause screen-off patch below.
 $leaveMethod=@'
     @Override
     public void onUserLeaveHint() {
         super.onUserLeaveHint();
+
         if (mIsBackPressed || isFinishing() || getViewManager().isNewViewPending()
                 || getGeneralData().getBackgroundPlaybackShortcut() == GeneralData.BACKGROUND_PLAYBACK_SHORTCUT_BACK) {
             return;
         }
-        // HOME/lock must explicitly enter Play-Behind before onStop.
+
+        // NM7 Mobile: HOME must keep the YouTube engine alive in background.
         getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_SOUND);
         System.setProperty("nm7.youtube.background", "1");
         blockEngine(true);
@@ -290,6 +344,11 @@ if($t -match 'void\s+onUserLeaveHint\s*\('){
     if($leavePos -lt 0){ $marker="    protected boolean isInPipMode()"; $leavePos=$t.IndexOf($marker) }
     if($leavePos -lt 0){ Fail "PlaybackActivity has no isInPipMode insertion point." }
     $t=$t.Substring(0,$leavePos)+$leaveMethod+$t.Substring($leavePos)
+}
+
+
+if($t -notmatch 'void\s+onUserLeaveHint\s*\(' -or $t -notmatch 'setBackgroundMode\(PlayerData\.BACKGROUND_MODE_SOUND\)' -or $t -notmatch 'setProperty\("nm7\.youtube\.background", "1"\)'){
+    Fail "SmartTube HOME lifecycle patch is incomplete."
 }
 
 # Lock-screen transitions can arrive through onPause without onUserLeaveHint.
