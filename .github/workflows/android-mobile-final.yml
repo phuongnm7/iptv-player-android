@@ -66,6 +66,41 @@ jobs:
               if t!=orig: p.write_text(t)
           PY
 
+      - name: Patch SmartTube Mobile UI and playback lifecycle
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path('third_party/SmartTube-droid')
+
+          # Mobile feed: use a real one-column RecyclerView, not runtime reflection.
+          browse = root / 'smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/browse/BrowseActivity.java'
+          t = browse.read_text()
+          t2 = t.replace('private static final int GRID_COLUMNS = 2;', 'private static final int GRID_COLUMNS = 1;')
+          if t2 == t:
+              raise SystemExit('Browse GRID_COLUMNS declaration not found')
+          browse.write_text(t2)
+
+          # Mobile player: preserve the ExoPlayer instance during NM7 tab switches.
+          # NM7 sets a short-lived process property before bringing the other tab to front.
+          playback = root / 'smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java'
+          t = playback.read_text()
+          t2 = t.replace('import android.content.Context;\\n', 'import android.content.Context;\\nimport android.content.Intent;\\n')
+          old_stop = '''    @Override\\n    protected void onStop() {\\n        super.onStop();\\n\\n        if (VERSION.SDK_INT > 23) {\\n            maybeReleasePlayer();\\n        }\\n    }'''
+          new_stop = '''    @Override\\n    protected void onStop() {\\n        super.onStop();\\n\\n        // NM7 tab navigation must not destroy the YouTube player. The property is a\\n        // short-lived handoff marker shared by the two integrated Activities.\\n        if (VERSION.SDK_INT > 23 && !isNm7TabSwitch()) {\\n            maybeReleasePlayer();\\n        }\\n    }\\n\\n    private boolean isNm7TabSwitch() {\\n        try {\\n            String until = System.getProperty("nm7.tab.switch.until", "0");\\n            return Long.parseLong(until) > android.os.SystemClock.uptimeMillis();\\n        } catch (RuntimeException ignored) {\\n            return false;\\n        }\\n    }'''
+          if old_stop not in t2:
+              raise SystemExit('PlaybackActivity onStop block not found')
+          t2 = t2.replace(old_stop, new_stop)
+
+          # Back from the player always returns to the phone Browse screen instead of\\n          # finishing the whole SmartTube task.\\n          old_back = '''    @Override\\n    public void onBackPressed() {\\n        mIsBackPressed = true;\\n\\n        super.onBackPressed();\\n    }'''
+          new_back = '''    @Override\\n    public void onBackPressed() {\\n        if (mIsBackPressed) {\\n            return;\\n        }\\n\\n        mIsBackPressed = true;\\n        try {\\n            Intent intent = new Intent(this,\\n                    Class.forName("com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity"));\\n            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NO_ANIMATION);\\n            startActivity(intent);\\n            overridePendingTransition(0, 0);\\n            finish();\\n            overridePendingTransition(0, 0);\\n        } catch (ReflectiveOperationException | RuntimeException e) {\\n            super.onBackPressed();\\n        }\\n    }'''
+          if old_back not in t2:
+              raise SystemExit('PlaybackActivity onBackPressed block not found')
+          t2 = t2.replace(old_back, new_back)
+          playback.write_text(t2)
+          print('Patched SmartTube phone feed to 1 column and preserved player across NM7 tab switches')
+          PY
+
       - name: Patch SmartTube show_buffering resource collision
         run: |
           set -euxo pipefail
