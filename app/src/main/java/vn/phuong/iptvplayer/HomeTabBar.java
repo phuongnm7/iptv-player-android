@@ -8,6 +8,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -66,20 +67,35 @@ public final class HomeTabBar {
     }
 
     private static void openIptv(Activity activity) {
-        // This is a navigation event, not a request to stop the current IPTV player.
+        SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_IPTV);
         MobileNm7Application.markTabSwitch();
         Intent intent;
         if (MobileNm7Application.hasIptvPlayer()) {
             intent = new Intent(activity, PlayerActivity.class);
         } else {
-            intent = new Intent(activity, MainActivity.class);
+            SharedPlaybackSession.State saved = SharedPlaybackSession.loadIptv(activity);
+            if (saved != null) {
+                intent = new Intent(activity, PlayerActivity.class);
+                intent.putExtra(PlayerActivity.EXTRA_NAME, saved.name);
+                intent.putExtra(PlayerActivity.EXTRA_URL, saved.url);
+                intent.putExtra(PlayerActivity.EXTRA_MIME, saved.mime);
+                intent.putExtra(PlayerActivity.EXTRA_HEADERS, saved.headers);
+                intent.putStringArrayListExtra(PlayerActivity.EXTRA_OPTIONS, saved.options);
+                intent.putExtra(PlayerActivity.EXTRA_POSITION, saved.position);
+                intent.putExtra(PlayerActivity.EXTRA_PLAYING, saved.playing);
+            } else {
+                intent = new Intent(activity, MainActivity.class);
+            }
         }
         intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
         startWithoutAnimation(activity, intent);
     }
 
     private static void openBrowse(Activity activity) {
-        // Mark the transition so PlayerActivity keeps its ExoPlayer instance while Browse is on top.
+        // The handoff is explicit: release the IPTV decoder before SmartTube starts its player.
+        // This guarantees that Mobile has one active playback engine at a time.
+        SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_YOUTUBE);
+        PlayerActivity.prepareForYoutubeHandoff(activity);
         MobileNm7Application.markTabSwitch();
         try {
             Class<?> browse = Class.forName(BROWSE);
