@@ -1,7 +1,7 @@
 # NM7 IPTV Mobile 1.10.26 - Windows local build
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
-$Root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
 $ST = Join-Path $Root "third_party\SmartTube-droid"
 $Dist = Join-Path $Root "dist\mobile"
