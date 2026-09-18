@@ -155,13 +155,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
             activity.getWindow().getDecorView().post(() -> {
                 installSmartTubeFontFix(activity);
                 View root = activity.findViewById(android.R.id.content);
-                if (root != null) {
-                    forceSingleColumn(root);
-                    ViewTreeObserver observer = root.getViewTreeObserver();
-                    if (observer.isAlive()) observer.addOnGlobalLayoutListener(() -> {
-                        if (!activity.isFinishing() && !activity.isDestroyed()) forceSingleColumn(root);
-                    });
-                }
+                if (root != null) forceSingleColumn(root);
             });
         } else if (name.startsWith(SMARTTUBE_PACKAGE) && !SMARTTUBE_PLAYBACK.equals(name)) {
             if (!SMARTTUBE_WEB.equals(name)) {
@@ -170,13 +164,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
             activity.getWindow().getDecorView().post(() -> {
                 installSmartTubeFontFix(activity);
                 View root = activity.findViewById(android.R.id.content);
-                if (root != null) {
-                    forceSingleColumn(root);
-                    ViewTreeObserver observer = root.getViewTreeObserver();
-                    if (observer.isAlive()) observer.addOnGlobalLayoutListener(() -> {
-                        if (!activity.isFinishing() && !activity.isDestroyed()) forceSingleColumn(root);
-                    });
-                }
+                if (root != null) forceSingleColumn(root);
             });
         }
     }
@@ -248,10 +236,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
         if (root == null) return;
         replaceSmartTubeBranding(root);
         forceSingleColumn(root);
-        ViewTreeObserver observer = root.getViewTreeObserver();
-        if (observer.isAlive()) observer.addOnGlobalLayoutListener(() -> {
-            if (!activity.isFinishing() && !activity.isDestroyed()) forceSingleColumn(root);
-        });
+
     }
 
     /** Convert the phone Browse feed from the fork's 2-column grid to a single-column feed. */
@@ -309,10 +294,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
         View root = activity.findViewById(android.R.id.content);
         if (root == null) return;
         applySmartTubeFontFix(root);
-        ViewTreeObserver observer = root.getViewTreeObserver();
-        if (observer.isAlive()) observer.addOnGlobalLayoutListener(() -> {
-            if (!activity.isFinishing() && !activity.isDestroyed()) applySmartTubeFontFix(root);
-        });
+
     }
 
     private void applySmartTubeFontFix(View view) {
