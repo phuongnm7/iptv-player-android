@@ -21,7 +21,7 @@
         <activity android:name=".SmartTubeHomeActivity" android:exported="false" android:launchMode="singleTask" android:configChanges="keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout|layoutDirection" />
 
         <!-- SmartTube phone UI only. -->
-        <activity android:name="com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity" android:theme="@style/Theme.SmartTubeDroid" />
+        <activity android:name="com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity" android:launchMode="singleTask" android:theme="@style/Theme.SmartTubeDroid" />
         <activity android:name="com.liskovsoft.smartyoutubetv2.droid.ui.splash.SplashActivity" android:theme="@style/Theme.SmartTubeDroid.Splash" />
         <activity android:name="com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity" android:theme="@style/Theme.SmartTubeDroid.Player" />
         <activity android:name="com.liskovsoft.smartyoutubetv2.droid.ui.dialogs.AppDialogActivity" android:theme="@style/Theme.SmartTubeDroid.Dialog" />
@@ -32,7 +32,7 @@
         <activity android:name="com.liskovsoft.smartyoutubetv2.droid.ui.adddevice.AddDeviceActivity" android:theme="@style/Theme.SmartTubeDroid" />
         <activity android:name="com.liskovsoft.smartyoutubetv2.droid.ui.webbrowser.WebBrowserActivity" android:theme="@style/Theme.SmartTubeDroid" />
 
-        <activity android:name=".MainActivity" android:configChanges="keyboardHidden|orientation|screenSize" android:windowSoftInputMode="stateAlwaysHidden|adjustPan" android:exported="true">
+        <activity android:name=".MainActivity" android:launchMode="singleTask" android:configChanges="keyboardHidden|orientation|screenSize" android:windowSoftInputMode="stateAlwaysHidden|adjustPan" android:exported="true">
             <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
         </activity>
     </application>
