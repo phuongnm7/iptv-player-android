@@ -162,6 +162,28 @@ $leaveMethod=@'
 '@
 $t=$t.Substring(0,$leaveStart)+$leaveMethod+$t.Substring($leaveEnd)
 
+$helperStart=$t.IndexOf("    public boolean isInPipMode()")
+if($helperStart -lt 0){Fail "PlaybackActivity isInPipMode marker not found."}
+$backgroundHelper=@'
+    private void startNm7BackgroundService() {
+        try {
+            Intent intent = new Intent();
+            intent.setComponent(new android.content.ComponentName(this,
+                    "vn.phuong.iptvplayer.BackgroundPlaybackService"));
+            intent.putExtra("youtube", true);
+            intent.putExtra("channel_name", "YouTube");
+            if (Build.VERSION.SDK_INT >= 26) {
+                startForegroundService(intent);
+            } else {
+                startService(intent);
+            }
+        } catch (RuntimeException ignored) {
+        }
+    }
+
+'@
+$t=$t.Substring(0,$helperStart)+$backgroundHelper+$t.Substring($helperStart)
+
 # Lock-screen transitions can arrive through onPause without onUserLeaveHint.
 # Force Play-Behind before the engine is blocked so video/audio continues.
 $pauseScreen = 'boolean isScreenOff = getPlayerData().getBackgroundMode() != PlayerData.BACKGROUND_MODE_DEFAULT && Utils.isHardScreenOff(this);'
