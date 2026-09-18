@@ -1,5 +1,5 @@
 # NM7 IPTV Mobile 1.10.26 - Windows local build
-# SCRIPT_VERSION: 2026-09-18-PATCH5
+# SCRIPT_VERSION: 2026-09-18-PATCH6
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 $Root = Split-Path -Parent $PSScriptRoot
@@ -102,7 +102,7 @@ foreach($gp in $gridFiles){
 $uploads=Join-Path $ST "smarttubedroid\\src\\main\\java\\com\\liskovsoft\\smartyoutubetv2\\droid\\ui\\channeluploads\\ChannelUploadsActivity.java"
 if(Test-Path $uploads){
     $x=ReadT $uploads
-    if($x -match '\\bGRID_COLUMNS\\b' -and $x -notmatch '(?m)\\bGRID_COLUMNS\\s*='){
+    if($x -match '\bGRID_COLUMNS\b' -and $x -notmatch '(?m)\bGRID_COLUMNS\s*='){
         $idx=$x.IndexOf('{')
         if($idx -ge 0){
             $n=$x.Insert($idx+1,$nl+'    private static final int GRID_COLUMNS = 1;'+$nl)
@@ -117,69 +117,54 @@ if(Test-Path $uploads){
 $play=Join-Path $ST "smarttubedroid\src\main\java\com\liskovsoft\smartyoutubetv2\droid\ui\playback\PlaybackActivity.java"
 if(-not(Test-Path $play)){Fail "PlaybackActivity.java not found."}
 $t=ReadT $play
+if($t -notmatch 'import android.content.Intent;'){$t=$t.Replace("import android.content.Context;",("import android.content.Context;"+$nl+"import android.content.Intent;"))}
 $marker="private boolean mIsBackPressed;"
 if($t.Contains($marker) -and $t -notmatch "nm7HomePaused"){$t=$t.Replace($marker,$marker+$nl+"    private boolean nm7HomePaused;")}
 
-# The current Systematiq phone fork does not define onUserLeaveHint().
-# Add the callback ourselves so Home/system-leave behavior is explicit, while NM7 tab
-# switches are ignored. This must not depend on a particular upstream callback layout.
-if($t -notmatch "private void nm7PauseForHome\(\)") {
-    if($t -notmatch "import android.content.Intent;") {
-        $t=$t.Replace("import android.content.Context;",$("import android.content.Context;"+$nl+"import android.content.Intent;"))
-    }
-    $helper=@'
+# Upstream SmartTube 32.47s already defines onUserLeaveHint(). Do not inject a second
+# callback: doing so causes a duplicate-method compile error after the phone-fork merge.
+
+# Preserve the SmartTube player during NM7 tab switches; ordinary Back/Home release normally.
+$stop=[regex]::Match($t,"(?s)(protected void onStop\\(\\)\\s*\\{\\s*super\\.onStop\\(\\);\\s*if \\(VERSION\\.SDK_INT > 23\\) \\{)\\s*maybeReleasePlayer\\(\\);\\s*(\\}\\s*\\})")
+if($stop.Success){
+    $rep=$stop.Groups[1].Value+$nl+"            if (!isNm7TabSwitch()) {"+$nl+"                maybeReleasePlayer();"+$nl+"            }"+$nl+$stop.Groups[2].Value
+    $t=$t.Remove($stop.Index,$stop.Length).Insert($stop.Index,$rep)
+} elseif($t -notmatch "!isNm7TabSwitch"){Fail "PlaybackActivity onStop release block not found."}
+
+# Back from the SmartTube player must return to the phone Browse screen.
+if($t -notmatch "FLAG_ACTIVITY_REORDER_TO_FRONT \\| Intent.FLAG_ACTIVITY_NO_ANIMATION"){
+    $oldBack=@'
     @Override
-    public void onUserLeaveHint() {
-        super.onUserLeaveHint();
+    public void onBackPressed() {
+        mIsBackPressed = true;
 
-        if (!isNm7TabSwitch()) {
-            nm7PauseForHome();
-        }
-    }
-
-    private boolean isNm7TabSwitch() {
-        try {
-            String until = System.getProperty("nm7.tab.switch.until", "0");
-            return Long.parseLong(until) > android.os.SystemClock.uptimeMillis();
-        } catch (RuntimeException ignored) {
-            return false;
-        }
-    }
-
-    private void nm7PauseForHome() {
-        if (mPlayer == null) return;
-        try {
-            if (mPlayer.getPlayWhenReady()) {
-                nm7HomePaused = true;
-                mPlayer.setPlayWhenReady(false);
-            }
-        } catch (RuntimeException ignored) { }
-    }
-
-    private void nm7ResumeAfterHome() {
-        if (!nm7HomePaused || mPlayer == null) return;
-        try { mPlayer.setPlayWhenReady(true); } catch (RuntimeException ignored) { }
-        nm7HomePaused = false;
+        super.onBackPressed();
     }
 '@
-    $last=$t.LastIndexOf("}")
-    if($last -lt 0){Fail "PlaybackActivity closing brace not found."}
-    $t=$t.Insert($last,$nl+$helper)
+    $newBack=@'
+    @Override
+    public void onBackPressed() {
+        if (mIsBackPressed) {
+            return;
+        }
+        mIsBackPressed = true;
+        try {
+            Intent intent = new Intent(this,
+                    Class.forName("com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity"));
+            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NO_ANIMATION);
+            startActivity(intent);
+            overridePendingTransition(0, 0);
+            finish();
+            overridePendingTransition(0, 0);
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            super.onBackPressed();
+        }
+    }
+'@
+    if($t.Contains($oldBack)){$t=$t.Replace($oldBack,$newBack)}
 }
-
-# Resume the same player instance after Home.
-if($t -notmatch "super\.onResume\(\);\s*nm7ResumeAfterHome\(\);"){
-    $onResumePat='(protected void onResume\(\)\s*\{\s*super\.onResume\(\);)'
-    $t=[regex]::Replace($t,$onResumePat, { param($m) $m.Value + $nl + '        nm7ResumeAfterHome();' }, 1)
-}
-
-# Home must not trigger maybeReleasePlayer; real tab switch and Back still release normally.
-$stop=[regex]::Match($t,"(?s)(protected void onStop\(\)\s*\{\s*super\.onStop\(\);\s*if \(VERSION\.SDK_INT > 23\) \{)\s*maybeReleasePlayer\(\);\s*(\}\s*\})")
-if($stop.Success){
-    $rep=$stop.Groups[1].Value+$nl+"            if (!nm7HomePaused && !isNm7TabSwitch()) {"+$nl+"                maybeReleasePlayer();"+$nl+"            }"+$nl+$stop.Groups[2].Value
-    $t=$t.Remove($stop.Index,$stop.Length).Insert($stop.Index,$rep)
-} elseif($t -notmatch "!nm7HomePaused && !isNm7TabSwitch"){Fail "PlaybackActivity onStop release block not found."}
 WriteT $play $t
+
 
 $appJava=ReadT (Join-Path $Root "app\src\main\java\vn\phuong\iptvplayer\MobileNm7Application.java")
 $appUi=ReadT (Join-Path $Root "app\src\main\java\vn\phuong\iptvplayer\MobileIptvUi.java")
