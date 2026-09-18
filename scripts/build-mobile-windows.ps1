@@ -197,6 +197,7 @@ $newResume=@'
 
         showHideWidgets(true);
         blockEngine(false);
+        System.setProperty("nm7.youtube.background", "0");
         try {
             getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_DEFAULT);
         } catch (RuntimeException ignored) {
@@ -229,7 +230,8 @@ $newStop=@'
         super.onStop();
 
         boolean backgroundRequested = getPlayerData().getBackgroundMode() != PlayerData.BACKGROUND_MODE_DEFAULT;
-        if (VERSION.SDK_INT > 23 && !isNm7TabSwitch() && !backgroundRequested && !isEngineBlocked()) {
+        boolean nm7YoutubeBackground = "1".equals(System.getProperty("nm7.youtube.background", "0"));
+        if (VERSION.SDK_INT > 23 && !isNm7TabSwitch() && !backgroundRequested && !isEngineBlocked() && !nm7YoutubeBackground) {
             maybeReleasePlayer();
         }
     }
@@ -243,6 +245,7 @@ $newStop=@'
     }
 '@
 if($t.Contains($oldStop)){$t=$t.Replace($oldStop,$newStop)}
+if($t -notmatch 'nm7\.youtube\.background'){ Fail "SmartTube HOME background marker patch did not persist." }
 if($t -notmatch 'boolean\s+isNm7TabSwitch\(\)'){
     Write-Host "NOTE: SmartTube onStop shape differs; keeping upstream onStop." -ForegroundColor Yellow
 }
@@ -257,9 +260,9 @@ $leaveMethod=@'
                 || getGeneralData().getBackgroundPlaybackShortcut() == GeneralData.BACKGROUND_PLAYBACK_SHORTCUT_BACK) {
             return;
         }
-        // HOME/lock must explicitly enter Play-Behind before onStop. Do not rely on
-        // the previous background-mode preference because NM7 can start in DEFAULT mode.
+        // HOME/lock must explicitly enter Play-Behind before onStop.
         getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_PLAY_BEHIND);
+        System.setProperty("nm7.youtube.background", "1");
         if (doNotDestroy()) {
             blockEngine(true);
             getViewManager().blockTop(this);
