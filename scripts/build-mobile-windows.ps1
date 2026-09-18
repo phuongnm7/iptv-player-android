@@ -182,8 +182,36 @@ $a64=$apks|Where-Object{$_.Name -like "*arm64-v8a*"};$a7=$apks|Where-Object{$_.N
 if(-not$a64 -or -not$a7){Fail "Expected arm64-v8a and armeabi-v7a APKs."}
 $sign=Join-Path $env:ANDROID_HOME "build-tools\$BT\apksigner.bat"
 foreach($a in @($a64,$a7)){Run $sign @("verify","--verbose","--print-certs",$a.FullName);$z=& jar tf $a.FullName;if($z -match "lib/x86/|lib/x86_64/|libvlc\.so"){Fail "Forbidden ABI/VLC content in $($a.Name)."}}
-$z=& jar tf $a64.FullName;if($z -notmatch "lib/arm64-v8a/" -or $z -match "lib/armeabi-v7a/"){Fail "arm64 ABI validation failed."}
-$z=& jar tf $a7.FullName;if($z -notmatch "lib/armeabi-v7a/" -or $z -match "lib/arm64-v8a/"){Fail "armv7 ABI validation failed."}
+$z=@(& jar tf $a64.FullName)
+$native64=@($z|Where-Object{$_ -match '^lib/[^/]+/[^/]+\\.so
+
+$manifest=Join-Path $Root "app\build\intermediates\merged_manifest\mobileDebug\processMobileDebugManifest\AndroidManifest.xml"
+if(Test-Path $manifest){$m=ReadT $manifest;if($m -match "TvLayoutTunerProvider|TvStreamRecoveryProvider|TvPlayerUiProvider|VlcFallbackActivity|LEANBACK_LAUNCHER"){Fail "TV/VLC component detected in Mobile manifest."}}
+
+$bg=ReadT (Join-Path $Root "app\build.gradle.kts");$mm=[regex]::Match($bg,'versionName\s*=\s*"([^"]+)"');$v=if($mm.Success){$mm.Groups[1].Value}else{"1.10.26"}
+Copy-Item $a64.FullName (Join-Path $Dist "NM7-IPTV-Mobile-$v-arm64-v8a.apk") -Force
+Copy-Item $a7.FullName (Join-Path $Dist "NM7-IPTV-Mobile-$v-armeabi-v7a.apk") -Force
+Write-Host ""; Write-Host "=== BUILD SUCCESSFUL ===" -ForegroundColor Green; Write-Host "APK output: $Dist"; Get-ChildItem $Dist
+})
+if(@($native64|Where-Object{$_ -match '^lib/arm64-v8a/'}).Count -eq 0 -or @($native64|Where-Object{$_ -match '^lib/armeabi-v7a/|^lib/x86/|^lib/x86_64/'}).Count -gt 0){
+  Write-Host "arm64 APK native entries:" -ForegroundColor Yellow; $native64 | ForEach-Object { Write-Host ("  "+$_) }
+  Fail "arm64 ABI validation failed."
+}
+$z=@(& jar tf $a7.FullName)
+$native7=@($z|Where-Object{$_ -match '^lib/[^/]+/[^/]+\\.so
+
+$manifest=Join-Path $Root "app\build\intermediates\merged_manifest\mobileDebug\processMobileDebugManifest\AndroidManifest.xml"
+if(Test-Path $manifest){$m=ReadT $manifest;if($m -match "TvLayoutTunerProvider|TvStreamRecoveryProvider|TvPlayerUiProvider|VlcFallbackActivity|LEANBACK_LAUNCHER"){Fail "TV/VLC component detected in Mobile manifest."}}
+
+$bg=ReadT (Join-Path $Root "app\build.gradle.kts");$mm=[regex]::Match($bg,'versionName\s*=\s*"([^"]+)"');$v=if($mm.Success){$mm.Groups[1].Value}else{"1.10.26"}
+Copy-Item $a64.FullName (Join-Path $Dist "NM7-IPTV-Mobile-$v-arm64-v8a.apk") -Force
+Copy-Item $a7.FullName (Join-Path $Dist "NM7-IPTV-Mobile-$v-armeabi-v7a.apk") -Force
+Write-Host ""; Write-Host "=== BUILD SUCCESSFUL ===" -ForegroundColor Green; Write-Host "APK output: $Dist"; Get-ChildItem $Dist
+})
+if(@($native7|Where-Object{$_ -match '^lib/armeabi-v7a/'}).Count -eq 0 -or @($native7|Where-Object{$_ -match '^lib/arm64-v8a/|^lib/x86/|^lib/x86_64/'}).Count -gt 0){
+  Write-Host "armeabi-v7a APK native entries:" -ForegroundColor Yellow; $native7 | ForEach-Object { Write-Host ("  "+$_) }
+  Fail "armv7 ABI validation failed."
+}
 
 $manifest=Join-Path $Root "app\build\intermediates\merged_manifest\mobileDebug\processMobileDebugManifest\AndroidManifest.xml"
 if(Test-Path $manifest){$m=ReadT $manifest;if($m -match "TvLayoutTunerProvider|TvStreamRecoveryProvider|TvPlayerUiProvider|VlcFallbackActivity|LEANBACK_LAUNCHER"){Fail "TV/VLC component detected in Mobile manifest."}}
