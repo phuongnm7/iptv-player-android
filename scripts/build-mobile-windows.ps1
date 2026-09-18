@@ -88,13 +88,35 @@ if(-not(Test-Path $browse)){Fail "BrowseActivity.java not found."}
 $t=ReadT $browse; $n=$t.Replace("private static final int GRID_COLUMNS = 2;","private static final int GRID_COLUMNS = 1;")
 if($n -eq $t){Fail "GRID_COLUMNS declaration not found."}; WriteT $browse $n
 
+# Force one-column browsing only in the phone BrowseActivity. Do not rewrite every
+# SmartTube source file: some screens reference GRID_COLUMNS without declaring it.
+# A global replacement here can create compilation errors in ChannelUploadsActivity
+# and other activities.
 $gridPatched=0
-Get-ChildItem $ST -Recurse -File | Where-Object {$_.FullName -notmatch "\\.git\\" -and $_.Extension -in @(".java",".kt")} | ForEach-Object {
-    try{$x=ReadT $_.FullName}catch{return}
+$gridFiles=@(
+    $browse
+)
+foreach($gp in $gridFiles){
+    $x=ReadT $gp
     $n=[regex]::Replace($x,'(GRID_COLUMNS\s*=\s*)\d+','$1'+'1')
-    if($n -ne $x){WriteT $_.FullName $n;$script:gridPatched++}
+    if($n -ne $x){WriteT $gp $n;$gridPatched++}
 }
-$gridPatched=$gridPatched
+
+# If another phone screen uses GRID_COLUMNS as a bare symbol without declaring it,
+# give that screen its own one-column constant. This is intentionally local and
+# avoids modifying unrelated SmartTube classes.
+Get-ChildItem (Join-Path $ST "smarttubedroid\src\main\java") -Recurse -File -Filter "*.java" | ForEach-Object {
+    $p=$_.FullName
+    try{$x=ReadT $p}catch{return}
+    if($x -match '\bGRID_COLUMNS\b' -and $x -notmatch '(?m)\b(?:private|protected|public|static|final|int|Integer|static final)+\s+GRID_COLUMNS\b'){
+        $insert='    private static final int GRID_COLUMNS = 1;'+$nl
+        $idx=$x.IndexOf('{')
+        if($idx -ge 0){
+            $n=$x.Insert($idx+1,$nl+$insert)
+            WriteT $p $n
+        }
+    }
+}
 
 # Do not globally rename the SmartTube token in XML/properties resources.
 # Android resource names must not contain spaces; branding changes are handled by
