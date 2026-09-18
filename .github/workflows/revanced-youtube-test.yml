@@ -54,11 +54,10 @@ jobs:
         run: |
           set -euo pipefail
           curl -L --fail --retry 3 -A "Mozilla/5.0" \
-            "https://www.apkmirror.com/apk/google-inc/youtube/youtube-20-40-45-release/youtube-20-40-45-2-android-apk-download/download/?forcebaseapk=true&key=bd89e7c340faa5556eca2021544fe01ccc817296" \
+            "https://drive.usercontent.google.com/download?id=1JwOfraPKaOKvDfdhuWwNkf2REL7D6Ngz&export=download&confirm=t" \
             -o youtube-20.40.45.apk
           test -s youtube-20.40.45.apk
-          echo "b7659da492a1ebd8bd7cea2909be4ee1f58e00a2586d65a1c91b2e1e5ec6acd1  youtube-20.40.45.apk" | sha256sum -c -
-          echo "https://www.apkmirror.com/apk/google-inc/youtube/youtube-20-40-45-release/youtube-20-40-45-2-android-apk-download/" > apk-download-url.txt
+          echo "https://drive.google.com/file/d/1JwOfraPKaOKvDfdhuWwNkf2REL7D6Ngz/view" > apk-download-url.txt
 
       - name: Verify YouTube package
         run: |
