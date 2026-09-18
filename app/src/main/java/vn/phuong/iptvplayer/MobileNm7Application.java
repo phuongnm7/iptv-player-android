@@ -147,11 +147,33 @@ public final class MobileNm7Application extends DroidApplication implements andr
             });
         } else if (SMARTTUBE_PLAYBACK.equals(name)) {
             installSmartTubeBackHandling(activity);
+            activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+            activity.getWindow().getDecorView().post(() -> {
+                installSmartTubeFontFix(activity);
+                View root = activity.findViewById(android.R.id.content);
+                if (root != null) {
+                    forceSingleColumn(root);
+                    ViewTreeObserver observer = root.getViewTreeObserver();
+                    if (observer.isAlive()) observer.addOnGlobalLayoutListener(() -> {
+                        if (!activity.isFinishing() && !activity.isDestroyed()) forceSingleColumn(root);
+                    });
+                }
+            });
         } else if (name.startsWith(SMARTTUBE_PACKAGE) && !SMARTTUBE_PLAYBACK.equals(name)) {
             if (!SMARTTUBE_WEB.equals(name)) {
                 activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
             }
-            activity.getWindow().getDecorView().post(() -> installSmartTubeFontFix(activity));
+            activity.getWindow().getDecorView().post(() -> {
+                installSmartTubeFontFix(activity);
+                View root = activity.findViewById(android.R.id.content);
+                if (root != null) {
+                    forceSingleColumn(root);
+                    ViewTreeObserver observer = root.getViewTreeObserver();
+                    if (observer.isAlive()) observer.addOnGlobalLayoutListener(() -> {
+                        if (!activity.isFinishing() && !activity.isDestroyed()) forceSingleColumn(root);
+                    });
+                }
+            });
         }
     }
 
