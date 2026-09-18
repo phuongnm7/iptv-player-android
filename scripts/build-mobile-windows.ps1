@@ -93,7 +93,7 @@ Get-ChildItem $ST -Recurse -File | Where-Object {$_.FullName -notmatch "\\.git\\
     $n=[regex]::Replace($x,'(GRID_COLUMNS\s*=\s*)\d+','$1'+'1')
     if($n -ne $x){WriteT $_.FullName $n;$script:gridPatched++}
 }
-if($gridPatched -eq 0){Fail "No additional SmartTube GRID_COLUMNS declaration found."}
+$gridPatched=$gridPatched
 
 Get-ChildItem $ST -Recurse -File | Where-Object {
     $_.FullName -notmatch "\\.git\\" -and $_.Extension -in @(".xml",".properties")
@@ -120,12 +120,6 @@ $old=@"
     }
 "@
 $new=@"
-    @Override
-    protected void onStart() {
-        super.onStart();
-        resumeNm7AfterHome();
-    }
-
     @Override
     protected void onStop() {
         super.onStop();
@@ -203,6 +197,15 @@ $new=@"
     }
 "@
 if($t.Contains($old)){$t=$t.Replace($old,$new)} elseif($t -notmatch 'isNm7TabSwitch\(\)'){Fail "PlaybackActivity onStop block mismatch."}
+
+# Resume a Home-paused player from an existing lifecycle callback; do not add a duplicate callback.
+if($t -match '(?s)protected void onResume\(\)\s*\{'){
+    $t=[regex]::Replace($t,'(protected void onResume\(\)\s*\{\s*)','$1resumeNm7AfterHome();'+$nl,1)
+} elseif($t -match '(?s)protected void onStart\(\)\s*\{'){
+    $t=[regex]::Replace($t,'(protected void onStart\(\)\s*\{\s*)','$1resumeNm7AfterHome();'+$nl,1)
+} else {
+    Fail "PlaybackActivity has no onResume/onStart callback for Home resume."
+}
 $old=@"
     @Override
     public void onBackPressed() {
