@@ -149,6 +149,8 @@ public final class MobileNm7Application extends DroidApplication implements andr
                 installSmartTubeBrowseFixes(activity);
             });
         } else if (SMARTTUBE_PLAYBACK.equals(name)) {
+            // Apply Play-Behind before PlaybackActivity reaches onResume/onPause.
+            SmartTubeRuntime.enableBackgroundPlayback(getApplicationContext());
             installSmartTubeBackHandling(activity);
             activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
             activity.getWindow().getDecorView().post(() -> {
