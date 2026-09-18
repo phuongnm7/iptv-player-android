@@ -148,6 +148,8 @@ public final class MobileNm7Application extends DroidApplication implements andr
                 MobileIptvUi.install(activity);
                 HomeTabBar.attach(activity, false);
             });
+        } else if (activity instanceof PlayerActivity) {
+            activity.getWindow().getDecorView().post(() -> HomeTabBar.attach(activity, false));
         } else if (SMARTTUBE_BROWSE.equals(name)) {
             activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
             activity.getWindow().getDecorView().post(() -> {
