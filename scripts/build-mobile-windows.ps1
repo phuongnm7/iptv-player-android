@@ -7,7 +7,7 @@ $ST = Join-Path $Root "third_party\SmartTube-droid"
 $Dist = Join-Path $Root "dist\mobile"
 $BT = "36.0.0"
 function Fail([string]$m) { Write-Host ""; Write-Host "BUILD STOPPED: $m" -ForegroundColor Red; exit 1 }
-function Run([string]$exe,[string[]]$args) { Write-Host (">> " + $exe + " " + ($args -join " ")) -ForegroundColor DarkCyan; & $exe @args; if ($LASTEXITCODE -ne 0) { Fail ("Command failed: " + $exe) } }
+function Run([string]$exe,[string[]]$cmdArgs) { Write-Host (">> " + $exe + " " + ($cmdArgs -join " ")) -ForegroundColor DarkCyan; & $exe @cmdArgs; if ($LASTEXITCODE -ne 0) { Fail ("Command failed: " + $exe + " (exit $LASTEXITCODE)") } }
 function ReadT([string]$p) { [IO.File]::ReadAllText($p) }
 function WriteT([string]$p,[string]$s) { [IO.File]::WriteAllText($p,$s,(New-Object Text.UTF8Encoding($false))) }
 
