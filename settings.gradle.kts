@@ -11,6 +11,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven { url = uri("https://jitpack.io") }
         maven {
             name = "githubPackages"
             url = uri("https://maven.pkg.github.com/revanced/registry")
