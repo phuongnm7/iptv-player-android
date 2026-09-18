@@ -50,44 +50,13 @@ jobs:
           unzip -t patches.rvp >/dev/null
           sha256sum patches.rvp
 
-      - name: Download exact YouTube 21.37.42 APK
+      - name: Download exact YouTube 21.37.42 APK from Google Drive
         run: |
           set -euo pipefail
-          page='https://www.apkmirror.com/apk/google-inc/youtube/youtube-21-37-42-release/youtube-21-37-42-3-android-apk-download/'
-          # APKMirror currently exposes the download page but its direct asset link is
-          # generated dynamically. Fetch the page through Jina Reader, then extract
-          # APKMirror's download.php endpoint from the rendered HTML/markdown.
-          curl --fail --location --retry 3 --retry-delay 2 \
-            -A 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/140 Safari/537.36' \
-            "https://r.jina.ai/$page" -o apkmirror-reader.txt
-          test -s apkmirror-reader.txt
-          python3 - <<'PY'
-          import re
-          from pathlib import Path
-          s = Path("apkmirror-reader.txt").read_text(errors="ignore")
-          # Jina may render the download link as an absolute URL, a relative URL,
-          # or markdown/html with escaped query parameters.
-          candidates = re.findall(r'https?://[^\\s\\)\\]\\\"<>]*download\\.php\\?id=\\d+', s)
-          candidates += re.findall(r'(?:https?:)?//[^\\s\\)\\]\\\"<>]*download\\.php\\?id=\\d+', s)
-          candidates += re.findall(r'/wp-content/themes/APKMirror/download\\.php\\?id=\\d+', s)
-          if not candidates:
-              hits = [line for line in s.splitlines() if "download.php" in line]
-              print("\\n".join(hits[:30]))
-              raise SystemExit("Could not find APKMirror download.php URL in Jina-rendered page")
-          url = candidates[0]
-          if url.startswith("//"):
-              url = "https:" + url
-          elif url.startswith("/"):
-              url = "https://www.apkmirror.com" + url
-          url = url.replace("\\u0026", "&").replace("&amp;", "&")
-          Path("apk-download-url.txt").write_text(url + "\\n")
-          print("Selected APKMirror download URL:", url)
-          PY
-          download_url="$(cat apk-download-url.txt)"
-          curl --fail --location --retry 3 --retry-delay 2 \
-            -A 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/140 Safari/537.36' \
-            -e "$page" \
-            "$download_url" -o youtube-21.37.42.apk
+          file_id='1Y6KXljGRTccX9dC4IsUlVfPfTLlGNavU'
+          curl -fL --retry 5 --retry-delay 2 \
+            "https://drive.usercontent.google.com/download?id=$file_id&export=download&confirm=t" \
+            -o youtube-21.37.42.apk
           test -s youtube-21.37.42.apk
           echo "Downloaded bytes: $(stat -c%s youtube-21.37.42.apk)"
           sha256sum youtube-21.37.42.apk
