@@ -107,8 +107,8 @@ jobs:
     protected void onStop() {
         super.onStop();
 
-        // NM7 tab navigation must not destroy the YouTube player.
-        if (VERSION.SDK_INT > 23 && !isNm7TabSwitch()) {
+        boolean backgroundRequested = getPlayerData().getBackgroundMode() != PlayerData.BACKGROUND_MODE_DEFAULT;
+        if (VERSION.SDK_INT > 23 && !isNm7TabSwitch() && !backgroundRequested && !isEngineBlocked()) {
             maybeReleasePlayer();
         }
     }
@@ -136,11 +136,37 @@ jobs:
             return;
         }
         getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_PLAY_BEHIND);
+        startNm7BackgroundService();
         enterBackgroundPlayMode();
     }
 
 '''
           t2 = t2[:leave_start] + leave_method + t2[leave_end:]
+
+          # Keep the SmartTube Activity/player process alive with NM7's media FGS.
+          helper = '''    private void startNm7BackgroundService() {
+        try {
+            Intent intent = new Intent();
+            intent.setComponent(new android.content.ComponentName(this,
+                    "vn.phuong.iptvplayer.BackgroundPlaybackService"));
+            intent.putExtra("youtube", true);
+            intent.putExtra("channel_name", "YouTube");
+            if (VERSION.SDK_INT >= 26) {
+                startForegroundService(intent);
+            } else {
+                startService(intent);
+            }
+        } catch (RuntimeException ignored) {
+        }
+    }
+
+'''
+          t2 = t2[:leave_start] + leave_method + t2[leave_end:]
+          helper_at = t2.find('    public boolean isInPipMode()')
+          if helper_at < 0:
+              raise SystemExit('PlaybackActivity isInPipMode marker not found')
+          t2 = t2[:helper_at] + helper + t2[helper_at:]
+          t2 = t2.replace('boolean isScreenOff = getPlayerData().getBackgroundMode() != PlayerData.BACKGROUND_MODE_DEFAULT && Utils.isHardScreenOff(this);', 'boolean isScreenOff = Utils.isHardScreenOff(this);\n        if (isScreenOff) {\n            getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_PLAY_BEHIND);\n            startNm7BackgroundService();\n        }')
 
           # Back from the player always returns to the phone Browse screen.
           old_back = '''    @Override
