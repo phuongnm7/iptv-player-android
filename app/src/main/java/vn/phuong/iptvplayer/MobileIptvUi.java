@@ -13,7 +13,7 @@ import android.widget.LinearLayout;
 
 import java.lang.reflect.Method;
 
-/** Mobile-only IPTV navigation refinement. Keeps existing MainActivity behavior intact. */
+/** Mobile-only IPTV navigation refinement. Bottom toolbar keeps the player area clear. */
 public final class MobileIptvUi {
     private static final int TOOLBAR_BG = Color.rgb(23, 23, 28);
 
@@ -57,6 +57,7 @@ public final class MobileIptvUi {
         toolbar.setGravity(Gravity.CENTER_VERTICAL);
         toolbar.setBackgroundColor(TOOLBAR_BG);
         toolbar.setPadding(dp(activity, 4), dp(activity, 3), dp(activity, 4), dp(activity, 3));
+        toolbar.setContentDescription("Thanh công cụ IPTV");
 
         search.setSingleLine(true);
         search.setTextSize(14);
@@ -73,7 +74,7 @@ public final class MobileIptvUi {
         styleButton(options, "⚙", "Tùy chọn");
         toolbar.addView(options, optionLp);
 
-        int insertAt = Math.min(1, root.getChildCount());
+        int insertAt = root.getChildCount();
         root.addView(toolbar, insertAt);
 
         options.setOnClickListener(v -> showNavigationOptions(activity, all, favorites, recent));
