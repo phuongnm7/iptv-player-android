@@ -124,7 +124,7 @@ jobs:
           if old_stop not in t2:
               raise SystemExit('PlaybackActivity onStop block not found')
           t2 = t2.replace(old_stop, new_stop)
-          t2 = t2.replace('boolean isScreenOff = getPlayerData().getBackgroundMode() != PlayerData.BACKGROUND_MODE_DEFAULT && Utils.isHardScreenOff(this);', 'boolean isScreenOff = Utils.isHardScreenOff(this);\n        if (isScreenOff) {\n            getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_PLAY_BEHIND);\n        }')
+          t2 = t2.replace('boolean isScreenOff = getPlayerData().getBackgroundMode() != PlayerData.BACKGROUND_MODE_DEFAULT && Utils.isHardScreenOff(this);', 'boolean isScreenOff = Utils.isHardScreenOff(this);\n        if (isScreenOff) {\n            getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_PLAY_BEHIND);\n            startNm7BackgroundService();\n        }')
 
           # Android calls onUserLeaveHint for HOME. Force NM7 Play-Behind regardless of stored mode.
           leave_start = t2.find('    public void onUserLeaveHint()')
@@ -161,7 +161,6 @@ jobs:
     }
 
 '''
-          t2 = t2[:leave_start] + leave_method + t2[leave_end:]
           helper_at = t2.find('    public boolean isInPipMode()')
           if helper_at < 0:
               raise SystemExit('PlaybackActivity isInPipMode marker not found')
