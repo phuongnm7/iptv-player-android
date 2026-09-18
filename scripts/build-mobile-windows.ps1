@@ -127,7 +127,8 @@ $newStop=@'
     protected void onStop() {
         super.onStop();
 
-        if (VERSION.SDK_INT > 23 && !isNm7TabSwitch()) {
+        boolean backgroundRequested = getPlayerData().getBackgroundMode() != PlayerData.BACKGROUND_MODE_DEFAULT;
+        if (VERSION.SDK_INT > 23 && !isNm7TabSwitch() && !backgroundRequested && !isEngineBlocked()) {
             maybeReleasePlayer();
         }
     }
@@ -156,6 +157,7 @@ $leaveMethod=@'
             return;
         }
         getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_PLAY_BEHIND);
+        startNm7BackgroundService();
         enterBackgroundPlayMode();
     }
 
@@ -187,7 +189,7 @@ $t=$t.Substring(0,$helperStart)+$backgroundHelper+$t.Substring($helperStart)
 # Lock-screen transitions can arrive through onPause without onUserLeaveHint.
 # Force Play-Behind before the engine is blocked so video/audio continues.
 $pauseScreen = 'boolean isScreenOff = getPlayerData().getBackgroundMode() != PlayerData.BACKGROUND_MODE_DEFAULT && Utils.isHardScreenOff(this);'
-$pauseScreenNew = 'boolean isScreenOff = Utils.isHardScreenOff(this);' + $nl + '        if (isScreenOff) {' + $nl + '            getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_PLAY_BEHIND);' + $nl + '        }'
+$pauseScreenNew = 'boolean isScreenOff = Utils.isHardScreenOff(this);' + $nl + '        if (isScreenOff) {' + $nl + '            getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_PLAY_BEHIND);' + $nl + '            startNm7BackgroundService();' + $nl + '        }'
 if($t.Contains($pauseScreen)){
     $t=$t.Replace($pauseScreen,$pauseScreenNew)
 }
