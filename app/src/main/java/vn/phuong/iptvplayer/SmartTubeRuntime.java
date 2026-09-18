@@ -38,8 +38,6 @@ public final class SmartTubeRuntime {
                 tweaks.getMethod("setPlayerDataSource", int.class).invoke(data, cronet.getInt(null));
             } catch (ReflectiveOperationException | RuntimeException ignored) { }
 
-            enableBackgroundPlayback(context);
-
             Class<?> mother = Class.forName(PREFIX + ".common.misc.MotherActivity");
             mother.getMethod("setTvDpiScalingEnabled", boolean.class).invoke(null, false);
             Class<?> screensaver = Class.forName(PREFIX + ".common.misc.ScreensaverManager");
