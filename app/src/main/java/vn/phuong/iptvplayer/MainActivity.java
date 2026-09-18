@@ -47,11 +47,26 @@ public final class MainActivity extends Activity {
     private int duplicateCount, missingUrlCount, activeSection;
     private String currentSource = "", selectedGroup = "", epgUrl = "";
     private boolean loading, importExpanded = true;
+    private boolean youtubeRestoreTriggered;
     private int wallpaperGeneration, playlistRequestGeneration;
     private final android.os.Handler epgHandler=new android.os.Handler(android.os.Looper.getMainLooper());
     private final Runnable epgTick=new Runnable(){@Override public void run(){if(adapter!=null)adapter.notifyDataSetChanged();epgHandler.postDelayed(this,60_000);}};
 
     @Override protected void onCreate(Bundle savedInstanceState) { super.onCreate(savedInstanceState); setupViews(); restoreSession(); epgHandler.post(epgTick); }
+    @Override protected void onResume(){
+        super.onResume();
+        if(!youtubeRestoreTriggered && SharedPlaybackSession.TAB_YOUTUBE.equals(SharedPlaybackSession.tab(this))){
+            youtubeRestoreTriggered=true;
+            findViewById(android.R.id.content).postDelayed(()->{
+                try{
+                    Intent intent=new Intent(this,Class.forName("com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity"));
+                    intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT|Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                    startActivity(intent);
+                    overridePendingTransition(0,0);
+                }catch(Exception ignored){}
+            },120L);
+        }
+    }
     @Override protected void onDestroy(){epgHandler.removeCallbacksAndMessages(null);super.onDestroy();}
 
     private void setupViews() {
