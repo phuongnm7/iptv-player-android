@@ -67,6 +67,7 @@ public final class HomeTabBar {
 
     private static void openIptv(Activity activity) {
         System.setProperty("nm7.youtube.background", "0");
+        SharedPlaybackSession.setYoutubeBackground(activity, false);
         SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_IPTV);
         // This is a navigation event, not a request to stop the current IPTV player.
         MobileNm7Application.markTabSwitch();
@@ -82,6 +83,7 @@ public final class HomeTabBar {
 
     private static void openBrowse(Activity activity) {
         System.setProperty("nm7.youtube.background", "0");
+        SharedPlaybackSession.setYoutubeBackground(activity, false);
         // Persist the active tab and hand IPTV ownership back before SmartTube starts.
         SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_YOUTUBE);
         PlayerActivity.prepareForYoutubeHandoff(activity);
