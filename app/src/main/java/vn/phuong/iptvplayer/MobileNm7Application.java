@@ -39,6 +39,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
     private int startedActivities;
     private Activity iptvPlayerActivity;
     private Activity smartTubeBrowseActivity;
+    private Activity smartTubePlaybackActivity;
     private volatile boolean tabSwitchPending;
     private final java.util.Map<Activity, Object> smartTubeBackCallbacks = new java.util.HashMap<>();
 
@@ -92,13 +93,16 @@ public final class MobileNm7Application extends DroidApplication implements andr
         String name = activity.getClass().getName();
         if (activity instanceof PlayerActivity) {
             iptvPlayerActivity = activity;
-            // Switching tabs must not pause YouTube. A real IPTV channel launch has no
-            // pending tab-switch marker, so it still pauses any active external media.
-            if (!tabSwitchPending) pauseExternalMedia(activity);
+            // Entering IPTV is an explicit media switch. Pause any active SmartTube
+            // session, including Play-Behind/background playback.
+            pauseExternalMedia(activity);
         } else if (SMARTTUBE_BROWSE.equals(name)) {
             smartTubeBrowseActivity = activity;
         } else if (SMARTTUBE_PLAYBACK.equals(name)) {
-            // A real YouTube video has started. Only now pause the IPTV player.
+            smartTubePlaybackActivity = activity;
+            // A real YouTube video has started. Configure Play-Behind and release the
+            // IPTV decoder so the two video engines never contend for hardware resources.
+            SmartTubeRuntime.enableBackgroundPlayback(getApplicationContext());
             pauseIptvPlayer();
         }
     }
@@ -209,11 +213,20 @@ public final class MobileNm7Application extends DroidApplication implements andr
         try {
             Field field = PlayerActivity.class.getDeclaredField("player");
             field.setAccessible(true);
+            Method remember = PlayerActivity.class.getDeclaredMethod("rememberPosition");
+            remember.setAccessible(true);
+            remember.invoke(activity);
             Object player = field.get(activity);
             if (player != null) {
                 Method pause = player.getClass().getMethod("setPlayWhenReady", boolean.class);
                 pause.invoke(player, false);
             }
+            Field background = PlayerActivity.class.getDeclaredField("backgroundPlaybackActive");
+            background.setAccessible(true);
+            background.setBoolean(activity, false);
+            Method release = PlayerActivity.class.getDeclaredMethod("releasePlayer");
+            release.setAccessible(true);
+            release.invoke(activity);
             activity.stopService(new android.content.Intent(activity, BackgroundPlaybackService.class));
         } catch (ReflectiveOperationException | RuntimeException ignored) { }
     }
@@ -392,5 +405,6 @@ public final class MobileNm7Application extends DroidApplication implements andr
         }
         if (activity == iptvPlayerActivity) iptvPlayerActivity = null;
         if (activity == smartTubeBrowseActivity) smartTubeBrowseActivity = null;
+        if (activity == smartTubePlaybackActivity) smartTubePlaybackActivity = null;
     }
 }
