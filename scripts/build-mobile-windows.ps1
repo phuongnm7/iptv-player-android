@@ -137,26 +137,6 @@ if($t -match 'getString\("Section is empty"\)'){
 # The SmartTube snapshot may omit this generated string resource; keep the build independent of it.
 if($t -notmatch 'import android.content.Intent;'){$t=$t.Replace("import android.content.Context;",("import android.content.Context;"+$nl+"import android.content.Intent;"))}
 
-# The phone PlaybackFragment also releases its ExoPlayer from onStop().
-# That happens after PlaybackActivity.onUserLeaveHint/onStop and was the actual
-# reason HOME still stopped YouTube. Guard the fragment release while NM7 has
-# explicitly entered background playback.
-$playFragments=@(Get-ChildItem $ST -Recurse -Filter "PlaybackFragment.java" -File | Where-Object {
-    $_.FullName -match "\\droid\\ui\\playback\\PlaybackFragment\.java$"
-})
-if($playFragments.Count -eq 0){Fail "SmartTube phone PlaybackFragment.java not found."}
-$fragmentPatched=0
-foreach($pf in $playFragments){
-    $ft=ReadT $pf.FullName
-    if($ft -match 'void\s+onStop\s*\(' -and $ft -match 'releasePlayer\s*\(\);'){
-        $guard='if ("1".equals(System.getProperty("nm7.youtube.background", "0")) || getPlaybackMode() != PlaybackEngineController.BACKGROUND_MODE_DEFAULT) { return; }' + $nl
-        $pattern='(?s)(void\s+onStop\s*\(\)\s*\{\s*super\.onStop\(\);\s*)(.*?releasePlayer\(\);)'
-        $newFt=[regex]::Replace($ft,$pattern,{ param($m) $m.Groups[1].Value + $guard + $m.Groups[2].Value },1)
-        if($newFt -ne $ft){WriteT $pf.FullName $newFt;$fragmentPatched++}
-    }
-}
-if($fragmentPatched -eq 0){Fail "SmartTube PlaybackFragment onStop release guard was not applied."}
-
 # Keep the phone SmartTube ExoPlayer instance alive across Android HOME/background.
 $oldStart=@'
     @Override
@@ -266,6 +246,7 @@ $newStop=@'
 '@
 if($t.Contains($oldStop)){$t=$t.Replace($oldStop,$newStop)}
 if($t -notmatch 'nm7\.youtube\.background'){ Fail "SmartTube HOME background marker patch did not persist." }
+if($t -notmatch 'BACKGROUND_MODE_SOUND'){ Fail "SmartTube phone background mode patch did not persist." }
 $fragmentCheck=@(Get-ChildItem $ST -Recurse -Filter "PlaybackFragment.java" -File | Where-Object {
     $_.FullName -match "\\droid\\ui\\playback\\PlaybackFragment\.java$"
 })
@@ -287,12 +268,10 @@ $leaveMethod=@'
             return;
         }
         // HOME/lock must explicitly enter Play-Behind before onStop.
-        getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_PLAY_BEHIND);
+        getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_SOUND);
         System.setProperty("nm7.youtube.background", "1");
-        if (doNotDestroy()) {
-            blockEngine(true);
-            getViewManager().blockTop(this);
-        }
+        blockEngine(true);
+        getViewManager().blockTop(this);
     }
 
 '@
@@ -316,7 +295,7 @@ if($t -match 'void\s+onUserLeaveHint\s*\('){
 # Lock-screen transitions can arrive through onPause without onUserLeaveHint.
 # Force Play-Behind before the engine is blocked so video/audio continues.
 $pauseScreen = 'boolean isScreenOff = getPlayerData().getBackgroundMode() != PlayerData.BACKGROUND_MODE_DEFAULT && Utils.isHardScreenOff(this);'
-$pauseScreenNew = 'boolean isScreenOff = Utils.isHardScreenOff(this);' + $nl + '        if (isScreenOff) {' + $nl + '            getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_PLAY_BEHIND);' + $nl + '            if (doNotDestroy()) {' + $nl + '                blockEngine(true);' + $nl + '                getViewManager().blockTop(this);' + $nl + '            }' + $nl + '        }'
+$pauseScreenNew = 'boolean isScreenOff = Utils.isHardScreenOff(this);' + $nl + '        if (isScreenOff) {' + $nl + '            getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_SOUND);' + $nl + '            if (doNotDestroy()) {' + $nl + '                blockEngine(true);' + $nl + '                getViewManager().blockTop(this);' + $nl + '            }' + $nl + '        }'
 if($t.Contains($pauseScreen)){
     $t=$t.Replace($pauseScreen,$pauseScreenNew)
 }
