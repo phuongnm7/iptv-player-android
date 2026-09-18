@@ -49,10 +49,9 @@ public final class MobileNm7Application extends DroidApplication implements andr
         System.setProperty("http.maxConnections", "8");
         System.setProperty("http.keepAliveDuration", "300000");
         registerActivityLifecycleCallbacks(this);
-        // Pre-warm SmartTube's ViewManager/class graph after the IPTV UI is usable.
-        // This moves one-time reflection/class-loading cost out of the first YouTube tap.
-        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(
-                () -> SmartTubeRuntime.initialize(getApplicationContext()), 150L);
+        // Initialize SmartTube before any YouTube tab can be opened.
+        // Delayed-only prewarm created a first-tap race with ViewManager registration.
+        SmartTubeRuntime.initialize(getApplicationContext());
     }
 
     public static void markTabSwitch() {
@@ -245,13 +244,19 @@ public final class MobileNm7Application extends DroidApplication implements andr
         if (root == null) return;
         replaceSmartTubeBranding(root);
         forceSingleColumn(root);
-        // SmartTube creates some recommendation RecyclerViews after the first layout.
-        // Re-apply the mobile one-column policy after those managers are attached.
-        root.getViewTreeObserver().addOnGlobalLayoutListener(() -> forceSingleColumn(root));
+        // SmartTube attaches some recommendation RecyclerViews after the first layout.
+        // Use bounded one-shot passes rather than an onGlobalLayout recursion, which can
+        // continuously invalidate GridLayoutManager and stall the phone UI.
         android.os.Handler h = new android.os.Handler(android.os.Looper.getMainLooper());
-        h.postDelayed(() -> forceSingleColumn(root), 150L);
-        h.postDelayed(() -> forceSingleColumn(root), 500L);
-        h.postDelayed(() -> forceSingleColumn(root), 1200L);
+        h.postDelayed(() -> {
+            if (!activity.isFinishing() && !activity.isDestroyed()) forceSingleColumn(root);
+        }, 150L);
+        h.postDelayed(() -> {
+            if (!activity.isFinishing() && !activity.isDestroyed()) forceSingleColumn(root);
+        }, 500L);
+        h.postDelayed(() -> {
+            if (!activity.isFinishing() && !activity.isDestroyed()) forceSingleColumn(root);
+        }, 1200L);
     }
 
     /** Convert the phone Browse feed from the fork's 2-column grid to a single-column feed. */
