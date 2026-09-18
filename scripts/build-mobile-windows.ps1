@@ -1,5 +1,5 @@
 # NM7 IPTV Mobile 1.10.26 - Windows local build
-# SCRIPT_VERSION: 2026-09-18-PATCH7
+# SCRIPT_VERSION: 2026-09-18-PATCH8
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 $Root = Split-Path -Parent $PSScriptRoot
@@ -88,17 +88,6 @@ if(-not(Test-Path $browse)){Fail "BrowseActivity.java not found."}
 $t=ReadT $browse; $n=$t.Replace("private static final int GRID_COLUMNS = 2;","private static final int GRID_COLUMNS = 1;")
 if($n -eq $t){Fail "GRID_COLUMNS declaration not found."}; WriteT $browse $n
 
-# Force one-column browsing only in the phone BrowseActivity.
-# Do not rewrite every SmartTube source file: other screens may reference GRID_COLUMNS
-# without declaring it. Patch only the known phone uploads screen when necessary.
-$gridPatched=0
-$gridFiles=@($browse)
-foreach($gp in $gridFiles){
-    $x=ReadT $gp
-    $n=[regex]::Replace($x,'GRID_COLUMNS','1')
-    if($n -ne $x){WriteT $gp $n;$gridPatched++}
-}
-
 $uploads=Join-Path $ST "smarttubedroid\\src\\main\\java\\com\\liskovsoft\\smartyoutubetv2\\droid\\ui\\channeluploads\\ChannelUploadsActivity.java"
 if(Test-Path $uploads){
     $x=ReadT $uploads
@@ -131,19 +120,6 @@ $oldStop=@'
         }
     }
 '@
-$helper=@'
-    private boolean isNm7TabSwitch() {
-        try {
-            return Long.parseLong(System.getProperty("nm7.tab.switch.until", "0")) > System.currentTimeMillis();
-        } catch (RuntimeException e) {
-            return false;
-        }
-    }
-'@
-if($t -notmatch 'boolean\s+isNm7TabSwitch\(\)'){
-    $marker="    @Override"+$nl+"    protected void onStop() {"
-    if($t.Contains($marker)){$t=$t.Replace($marker,$helper+$nl+$marker)}else{Fail "PlaybackActivity onStop marker not found."}
-}
 $newStop=@'
     @Override
     protected void onStop() {
@@ -153,8 +129,19 @@ $newStop=@'
             maybeReleasePlayer();
         }
     }
+
+    private boolean isNm7TabSwitch() {
+        try {
+            return Long.parseLong(System.getProperty("nm7.tab.switch.until", "0")) > System.currentTimeMillis();
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
 '@
-if($t.Contains($oldStop)){$t=$t.Replace($oldStop,$newStop)}elseif($t -notmatch 'isNm7TabSwitch\(\)'){Fail "PlaybackActivity onStop block not found."}
+if($t.Contains($oldStop)){$t=$t.Replace($oldStop,$newStop)}
+elseif($t -notmatch 'boolean\s+isNm7TabSwitch\(\)'){
+    Fail "PlaybackActivity onStop block not found in SmartTube 32.47s."
+}
 
 # Back from the SmartTube player must return to the phone Browse screen.
 if($t -notmatch 'FLAG_ACTIVITY_REORDER_TO_FRONT\s*\|\s*Intent\.FLAG_ACTIVITY_NO_ANIMATION'){
@@ -206,11 +193,22 @@ $p=Join-Path $res "st_exo_player_view.xml"; WriteT $p (ReadT $p).Replace("@layou
 $t=ReadT $pv; $n=$t.Replace("R.layout.exo_player_view","R.layout.st_exo_player_view"); if($n -eq $t){Fail "PlayerView layout reference not found."}; WriteT $pv $n
 
 $changed=0
-Get-ChildItem $ST -Recurse -File | Where-Object {$_.FullName -notmatch "\\.git\\"} | ForEach-Object {
-  try{$x=ReadT $_.FullName}catch{return}
-  if($x.Contains("show_buffering")){$n=$x.Replace("show_buffering","st_show_buffering");if($n -ne $x){WriteT $_.FullName $n;$script:changed++}}
+$roots=@(
+  (Join-Path $ST "exoplayer-amzn-2.10.6\library\ui\src\main\java"),
+  (Join-Path $ST "exoplayer-amzn-2.10.6\library\ui\src\main\res")
+)
+foreach($r in $roots){
+  if(Test-Path $r){
+    Get-ChildItem $r -Recurse -File | Where-Object {$_.Extension -in @(".java",".xml")} | ForEach-Object {
+      $x=ReadT $_.FullName
+      if($x.Contains("show_buffering")){
+        $n=$x.Replace("show_buffering","st_show_buffering")
+        if($n -ne $x){WriteT $_.FullName $n;$changed++}
+      }
+    }
+  }
 }
-if($changed -eq 0){Fail "show_buffering patch found no references."}
+if($changed -eq 0){Fail "show_buffering patch found no references in legacy ExoPlayer UI."}
 
 $doh=Join-Path $ST "SharedModules\sharedutils\src\main\java\com\liskovsoft\sharedutils\okhttp\DohProviders.kt"
 if(Test-Path $doh){$t=ReadT $doh;$t=$t.Replace("import okhttp3.toHttpUrlOrNull"+$nl,"");$t=$t.Replace('return s.toHttpUrlOrNull() ?: throw NullPointerException("unable to parse url")','return HttpUrl.get(s)');$t=$t.Replace('return HttpUrl.parse(s) ?: throw NullPointerException("unable to parse url")','return HttpUrl.get(s)');WriteT $doh $t}
