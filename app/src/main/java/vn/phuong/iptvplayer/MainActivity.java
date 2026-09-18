@@ -3,6 +3,7 @@ package vn.phuong.iptvplayer;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
@@ -19,6 +20,8 @@ import android.widget.Toast;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -34,6 +37,7 @@ public final class MainActivity extends Activity {
     private static final int OPEN_M3U = 101;
     private static final int PICK_WALLPAPER = 103;
     private static final int OPEN_REVANCED_APK = 104;
+    private static final String EMBEDDED_YOUTUBE_ASSET = "revanced/youtube-20.40.45-revanced.apk";
     private static final int MAX_PLAYLIST_BYTES = 8 * 1024 * 1024;
     private static final String DEFAULT_PLAYLIST = PlaylistSourceStore.DEFAULT_URL;
 
@@ -308,14 +312,31 @@ public final class MainActivity extends Activity {
         new AlertDialog.Builder(this)
                 .setTitle("YouTube / ReVanced (thử nghiệm)")
                 .setMessage(bundleStatus + "\\n" + gmsStatus + "\\n\\nNM7 đang chuẩn bị pipeline tự patch YouTube. GmsCore vẫn là thành phần Android riêng về mặt package; không coi một APK nhúng là đã cài GmsCore.")
-                .setItems(new String[]{"Chọn APK YouTube để kiểm tra","Mở YouTube / ReVanced đã cài"},(d,w)->{
+                .setItems(new String[]{"Cài YouTube ReVanced tích hợp NM7","Chọn APK YouTube để kiểm tra","Mở YouTube / ReVanced đã cài"},(d,w)->{
                     if(w==0){
+                        installEmbeddedYouTube();
+                    }else if(w==1){
                         Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT);
                         intent.addCategory(Intent.CATEGORY_OPENABLE);
                         intent.setType("application/vnd.android.package-archive");
                         startActivityForResult(intent,OPEN_REVANCED_APK);
                     }else openYouTubeReVanced();
                 }).setNegativeButton("Đóng",null).show();
+    }
+    private void installEmbeddedYouTube(){
+        io.execute(()->{
+            try{
+                File dir=new File(getCacheDir(),"revanced");
+                if(!dir.exists()&&!dir.mkdirs())throw new Exception("Không tạo được thư mục tạm");
+                File apk=new File(dir,"youtube-20.40.45-revanced.apk");
+                try(InputStream in=getAssets().open(EMBEDDED_YOUTUBE_ASSET);FileOutputStream out=new FileOutputStream(apk)){
+                    byte[] buffer=new byte[64*1024];int n;while((n=in.read(buffer))!=-1)out.write(buffer,0,n);
+                }
+                Uri uri=androidx.core.content.FileProvider.getUriForFile(this,getPackageName()+".revancedfiles",apk);
+                Intent install=new Intent(Intent.ACTION_INSTALL_PACKAGE);install.setData(uri);install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_ACTIVITY_NEW_TASK);
+                ui(()->{try{startActivity(install);}catch(Exception e){new AlertDialog.Builder(this).setTitle("Không thể cài YouTube ReVanced").setMessage("Android chưa cho phép NM7 mở trình cài đặt APK. Hãy bật quyền cài ứng dụng từ nguồn này rồi thử lại.\\n\\n"+readable(e)).setPositiveButton("Đóng",null).show();}});
+            }catch(Exception e){ui(()->showError("Không đọc được YouTube ReVanced tích hợp: "+readable(e)));}
+        });
     }
     private void openYouTubeReVanced(){
         final String packageName="com.google.android.youtube";
