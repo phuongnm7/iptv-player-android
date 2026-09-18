@@ -168,6 +168,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         if (root == null || channelList == null || fullscreenHost == null) return;
 
         panel = new LinearLayout(activity);
+        panel.setTag("nm7_inline_player");
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setVisibility(View.GONE);
         panel.setBackgroundResource(R.drawable.panel);
