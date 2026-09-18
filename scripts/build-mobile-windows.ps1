@@ -213,11 +213,20 @@ if($t -notmatch 'VERSION.SDK_INT > 23 && mPlayer == null'){
 }
 
 # Patch SmartTube phone lifecycle for deterministic NM7 background playback.
-# The mobile source uses PlaybackActivity directly; there is no phone PlaybackFragment.
+# IMPORTANT: SmartTube Mobile uses PlaybackActivity directly. Do not use a broad regex
+# over Java methods here: a malformed regex can delete unrelated methods.
 
-# onStop: do not release the YouTube ExoPlayer while NM7 has marked HOME/background.
-$patternStop='(?s)@Override\s+protected\s+void\s+onStop\s*\(\)\s*\{\s*super\.onStop\(\);\s*if\s*\(\s*VERSION\.SDK_INT\s*>\s*23\s*\)\s*\{\s*maybeReleasePlayer\s*\(\s*\);\s*\}\s*\}'
-$stopReplacement=@'
+$oldStop=@'
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        if (VERSION.SDK_INT > 23) {
+            maybeReleasePlayer();
+        }
+    }
+'@
+$newStop=@'
     @Override
     protected void onStop() {
         super.onStop();
@@ -228,18 +237,51 @@ $stopReplacement=@'
         }
     }
 '@
-if($t -match $patternStop){
-    $t=[regex]::Replace($t,$patternStop,$stopReplacement,1)
-}else{ Fail "SmartTube phone onStop method not found in expected mobile source." }
 
-# onUserLeaveHint: HOME must explicitly select phone sound/background mode and block
-# engine release before Android moves the Activity to stopped state.
-$patternLeave='(?s)@Override\s+public\s+void\s+onUserLeaveHint\s*\(\)\s*\{.*?\n\s*\}\s*(?=@Override|\z)'
-$leaveReplacement=@'
+if($t.Contains($oldStop)){
+    $t=$t.Replace($oldStop,$newStop)
+}else{
+    Fail "SmartTube phone onStop source shape changed; refusing unsafe lifecycle patch."
+}
+
+$oldLeave=@'
     @Override
     public void onUserLeaveHint() {
         super.onUserLeaveHint();
 
+        // The activity may just be overlapped by a dialog/search: not a real leave
+        if (mIsBackPressed || isFinishing() || getViewManager().isNewViewPending()
+                || getGeneralData().getBackgroundPlaybackShortcut() == GeneralData.BACKGROUND_PLAYBACK_SHORTCUT_BACK) {
+            return;
+        }
+
+        switch (getPlayerData().getBackgroundMode()) {
+            case PlayerData.BACKGROUND_MODE_PIP:
+                enterPipMode();
+                if (doNotDestroy()) {
+                    blockEngine(true);
+                    getViewManager().blockTop(this);
+                }
+                break;
+            case PlayerData.BACKGROUND_MODE_PLAY_BEHIND:
+                // 'Play behind' is an Android TV only API (requestVisibleBehind, removed in API 26).
+                // On phones it degrades to the sound-only background mode below.
+            case PlayerData.BACKGROUND_MODE_SOUND:
+                if (doNotDestroy()) {
+                    blockEngine(true);
+                    getViewManager().blockTop(this);
+                }
+                break;
+        }
+    }
+'@
+
+$newLeave=@'
+    @Override
+    public void onUserLeaveHint() {
+        super.onUserLeaveHint();
+
+        // HOME on NM7 Mobile: explicitly select sound background mode and block engine release.
         if (mIsBackPressed || isFinishing() || getViewManager().isNewViewPending()
                 || getGeneralData().getBackgroundPlaybackShortcut() == GeneralData.BACKGROUND_PLAYBACK_SHORTCUT_BACK) {
             return;
@@ -250,11 +292,13 @@ $leaveReplacement=@'
         blockEngine(true);
         getViewManager().blockTop(this);
     }
-
 '@
-if($t -match $patternLeave){
-    $t=[regex]::Replace($t,$patternLeave,$leaveReplacement,1)
-}else{ Fail "SmartTube phone onUserLeaveHint method not found." }
+
+if($t.Contains($oldLeave)){
+    $t=$t.Replace($oldLeave,$newLeave)
+}else{
+    Fail "SmartTube phone onUserLeaveHint source shape changed; refusing unsafe lifecycle patch."
+}
 
 if($t -notmatch 'void\s+onUserLeaveHint\s*\(' -or
    $t -notmatch 'setBackgroundMode\(PlayerData\.BACKGROUND_MODE_SOUND\)' -or
