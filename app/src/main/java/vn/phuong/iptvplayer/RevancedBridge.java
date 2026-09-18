@@ -26,12 +26,12 @@ public final class RevancedBridge {
         String version=info.versionName==null?"?":info.versionName;
         long code=android.os.Build.VERSION.SDK_INT>=28?info.getLongVersionCode():info.versionCode;
         StringBuilder result=new StringBuilder();
-        result.append("Package: ").append(info.packageName).append('\\n');
-        result.append("Version: ").append(version).append(" (code ").append(code).append(")\\n");
+        result.append("Package: ").append(info.packageName).append('\n');
+        result.append("Version: ").append(version).append(" (code ").append(code).append(")\n");
         if(!"com.google.android.youtube".equals(info.packageName)){
-            result.append("\\nKhông phải APK YouTube chính thức (com.google.android.youtube).");
+            result.append("\nKhông phải APK YouTube chính thức (com.google.android.youtube).");
         }else{
-            result.append("\\nĐây là APK YouTube. Bước tiếp theo của nhánh thử nghiệm là nạp patch bundle và chạy Patcher.");
+            result.append("\nĐây là APK YouTube. Bước tiếp theo của nhánh thử nghiệm là nạp patch bundle và chạy Patcher.");
         }
         apk.delete();
         return result.toString();
