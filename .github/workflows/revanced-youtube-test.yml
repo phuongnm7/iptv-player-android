@@ -14,7 +14,7 @@ permissions:
 jobs:
   patch-youtube:
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -50,52 +50,78 @@ jobs:
           unzip -t patches.rvp >/dev/null
           sha256sum patches.rvp
 
-      - name: Download full YouTube 21.18.169 APK
+      - name: Download exact YouTube 21.37.42 APK
         run: |
           set -euo pipefail
+          page='https://apkcombo.com/youtube/com.google.android.youtube/download/apk'
           curl --fail --location --retry 3 --retry-delay 2 \
-            'https://d.apkpure.net/b/APK/com.google.android.youtube?version=21.18.169' \
-            -o youtube-21.18.169.apk
-          test -s youtube-21.18.169.apk
-          echo "Downloaded bytes: $(stat -c%s youtube-21.18.169.apk)"
-          sha256sum youtube-21.18.169.apk
+            -A 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/140 Safari/537.36' \
+            "$page" -o apkcombo.html
+          python3 - <<'PY'
+          import html, re
+          from pathlib import Path
+          s = Path("apkcombo.html").read_text(errors="ignore")
+          matches = re.findall(r'href=["\'](https://apkcombo\.com/r2\?u=[^"\']+)["\']', s)
+          if not matches:
+              raise SystemExit("Could not find APKCombo download URL")
+          # Prefer the link whose embedded object name/version is YouTube 21.37.42.
+          decoded = [(m, html.unescape(m)) for m in matches]
+          preferred = [m for m, d in decoded if "21.37.42" in d and "1561296049" in d and "YouTube" in d]
+          url = preferred[0] if preferred else decoded[0][0]
+          Path("apk-download-url.txt").write_text(html.unescape(url))
+          print("Selected APKCombo download URL")
+          PY
+          download_url="$(cat apk-download-url.txt)"
+          curl --fail --location --retry 3 --retry-delay 2 \
+            -A 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/140 Safari/537.36' \
+            "$download_url" -o youtube-21.37.42.apk
+          test -s youtube-21.37.42.apk
+          echo "Downloaded bytes: $(stat -c%s youtube-21.37.42.apk)"
+          sha256sum youtube-21.37.42.apk
+          expected='87ec9734319f7437d8da24b10d7ec35b0d3f65ae404d9d845917bc2705cfee42'
+          actual="$(sha256sum youtube-21.37.42.apk | awk '{print $1}')"
+          test "$actual" = "$expected"
 
       - name: Verify YouTube package
         run: |
           set -euo pipefail
-          $ANDROID_HOME/build-tools/35.0.0/aapt dump badging youtube-21.18.169.apk | head -n 2
+          $ANDROID_HOME/build-tools/35.0.0/aapt dump badging youtube-21.37.42.apk | head -n 3
 
       - name: List compatible patches
         run: |
+          set -euo pipefail
           java -jar revanced-cli.jar list-patches --packages --versions -bp patches.rvp > patches-list.txt
-          grep -i -A8 -B3 'GmsCore support' patches-list.txt || true
-          grep -i -A8 -B3 'YouTube' patches-list.txt | head -n 80 || true
+          grep -i -A12 -B3 'GmsCore support' patches-list.txt || true
+          grep -i -A12 -B3 'Spoof video streams' patches-list.txt || true
+          grep -i -A20 -B3 'com.google.android.youtube' patches-list.txt | head -n 120 || true
 
-      - name: Patch YouTube with GmsCore support
+      - name: Patch YouTube 21.37.42
         run: |
           set -euo pipefail
           java -jar revanced-cli.jar patch \
             -bp patches.rvp \
             -e "GmsCore support" \
+            -e "Spoof video streams" \
             --rip-lib=x86 \
             --rip-lib=x86_64 \
             --purge \
-            -o youtube-21.18.169-revanced.apk \
-            youtube-21.18.169.apk
+            -o youtube-21.37.42-revanced.apk \
+            youtube-21.37.42.apk
 
       - name: Verify patched APK
         run: |
           set -euo pipefail
-          test -s youtube-21.18.169-revanced.apk
-          $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose youtube-21.18.169-revanced.apk
-          $ANDROID_HOME/build-tools/35.0.0/aapt dump badging youtube-21.18.169-revanced.apk | head -n 3
-          sha256sum youtube-21.18.169-revanced.apk
+          test -s youtube-21.37.42-revanced.apk
+          $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose youtube-21.37.42-revanced.apk
+          $ANDROID_HOME/build-tools/35.0.0/aapt dump badging youtube-21.37.42-revanced.apk | head -n 3
+          sha256sum youtube-21.37.42-revanced.apk
 
       - name: Upload patched YouTube APK
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: NM7-ReVanced-YouTube-21.18.169-test
+          name: NM7-ReVanced-YouTube-21.37.42-test
           path: |
-            youtube-21.18.169-revanced.apk
+            youtube-21.37.42-revanced.apk
             patches-list.txt
+            apk-download-url.txt
           retention-days: 30
