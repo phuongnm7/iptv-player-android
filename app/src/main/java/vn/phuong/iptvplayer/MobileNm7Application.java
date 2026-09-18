@@ -233,6 +233,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
         installSmartTubeFontFix(activity);
         View root = activity.findViewById(android.R.id.content);
         if (root == null) return;
+        replaceSmartTubeBranding(root);
         forceSingleColumn(root);
         ViewTreeObserver observer = root.getViewTreeObserver();
         if (observer.isAlive()) observer.addOnGlobalLayoutListener(() -> {
@@ -241,6 +242,21 @@ public final class MobileNm7Application extends DroidApplication implements andr
     }
 
     /** Convert the phone Browse feed from the fork's 2-column grid to a single-column feed. */
+    private void replaceSmartTubeBranding(View view) {
+        if (view instanceof TextView) {
+            TextView text = (TextView) view;
+            CharSequence value = text.getText();
+            if (value != null) {
+                String v = value.toString();
+                if (v.contains("SmartTube")) text.setText(v.replace("SmartTube Droid", "NM7 TV").replace("SmartTube", "NM7 TV"));
+            }
+        }
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) replaceSmartTubeBranding(group.getChildAt(i));
+        }
+    }
+
     private void forceSingleColumn(View view) {
         String className = view.getClass().getName();
         try {
