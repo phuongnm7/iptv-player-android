@@ -20,11 +20,6 @@ android {
         // Mobile consumes only the stable SmartTube runtime.
         missingDimensionStrategy("default", "ststable")
 
-        // Hard-limit native packaging to the two Mobile ABIs. ABI splits below
-        // then produce one APK per ABI, with no x86/x86_64 payloads.
-        ndk {
-            abiFilters += listOf("armeabi-v7a", "arm64-v8a")
-        }
     }
 
     // This project branch is the Mobile product only.
