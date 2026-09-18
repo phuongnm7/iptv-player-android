@@ -269,3 +269,4 @@ jobs:
           if-no-files-found: error
 
 # CI trigger refresh: Mobile-only 1.10.26; no TV job.
+# Budget restored; run Mobile Final CI.
