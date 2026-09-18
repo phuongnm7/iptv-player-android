@@ -290,9 +290,11 @@ public final class MobileNm7Application extends DroidApplication implements andr
         if (view instanceof TextView && !(view instanceof EditText)) {
             TextView text = (TextView) view;
             CharSequence value = text.getText();
+            int style = text.getTypeface() != null ? text.getTypeface().getStyle() : Typeface.NORMAL;
+            text.setTypeface(Typeface.create("sans-serif", style));
+            if (Build.VERSION.SDK_INT >= 24) text.setTextLocale(java.util.Locale.forLanguageTag("vi-VN"));
+            if (Build.VERSION.SDK_INT >= 23) text.setFallbackLineSpacing(true);
             if (containsVietnameseText(value)) {
-                int style = text.getTypeface() != null ? text.getTypeface().getStyle() : Typeface.NORMAL;
-                text.setTypeface(Typeface.create("sans-serif", style));
                 if (value.length() > 0 && !hasSansSerifSpan(value)) {
                     SpannableString fixed = new SpannableString(value);
                     TypefaceSpan[] old = fixed.getSpans(0, fixed.length(), TypefaceSpan.class);
