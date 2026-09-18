@@ -65,10 +65,21 @@ jobs:
           import re
           from pathlib import Path
           s = Path("apkmirror-reader.txt").read_text(errors="ignore")
-          matches = re.findall(r'https?://(?:www\\.)?apkmirror\\.com/wp-content/themes/APKMirror/download\\.php\\?id=\\d+', s)
-          if not matches:
+          # Jina may render the download link as an absolute URL, a relative URL,
+          # or markdown/html with escaped query parameters.
+          candidates = re.findall(r'https?://[^\\s\\)\\]\\\"<>]*download\\.php\\?id=\\d+', s)
+          candidates += re.findall(r'(?:https?:)?//[^\\s\\)\\]\\\"<>]*download\\.php\\?id=\\d+', s)
+          candidates += re.findall(r'/wp-content/themes/APKMirror/download\\.php\\?id=\\d+', s)
+          if not candidates:
+              hits = [line for line in s.splitlines() if "download.php" in line]
+              print("\\n".join(hits[:30]))
               raise SystemExit("Could not find APKMirror download.php URL in Jina-rendered page")
-          url = matches[0]
+          url = candidates[0]
+          if url.startswith("//"):
+              url = "https:" + url
+          elif url.startswith("/"):
+              url = "https://www.apkmirror.com" + url
+          url = url.replace("\\u0026", "&").replace("&amp;", "&")
           Path("apk-download-url.txt").write_text(url + "\\n")
           print("Selected APKMirror download URL:", url)
           PY
