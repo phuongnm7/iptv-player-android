@@ -325,10 +325,10 @@ public final class PlayerActivity extends Activity {
     public static void prepareForYoutubeHandoff(android.content.Context context){
         PlayerActivity activity=currentInstance;
         if(activity==null||activity.isFinishing()||activity.isDestroyed()) return;
+        // Merely opening the YouTube tab must not stop IPTV. IPTV remains the active
+        // player until SmartTube PlaybackActivity actually starts a video.
         activity.rememberPosition();
         activity.backgroundPlaybackActive=false;
-        activity.releasePlayer();
-        activity.stopService(new android.content.Intent(activity,BackgroundPlaybackService.class));
         SharedPlaybackSession.setTab(activity,SharedPlaybackSession.TAB_YOUTUBE);
     }
     @Override protected void onSaveInstanceState(Bundle out){rememberPosition();out.putLong("position",position);out.putBoolean("playing",resumePlayback);out.putInt("quality",quality);out.putInt("resize",resizeMode);out.putString("mime",mime);super.onSaveInstanceState(out);} @Override protected void onStop(){activityStarted=false;fpsHandler.removeCallbacks(fpsUpdate);clockHandler.removeCallbacks(clockUpdate);rememberPosition();if(!backgroundPlaybackActive){recoveryHandler.removeCallbacksAndMessages(null);releasePlayer();}super.onStop();}
