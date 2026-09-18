@@ -1,5 +1,5 @@
 # NM7 IPTV Mobile 1.10.26 - Windows local build
-# SCRIPT_VERSION: 2026-09-19-PATCH14
+# SCRIPT_VERSION: 2026-09-19-PATCH15
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 $Root = Split-Path -Parent $PSScriptRoot
@@ -327,42 +327,28 @@ if($t.Contains($pauseScreen)){
     $t=$t.Replace($pauseScreen,$pauseScreenNew)
 }
 
-# Back from SmartTube Playback: first BACK returns to Browse/mini-player.
-$oldBack=@'
-    @Override
-    public void onBackPressed() {
-        mIsBackPressed = true;
-
-        super.onBackPressed();
+# SmartTube's PlaybackActivity already has a safe BACK -> parent-view/PIP path.
+# The NM7 HOME background shortcut can make skipPip() bypass that path and finish the
+# playback Activity outright. For NM7 Mobile, keep the normal parent-view path on BACK.
+$oldSkip=@'
+    private boolean skipPip() {
+        return mIsBackPressed
+                && getGeneralData().getBackgroundPlaybackShortcut() == GeneralData.BACKGROUND_PLAYBACK_SHORTCUT_HOME;
     }
 '@
-$newBack=@'
-    @Override
-    public void onBackPressed() {
-        if (mIsBackPressed) {
-            return;
-        }
-        mIsBackPressed = true;
-        try {
-            Intent intent = new Intent(this,
-                    Class.forName("com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity"));
-            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NO_ANIMATION);
-            startActivity(intent);
-            overridePendingTransition(0, 0);
-            finish();
-            overridePendingTransition(0, 0);
-        } catch (ReflectiveOperationException | RuntimeException e) {
-            super.onBackPressed();
-        }
+$newSkip=@'
+    private boolean skipPip() {
+        // NM7 Mobile: BACK from a playing video must return to YouTube Browse/mini-player,
+        // not close the playback session. HOME/background handling remains separate.
+        return false;
     }
 '@
-if($t.Contains($oldBack)){
-    $t=$t.Replace($oldBack,$newBack)
+if($t.Contains($oldSkip)){
+    $t=$t.Replace($oldSkip,$newSkip)
 }else{
-    Fail "SmartTube PlaybackActivity onBackPressed source shape changed; refusing unsafe BACK patch."
+    Fail "SmartTube skipPip() source shape changed; refusing unsafe BACK patch."
 }
 WriteT $play $t
-
 
 $appJava=ReadT (Join-Path $Root "app\src\main\java\vn\phuong\iptvplayer\MobileNm7Application.java")
 $appUi=ReadT (Join-Path $Root "app\src\main\java\vn\phuong\iptvplayer\MobileIptvUi.java")
