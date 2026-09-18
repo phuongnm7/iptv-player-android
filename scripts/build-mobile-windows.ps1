@@ -1,5 +1,5 @@
 # NM7 IPTV Mobile 1.10.26 - Windows local build
-# SCRIPT_VERSION: 2026-09-18-PATCH9
+# SCRIPT_VERSION: 2026-09-18-PATCH10
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 $Root = Split-Path -Parent $PSScriptRoot
@@ -110,6 +110,77 @@ if(-not(Test-Path $play)){Fail "PlaybackActivity.java not found."}
 $t=ReadT $play
 if($t -notmatch 'import android.content.Intent;'){$t=$t.Replace("import android.content.Context;",("import android.content.Context;"+$nl+"import android.content.Intent;"))}
 
+# Keep the phone SmartTube ExoPlayer instance alive across Android HOME/background.
+$oldStart=@'
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        if (VERSION.SDK_INT > 23) {
+            initializePlayer();
+        }
+    }
+'@
+$newStart=@'
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        if (VERSION.SDK_INT > 23 && mPlayer == null) {
+            initializePlayer();
+        }
+    }
+'@
+if($t.Contains($oldStart)){$t=$t.Replace($oldStart,$newStart)}
+if($t -notmatch 'VERSION.SDK_INT > 23 && mPlayer == null'){
+    Fail "PlaybackActivity onStart block not found in SmartTube 32.47s."
+}
+
+$oldResume=@'
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        mIsBackPressed = false;
+
+        if (VERSION.SDK_INT <= 23 || mPlayer == null) {
+            initializePlayer();
+        }
+
+        // NOTE: don't move this into another place! Multiple components rely on it.
+        mPlaybackPresenter.onViewResumed();
+
+        showHideWidgets(true); // PIP mode fix
+        blockEngine(false); // reset bg mode
+    }
+'@
+$newResume=@'
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        mIsBackPressed = false;
+
+        if (VERSION.SDK_INT <= 23 || mPlayer == null) {
+            initializePlayer();
+        }
+
+        // NOTE: don't move this into another place! Multiple components rely on it.
+        mPlaybackPresenter.onViewResumed();
+
+        showHideWidgets(true);
+        blockEngine(false);
+        try {
+            getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_DEFAULT);
+        } catch (RuntimeException ignored) {
+        }
+    }
+'@
+if($t.Contains($oldResume)){$t=$t.Replace($oldResume,$newResume)}
+if($t -notmatch 'setBackgroundMode(PlayerData.BACKGROUND_MODE_DEFAULT)'){
+    Fail "PlaybackActivity onResume block not found in SmartTube 32.47s."
+}
+
 # Patch SmartTube onUserLeaveHint for deterministic NM7 Play-Behind Home/lock behavior.
 # Preserve the player only while NM7 is switching tabs.
 $oldStop=@'
@@ -157,34 +228,11 @@ $leaveMethod=@'
             return;
         }
         getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_PLAY_BEHIND);
-        startNm7BackgroundService();
         enterBackgroundPlayMode();
     }
 
 '@
 $t=$t.Substring(0,$leaveStart)+$leaveMethod+$t.Substring($leaveEnd)
-
-$helperStart=$t.IndexOf("    public boolean isInPipMode()")
-if($helperStart -lt 0){Fail "PlaybackActivity isInPipMode marker not found."}
-$backgroundHelper=@'
-    private void startNm7BackgroundService() {
-        try {
-            Intent intent = new Intent();
-            intent.setComponent(new android.content.ComponentName(this,
-                    "vn.phuong.iptvplayer.BackgroundPlaybackService"));
-            intent.putExtra("youtube", true);
-            intent.putExtra("channel_name", "YouTube");
-            if (Build.VERSION.SDK_INT >= 26) {
-                startForegroundService(intent);
-            } else {
-                startService(intent);
-            }
-        } catch (RuntimeException ignored) {
-        }
-    }
-
-'@
-$t=$t.Substring(0,$helperStart)+$backgroundHelper+$t.Substring($helperStart)
 
 # Lock-screen transitions can arrive through onPause without onUserLeaveHint.
 # Force Play-Behind before the engine is blocked so video/audio continues.
