@@ -836,3 +836,60 @@ Build hiện tại đã **compile/package thành công**, nhưng các hành vi d
 **Hiện tại không cần sửa thêm trước khi test.**
 
 Người dùng đã có APK build thành công và sẽ cài/test trên điện thoại. Kết quả test tiếp theo sẽ là đầu vào trực tiếp cho vòng sửa tiếp theo.
+
+
+---
+
+# TEST VIDEO 2026-09-19 — PHÂN TÍCH LỖI IPTV → YOUTUBE + BACK
+
+Người dùng gửi video `video_2026-09-19_02-02-22.mp4` (~101,5 giây). Quan sát video cho thấy:
+- Lần chuyển đầu IPTV → YouTube có lúc giữ được IPTV, nhưng các lần chuyển sau IPTV bị mất/dừng.
+- Có các lần Browse YouTube tải lâu/hiển thị trạng thái loading.
+- BACK từ YouTube Playback chưa đạt yêu cầu mini-player ổn định.
+
+## Nguyên nhân kỹ thuật được xác định từ source
+
+### IPTV → YouTube
+Cơ chế cũ phụ thuộc vào `ActivityLifecycleCallbacks.onActivityPaused()` để đặt `backgroundPlaybackActive=true`. Trong khi `PlayerActivity.onPause()`/`onStop()` là nơi quyết định release ExoPlayer, thứ tự lifecycle callback này có thể tạo race. Điều này phù hợp với hiện tượng lần đầu có thể hoạt động nhưng các lần sau không ổn định.
+
+### Sửa mới
+Thêm cờ trực tiếp trong `PlayerActivity`:
+`keepPlayerForTabSwitch`.
+
+Khi `prepareForYoutubeHandoff()` được gọi:
+- lưu vị trí IPTV;
+- đặt `keepPlayerForTabSwitch=true`;
+- không release player;
+- chuyển tab sang YouTube.
+
+`onPause()` và `onStop()` nay kiểm tra cờ này trước khi khởi động background service hoặc release ExoPlayer. `onStart()` reset cờ khi PlayerActivity thực sự trở lại foreground.
+
+Commit:
+- `b1ceb839c5f3e2274a011d0e65639c85e5a68fde`.
+
+## YouTube BACK → mini-player
+Đã xác định thêm một điểm xung đột: MobileNm7Application tự đăng ký `OnBackInvokedCallback` và từ callback đó gọi lại `activity.onBackPressed()`. Cách này có thể bypass/đụng với đường dispatch BACK native của SmartTube, khiến PlaybackActivity đóng thay vì đi qua parent-view/PIP path.
+
+### Sửa mới
+Không còn gọi `installSmartTubeBackHandling(activity)` khi tạo SmartTube PlaybackActivity. Để Android/SmartTube native Back dispatch xử lý, kết hợp với patch SmartTube `skipPip() -> false` đã có trong build script PATCH15.
+
+Commit:
+- `95cc48dc0830ae0436d23a0f658110902a1f1589`.
+
+## Version
+Vì đây là sửa code playback/lifecycle, version Mobile đã tăng:
+- versionCode: **45**
+- versionName: **1.10.27**
+
+Commit:
+- `03bc0a49104cdb9a79a1981e651858273fd0526c`.
+
+## Trạng thái
+Đã sửa source nhưng **chưa build APK 1.10.27**. Bước tiếp theo là build Windows và test lại:
+1. IPTV → YouTube nhiều lần liên tiếp khi chưa chọn video: IPTV phải tiếp tục phát.
+2. Chọn video YouTube: IPTV mới release.
+3. YouTube video → BACK 1 lần: phải về Browse với mini-player, không đóng video.
+4. YouTube → IPTV → YouTube lặp lại nhiều lần.
+5. HOME/khóa màn hình và mở lại YouTube.
+
+Không đánh dấu lỗi đã hết cho đến khi APK 1.10.27 được build và test máy thật.
