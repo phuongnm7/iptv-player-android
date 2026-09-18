@@ -84,11 +84,6 @@ public final class HomeTabBar {
         SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_YOUTUBE);
         PlayerActivity.prepareForYoutubeHandoff(activity);
         MobileNm7Application.markTabSwitch();
-        // Finish the IPTV Activity after releasing its decoder. This makes the handoff
-        // exclusive: SmartTube can never coexist with a live IPTV ExoPlayer instance.
-        if (activity instanceof PlayerActivity && !activity.isFinishing()) {
-            activity.finish();
-        }
         // The first YouTube tap must never race SmartTube ViewManager initialization.
         // A delayed-only prewarm could open Browse while view mappings were still being registered.
         SmartTubeRuntime.initialize(activity.getApplicationContext());
@@ -97,10 +92,12 @@ public final class HomeTabBar {
             Intent intent = new Intent(activity, browse);
             intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
             startWithoutAnimation(activity, intent);
+            if (activity instanceof PlayerActivity && !activity.isFinishing()) activity.finish();
         } catch (ReflectiveOperationException | RuntimeException ignored) {
             Intent fallback = new Intent(activity, SmartTubeHomeActivity.class);
             fallback.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
             startWithoutAnimation(activity, fallback);
+            if (activity instanceof PlayerActivity && !activity.isFinishing()) activity.finish();
         }
     }
 
