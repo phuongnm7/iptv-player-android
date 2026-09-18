@@ -11,6 +11,11 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven {
+            name = "githubPackages"
+            url = uri("https://maven.pkg.github.com/revanced/registry")
+            credentials(PasswordCredentials::class)
+        }
     }
 }
 
