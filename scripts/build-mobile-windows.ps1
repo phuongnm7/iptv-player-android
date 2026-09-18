@@ -111,13 +111,22 @@ $t=ReadT $play
 $marker="private boolean mIsBackPressed;"
 if($t.Contains($marker) -and $t -notmatch "nm7HomePaused"){$t=$t.Replace($marker,$marker+$nl+"    private boolean nm7HomePaused;")}
 
-# Patch the phone fork existing onUserLeaveHint instead of adding a duplicate callback.
-if($t -notmatch "nm7PauseForHome\(\)"){
-    $u=[regex]::Match($t,"(?s)(protected void onUserLeaveHint\(\)\s*\{\s*super\.onUserLeaveHint\(\);)")
-    if(-not $u.Success){Fail "PlaybackActivity onUserLeaveHint() not found."}
-    $replacement=$u.Groups[1].Value+$nl+"        if (!isNm7TabSwitch()) { nm7PauseForHome(); return; }"
-    $t=$t.Remove($u.Index,$u.Length).Insert($u.Index,$replacement)
+# The current Systematiq phone fork does not define onUserLeaveHint().
+# Add the callback ourselves so Home/system-leave behavior is explicit, while NM7 tab
+# switches are ignored. This must not depend on a particular upstream callback layout.
+if($t -notmatch "private void nm7PauseForHome\(\)") {
+    if($t -notmatch "import android.content.Intent;") {
+        $t=$t.Replace("import android.content.Context;",$("import android.content.Context;"+$nl+"import android.content.Intent;"))
+    }
     $helper="
+    @Override
+    public void onUserLeaveHint() {
+        super.onUserLeaveHint();
+
+        if (!isNm7TabSwitch()) {
+            nm7PauseForHome();
+        }
+    }
 
     private boolean isNm7TabSwitch() {
         try {
