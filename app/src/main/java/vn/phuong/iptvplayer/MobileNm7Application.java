@@ -47,6 +47,10 @@ public final class MobileNm7Application extends DroidApplication implements andr
         System.setProperty("http.maxConnections", "8");
         System.setProperty("http.keepAliveDuration", "300000");
         registerActivityLifecycleCallbacks(this);
+        // Pre-warm SmartTube's ViewManager/class graph after the IPTV UI is usable.
+        // This moves one-time reflection/class-loading cost out of the first YouTube tap.
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(
+                () -> SmartTubeRuntime.initialize(getApplicationContext()), 900L);
     }
 
     public static void markTabSwitch() {
