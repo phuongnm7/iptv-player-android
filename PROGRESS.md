@@ -21,7 +21,7 @@
 - `b70293744f157a062e4b6fa7a8189909d64fbea3` — ghi nhận tiến độ Mobile 1.10.26 và Windows build.
 - `0a600a430b1298cef496fc4b2b2f42cf79a056e1` — harden script Windows cho Mobile UI/playback.
 - `42e0a136d2d68f8d29d8feaa696ca3992d43fcc2` — bỏ global-layout recursion tốn chi phí trong SmartTube.
-- `9d017590483f2e6e0a7b...` — dọn import của performance patch SmartTube.
+- `9d017590483fc5f1f2da38bbe1c7236e128235fc` — dọn import của performance patch SmartTube.
 - Môi trường Windows đã xác nhận: **JDK 17, Gradle 8.13, Android SDK 36, Build Tools 36.0.0**.
 
 ### 2. YouTube UI/lifecycle và chuyển tab
