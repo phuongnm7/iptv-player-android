@@ -60,8 +60,6 @@ public final class HomeTabBar {
     private static void startWithoutAnimation(Activity activity, Intent intent) {
         intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION | Intent.FLAG_ACTIVITY_NO_USER_ACTION);
         activity.startActivity(intent);
-        // Keep the two integrated activities visually stable instead of showing two windows
-        // side-by-side during Android's default slide transition.
         activity.overridePendingTransition(0, 0);
     }
 
@@ -69,7 +67,6 @@ public final class HomeTabBar {
         System.setProperty("nm7.youtube.background", "0");
         SharedPlaybackSession.setYoutubeBackground(activity, false);
         SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_IPTV);
-        // This is a navigation event, not a request to stop the current IPTV player.
         MobileNm7Application.markTabSwitch();
         Intent intent;
         if (MobileNm7Application.hasIptvPlayer() || SharedPlaybackSession.loadIptv(activity) != null) {
@@ -84,18 +81,12 @@ public final class HomeTabBar {
     private static void openBrowse(Activity activity) {
         System.setProperty("nm7.youtube.background", "0");
         SharedPlaybackSession.setYoutubeBackground(activity, false);
-        // Persist the active tab and hand IPTV ownership back before SmartTube starts.
         SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_YOUTUBE);
         PlayerActivity.prepareForYoutubeHandoff(activity);
         MobileNm7Application.markTabSwitch();
-        // The first YouTube tap must never race SmartTube ViewManager initialization.
-        // A delayed-only prewarm could open Browse while view mappings were still being registered.
-        // The IPTV Activity must be completely out of the playback stack before
-        // SmartTube creates its ExoPlayer. Starting YouTube first left a short overlap window.
-        if (activity instanceof PlayerActivity && !activity.isFinishing()) {
-            activity.finish();
-            activity.overridePendingTransition(0, 0);
-        }
+        // Do NOT finish PlayerActivity here. Selecting the YouTube tab is only navigation;
+        // IPTV must continue playing until SmartTube PlaybackActivity actually starts a video.
+        // MobileNm7Application pauses/releases IPTV at that exact playback-start event.
         SmartTubeRuntime.initialize(activity.getApplicationContext());
         try {
             Class<?> browse = Class.forName(BROWSE);
