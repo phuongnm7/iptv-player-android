@@ -77,6 +77,7 @@ jobs:
           set -euo pipefail
           java -jar revanced-cli.jar patch \
             -p patches.rvp \
+            -b \
             -e "GmsCore support" \
             -e "Spoof video streams" \
             --purge \
@@ -94,7 +95,7 @@ jobs:
       - name: Upload patched YouTube APK
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: NM7-ReVanced-YouTube-21.37.42-test
+          name: NM7-ReVanced-YouTube-20.40.45-test
           path: |
             youtube-20.40.45-revanced.apk
             patches-list.txt
