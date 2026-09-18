@@ -235,7 +235,13 @@ public final class MobileNm7Application extends DroidApplication implements andr
         if (root == null) return;
         replaceSmartTubeBranding(root);
         forceSingleColumn(root);
-
+        // SmartTube creates some recommendation RecyclerViews after the first layout.
+        // Re-apply the mobile one-column policy after those managers are attached.
+        root.getViewTreeObserver().addOnGlobalLayoutListener(() -> forceSingleColumn(root));
+        android.os.Handler h = new android.os.Handler(android.os.Looper.getMainLooper());
+        h.postDelayed(() -> forceSingleColumn(root), 150L);
+        h.postDelayed(() -> forceSingleColumn(root), 500L);
+        h.postDelayed(() -> forceSingleColumn(root), 1200L);
     }
 
     /** Convert the phone Browse feed from the fork's 2-column grid to a single-column feed. */
@@ -266,8 +272,11 @@ public final class MobileNm7Application extends DroidApplication implements andr
                 if (getLayoutManager != null) {
                     Object lm = getLayoutManager.invoke(view);
                     if (lm != null) {
+                        String lmName = lm.getClass().getName();
                         Method setSpanCount = findMethod(lm.getClass(), "setSpanCount", int.class);
-                        if (setSpanCount != null) setSpanCount.invoke(lm, 1);
+                        if (setSpanCount != null && (lmName.contains("GridLayoutManager") || lmName.contains("StaggeredGridLayoutManager"))) {
+                            setSpanCount.invoke(lm, 1);
+                        }
                     }
                 }
             }
