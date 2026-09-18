@@ -1,5 +1,6 @@
 name: Build private Android APK
 # ReVanced integration build
+# Trigger NM7 embedded YouTube build
 
 on:
   push:
