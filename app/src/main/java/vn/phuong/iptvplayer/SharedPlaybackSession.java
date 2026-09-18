@@ -4,6 +4,7 @@ import android.content.Context;
 import android.os.Bundle;
 
 /**
+ * NM7 Mobile 1.10.26 shared playback owner.
  * Single playback-session owner for Mobile.
  *
  * Only one playback engine is allowed to be alive at a time. IPTV state is retained
