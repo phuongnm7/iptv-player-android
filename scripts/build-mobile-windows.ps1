@@ -1,5 +1,5 @@
 # NM7 IPTV Mobile 1.10.26 - Windows local build
-# SCRIPT_VERSION: 2026-09-19-PATCH13
+# SCRIPT_VERSION: 2026-09-19-PATCH14
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 $Root = Split-Path -Parent $PSScriptRoot
@@ -327,8 +327,7 @@ if($t.Contains($pauseScreen)){
     $t=$t.Replace($pauseScreen,$pauseScreenNew)
 }
 
-# Back from the SmartTube player must return to the phone Browse screen.
-if($t -notmatch 'FLAG_ACTIVITY_REORDER_TO_FRONT\s*\|\s*Intent\.FLAG_ACTIVITY_NO_ANIMATION'){
+# Back from SmartTube Playback: first BACK returns to Browse/mini-player.
 $oldBack=@'
     @Override
     public void onBackPressed() {
@@ -357,7 +356,10 @@ $newBack=@'
         }
     }
 '@
-if($t.Contains($oldBack)){$t=$t.Replace($oldBack,$newBack)}
+if($t.Contains($oldBack)){
+    $t=$t.Replace($oldBack,$newBack)
+}else{
+    Fail "SmartTube PlaybackActivity onBackPressed source shape changed; refusing unsafe BACK patch."
 }
 WriteT $play $t
 
