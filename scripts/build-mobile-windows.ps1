@@ -160,7 +160,7 @@ if($t -notmatch "private void nm7PauseForHome\(\)") {
 
 # Resume the same player instance after Home.
 if($t -notmatch "super\.onResume\(\);\s*nm7ResumeAfterHome\(\);"){
-    $t=[regex]::Replace($t,"(protected void onResume\(\)\s*\{\s*super\.onResume\(\);)",'$1'+$nl+"        nm7ResumeAfterHome();",1)
+    $t=[regex]::Replace($t,"(protected void onResume\(\)\s*\{\s*super\.onResume\(\);)", { param($m) $m.Groups[1].Value + $nl + "        nm7ResumeAfterHome();" }, 1)
 }
 
 # Home must not trigger maybeReleasePlayer; real tab switch and Back still release normally.
