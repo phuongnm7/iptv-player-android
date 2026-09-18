@@ -53,27 +53,29 @@ jobs:
       - name: Download exact YouTube 21.37.42 APK
         run: |
           set -euo pipefail
-          page='https://apkcombo.com/youtube/com.google.android.youtube/download/apk'
+          page='https://www.apkmirror.com/apk/google-inc/youtube/youtube-21-37-42-release/youtube-21-37-42-3-android-apk-download/'
+          # APKMirror currently exposes the download page but its direct asset link is
+          # generated dynamically. Fetch the page through Jina Reader, then extract
+          # APKMirror's download.php endpoint from the rendered HTML/markdown.
           curl --fail --location --retry 3 --retry-delay 2 \
             -A 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/140 Safari/537.36' \
-            "$page" -o apkcombo.html
+            "https://r.jina.ai/$page" -o apkmirror-reader.txt
+          test -s apkmirror-reader.txt
           python3 - <<'PY'
-          import html, re
+          import re
           from pathlib import Path
-          s = Path("apkcombo.html").read_text(errors="ignore")
-          matches = re.findall(r'href=["\'](https://apkcombo\.com/r2\?u=[^"\']+)["\']', s)
+          s = Path("apkmirror-reader.txt").read_text(errors="ignore")
+          matches = re.findall(r'https?://(?:www\\.)?apkmirror\\.com/wp-content/themes/APKMirror/download\\.php\\?id=\\d+', s)
           if not matches:
-              raise SystemExit("Could not find APKCombo download URL")
-          # Prefer the link whose embedded object name/version is YouTube 21.37.42.
-          decoded = [(m, html.unescape(m)) for m in matches]
-          preferred = [m for m, d in decoded if "21.37.42" in d and "1561296049" in d and "YouTube" in d]
-          url = preferred[0] if preferred else decoded[0][0]
-          Path("apk-download-url.txt").write_text(html.unescape(url))
-          print("Selected APKCombo download URL")
+              raise SystemExit("Could not find APKMirror download.php URL in Jina-rendered page")
+          url = matches[0]
+          Path("apk-download-url.txt").write_text(url + "\\n")
+          print("Selected APKMirror download URL:", url)
           PY
           download_url="$(cat apk-download-url.txt)"
           curl --fail --location --retry 3 --retry-delay 2 \
             -A 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/140 Safari/537.36' \
+            -e "$page" \
             "$download_url" -o youtube-21.37.42.apk
           test -s youtube-21.37.42.apk
           echo "Downloaded bytes: $(stat -c%s youtube-21.37.42.apk)"
