@@ -19,6 +19,8 @@ final class AppPreferences {
     private static final String FAVORITES = "favorites";
     private static final String RECENT = "recent";
     private static final int MAX_RECENT = 30;
+    private static final String BACKGROUND_PLAYBACK = "background_playback";
+    private static final String BACKGROUND_PLAYBACK_DEFAULT_MIGRATED = "background_playback_default_migrated_11026";
 
     private static SharedPreferences prefs(Context context) { return context.getSharedPreferences(FILE, Context.MODE_PRIVATE); }
     static String id(Channel channel) {
@@ -64,8 +66,19 @@ final class AppPreferences {
         // immediate process restart, so persist it synchronously.
         prefs(context).edit().putBoolean("show_player_source", value).commit();
     }
-    static boolean backgroundPlayback(Context context) { return prefs(context).getBoolean("background_playback", true); }
-    static void setBackgroundPlayback(Context context, boolean value) { prefs(context).edit().putBoolean("background_playback", value).apply(); }
+    static boolean backgroundPlayback(Context context) {
+        SharedPreferences p = prefs(context);
+        // 1.10.26: enable background playback by default. Existing installations that
+        // previously had it disabled are migrated once; the user can turn it off again.
+        if (!p.getBoolean(BACKGROUND_PLAYBACK_DEFAULT_MIGRATED, false)) {
+            p.edit().putBoolean(BACKGROUND_PLAYBACK, true)
+                    .putBoolean(BACKGROUND_PLAYBACK_DEFAULT_MIGRATED, true).apply();
+        }
+        return p.getBoolean(BACKGROUND_PLAYBACK, true);
+    }
+    static void setBackgroundPlayback(Context context, boolean value) {
+        prefs(context).edit().putBoolean(BACKGROUND_PLAYBACK, value).apply();
+    }
     static String interfaceMode(Context context) { return prefs(context).getString("interface_mode", "auto"); }
     static void setInterfaceMode(Context context, String value) { prefs(context).edit().putString("interface_mode", value).apply(); }
 
