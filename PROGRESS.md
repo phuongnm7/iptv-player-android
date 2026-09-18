@@ -442,3 +442,120 @@ Cập nhật: 2026-09-08. Lưu file này trong GitHub riêng tư để nối l�
 - Các runner khác nhau có thể sinh debug keystore khác; trước khi gỡ bản cũ để cài bản có chữ ký khác, phải xuất playlist.
 - EPG toàn playlist, Xtream login, SRT/RTP URL/RTMPS, DRM và TV launcher chưa hỗ trợ.
 - Không coi việc biên dịch thành công là chứng minh phát 4K/mọi luồng. Không lưu secret trong nhật ký hoặc source.
+
+---
+
+# BÀN GIAO TIẾN ĐỘ — NM7 IPTV MOBILE 1.10.26 — 2026-09-18
+
+## Phạm vi hiện tại
+
+- Dự án đang tiếp tục đúng phạm vi **NM7 IPTV Mobile 1.10.26** trên nhánh `fix/mobile-1.10.26-sleep-timer-icon` của repo riêng tư `phuongnm7/iptv-player-android`.
+- **Không build/không bàn giao Android TV** trong mốc này.
+- Mục tiêu APK cuối: đúng **2 APK ARM**, gồm `arm64-v8a` và `armeabi-v7a`; không tạo x86/x86_64/universal và không chứa `libvlc.so`.
+- Phiên bản: `versionCode 44`, `versionName 1.10.26`.
+
+## SmartTube — tích hợp YouTube mobile
+
+- SmartTube đã được tích hợp vào NM7 IPTV để có tab YouTube bên cạnh IPTV.
+- Nguồn SmartTube được lấy từ fork **Systematiq phone/touch**, sau đó merge upstream SmartTube stable **32.47s**, commit upstream `51e87ab4ad57ae672fc24bd216427d3e81bbddb7`, phát hành ngày 2026-09-13.
+- Giữ giao diện phone/touch của fork thay vì chuyển dự án sang UI TV.
+- Đã xử lý xung đột tài nguyên Media3/ExoPlayer cũ: tách `exo_player_view.xml` thành `st_exo_player_view.xml`, tách `exo_simple_player_view.xml` tương ứng và đổi `PlayerView.java` sang layout riêng. Đây là bản sửa để tránh `ClassCastException` giữa `androidx.media3.ui.AspectRatioFrameLayout` và `com.google.android.exoplayer2.ui.AspectRatioFrameLayout` khi mở YouTube.
+- Đã đổi thuộc tính SmartTube `show_buffering` thành `st_show_buffering` để không va chạm với Media3 PlayerView của IPTV.
+- Đã sửa API OkHttp trong `DohProviders.kt` sang parser tương thích với OkHttp hiện dùng.
+- Đã xử lý placeholder string, namespace/compileSdk/flavor và tương thích AGP 8.13/Kotlin cần thiết cho SmartTube.
+- Đã loại bỏ thành phần TV/VLC không dùng cho Mobile, trong đó có `VlcFallbackActivity.java`; không đưa lại vào bản Mobile.
+
+## Luồng IPTV ↔ YouTube và lifecycle
+
+- Tab bar Mobile dùng `REORDER_TO_FRONT` và tắt animation để tránh hiện tượng chuyển Activity chồng hình.
+- Khi chỉ **đổi tab**, IPTV player được giữ lại thay vì bị giải phóng; cơ chế đánh dấu `nm7.tab.switch.until` và xử lý lifecycle được thêm để phân biệt tab switch với việc thực sự rời player.
+- Khi bắt đầu phát video YouTube thực tế, IPTV được pause.
+- Khi bắt đầu phát IPTV thực tế, media bên ngoài được pause; không pause chỉ vì đổi tab.
+- Khi PlaybackActivity YouTube kết thúc bằng Back, luồng được đưa về BrowseActivity thay vì thoát khỏi ứng dụng; chuyển Activity không animation.
+- Đã thêm cơ chế giữ BrowseActivity và PlayerActivity để quay lại đúng màn hình thay vì tạo lại Activity không cần thiết.
+
+## YouTube UI và font
+
+- Mobile ép BrowseActivity portrait và đã có lớp runtime cố gắng ép các grid/recycler về **một cột**, tránh giao diện 2 cột kiểu TV.
+- SmartTube Activity được áp dụng font Android `sans-serif` cho TextView có chữ tiếng Việt; WebView dùng `standard/sans-serif font family` và UTF-8.
+- Lưu ý: các mục trên vẫn phải **kiểm thử trên máy thật**. Trước khi người dùng test bản 1.10.26, chưa đánh dấu các lỗi UI/font là đã hết hoàn toàn.
+- Đã ghi nhận video test máy thật cho hiện tượng chuyển tab: khoảng 9,6 giây có YouTube ở bên trái và IPTV ở bên phải; khoảng 11,3 giây xuất hiện overlap theo chiều ngược lại. Đây được xem là dấu hiệu cần xử lý lifecycle/transition của Activity, không phải bằng chứng ứng dụng chạy split-screen thật.
+- Người dùng trước đó vẫn quan sát thấy: YouTube đôi lúc thoát khi chuyển từ IPTV; chữ tiếng Việt chưa đúng; UI còn giống TV; YouTube tải chậm; Back từ video có thể thoát video/app. Các sửa trên được đưa vào bản test 1.10.26 để xác minh lại.
+
+## Tối ưu khởi động YouTube
+
+- Đã cấu hình SmartTube runtime dùng connection keep-alive và connection pool; bật các cấu hình mạng liên quan để giảm chi phí tạo kết nối lặp.
+- Đã thêm Wi-Fi high-performance lock trong vòng đời Activity của Mobile khi app đang hoạt động; mục tiêu là giữ kết nối ổn định khi chuyển giữa IPTV và YouTube.
+- Đây là tối ưu runtime, **không coi là chứng minh YouTube đã tải nhanh trên mọi thiết bị** cho đến khi test máy thật hoàn tất.
+
+## Build system — Windows
+
+- Do GitHub Actions gặp giới hạn/bị chặn ở một số lần chạy, quá trình build Mobile 1.10.26 được chuyển sang build trực tiếp trên Windows.
+- Môi trường đã xác nhận: JDK 17, Gradle 8.13, Android SDK 36, Build Tools 36.0.0.
+- Script build: `scripts/build-mobile-windows.ps1`.
+- Script đã được sửa nhiều vòng để xử lý đường dẫn repo, kiểm tra Java trên PowerShell, tham số `$args`, SmartTube shallow clone/merge tag, Git identity cục bộ, lỗi WebSettings và kiểm tra ABI đầu ra.
+- SmartTube shallow clone đã được xử lý bằng fetch/unshallow trước khi merge upstream tag 32.47s.
+- Đã sửa lỗi compile do gọi API không tồn tại `WebSettings.setDefaultFontFamily`; bản đúng giữ `setStandardFontFamily("sans-serif")`, `setSansSerifFontFamily("sans-serif")` và UTF-8.
+
+## ABI — lỗi đã xác định và sửa
+
+- Một lần build Windows bị chặn bởi cấu hình đồng thời `ndk.abiFilters` và ABI splits, với lỗi: `Conflicting configuration: 'armeabi-v7a,arm64-v8a' in ndk abiFilters cannot be present when splits abi filters are set`.
+- Nguyên nhân: dự án đã dùng `splits { abi { include("armeabi-v7a", "arm64-v8a") } }`, vì vậy không thêm `ndk.abiFilters` thứ hai.
+- Đã loại bỏ cấu hình `ndk abiFilters` xung đột trong commit `5267b77ebec0229e33471713f61c5b72f0e0560e`.
+- Script Windows đã được sửa/khôi phục phần tail kiểm tra APK ở commit `64722c096b283e3dd6cee6525409b75c28a53e65`.
+- Các commit sửa script trước đó gồm: `4941c706ed935ef851d4914f8c41816da7457ed4`, `b02c3712122b820681266eea1132ac6f3c8105cb`, `5adfb968a800f5cca207a41ad35f1784f61c8135`, `7cb224d10cac64abb1cf74bf50c298fd6e7bd21a`, `d10c8688622bbc0dedc08e3402841a70252a6d85`, `a749338ff70110835b0860901cf0aa091ce86364`, `eabc49afaf0e1bfc2512a16941a449858bf6911b`, `d593af8c6b7372641b033ad500678bec4872a596`.
+
+## Build Windows — KẾT QUẢ ĐÃ ĐẠT
+
+- Ngày 2026-09-18, build script đã chạy đến cuối và báo:
+  `=== BUILD SUCCESSFUL ===`
+- Script xác minh đúng **2 APK** và kiểm tra không có x86/x86_64/libvlc; kiểm tra ABI native entries và merged manifest Mobile cũng nằm trong bước xác minh.
+- APK đầu ra:
+  - `NM7-IPTV-Mobile-1.10.26-arm64-v8a.apk` — **61,892,357 bytes**.
+  - `NM7-IPTV-Mobile-1.10.26-armeabi-v7a.apk` — **51,398,095 bytes**.
+- Thư mục bàn giao trên Windows:
+  `C:\\Users\\Administrator\\Documents\\Codex\\2026-09-08\\hay\\work\\iptv-player-android\\dist\\mobile`.
+- Đây là **bản build để test máy thật**, chưa phải xác nhận hết lỗi runtime.
+
+## CI / GitHub Actions
+
+- GitHub Actions đã từng có các lần build Mobile thành công ở các mốc trước, nhưng nhánh 1.10.26 gặp thêm giới hạn workflow/token và giới hạn ngân sách, nên build Windows được dùng để tiếp tục xác minh APK.
+- Một lần chạy workflow final gần đây: run `35294946500`, workflow `android-mobile-final.yml`, run #83, kết thúc failure trước khi có job runner; một workflow compatibility khác bị GitHub App token từ chối do thiếu quyền `workflows`.
+- Không dùng trạng thái CI lỗi này để kết luận source hiện tại không build được; build Windows ngày 2026-09-18 đã xác minh ngược lại rằng Mobile 1.10.26 hiện có thể compile/package thành công.
+
+## Trạng thái hiện tại — CHỜ TEST MÁY THẬT
+
+**Đã đạt:**
+- SmartTube 32.47s tích hợp vào Mobile.
+- Media3/ExoPlayer resource collision đã xử lý.
+- OkHttp/AGP/Kotlin/namespace/compile compatibility đã xử lý.
+- TV/VLC component không nằm trong mục tiêu Mobile.
+- Lifecycle IPTV ↔ YouTube đã có cơ chế giữ player khi đổi tab và pause khi bắt đầu phát nguồn kia.
+- YouTube portrait/phone UI và các lớp ép một cột/font tiếng Việt đã được đưa vào bản test.
+- Windows build thành công.
+- Đúng 2 APK ARM: arm64-v8a + armeabi-v7a.
+
+**Chưa xác nhận trên máy thật:**
+1. IPTV → YouTube → quay lại IPTV khi **chưa phát YouTube** có giữ nguyên player hay không.
+2. IPTV đang phát → phát video YouTube có pause IPTV đúng hay không.
+3. YouTube đang phát → phát IPTV có pause YouTube đúng hay không.
+4. Đổi tab đơn thuần có còn làm Activity chồng/nhấp nháy/thoát hay không.
+5. Giao diện YouTube có thực sự thành một cột mobile hay vẫn còn 2 cột ở một số màn hình.
+6. Chữ tiếng Việt trong đăng nhập/cài đặt có hiển thị đúng glyph/font hay không.
+7. Thời gian khởi động YouTube có cải thiện đủ trên thiết bị thật hay không.
+8. Bấm Back từ video YouTube có quay về Browse/YouTube đúng hay thoát ứng dụng.
+9. Phát IPTV dài và chuyển qua lại nhiều lần có còn lỗi lifecycle hoặc mất player hay không.
+
+## Quy tắc cho vòng test tiếp theo
+
+- Không sửa code chỉ dựa trên suy đoán trước khi có lỗi tái hiện/log/ảnh/video từ bản 1.10.26.
+- Nếu có lỗi, ghi lại **bước tái hiện → kết quả thực tế → log/ảnh/video → nguyên nhân → sửa → build lại**.
+- Mọi sửa Mobile tiếp theo phải tăng versionCode/versionName trước khi tạo APK bàn giao mới.
+- Không build TV trong vòng test này.
+- Không đưa token, cookie, khóa DRM hoặc thông tin đăng nhập vào log/commit.
+
+## Mốc tiếp theo
+
+Người dùng đang cài và kiểm thử hai APK 1.10.26 trên thiết bị Android thật. Kết quả test thực tế sẽ là đầu vào tiếp theo để quyết định sửa lỗi nào; **không đánh dấu 1.10.26 là ổn định hoàn toàn cho đến khi vòng test này hoàn tất**.
+
+Cập nhật: **2026-09-18 09:14 +07:00**.
