@@ -348,6 +348,9 @@ if($t.Contains($oldSkip)){
 }else{
     Fail "SmartTube skipPip() source shape changed; refusing unsafe BACK patch."
 }
+if($t -notmatch 'private\s+boolean\s+skipPip\s*\(\)\s*\{\s*// NM7 Mobile: BACK[\s\S]*?return false;'){
+    Fail "SmartTube BACK parent-view patch did not persist."
+}
 WriteT $play $t
 
 $appJava=ReadT (Join-Path $Root "app\src\main\java\vn\phuong\iptvplayer\MobileNm7Application.java")
