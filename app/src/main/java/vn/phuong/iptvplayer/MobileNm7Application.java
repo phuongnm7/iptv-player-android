@@ -343,7 +343,12 @@ public final class MobileNm7Application extends DroidApplication implements andr
                     (proxy, method, args) -> {
                         if ("onBackInvoked".equals(method.getName())) {
                             bringSmartTubeBrowseToFront();
-                            try { activity.finish(); } catch (RuntimeException ignored) { }
+                            try {
+                                Method finishReally = activity.getClass().getMethod("finishReally");
+                                finishReally.invoke(activity);
+                            } catch (ReflectiveOperationException | RuntimeException ignored) {
+                                try { activity.finish(); } catch (RuntimeException ignoredAgain) { }
+                            }
                         }
                         return null;
                     });
