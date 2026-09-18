@@ -38,12 +38,14 @@ if (-not $env:JAVA_HOME -or -not (Test-Path (Join-Path $env:JAVA_HOME "bin\java.
 }
 if (-not $env:JAVA_HOME) { Fail "JDK 17 not found. Set JAVA_HOME." }
 $env:PATH=(Join-Path $env:JAVA_HOME "bin") + ";" + $env:PATH
-$javaExe = Join-Path $env:JAVA_HOME "bin\\java.exe"
+$javaExe = Join-Path $env:JAVA_HOME "bin\java.exe"
 if (-not (Test-Path $javaExe)) { Fail "JAVA_HOME does not point to a valid JDK 17 installation." }
-& $javaExe -version 2>$null
-if ($LASTEXITCODE -ne 0) { Fail "Java 17 could not be executed from JAVA_HOME." }
-$ver = (& $javaExe -version 2>&1 | Select-Object -First 1)
-if ($ver -notmatch '"17\.') { Fail ("JDK 17 required. Current: " + $ver) }
+$javaVersionFile = Join-Path $env:TEMP "nm7-java-version.txt"
+Remove-Item $javaVersionFile -Force -ErrorAction SilentlyContinue
+$javaProc = Start-Process -FilePath $javaExe -ArgumentList "-version" -Wait -PassThru -NoNewWindow -RedirectStandardError $javaVersionFile
+$ver = if (Test-Path $javaVersionFile) { (Get-Content $javaVersionFile | Select-Object -First 1) } else { "" }
+Remove-Item $javaVersionFile -Force -ErrorAction SilentlyContinue
+if ($javaProc.ExitCode -ne 0 -or $ver -notmatch '"17\.') { Fail ("JDK 17 required. Current: " + $ver) }
 
 if ((& git branch --show-current).Trim() -ne "fix/mobile-1.10.26-sleep-timer-icon") { Run git @("checkout","fix/mobile-1.10.26-sleep-timer-icon") }
 
