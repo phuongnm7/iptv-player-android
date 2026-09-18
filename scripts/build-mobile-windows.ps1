@@ -121,8 +121,10 @@ if($stxt -notmatch 'name="section_is_empty"'){
 $t=ReadT $play
 # Replace the missing generated resource reference directly in the cloned Java source.
 $t=$t.Replace('R.string.section_is_empty', '"Section is empty"')
+WriteT $play $t
+$t=ReadT $play
 if($t -match 'R.string.section_is_empty'){
-    Fail "SmartTube section_is_empty source patch did not apply."
+    Fail "SmartTube section_is_empty source patch did not persist to PlaybackActivity.java."
 }
 # The SmartTube snapshot may omit this generated string resource; keep the build independent of it.
 if($t -notmatch 'import android.content.Intent;'){$t=$t.Replace("import android.content.Context;",("import android.content.Context;"+$nl+"import android.content.Intent;"))}
