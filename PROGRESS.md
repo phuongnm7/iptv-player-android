@@ -559,3 +559,62 @@ Cập nhật: 2026-09-08. Lưu file này trong GitHub riêng tư để nối l�
 Người dùng đang cài và kiểm thử hai APK 1.10.26 trên thiết bị Android thật. Kết quả test thực tế sẽ là đầu vào tiếp theo để quyết định sửa lỗi nào; **không đánh dấu 1.10.26 là ổn định hoàn toàn cho đến khi vòng test này hoàn tất**.
 
 Cập nhật: **2026-09-18 09:14 +07:00**.
+
+---
+
+# TEST MÁY THẬT — LỖI CÒN LẠI VÀ VÒNG SỬA TIẾP THEO — 2026-09-18
+
+## Kết quả test Mobile 1.10.26 từ người dùng
+
+Ảnh/video máy thật xác nhận các lỗi còn tái hiện:
+
+1. IPTV → YouTube → quay lại IPTV: inline player vẫn bị mất/thoát.
+2. YouTube mở video: thời gian tải video còn chậm.
+3. Giao diện YouTube vẫn mang dấu hiệu SmartTube/TV, chưa khớp hoàn toàn giao diện mobile tham khảo.
+4. Đang phát video YouTube → nhấn Home: player bị đóng; chưa giữ được player để quay lại.
+5. Giao diện IPTV: thanh tìm kiếm + Tùy chọn đang ở phía trên player; yêu cầu mới là đưa xuống dưới player để vùng video cao hơn.
+
+## Sửa đã commit
+
+### IPTV toolbar xuống cuối màn hình
+- MobileIptvUi chèn thanh tìm kiếm/tải lại/tùy chọn ở cuối mainRoot, thay vì phía trên inline player.
+- HomeTabBar dành thêm 64dp đáy cho MainActivity để toolbar không bị navigation bar đè.
+- Commit: fd6f285abb7682cced76e020b9ae69ec48f61692, aeb6bba044c2b11ab4887be8b92224489342c22.
+
+### YouTube Home không release player
+- SmartTube PlaybackActivity được patch để nhận biết onUserLeaveHint() của Home.
+- Khi Home được nhấn, player được pause nhưng không release; khi quay lại Activity, player được tiếp tục nếu trước đó đang phát.
+- Tab switching dùng FLAG_ACTIVITY_NO_USER_ACTION để không bị nhầm thành Home.
+- Mục tiêu là không phát YouTube nền: Home chỉ giữ player trong Activity, không tiếp tục video khi app ở nền.
+- Android xác nhận onUserLeaveHint() được gọi khi Activity sắp ra nền do lựa chọn của người dùng như Home; FLAG_ACTIVITY_NO_USER_ACTION ngăn callback khi Activity bị tạm dừng do Activity khác được khởi chạy. citeturn3search0turn6search1
+- Media3 background playback là kiến trúc Service riêng và không được dùng cho yêu cầu Home hiện tại. citeturn4search0turn4search1
+- Commit script: 84647a4ffd4ce71c290e8ed5955e6b1f82597112.
+
+### Back từ YouTube video
+- MobileNm7Application đăng ký Android 13+ Back callback cho SmartTube PlaybackActivity.
+- Back đưa BrowseActivity lên trước rồi finish PlaybackActivity.
+- Callback dùng reflection để giữ tương thích minSdk 23.
+- Commits: 89ab17c90b2133bceb31d3016593bedaca1a8289 và 7c92c07a2036fce15f3981ba063b32d349ebeff2.
+
+### YouTube recommendations một cột
+- forceSingleColumn() nay áp dụng cả cho SmartTube PlaybackActivity, không chỉ BrowseActivity.
+- Build script tiếp tục patch GRID_COLUMNS trong SmartTube Java/Kotlin.
+- GridLayoutManager.setSpanCount(1) là cơ chế Android hỗ trợ cho grid dọc một cột. citeturn7search0turn7search3
+- Commit runtime: 74eb83900b5b45fc5b438087e5fa9c5a2619e8e9.
+
+### Giảm thời gian mở YouTube
+- MobileNm7Application pre-warm SmartTubeRuntime sau 900ms kể từ khi ứng dụng khởi động.
+- Mục tiêu là đưa chi phí reflection/class-loading ra khỏi lần chạm tab YouTube đầu tiên.
+- Đây là tối ưu startup; tốc độ tải mạng/video phải đo lại trên máy thật.
+- Commit: 2488cf4b6163f7717764ece436cf34d55e34973.
+
+### Giảm branding SmartTube TV
+- Windows build script thay text branding SmartTube trong XML/properties của phần SmartTube được clone thành NM7 TV.
+- Vẫn giữ phone/touch fork và không đưa TV/VLC vào Mobile.
+- Commit script mới nhất: 148bc07a3140084c99d576f2441995b7010ce3c9.
+
+## Trạng thái
+
+Đã sửa mã theo các lỗi vừa tái hiện. Chưa đánh dấu build mới thành công cho đến khi chạy script Windows và cài APK mới.
+
+Test lại: IPTV → YouTube → IPTV; YouTube phát → Home → quay lại; YouTube Back; recommendations một cột; branding; IPTV toolbar dưới player; và thời gian mở YouTube.
