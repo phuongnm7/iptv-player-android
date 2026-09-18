@@ -893,3 +893,64 @@ Commit:
 5. HOME/khóa màn hình và mở lại YouTube.
 
 Không đánh dấu lỗi đã hết cho đến khi APK 1.10.27 được build và test máy thật.
+
+
+---
+
+# VÒNG SỬA 1.10.28 — 2026-09-19 06:35 +07:00
+
+Người dùng xác nhận bản 1.10.27 vẫn còn hai lỗi:
+- YouTube video → Back 1 lần chưa thu nhỏ về Browse/mini-player.
+- IPTV đang phát → chuyển sang tab YouTube vẫn bị dừng ngay, trái yêu cầu phải giữ IPTV cho đến khi YouTube thực sự mở PlaybackActivity.
+
+## Sửa IPTV → YouTube
+
+Nguyên nhân còn sót: dù đã có `keepPlayerForTabSwitch`, `onStop()` vẫn có thể chạy sau khi trạng thái `tabSwitchPending` đã bị clear. Vì vậy lần chuyển tab sau có thể rơi vào nhánh `releasePlayer()`.
+
+Sửa mới trong `PlayerActivity.onStop()`:
+- Nếu Activity chưa `isFinishing()` và `SharedPlaybackSession.tab(this) == TAB_YOUTUBE`, luôn giữ IPTV ExoPlayer.
+- `MobileNm7Application.isTabSwitchPending()` vẫn là lớp bảo vệ bổ sung.
+- Chỉ release IPTV khi Activity thực sự kết thúc hoặc khi SmartTube PlaybackActivity bắt đầu và gọi `pauseIptvPlayer()`.
+
+Commit:
+- `0414fcb802537a74789bc3f6cc6c37351e09d488`.
+
+Điều này loại bỏ dependency vào thứ tự callback lifecycle trong các lần chuyển tab lặp lại.
+
+## Sửa YouTube Back → mini-player
+
+Patch `skipPip() -> false` trước đó chưa đủ đối với phone PlaybackActivity. Bản phone có `onBackPressed()` riêng; gọi `super.onBackPressed()` làm PlaybackActivity kết thúc trước khi Browse/parent-view tiếp quản.
+
+Build script nay patch trực tiếp `PlaybackActivity.onBackPressed()`:
+- Giữ xử lý details/comments back.
+- Đặt `mIsBackPressed=true`.
+- Gọi `blockEngine(true)`.
+- Gọi `getViewManager().blockTop(this)`.
+- Gọi `getViewManager().startParentView(this)`.
+- Chỉ fallback `super.onBackPressed()` nếu parent-view path ném exception.
+
+Mục tiêu là giữ playback engine sống và đưa Browse lên làm parent, tạo đúng hành vi mini-player thay vì đóng video.
+
+Commit:
+- `82170585b8ac0b6f50cf5520c4c09a4a526bfe94`.
+
+Custom Android `OnBackInvokedCallback` của NM7 vẫn đã được loại bỏ từ commit trước, nên không còn gọi `onBackPressed()` hai lần.
+
+## Version mới
+
+- versionCode: **46**
+- versionName: **1.10.28**
+
+Commit:
+- `58bd32d3d695a2e2af764d7e83ac7a6a3387c3a0`.
+
+## Chưa build
+
+Source đã sửa nhưng **chưa chạy build Windows 1.10.28**.
+
+Build/test bắt buộc:
+1. IPTV phát → YouTube tab, không chọn video → IPTV tiếp tục phát.
+2. Lặp IPTV → YouTube ít nhất 5 lần khi chưa mở video → IPTV không được tắt.
+3. Mở video YouTube → IPTV mới release.
+4. YouTube đang phát → Back 1 lần → Browse/Home + mini-player, video vẫn phát.
+5. Back lần 2 mới thực hiện hành vi rời Browse theo thiết kế.
