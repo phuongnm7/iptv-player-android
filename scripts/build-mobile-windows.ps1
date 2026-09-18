@@ -1,5 +1,5 @@
 # NM7 IPTV Mobile 1.10.26 - Windows local build
-# SCRIPT_VERSION: 2026-09-18-PATCH6
+# SCRIPT_VERSION: 2026-09-18-PATCH7
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 $Root = Split-Path -Parent $PSScriptRoot
@@ -118,22 +118,34 @@ $play=Join-Path $ST "smarttubedroid\src\main\java\com\liskovsoft\smartyoutubetv2
 if(-not(Test-Path $play)){Fail "PlaybackActivity.java not found."}
 $t=ReadT $play
 if($t -notmatch 'import android.content.Intent;'){$t=$t.Replace("import android.content.Context;",("import android.content.Context;"+$nl+"import android.content.Intent;"))}
-$marker="private boolean mIsBackPressed;"
-if($t.Contains($marker) -and $t -notmatch "nm7HomePaused"){$t=$t.Replace($marker,$marker+$nl+"    private boolean nm7HomePaused;")}
 
-# Upstream SmartTube 32.47s already defines onUserLeaveHint(). Do not inject a second
-# callback: doing so causes a duplicate-method compile error after the phone-fork merge.
+# Upstream SmartTube 32.47s already defines onUserLeaveHint(). Do not inject a second callback.
+# Preserve the player only while NM7 is switching tabs.
+$oldStop=@'
+    @Override
+    protected void onStop() {
+        super.onStop();
 
-# Preserve the SmartTube player during NM7 tab switches; ordinary Back/Home release normally.
-$stop=[regex]::Match($t,"(?s)(protected void onStop\\(\\)\\s*\\{\\s*super\\.onStop\\(\\);\\s*if \\(VERSION\\.SDK_INT > 23\\) \\{)\\s*maybeReleasePlayer\\(\\);\\s*(\\}\\s*\\})")
-if($stop.Success){
-    $rep=$stop.Groups[1].Value+$nl+"            if (!isNm7TabSwitch()) {"+$nl+"                maybeReleasePlayer();"+$nl+"            }"+$nl+$stop.Groups[2].Value
-    $t=$t.Remove($stop.Index,$stop.Length).Insert($stop.Index,$rep)
-} elseif($t -notmatch "!isNm7TabSwitch"){Fail "PlaybackActivity onStop release block not found."}
+        if (VERSION.SDK_INT > 23) {
+            maybeReleasePlayer();
+        }
+    }
+'@
+$newStop=@'
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        if (VERSION.SDK_INT > 23 && !isNm7TabSwitch()) {
+            maybeReleasePlayer();
+        }
+    }
+'@
+if($t.Contains($oldStop)){$t=$t.Replace($oldStop,$newStop)}elseif($t -notmatch 'isNm7TabSwitch\(\)'){Fail "PlaybackActivity onStop block not found."}
 
 # Back from the SmartTube player must return to the phone Browse screen.
-if($t -notmatch "FLAG_ACTIVITY_REORDER_TO_FRONT \\| Intent.FLAG_ACTIVITY_NO_ANIMATION"){
-    $oldBack=@'
+if($t -notmatch 'FLAG_ACTIVITY_REORDER_TO_FRONT\s*\|\s*Intent\.FLAG_ACTIVITY_NO_ANIMATION'){
+$oldBack=@'
     @Override
     public void onBackPressed() {
         mIsBackPressed = true;
@@ -141,7 +153,7 @@ if($t -notmatch "FLAG_ACTIVITY_REORDER_TO_FRONT \\| Intent.FLAG_ACTIVITY_NO_ANIM
         super.onBackPressed();
     }
 '@
-    $newBack=@'
+$newBack=@'
     @Override
     public void onBackPressed() {
         if (mIsBackPressed) {
@@ -161,7 +173,7 @@ if($t -notmatch "FLAG_ACTIVITY_REORDER_TO_FRONT \\| Intent.FLAG_ACTIVITY_NO_ANIM
         }
     }
 '@
-    if($t.Contains($oldBack)){$t=$t.Replace($oldBack,$newBack)}
+if($t.Contains($oldBack)){$t=$t.Replace($oldBack,$newBack)}
 }
 WriteT $play $t
 
