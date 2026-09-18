@@ -76,7 +76,7 @@ jobs:
           # Mobile feed: use a real one-column RecyclerView, not runtime reflection.
           browse = root / 'smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/browse/BrowseActivity.java'
           t = browse.read_text()
-          t2 = t.replace('private static final int GRID_COLUMNS = 1;', 'private static final int GRID_COLUMNS = 1;')
+          t2 = t.replace('private static final int GRID_COLUMNS = 2;', 'private static final int GRID_COLUMNS = 1;')
           if t2 == t:
               raise SystemExit('Browse GRID_COLUMNS declaration not found')
           browse.write_text(t2)
@@ -123,7 +123,23 @@ jobs:
     }'''
           if old_stop not in t2:
               raise SystemExit('PlaybackActivity onStop block not found')
-          t2 = t2.replace(old_stop, new_stop)
+          t2 = t2.replace('boolean isScreenOff = getPlayerData().getBackgroundMode() != PlayerData.BACKGROUND_MODE_DEFAULT && Utils.isHardScreenOff(this);', 'boolean isScreenOff = Utils.isHardScreenOff(this);\n        if (isScreenOff) {\n            getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_PLAY_BEHIND);\n        }')
+
+          # Android calls onUserLeaveHint for HOME. Force NM7 Play-Behind regardless of stored mode.
+          leave_start = t2.find('    public void onUserLeaveHint()')
+          leave_end = t2.find('    public boolean isInPipMode()', leave_start)
+          if leave_start < 0 or leave_end < 0:
+              raise SystemExit('PlaybackActivity onUserLeaveHint block not found')
+          leave_method = '''    public void onUserLeaveHint() {
+        if (mIsBackPressed || isFinishing() || getViewManager().isNewViewPending()) {
+            return;
+        }
+        getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_PLAY_BEHIND);
+        enterBackgroundPlayMode();
+    }
+
+'''
+          t2 = t2[:leave_start] + leave_method + t2[leave_end:]
 
           # Back from the player always returns to the phone Browse screen.
           old_back = '''    @Override
