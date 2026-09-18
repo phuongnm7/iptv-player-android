@@ -95,6 +95,8 @@ public final class MobileNm7Application extends DroidApplication implements andr
             // Entering IPTV is an explicit media switch. Pause any active SmartTube
             // session, including Play-Behind/background playback.
             pauseExternalMedia(activity);
+            // A real IPTV session takes ownership back from YouTube background playback.
+            activity.stopService(new Intent(activity, BackgroundPlaybackService.class));
         } else if (SMARTTUBE_BROWSE.equals(name)) {
             smartTubeBrowseActivity = activity;
         } else if (SMARTTUBE_PLAYBACK.equals(name)) {
@@ -109,6 +111,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
     @Override public void onActivityStopped(Activity activity) {
         if (activity == iptvPlayerActivity && activity.isFinishing()) iptvPlayerActivity = null;
         if (SMARTTUBE_PLAYBACK.equals(activity.getClass().getName()) && activity.isFinishing()) {
+            activity.stopService(new Intent(activity, BackgroundPlaybackService.class));
             bringSmartTubeBrowseToFront();
         }
         if (startedActivities > 0 && --startedActivities == 0) releaseWifiPerformanceLock();
@@ -187,6 +190,10 @@ public final class MobileNm7Application extends DroidApplication implements andr
         String name = activity.getClass().getName();
         if (activity instanceof PlayerActivity || SMARTTUBE_BROWSE.equals(name)) {
             clearTabSwitch();
+        }
+        if (SMARTTUBE_PLAYBACK.equals(name)) {
+            // Foreground YouTube no longer needs the background keep-alive service.
+            activity.stopService(new Intent(activity, BackgroundPlaybackService.class));
         }
     }
 
