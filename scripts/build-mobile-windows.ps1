@@ -338,8 +338,7 @@ $oldSkip=@'
 '@
 $newSkip=@'
     private boolean skipPip() {
-        // NM7 Mobile: BACK from a playing video must return to YouTube Browse/mini-player,
-        // not close the playback session. HOME/background handling remains separate.
+        // NM7 Mobile: BACK uses the parent Browse/mini-player path.
         return false;
     }
 '@
@@ -350,6 +349,51 @@ if($t.Contains($oldSkip)){
 }
 if($t -notmatch 'private\s+boolean\s+skipPip\s*\(\)\s*\{\s*// NM7 Mobile: BACK[\s\S]*?return false;'){
     Fail "SmartTube BACK parent-view patch did not persist."
+}
+
+# SmartTube's phone PlaybackActivity can receive Android BACK through the legacy
+# onBackPressed() path. Do not call super.onBackPressed() on the first BACK: that
+# destroys PlaybackActivity before Browse can take over. Use SmartTube's own
+# parent-view/engine-block path, which keeps the player alive as its mini-player.
+$oldBack=@'
+    @Override
+    public void onBackPressed() {
+        // The expanded description/comments sheet takes back first
+        if (onDetailsBack()) {
+            return;
+        }
+
+        mIsBackPressed = true;
+
+        super.onBackPressed();
+    }
+'@
+$newBack=@'
+    @Override
+    public void onBackPressed() {
+        // The expanded description/comments sheet takes back first
+        if (onDetailsBack()) {
+            return;
+        }
+
+        mIsBackPressed = true;
+
+        try {
+            blockEngine(true);
+            getViewManager().blockTop(this);
+            getViewManager().startParentView(this);
+        } catch (RuntimeException ignored) {
+            super.onBackPressed();
+        }
+    }
+'@
+if($t.Contains($oldBack)){
+    $t=$t.Replace($oldBack,$newBack)
+}else{
+    Fail "SmartTube phone onBackPressed source shape changed; refusing unsafe mini-player patch."
+}
+if($t -notmatch 'void\s+onBackPressed\s*\(\)[\s\S]*?blockEngine\(true\)[\s\S]*?startParentView\(this\)'){
+    Fail "SmartTube mini-player BACK patch did not persist."
 }
 WriteT $play $t
 
