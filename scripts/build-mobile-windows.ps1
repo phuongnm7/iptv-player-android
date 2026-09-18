@@ -1,5 +1,5 @@
 # NM7 IPTV Mobile 1.10.26 - Windows local build
-# SCRIPT_VERSION: 2026-09-18-PATCH10
+# SCRIPT_VERSION: 2026-09-18-PATCH11
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 $Root = Split-Path -Parent $PSScriptRoot
@@ -125,6 +125,14 @@ WriteT $play $t
 $t=ReadT $play
 if($t -match 'R.string.section_is_empty'){
     Fail "SmartTube section_is_empty source patch did not persist to PlaybackActivity.java."
+}
+if($t -match 'getString\("Section is empty"\)'){
+    $t=$t.Replace('getString("Section is empty")','"Section is empty"')
+    WriteT $play $t
+    $t=ReadT $play
+}
+if($t -match 'getString\("Section is empty"\)'){
+    Fail "SmartTube section_is_empty patch produced an invalid getString(String) call."
 }
 # The SmartTube snapshot may omit this generated string resource; keep the build independent of it.
 if($t -notmatch 'import android.content.Intent;'){$t=$t.Replace("import android.content.Context;",("import android.content.Context;"+$nl+"import android.content.Intent;"))}
