@@ -284,10 +284,12 @@ $appJava=ReadT (Join-Path $Root "app\src\main\java\vn\phuong\iptvplayer\MobileNm
 $appUi=ReadT (Join-Path $Root "app\src\main\java\vn\phuong\iptvplayer\MobileIptvUi.java")
 $appManifest=ReadT (Join-Path $Root "app\src\main\AndroidManifest.xml")
 if($appJava -notmatch "replaceSmartTubeBranding|finishReally"){Fail "NM7 runtime fixes are missing from source."}
+if((ReadT (Join-Path $Root "app\src\main\java\vn\phuong\iptvplayer\SharedPlaybackSession.java")) -notmatch "TAB_YOUTUBE|saveIptv|loadIptv"){Fail "Shared Mobile playback session owner is missing."}
 if($appJava -notmatch "SmartTubeRuntime\.enableBackgroundPlayback|releasePlayer"){Fail "Cross-player handoff/background playback fix is missing from source."}
 if((ReadT (Join-Path $Root "app\src\main\java\vn\phuong\iptvplayer\SmartTubeRuntime.java")) -notmatch "PLAYER_DATA_SOURCE_CRONET|BACKGROUND_MODE_PLAY_BEHIND|BACKGROUND_PLAYBACK_SHORTCUT_HOME"){Fail "SmartTube fast/background playback runtime patch is missing from source."}
 if($appUi -notmatch "nm7_inline_player|repositionToolbar"){Fail "IPTV toolbar placement fix is missing from source."}
-if($appManifest -notmatch 'MainActivity.*launchMode="singleTask"'){Fail "MainActivity singleTask preservation fix is missing."}
+if($appManifest -match 'MainActivity[^>]*launchMode="singleTask"'){Fail "Mobile MainActivity must not use singleTask because it destroys the YouTube tab on launcher resume."}
+if($appManifest -notmatch 'MainActivity[^>]*alwaysRetainTaskState="true"'){Fail "Mobile task retention flag is missing."}
 
 $ui=Join-Path $ST "exoplayer-amzn-2.10.6\library\ui"; $res=Join-Path $ui "src\main\res\layout"; $pv=Join-Path $ui "src\main\java\com\google\android\exoplayer2\ui\PlayerView.java"
 foreach($p in @((Join-Path $res "exo_player_view.xml"),(Join-Path $res "exo_simple_player_view.xml"),$pv)){if(-not(Test-Path $p)){Fail "Missing player source: $p"}}
