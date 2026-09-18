@@ -38,6 +38,8 @@ public final class MainActivity extends Activity {
     private static final int PICK_WALLPAPER = 103;
     private static final int OPEN_REVANCED_APK = 104;
     private static final String EMBEDDED_YOUTUBE_ASSET = "revanced/youtube-20.40.45-revanced.apk";
+    private static final String EMBEDDED_GMSCORE_ASSET = "revanced/gmscore-0.3.13.2.250932.apk";
+    private static final String EMBEDDED_GMSCORE_FILE = "gmscore-0.3.13.2.250932.apk";
     private static final int MAX_PLAYLIST_BYTES = 8 * 1024 * 1024;
     private static final String DEFAULT_PLAYLIST = PlaylistSourceStore.DEFAULT_URL;
 
@@ -308,13 +310,22 @@ public final class MainActivity extends Activity {
     }
     private void showYouTubeReVancedTools(){
         String bundleStatus = RevancedBundleStore.status(this);
-        String gmsStatus = RevancedBridge.isGmsCoreInstalled(this) ? "GmsCore: đã cài" : "GmsCore: chưa cài";
+        boolean gmsInstalled = RevancedBridge.isGmsCoreInstalled(this);
+        boolean youtubeInstalled = getPackageManager().getLaunchIntentForPackage("com.google.android.youtube") != null;
+        String gmsStatus = gmsInstalled ? "GmsCore: đã cài" : "GmsCore: chưa cài";
+        String youtubeStatus = youtubeInstalled ? "YouTube/ReVanced: đã cài" : "YouTube/ReVanced: chưa cài";
+        String message = bundleStatus + "\\n" + gmsStatus + "\\n" + youtubeStatus
+                + "\\n\\nBản hiện tại đã có sẵn APK YouTube ReVanced trong NM7. GmsCore là package Android riêng nên phải được cài vào hệ thống trước khi YouTube ReVanced hoạt động đầy đủ.";
+        String[] actions = gmsInstalled
+                ? new String[]{"Cài YouTube ReVanced từ NM7","Chọn APK YouTube để kiểm tra","Mở YouTube / ReVanced"}
+                : new String[]{"Cài GmsCore từ NM7 (bắt buộc)","Chọn APK YouTube để kiểm tra","Mở YouTube / ReVanced"};
         new AlertDialog.Builder(this)
-                .setTitle("YouTube / ReVanced (thử nghiệm)")
-                .setMessage(bundleStatus + "\\n" + gmsStatus + "\\n\\nNM7 đang chuẩn bị pipeline tự patch YouTube. GmsCore vẫn là thành phần Android riêng về mặt package; không coi một APK nhúng là đã cài GmsCore.")
-                .setItems(new String[]{"Cài YouTube ReVanced tích hợp NM7","Chọn APK YouTube để kiểm tra","Mở YouTube / ReVanced đã cài"},(d,w)->{
+                .setTitle("YouTube / ReVanced")
+                .setMessage(message)
+                .setItems(actions,(d,w)->{
                     if(w==0){
-                        installEmbeddedYouTube();
+                        if(gmsInstalled) installEmbeddedYouTube();
+                        else installEmbeddedGmsCore();
                     }else if(w==1){
                         Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT);
                         intent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -322,6 +333,30 @@ public final class MainActivity extends Activity {
                         startActivityForResult(intent,OPEN_REVANCED_APK);
                     }else openYouTubeReVanced();
                 }).setNegativeButton("Đóng",null).show();
+    }
+
+    private void installEmbeddedGmsCore(){
+        io.execute(()->{
+            try{
+                File dir=new File(getCacheDir(),"revanced");
+                if(!dir.exists()&&!dir.mkdirs())throw new Exception("Không tạo được thư mục tạm");
+                File apk=new File(dir,EMBEDDED_GMSCORE_FILE);
+                try(InputStream in=getAssets().open(EMBEDDED_GMSCORE_ASSET);FileOutputStream out=new FileOutputStream(apk)){
+                    byte[] buffer=new byte[64*1024];int n;while((n=in.read(buffer))!=-1)out.write(buffer,0,n);
+                }
+                Uri uri=androidx.core.content.FileProvider.getUriForFile(this,getPackageName()+".revancedfiles",apk);
+                Intent install=new Intent(Intent.ACTION_INSTALL_PACKAGE);install.setData(uri);
+                install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_ACTIVITY_NEW_TASK);
+                ui(()->{
+                    try{startActivity(install);}
+                    catch(Exception e){
+                        new AlertDialog.Builder(this).setTitle("Không thể cài GmsCore")
+                                .setMessage("Android chưa cho phép NM7 mở trình cài đặt APK. Hãy bật quyền cài ứng dụng từ nguồn này rồi thử lại.\\n\\n"+readable(e))
+                                .setPositiveButton("Đóng",null).show();
+                    }
+                });
+            }catch(Exception e){ui(()->showError("Không đọc được GmsCore tích hợp: "+readable(e)));}
+        });
     }
     private void installEmbeddedYouTube(){
         io.execute(()->{
