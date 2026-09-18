@@ -162,6 +162,14 @@ $leaveMethod=@'
 '@
 $t=$t.Substring(0,$leaveStart)+$leaveMethod+$t.Substring($leaveEnd)
 
+# Lock-screen transitions can arrive through onPause without onUserLeaveHint.
+# Force Play-Behind before the engine is blocked so video/audio continues.
+$pauseScreen = 'boolean isScreenOff = getPlayerData().getBackgroundMode() != PlayerData.BACKGROUND_MODE_DEFAULT && Utils.isHardScreenOff(this);'
+$pauseScreenNew = 'boolean isScreenOff = Utils.isHardScreenOff(this);' + $nl + '        if (isScreenOff) {' + $nl + '            getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_PLAY_BEHIND);' + $nl + '        }'
+if($t.Contains($pauseScreen)){
+    $t=$t.Replace($pauseScreen,$pauseScreenNew)
+}
+
 # Back from the SmartTube player must return to the phone Browse screen.
 if($t -notmatch 'FLAG_ACTIVITY_REORDER_TO_FRONT\s*\|\s*Intent\.FLAG_ACTIVITY_NO_ANIMATION'){
 $oldBack=@'
