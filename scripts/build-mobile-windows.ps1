@@ -1,4 +1,5 @@
 # NM7 IPTV Mobile 1.10.26 - Windows local build
+# SCRIPT_VERSION: 2026-09-18-PATCH2
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 $Root = Split-Path -Parent $PSScriptRoot
