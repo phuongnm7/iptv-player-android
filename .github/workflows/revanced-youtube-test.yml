@@ -84,8 +84,6 @@ jobs:
             -p patches.rvp \
             -e "GmsCore support" \
             -e "Spoof video streams" \
-            --rip-lib=x86 \
-            --rip-lib=x86_64 \
             --purge \
             -o youtube-21.37.42-revanced.apk \
             youtube-21.37.42.apk
