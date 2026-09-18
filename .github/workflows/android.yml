@@ -51,6 +51,16 @@ jobs:
           log-accepted-android-sdk-licenses: false
       - name: Install Android SDK packages
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - name: Prepare embedded ReVanced patch bundle
+        run: |
+          set -euo pipefail
+          mkdir -p app/src/main/assets/revanced
+          curl --fail --location --retry 3 --retry-delay 2 \
+            https://api.revanced.app/v5/patches.rvp \
+            --output app/src/main/assets/revanced/patches.rvp
+          test -s app/src/main/assets/revanced/patches.rvp
+          unzip -t app/src/main/assets/revanced/patches.rvp >/dev/null
+          sha256sum app/src/main/assets/revanced/patches.rvp | tee app/src/main/assets/revanced/patches.rvp.sha256
       - name: Compile, test and lint Mobile
         run: gradle --no-daemon --console=plain testMobileDebugUnitTest lintMobileDebug assembleMobileDebug
       - name: Read Mobile version
