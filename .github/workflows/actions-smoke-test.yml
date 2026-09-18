@@ -1,0 +1,25 @@
+name: Actions Smoke Test
+
+on:
+  push:
+    branches: ["fix/mobile-1.10.26-sleep-timer-icon"]
+    paths:
+      - ".github/workflows/actions-smoke-test.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Runner check
+        run: |
+          set -euxo pipefail
+          echo "GitHub Actions runner is working"
+          echo "Runner: $RUNNER_NAME"
+          echo "OS: $RUNNER_OS"
+          echo "Arch: $RUNNER_ARCH"
+          uname -a
