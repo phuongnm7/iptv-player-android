@@ -1,5 +1,5 @@
 # NM7 IPTV Mobile 1.10.26 - Windows local build
-# SCRIPT_VERSION: 2026-09-18-PATCH4
+# SCRIPT_VERSION: 2026-09-18-PATCH5
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 $Root = Split-Path -Parent $PSScriptRoot
@@ -88,32 +88,25 @@ if(-not(Test-Path $browse)){Fail "BrowseActivity.java not found."}
 $t=ReadT $browse; $n=$t.Replace("private static final int GRID_COLUMNS = 2;","private static final int GRID_COLUMNS = 1;")
 if($n -eq $t){Fail "GRID_COLUMNS declaration not found."}; WriteT $browse $n
 
-# Force one-column browsing only in the phone BrowseActivity. Do not rewrite every
-# SmartTube source file: some screens reference GRID_COLUMNS without declaring it.
-# A global replacement here can create compilation errors in ChannelUploadsActivity
-# and other activities.
+# Force one-column browsing only in the phone BrowseActivity.
+# Do not rewrite every SmartTube source file: other screens may reference GRID_COLUMNS
+# without declaring it. Patch only the known phone uploads screen when necessary.
 $gridPatched=0
-$gridFiles=@(
-    $browse
-)
+$gridFiles=@($browse)
 foreach($gp in $gridFiles){
     $x=ReadT $gp
-    $n=[regex]::Replace($x,'(GRID_COLUMNS\s*=\s*)\d+','$1'+'1')
+    $n=[regex]::Replace($x,'(GRID_COLUMNS\\s*=\\s*)\\d+','$1'+'1')
     if($n -ne $x){WriteT $gp $n;$gridPatched++}
 }
 
-# If another phone screen uses GRID_COLUMNS as a bare symbol without declaring it,
-# give that screen its own one-column constant. This is intentionally local and
-# avoids modifying unrelated SmartTube classes.
-Get-ChildItem (Join-Path $ST "smarttubedroid\src\main\java") -Recurse -File -Filter "*.java" | ForEach-Object {
-    $p=$_.FullName
-    try{$x=ReadT $p}catch{return}
-    if($x -match '\bGRID_COLUMNS\b' -and $x -notmatch '(?m)\b(?:private|protected|public|static|final|int|Integer|static final)+\s+GRID_COLUMNS\b'){
-        $insert='    private static final int GRID_COLUMNS = 1;'+$nl
+$uploads=Join-Path $ST "smarttubedroid\\src\\main\\java\\com\\liskovsoft\\smartyoutubetv2\\droid\\ui\\channeluploads\\ChannelUploadsActivity.java"
+if(Test-Path $uploads){
+    $x=ReadT $uploads
+    if($x -match '\\bGRID_COLUMNS\\b' -and $x -notmatch '(?m)\\bGRID_COLUMNS\\s*='){
         $idx=$x.IndexOf('{')
         if($idx -ge 0){
-            $n=$x.Insert($idx+1,$nl+$insert)
-            WriteT $p $n
+            $n=$x.Insert($idx+1,$nl+'    private static final int GRID_COLUMNS = 1;'+$nl)
+            WriteT $uploads $n
         }
     }
 }
