@@ -1,5 +1,5 @@
 # NM7 IPTV Mobile 1.10.26 - Windows local build
-# SCRIPT_VERSION: 2026-09-18-PATCH3
+# SCRIPT_VERSION: 2026-09-18-PATCH4
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 $Root = Split-Path -Parent $PSScriptRoot
@@ -96,16 +96,9 @@ Get-ChildItem $ST -Recurse -File | Where-Object {$_.FullName -notmatch "\\.git\\
 }
 $gridPatched=$gridPatched
 
-Get-ChildItem $ST -Recurse -File | Where-Object {
-    $_.FullName -notmatch "\\.git\\" -and $_.Extension -in @(".xml",".properties")
-} | ForEach-Object {
-    try{$x=ReadT $_.FullName}catch{return}
-    if($x -match "SmartTube"){
-        $n=$x.Replace("SmartTube","NM7 TV")
-        if($n -ne $x){WriteT $_.FullName $n}
-    }
-}
-
+# Do not globally rename the SmartTube token in XML/properties resources.
+# Android resource names must not contain spaces; branding changes are handled by
+# targeted string resources only, never by rewriting style/layout resource names.
 $play=Join-Path $ST "smarttubedroid\src\main\java\com\liskovsoft\smartyoutubetv2\droid\ui\playback\PlaybackActivity.java"
 if(-not(Test-Path $play)){Fail "PlaybackActivity.java not found."}
 $t=ReadT $play
@@ -119,7 +112,7 @@ if($t -notmatch "private void nm7PauseForHome\(\)") {
     if($t -notmatch "import android.content.Intent;") {
         $t=$t.Replace("import android.content.Context;",$("import android.content.Context;"+$nl+"import android.content.Intent;"))
     }
-    $helper="
+    $helper=@'
     @Override
     public void onUserLeaveHint() {
         super.onUserLeaveHint();
@@ -131,7 +124,7 @@ if($t -notmatch "private void nm7PauseForHome\(\)") {
 
     private boolean isNm7TabSwitch() {
         try {
-            String until = System.getProperty(""nm7.tab.switch.until"", ""0"");
+            String until = System.getProperty("nm7.tab.switch.until", "0");
             return Long.parseLong(until) > android.os.SystemClock.uptimeMillis();
         } catch (RuntimeException ignored) {
             return false;
@@ -153,7 +146,7 @@ if($t -notmatch "private void nm7PauseForHome\(\)") {
         try { mPlayer.setPlayWhenReady(true); } catch (RuntimeException ignored) { }
         nm7HomePaused = false;
     }
-"
+'@
     $last=$t.LastIndexOf("}")
     if($last -lt 0){Fail "PlaybackActivity closing brace not found."}
     $t=$t.Insert($last,$nl+$helper)
