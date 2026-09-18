@@ -162,6 +162,13 @@ if($stop.Success){
 } elseif($t -notmatch "!nm7HomePaused && !isNm7TabSwitch"){Fail "PlaybackActivity onStop release block not found."}
 WriteT $play $t
 
+$appJava=ReadT (Join-Path $Root "app\src\main\java\vn\phuong\iptvplayer\MobileNm7Application.java")
+$appUi=ReadT (Join-Path $Root "app\src\main\java\vn\phuong\iptvplayer\MobileIptvUi.java")
+$appManifest=ReadT (Join-Path $Root "app\src\main\AndroidManifest.xml")
+if($appJava -notmatch "replaceSmartTubeBranding|finishReally"){Fail "NM7 runtime fixes are missing from source."}
+if($appUi -notmatch "nm7_inline_player|repositionToolbar"){Fail "IPTV toolbar placement fix is missing from source."}
+if($appManifest -notmatch 'MainActivity.*launchMode="singleTask"'){Fail "MainActivity singleTask preservation fix is missing."}
+
 $ui=Join-Path $ST "exoplayer-amzn-2.10.6\library\ui"; $res=Join-Path $ui "src\main\res\layout"; $pv=Join-Path $ui "src\main\java\com\google\android\exoplayer2\ui\PlayerView.java"
 foreach($p in @((Join-Path $res "exo_player_view.xml"),(Join-Path $res "exo_simple_player_view.xml"),$pv)){if(-not(Test-Path $p)){Fail "Missing player source: $p"}}
 Copy-Item (Join-Path $res "exo_player_view.xml") (Join-Path $res "st_exo_player_view.xml") -Force
