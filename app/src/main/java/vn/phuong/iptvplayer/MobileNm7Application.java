@@ -40,7 +40,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
     private Activity iptvPlayerActivity;
     private Activity smartTubeBrowseActivity;
     private volatile boolean tabSwitchPending;
-    private final java.util.Map<Activity, android.window.OnBackInvokedCallback> smartTubeBackCallbacks = new java.util.HashMap<>();
+    private final java.util.Map<Activity, Object> smartTubeBackCallbacks = new java.util.HashMap<>();
 
     @Override public void onCreate() {
         super.onCreate();
@@ -313,23 +313,36 @@ public final class MobileNm7Application extends DroidApplication implements andr
     private void installSmartTubeBackHandling(Activity activity) {
         if (Build.VERSION.SDK_INT < 33) return;
         try {
-            android.window.OnBackInvokedCallback callback = () -> {
-                bringSmartTubeBrowseToFront();
-                try { activity.finish(); } catch (RuntimeException ignored) { }
-            };
-            activity.getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
-                    android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, callback);
+            Class<?> callbackType = Class.forName("android.window.OnBackInvokedCallback");
+            Object callback = java.lang.reflect.Proxy.newProxyInstance(
+                    callbackType.getClassLoader(), new Class<?>[]{callbackType},
+                    (proxy, method, args) -> {
+                        if ("onBackInvoked".equals(method.getName())) {
+                            bringSmartTubeBrowseToFront();
+                            try { activity.finish(); } catch (RuntimeException ignored) { }
+                        }
+                        return null;
+                    });
+            Method dispatcherGetter = Activity.class.getMethod("getOnBackInvokedDispatcher");
+            Object dispatcher = dispatcherGetter.invoke(activity);
+            Class<?> dispatcherType = Class.forName("android.window.OnBackInvokedDispatcher");
+            Method register = dispatcherType.getMethod("registerOnBackInvokedCallback", int.class, callbackType);
+            register.invoke(dispatcher, 0, callback);
             smartTubeBackCallbacks.put(activity, callback);
-        } catch (RuntimeException ignored) { }
+        } catch (ReflectiveOperationException | RuntimeException ignored) { }
     }
 
     @Override public void onActivitySaveInstanceState(Activity activity, Bundle state) { }
     @Override public void onActivityDestroyed(Activity activity) {
         if (Build.VERSION.SDK_INT >= 33) {
-            android.window.OnBackInvokedCallback callback = smartTubeBackCallbacks.remove(activity);
+            Object callback = smartTubeBackCallbacks.remove(activity);
             if (callback != null) {
-                try { activity.getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(callback); }
-                catch (RuntimeException ignored) { }
+                try {
+                    Object dispatcher = Activity.class.getMethod("getOnBackInvokedDispatcher").invoke(activity);
+                    Class<?> callbackType = Class.forName("android.window.OnBackInvokedCallback");
+                    Class<?> dispatcherType = Class.forName("android.window.OnBackInvokedDispatcher");
+                    dispatcherType.getMethod("unregisterOnBackInvokedCallback", callbackType).invoke(dispatcher, callback);
+                } catch (ReflectiveOperationException | RuntimeException ignored) { }
             }
         }
         if (activity == iptvPlayerActivity) iptvPlayerActivity = null;
