@@ -54,6 +54,12 @@ public final class HomeTabBar {
                 root.setPadding(root.getPaddingLeft(), root.getPaddingTop(), root.getPaddingRight(),
                         root.getPaddingBottom() + dp(activity, 64));
             }
+        } else if (activity instanceof PlayerActivity) {
+            View root = activity.findViewById(R.id.playerRoot);
+            if (root != null) {
+                root.setPadding(root.getPaddingLeft(), root.getPaddingTop(), root.getPaddingRight(),
+                        root.getPaddingBottom() + dp(activity, 64));
+            }
         }
     }
 
