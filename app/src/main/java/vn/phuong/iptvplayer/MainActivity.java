@@ -303,8 +303,11 @@ public final class MainActivity extends Activity {
                 }).setNegativeButton("Đóng",null).show();
     }
     private void showYouTubeReVancedTools(){
+        String bundleStatus = RevancedBundleStore.status(this);
+        String gmsStatus = RevancedBridge.isGmsCoreInstalled(this) ? "GmsCore: đã cài" : "GmsCore: chưa cài";
         new AlertDialog.Builder(this)
                 .setTitle("YouTube / ReVanced (thử nghiệm)")
+                .setMessage(bundleStatus + "\\n" + gmsStatus + "\\n\\nNM7 đang chuẩn bị pipeline tự patch YouTube. GmsCore vẫn là thành phần Android riêng về mặt package; không coi một APK nhúng là đã cài GmsCore.")
                 .setItems(new String[]{"Chọn APK YouTube để kiểm tra","Mở YouTube / ReVanced đã cài"},(d,w)->{
                     if(w==0){
                         Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT);
