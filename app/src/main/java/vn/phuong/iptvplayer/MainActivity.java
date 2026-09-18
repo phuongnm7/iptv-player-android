@@ -265,6 +265,7 @@ public final class MainActivity extends Activity {
         List<String> items=new ArrayList<>(java.util.Arrays.asList("Quản lý nguồn IPTV","Thêm hoặc mở URL/tệp","Tải lại playlist hiện tại","Lịch phát sóng (EPG)","Giao diện: "+modeLabel,"Đổi hình nền",urls,rows,fps,clock,playerSource));
         final int backgroundIndex;if(tv)backgroundIndex=-1;else{backgroundIndex=items.size();items.add(background);}
         final int recentIndex=items.size();items.add("Xóa lịch sử Gần đây");
+        final int youtubeIndex=items.size();items.add("YouTube / ReVanced");
         final int aboutIndex=items.size();items.add("Thông tin ứng dụng");
         new AlertDialog.Builder(this).setTitle("Tùy chọn ứng dụng")
                 .setItems(items.toArray(new String[0]),(dialog,which)->{
@@ -281,10 +282,11 @@ public final class MainActivity extends Activity {
                     if(which==10)AppPreferences.setShowPlayerSource(this,!AppPreferences.showPlayerSource(this));
                     if(which==backgroundIndex){boolean enabled=!AppPreferences.backgroundPlayback(this);AppPreferences.setBackgroundPlayback(this,enabled);if(!enabled)stopService(new Intent(this,BackgroundPlaybackService.class));if(enabled&&android.os.Build.VERSION.SDK_INT>=33)requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS},104);toast(enabled?"Đã bật phát nền":"Đã tắt phát nền");}
                     if(which==recentIndex){AppPreferences.clearRecent(this);if(activeSection==2)filter();toast("Đã xóa lịch sử");}
+                    if(which==youtubeIndex)openYouTubeReVanced();
                     if(which==aboutIndex)showAbout();
                 }).setNegativeButton("Đóng",null).show();
     }
-    private void chooseInterfaceMode(){
+    private void openYouTubeReVanced(){\n        final String packageName="com.google.android.youtube";\n        Intent launch=getPackageManager().getLaunchIntentForPackage(packageName);\n        if(launch!=null){\n            try{\n                launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);\n                startActivity(launch);\n                toast("Đã mở YouTube / ReVanced");\n                return;\n            }catch(Exception ignored){}\n        }\n        new AlertDialog.Builder(this)\n                .setTitle("YouTube / ReVanced chưa được cài")\n                .setMessage("NM7 không đóng gói lại APK YouTube. Khi YouTube/ReVanced được cài với package com.google.android.youtube, NM7 sẽ mở trực tiếp ứng dụng đó từ đây.")\n                .setPositiveButton("Đóng",null)\n                .show();\n    }\n    private void chooseInterfaceMode(){
         String[] labels={"Tự động theo thiết bị","Mobile — cảm ứng","TV — điều khiển D-pad"};
         String[] values={"auto","mobile","tv"};
         new AlertDialog.Builder(this).setTitle("Chọn giao diện")
