@@ -14,7 +14,10 @@ dependencyResolutionManagement {
         maven {
             name = "githubPackages"
             url = uri("https://maven.pkg.github.com/revanced/registry")
-            credentials(PasswordCredentials::class)
+            credentials {
+                username = System.getenv("GITHUB_ACTOR") ?: System.getenv("GITHUB_USERNAME") ?: ""
+                password = System.getenv("GITHUB_TOKEN") ?: ""
+            }
         }
     }
 }
