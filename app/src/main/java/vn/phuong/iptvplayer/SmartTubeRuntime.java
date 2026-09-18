@@ -28,10 +28,17 @@ public final class SmartTubeRuntime {
             try {
                 Class<?> tweaks = Class.forName(PREFIX + ".common.prefs.PlayerTweaksData");
                 Object data = tweaks.getMethod("instance", Context.class).invoke(null, context.getApplicationContext());
+
                 Field ipv4 = tweaks.getField("DNS_TYPE_IPV4");
-                Method setDns = tweaks.getMethod("setPreferredDnsType", int.class);
-                setDns.invoke(data, ipv4.getInt(null));
+                tweaks.getMethod("setPreferredDnsType", int.class).invoke(data, ipv4.getInt(null));
+
+                // Prefer SmartTube's fastest available player data source (Cronet when
+                // supported by the build) instead of the legacy/default HTTP path.
+                Field cronet = tweaks.getField("PLAYER_DATA_SOURCE_CRONET");
+                tweaks.getMethod("setPlayerDataSource", int.class).invoke(data, cronet.getInt(null));
             } catch (ReflectiveOperationException | RuntimeException ignored) { }
+
+            enableBackgroundPlayback(context);
 
             Class<?> mother = Class.forName(PREFIX + ".common.misc.MotherActivity");
             mother.getMethod("setTvDpiScalingEnabled", boolean.class).invoke(null, false);
@@ -57,6 +64,23 @@ public final class SmartTubeRuntime {
         } catch (ReflectiveOperationException | RuntimeException ignored) {
             initialized = false;
         }
+    }
+
+    /** Force SmartTube's Play-Behind mode and HOME shortcut so video/audio continues
+     * when NM7 is backgrounded or the screen is turned off. */
+    public static synchronized void enableBackgroundPlayback(Context context) {
+        try {
+            Context app = context.getApplicationContext();
+            Class<?> playerDataClass = Class.forName(PREFIX + ".common.prefs.PlayerData");
+            Object playerData = playerDataClass.getMethod("instance", Context.class).invoke(null, app);
+            Field playBehind = playerDataClass.getField("BACKGROUND_MODE_PLAY_BEHIND");
+            playerDataClass.getMethod("setBackgroundMode", int.class).invoke(playerData, playBehind.getInt(null));
+
+            Class<?> generalDataClass = Class.forName(PREFIX + ".common.prefs.GeneralData");
+            Object generalData = generalDataClass.getMethod("instance", Context.class).invoke(null, app);
+            Field home = generalDataClass.getField("BACKGROUND_PLAYBACK_SHORTCUT_HOME");
+            generalDataClass.getMethod("setBackgroundPlaybackShortcut", int.class).invoke(generalData, home.getInt(null));
+        } catch (ReflectiveOperationException | RuntimeException ignored) { }
     }
 
     private static void register(Class<?> vmClass, Object vm, String viewName, String activityPath, Class<?> parent) throws ReflectiveOperationException {
