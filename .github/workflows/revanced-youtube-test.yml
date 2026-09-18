@@ -81,7 +81,7 @@ jobs:
         run: |
           set -euo pipefail
           java -jar revanced-cli.jar patch \
-            -bp patches.rvp \
+            -p patches.rvp \
             -e "GmsCore support" \
             -e "Spoof video streams" \
             --rip-lib=x86 \
