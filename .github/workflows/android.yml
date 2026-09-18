@@ -64,20 +64,20 @@ jobs:
       - name: Prepare embedded YouTube ReVanced 20.40.45
         run: |
           set -euo pipefail
-          curl --fail --location --retry 3 --retry-delay 2 \\
-            https://github.com/ReVanced/revanced-cli/releases/download/v6.0.0/revanced-cli-6.0.0-all.jar \\
+          curl --fail --location --retry 3 --retry-delay 2 \
+            https://github.com/ReVanced/revanced-cli/releases/download/v6.0.0/revanced-cli-6.0.0-all.jar \
             -o revanced-cli.jar
-          curl --fail --location --retry 3 -A "Mozilla/5.0" \\
-            "https://drive.usercontent.google.com/download?id=1JwOfraPKaOKvDfdhuWwNkf2REL7D6Ngz&export=download&confirm=t" \\
+          curl --fail --location --retry 3 -A "Mozilla/5.0" \
+            "https://drive.usercontent.google.com/download?id=1JwOfraPKaOKvDfdhuWwNkf2REL7D6Ngz&export=download&confirm=t" \
             -o youtube-20.40.45.apk
           test -s youtube-20.40.45.apk
-          java -jar revanced-cli.jar patch \\
-            -p app/src/main/assets/revanced/patches.rvp \\
-            -b \\
-            -e "GmsCore support" \\
-            -e "Spoof video streams" \\
-            --purge \\
-            -o youtube-20.40.45-revanced.apk \\
+          java -jar revanced-cli.jar patch \
+            -p app/src/main/assets/revanced/patches.rvp \
+            -b \
+            -e "GmsCore support" \
+            -e "Spoof video streams" \
+            --purge \
+            -o youtube-20.40.45-revanced.apk \
             youtube-20.40.45.apk
           test -s youtube-20.40.45-revanced.apk
           mkdir -p app/src/main/assets/revanced
