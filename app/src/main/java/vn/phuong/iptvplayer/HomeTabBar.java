@@ -66,6 +66,7 @@ public final class HomeTabBar {
     private static void openIptv(Activity activity) {
         System.setProperty("nm7.youtube.background", "0");
         SharedPlaybackSession.setYoutubeBackground(activity, false);
+        PlayerActivity.cancelYoutubeHandoff();
         SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_IPTV);
         MobileNm7Application.markTabSwitch();
         Intent intent;
@@ -82,8 +83,8 @@ public final class HomeTabBar {
         System.setProperty("nm7.youtube.background", "0");
         SharedPlaybackSession.setYoutubeBackground(activity, false);
         SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_YOUTUBE);
-        PlayerActivity.prepareForYoutubeHandoff(activity);
         MobileNm7Application.markTabSwitch();
+        PlayerActivity.prepareForYoutubeHandoff(activity);
         // Do NOT finish PlayerActivity here. Selecting the YouTube tab is only navigation;
         // IPTV must continue playing until SmartTube PlaybackActivity actually starts a video.
         // MobileNm7Application pauses/releases IPTV at that exact playback-start event.
