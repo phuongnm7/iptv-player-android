@@ -1,3 +1,34 @@
+# MOBILE 1.10.37 — SOURCE FIX, RUNTIME NOT YET VERIFIED — 2026-09-19
+
+User confirms both 1.10.35 and 1.10.36 still fail all reported playback transitions. Do not mark either stable, and do not ask for the test video again.
+
+## Verified source causes
+
+- Actual main-screen IPTV owner is MobileInlinePlayerProviderV2. Its onActivityPaused paused IPTV on opening Browse; previous handoff only addressed PlayerActivity.
+- Windows patch used non-existent vn.phuongnm7.iptvplayer bridge names and swallowed exceptions.
+- 1.10.36 CI patch skipped an already-existing onUserLeaveHint, retained unconditional initializePlayer onStart, and supplied no mini-player surface in Browse.
+- Browse singleTask conflicted with retaining the PlaybackActivity above it.
+- Windows and CI used different patches and unpinned phone sources.
+
+## Changes in this branch
+
+- Pin phone fork to 4825d6aa8b6f1d3181927f9e96c7d89cab13d510, no upstream history merge.
+- Both builds use scripts/patch-mobile-v37.py and the same Java fragments.
+- Inline IPTV continues during Browse. Ready + playWhenReady hook releases both IPTV owners and cancels stale retries.
+- Explicit IPTV selection closes the existing YouTube session directly, without global media pause keys.
+- Preserve SmartTube player across Home/lock/mini; initialize only when null. Existing MediaSession stays attached to that player.
+- Back callback for API 33+ and legacy Back attach same player to Browse TextureView; click restores it without autoplaying user-paused content.
+- Browse and Playback use singleTop plus reorder, not singleTask.
+- Background service bridge uses actual package; notification returns to YouTube; CPU wake lock is released with service.
+- Version 1.10.37 / code 55. Mobile only; ARM64 and ARMv7 only. No changes to TV project.
+
+## Verification and remaining acceptance
+
+20 structural checks passed locally on generated phone Java. This is not device/runtime verification. CI must compile and package this exact source before distributing APKs. Generated-source hashes and Java evidence are uploaded separately. No Android device/emulator is available in this workspace; do not claim all runtime bugs are resolved until the 8 requested playback/navigation transitions pass.
+
+---
+
+
 # CẬP NHẬT TIẾN ĐỘ — MOBILE 1.10.36 — 2026-09-19 11:00 +07:00
 
 ## Trạng thái mới nhất

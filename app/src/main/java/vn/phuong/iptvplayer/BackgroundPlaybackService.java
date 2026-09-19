@@ -18,6 +18,7 @@ public final class BackgroundPlaybackService extends Service {
     static final String EXTRA_YOUTUBE = "youtube";
     private static final String CHANNEL_ID = "background_playback";
     private static final int NOTIFICATION_ID = 180;
+    private android.os.PowerManager.WakeLock youtubeWakeLock;
 
     @Override public void onCreate() {
         super.onCreate();
@@ -33,6 +34,10 @@ public final class BackgroundPlaybackService extends Service {
         boolean returnMain = intent != null && intent.getBooleanExtra(EXTRA_RETURN_MAIN, false);
         boolean youtube = intent != null && intent.getBooleanExtra(EXTRA_YOUTUBE, false);
         Intent launch = new Intent(this, returnMain ? MainActivity.class : PlayerActivity.class);
+        if (youtube) {
+            launch = new Intent().setClassName(this,
+                    "com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity");
+        }
         launch.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
         PendingIntent content = PendingIntent.getActivity(this, returnMain ? 1 : 0, launch,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
@@ -41,9 +46,27 @@ public final class BackgroundPlaybackService extends Service {
                 .setContentText(name == null || name.isEmpty() ? "Chạm để quay lại ứng dụng" : name)
                 .setContentIntent(content).setOngoing(true).setCategory(Notification.CATEGORY_SERVICE).build();
         startForeground(NOTIFICATION_ID, notification);
+        if (youtube && youtubeWakeLock == null) {
+            android.os.PowerManager power = (android.os.PowerManager) getSystemService(POWER_SERVICE);
+            if (power != null) {
+                youtubeWakeLock = power.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "NM7:YouTubePlayback");
+                youtubeWakeLock.setReferenceCounted(false);
+                youtubeWakeLock.acquire();
+            }
+        } else if (!youtube) {
+            releaseYoutubeWakeLock();
+        }
         return START_NOT_STICKY;
     }
 
     @Override public void onTaskRemoved(Intent rootIntent) { /* Keep playback service alive; explicit stop is used when playback ends. */ }
     @Override public IBinder onBind(Intent intent) { return null; }
+    private void releaseYoutubeWakeLock() {
+        if (youtubeWakeLock != null && youtubeWakeLock.isHeld()) youtubeWakeLock.release();
+        youtubeWakeLock = null;
+    }
+    @Override public void onDestroy() {
+        releaseYoutubeWakeLock();
+        super.onDestroy();
+    }
 }

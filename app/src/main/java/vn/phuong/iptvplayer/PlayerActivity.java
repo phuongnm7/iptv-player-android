@@ -343,6 +343,17 @@ public final class PlayerActivity extends Activity {
         return "1".equals(System.getProperty(YOUTUBE_HANDOFF_PROPERTY, "0"));
     }
 
+    public static void releaseForYoutube() {
+        PlayerActivity active = currentInstance;
+        if (active == null) return;
+        active.rememberPosition();
+        active.recoveryHandler.removeCallbacksAndMessages(null);
+        active.backgroundPlaybackActive = false;
+        active.releasePlayer();
+        cancelYoutubeHandoff();
+        active.stopService(new android.content.Intent(active, BackgroundPlaybackService.class));
+    }
+
     public static void cancelYoutubeHandoff(){
         System.setProperty(YOUTUBE_HANDOFF_PROPERTY, "0");
     }

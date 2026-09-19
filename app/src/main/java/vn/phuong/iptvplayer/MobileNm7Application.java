@@ -102,7 +102,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
             // Creating/resuming PlayerActivity while YouTube owns the session must not
             // send a global MEDIA_PAUSE event to SmartTube.
             if (SharedPlaybackSession.TAB_IPTV.equals(SharedPlaybackSession.tab(activity))) {
-                pauseExternalMedia(activity);
+                stopYoutubeForIptv();
                 activity.stopService(new Intent(activity, BackgroundPlaybackService.class));
             }
         } else if (SMARTTUBE_BROWSE.equals(name)) {
@@ -120,10 +120,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
 
     @Override public void onActivityStopped(Activity activity) {
         if (activity == iptvPlayerActivity && activity.isFinishing()) iptvPlayerActivity = null;
-        if (SMARTTUBE_PLAYBACK.equals(activity.getClass().getName()) && activity.isFinishing()) {
-            activity.stopService(new Intent(activity, BackgroundPlaybackService.class));
-            bringSmartTubeBrowseToFront();
-        }
+        // YouTube explicit-close owns its service cleanup before starting IPTV.
         if (startedActivities > 0 && --startedActivities == 0) releaseWifiPerformanceLock();
     }
 
@@ -241,9 +238,9 @@ public final class MobileNm7Application extends DroidApplication implements andr
     // This closes the ownership race where SmartTube onStart could initialize its decoder
     // before Application.onActivityStarted() had released IPTV.
     public static void pauseIptvForYoutube() {
-        if (instance != null) {
-            instance.pauseIptvPlayer();
-        }
+        MobileInlinePlayerProviderV2.releaseForYoutube();
+        PlayerActivity.releaseForYoutube();
+        android.util.Log.i("NM7Playback", "YouTube READY: released inline and Activity IPTV owners");
     }
 
     private void pauseIptvPlayer() {
@@ -269,6 +266,14 @@ public final class MobileNm7Application extends DroidApplication implements andr
             PlayerActivity.cancelYoutubeHandoff();
             activity.stopService(new android.content.Intent(activity, BackgroundPlaybackService.class));
         } catch (ReflectiveOperationException | RuntimeException ignored) { }
+    }
+
+    public static void stopYoutubeForIptv() {
+        try {
+            Class.forName(SMARTTUBE_PLAYBACK).getMethod("stopForNm7Iptv").invoke(null);
+        } catch (ReflectiveOperationException | RuntimeException error) {
+            android.util.Log.e("NM7Playback", "YouTube handoff failed", error);
+        }
     }
 
     /** Pause the currently active external media session before a new IPTV channel starts. */

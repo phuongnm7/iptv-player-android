@@ -133,6 +133,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
     };
 
     @Override public boolean onCreate() {
+        instance = this;
         if (getContext() != null) {
             ((Application) getContext().getApplicationContext()).registerActivityLifecycleCallbacks(this);
         }
@@ -141,12 +142,17 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
 
     @Override public void onActivityResumed(Activity activity) {
         if (!(activity instanceof MainActivity)) return;
+        if (SharedPlaybackSession.TAB_YOUTUBE.equals(SharedPlaybackSession.tab(activity))) return;
         MainActivity main = (MainActivity) activity;
         if (AppPreferences.isTvInterface(main)) {
             if (currentActivity == main) detach();
             return;
         }
         if (currentActivity != main || panel == null || panel.getParent() == null) attach(main);
+        if (resumeAfterYoutube && currentChannel != null) {
+            resumeAfterYoutube = false;
+            playInline(currentChannel);
+        }
         stopBackgroundService(main);
         backgroundActive = false;
         if (player != null) {
@@ -415,6 +421,8 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
 
     private void playInline(Channel channel) {
         if (currentActivity == null || playerView == null) return;
+        MobileNm7Application.stopYoutubeForIptv();
+        SharedPlaybackSession.setTab(currentActivity, SharedPlaybackSession.TAB_IPTV);
         int generation = ++playGeneration;
         recoveryAttempts = 0;
         resumeAfterLifecyclePause = false;
@@ -1043,6 +1051,16 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
     @Override public void onActivityPaused(Activity a) {
         if (a != currentActivity || player == null) return;
         boolean wantedPlayback = player.getPlayWhenReady();
+        if (SharedPlaybackSession.TAB_YOUTUBE.equals(SharedPlaybackSession.tab(a))) {
+            // Browse is navigation, not a transfer of playback ownership.
+            backgroundActive = wantedPlayback;
+            resumeAfterLifecyclePause = false;
+            if (wantedPlayback) {
+                player.setWakeMode(C.WAKE_MODE_NETWORK);
+                startBackgroundService(a);
+            }
+            return;
+        }
         if (AppPreferences.backgroundPlayback(a) && wantedPlayback && currentChannel != null
                 && panel != null && panel.getVisibility() == View.VISIBLE) {
             backgroundActive = true;
@@ -1058,6 +1076,23 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         }
     }
     @Override public void onActivityStopped(Activity a) { }
+    private static MobileInlinePlayerProviderV2 instance;
+    private boolean resumeAfterYoutube;
+
+    public static boolean hasSession() {
+        return instance != null && instance.currentActivity != null && instance.currentChannel != null;
+    }
+
+    public static void releaseForYoutube() {
+        MobileInlinePlayerProviderV2 owner = instance;
+        if (owner == null) return;
+        if (owner.player != null) owner.resumeAfterYoutube = owner.player.getPlayWhenReady() && !owner.userPaused;
+        ++owner.playGeneration; // Invalidate pending DRM/retry callbacks before release.
+        owner.resumeAfterLifecyclePause = false;
+        owner.backgroundActive = false;
+        owner.releasePlayer();
+        if (owner.currentActivity != null) owner.stopBackgroundService(owner.currentActivity);
+    }
     @Override public void onActivitySaveInstanceState(Activity a, Bundle b) { }
 
     @Override public Cursor query(Uri u, String[] p, String s, String[] a, String sort) { return null; }

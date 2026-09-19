@@ -64,13 +64,14 @@ public final class HomeTabBar {
     }
 
     private static void openIptv(Activity activity) {
+        MobileNm7Application.stopYoutubeForIptv();
         System.setProperty("nm7.youtube.background", "0");
         SharedPlaybackSession.setYoutubeBackground(activity, false);
         PlayerActivity.cancelYoutubeHandoff();
         SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_IPTV);
         MobileNm7Application.markTabSwitch();
         Intent intent;
-        if (MobileNm7Application.hasIptvPlayer() || SharedPlaybackSession.loadIptv(activity) != null) {
+        if (!MobileInlinePlayerProviderV2.hasSession() && (MobileNm7Application.hasIptvPlayer() || SharedPlaybackSession.loadIptv(activity) != null)) {
             intent = new Intent(activity, PlayerActivity.class);
         } else {
             intent = new Intent(activity, MainActivity.class);
