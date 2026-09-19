@@ -1,0 +1,16 @@
+{
+  "provider": "TV360",
+  "updated": "2026-09-19",
+  "channels": [
+    {"name":"VTV1 HD","tv360ChannelId":"2","pageUrl":"https://tv360.vn/tv/vtv1-hd?ch=2","status":"verified"},
+    {"name":"VTV2 HD","tv360ChannelId":"3","pageUrl":"https://tv360.vn/tv/vtv2-hd?ch=3","status":"catalog"},
+    {"name":"VTV3 HD","tv360ChannelId":"4","pageUrl":"https://tv360.vn/tv/vtv3-hd?ch=4","status":"catalog"},
+    {"name":"VTV4 HD","tv360ChannelId":"5","pageUrl":"https://tv360.vn/tv/vtv4-hd?ch=5","status":"catalog"},
+    {"name":"VTV5 HD","tv360ChannelId":"6","pageUrl":"https://tv360.vn/tv/vtv5-hd?ch=6","status":"catalog"},
+    {"name":"VTV6 HD","tv360ChannelId":"10043","pageUrl":"https://tv360.vn/tv/vtv6-hd?ch=10043","status":"verified"},
+    {"name":"VTV7 HD","tv360ChannelId":"58","pageUrl":"https://tv360.vn/tv/vtv7-hd?ch=58","status":"catalog"},
+    {"name":"VTV8 HD","tv360ChannelId":"59","pageUrl":"https://tv360.vn/tv/vtv8-hd?ch=59","status":"catalog"},
+    {"name":"VTV9 HD","tv360ChannelId":"60","pageUrl":"https://tv360.vn/tv/vtv9-hd?ch=60","status":"catalog"},
+    {"name":"VTV10","tv360ChannelId":null,"pageUrl":null,"status":"unverified"}
+  ]
+}
