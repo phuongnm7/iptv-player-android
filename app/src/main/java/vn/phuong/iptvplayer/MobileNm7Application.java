@@ -268,6 +268,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
             Method release = PlayerActivity.class.getDeclaredMethod("releasePlayer");
             release.setAccessible(true);
             release.invoke(activity);
+            PlayerActivity.cancelYoutubeHandoff();
             activity.stopService(new android.content.Intent(activity, BackgroundPlaybackService.class));
         } catch (ReflectiveOperationException | RuntimeException ignored) { }
     }
