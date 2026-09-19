@@ -1,3 +1,19 @@
+# HOTFIX 1.10.34 — 2026-09-19 — SỬA LẠI LIFECYCLE SAU KHI 1.10.33 VẪN LỖI
+
+1. **IPTV → YouTube:** `PlayerActivity.onStart()` không được tự `startPlayer()` khi tab đang là YouTube/handoff. Trước đây Activity IPTV có thể tự dựng lại ExoPlayer trong lúc YouTube đang ở Browse, làm transition sai trạng thái.
+2. **Không pause YouTube nhầm khi IPTV Activity xuất hiện:** `MobileNm7Application.onActivityStarted(PlayerActivity)` giờ chỉ gửi MEDIA_PAUSE và dừng service khi tab thực sự là IPTV. Việc tạo/resume PlayerActivity trong ngữ cảnh YouTube không còn cướp ownership của YouTube.
+3. **YouTube HOME:** SmartTube `onResume()` giờ nhận biết lần quay lại từ HOME, xóa marker background, phục hồi `BACKGROUND_MODE_DEFAULT`, nhưng vẫn dùng player hiện có. `onPause()` cũng có đường dự phòng khởi động media foreground service nếu `onUserLeaveHint()` không phải callback duy nhất trên thiết bị.
+4. **BACK:** không tiếp tục dựa vào `Activity.onBackPressed()` deprecated. SmartTube phone `PlaybackActivity` được patch để đăng ký `OnBackInvokedCallback` ở `PRIORITY_DEFAULT`, rồi gọi đúng handler mini-player. Manifest không còn opt-out `enableOnBackInvokedCallback=false`.
+5. **Version:** Mobile 1.10.34 / versionCode 52 / build script PATCH19.
+
+Lý do kỹ thuật: Android 13+ dùng `OnBackInvokedDispatcher`, và Android 16 target API 36 không còn dispatch `onBackPressed()` mặc định. Android docs khuyến nghị callback mới. citeturn0search0turn5search0
+
+**Không thay đổi kiến trúc TV. Bản này vẫn Mobile-only.**
+
+**Chưa runtime-verified.** Phải build Windows và test máy thật trước khi kết luận PASS.
+
+---
+
 # HOTFIX 1.10.33 — 2026-09-19 — PHÂN TÍCH VIDEO MÁY THẬT + SỬA 3 ĐIỂM LIFECYCLE
 
 ## Phân tích trực tiếp video người dùng gửi
