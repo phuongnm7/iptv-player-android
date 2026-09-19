@@ -328,9 +328,10 @@ $backNew=@'
 
         mIsBackPressed = true;
 
-        // NM7 Mobile: first BACK collapses the video into Browse instead of finishing
-        // PlaybackActivity. The same ExoPlayer instance stays alive and Browse gets a
-        // TextureView output, so this is a real in-app mini-player.
+        // NM7 Mobile: use SmartTube's own finish()/parent-view path. With skipPip()
+        // forced false and the engine marked as background, SmartTube brings Browse to
+        // the front while keeping this PlaybackActivity/player alive. BrowseActivity then
+        // attaches the live player surface to the NM7 mini-player.
         if (mPlayer != null && !isFinishing() && !isDestroyed()) {
             sMiniPlayerActive = true;
             System.setProperty("nm7.youtube.background", "1");
@@ -339,17 +340,8 @@ $backNew=@'
             } catch (RuntimeException ignored) {
             }
             blockEngine(true);
-            try {
-                Intent intent = new Intent(this, Class.forName("com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity"));
-                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NO_ANIMATION);
-                startActivity(intent);
-                overridePendingTransition(0, 0);
-                return;
-            } catch (ReflectiveOperationException | RuntimeException ignored) {
-                sMiniPlayerActive = false;
-                System.setProperty("nm7.youtube.background", "0");
-                blockEngine(false);
-            }
+            finish();
+            return;
         }
 
         super.onBackPressed();
@@ -376,6 +368,7 @@ $helper=@'
         try {
             mPlayerView.setPlayer(null);
             mPlayer.setVideoTextureView(miniView);
+            mPlayer.setPlayWhenReady(true);
             miniView.setOnClickListener(v -> restoreFromMiniPlayer());
         } catch (RuntimeException ignored) {
         }
@@ -394,6 +387,7 @@ $helper=@'
         }
         blockEngine(false);
         try {
+            mPlayer.setVideoTextureView(null);
             mPlayerView.setPlayer(null);
             mPlayerView.setPlayer(mPlayer);
             mPlayer.setPlayWhenReady(true);
