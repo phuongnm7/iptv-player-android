@@ -1,5 +1,5 @@
 # NM7 IPTV Mobile 1.10.26 - Windows local build
-# SCRIPT_VERSION: 2026-09-19-PATCH17
+# SCRIPT_VERSION: 2026-09-19-PATCH19
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 $Root = Split-Path -Parent $PSScriptRoot
@@ -416,7 +416,7 @@ $helper=@'
     }
 
 '@
-$needle = '    @Override' + [Environment]::NewLine + '    public void onBackPressed()'
+$needle = '    private void handleNm7Back()'
 if($playText.Contains($needle)){$playText=$playText.Replace($needle,$helper+$needle)}else{Fail "Could not insert PlaybackActivity mini-player helper methods."}
 
 $destroyOld=@'
