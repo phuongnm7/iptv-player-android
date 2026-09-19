@@ -140,11 +140,19 @@ playback.write_text(t)
 print("SmartTube Mobile lifecycle patch completed")
 
 # Keep this phone fork compatible with the current SmartTube controller interface.
-# Remove stale override annotations from methods that are present in this fork
-# but are no longer declared by its inherited controller interface.
+# Remove stale @Override annotations from the exact pitch method declarations.
 playback_text = playback.read_text()
-playback_text = re.sub(r'@Override\s*\n\s*public\s+void\s+setPitch\s*\(', 'public void setPitch(', playback_text, count=1)
-playback_text = re.sub(r'@Override\s*\n\s*public\s+float\s+getPitch\s*\(', 'public float getPitch(', playback_text, count=1)
+for signature in ("public void setPitch(", "public float getPitch("):
+    pos = playback_text.find(signature)
+    if pos < 0:
+        raise SystemExit("Pitch method not found: " + signature)
+    line_start = playback_text.rfind("\\n", 0, pos) + 1
+    prev_end = line_start - 1
+    while prev_end >= 0 and playback_text[prev_end] in " \\t\\r\\n":
+        prev_end -= 1
+    prev_start = playback_text.rfind("\\n", 0, prev_end) + 1
+    if playback_text[prev_start:prev_end + 1].strip() == "@Override":
+        playback_text = playback_text[:prev_start] + playback_text[line_start:]
 playback.write_text(playback_text)
 
 # Keep this fork buildable when section_is_empty is absent from the phone resource table.
