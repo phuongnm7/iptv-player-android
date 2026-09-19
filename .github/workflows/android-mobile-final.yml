@@ -6,6 +6,7 @@ name: NM7 Mobile Final Build
     paths:
       - "app/**"
       - "smarttube/**"
+      - "scripts/**"
       - ".github/workflows/android-mobile-final.yml"
       - "gradle/**"
       - "*.gradle.kts"
