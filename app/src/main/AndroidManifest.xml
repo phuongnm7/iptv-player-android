@@ -23,7 +23,7 @@
         <!-- SmartTube phone UI only. -->
         <activity android:name="com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity" android:launchMode="singleTask" android:theme="@style/Theme.SmartTubeDroid" />
         <activity android:name="com.liskovsoft.smartyoutubetv2.droid.ui.splash.SplashActivity" android:theme="@style/Theme.SmartTubeDroid.Splash" />
-        <activity android:name="com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity" android:theme="@style/Theme.SmartTubeDroid.Player" android:enableOnBackInvokedCallback="false" />
+        <activity android:name="com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity" android:theme="@style/Theme.SmartTubeDroid.Player" />
         <activity android:name="com.liskovsoft.smartyoutubetv2.droid.ui.dialogs.AppDialogActivity" android:theme="@style/Theme.SmartTubeDroid.Dialog" />
         <activity android:name="com.liskovsoft.smartyoutubetv2.droid.ui.search.SearchActivity" android:theme="@style/Theme.SmartTubeDroid" />
         <activity android:name="com.liskovsoft.smartyoutubetv2.droid.ui.channel.ChannelActivity" android:theme="@style/Theme.SmartTubeDroid" />
