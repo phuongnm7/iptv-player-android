@@ -37,12 +37,12 @@ jobs:
           git -C third_party/SmartTube-droid config user.email "129863656+phuongnm7@users.noreply.github.com"
           cd third_party/SmartTube-droid
           set +e
-          git merge --no-edit --allow-unrelated-histories -X theirs FETCH_HEAD
+          git merge --no-edit --allow-unrelated-histories -X ours FETCH_HEAD
           merge_status=$?
           set -e
           if [ "$merge_status" -ne 0 ]; then
-            echo "Merge reported conflicts; resolving regular files from upstream 32.47s."
-            git checkout --theirs -- . || true
+            echo "Merge reported conflicts; preserving phone-fork files and using upstream 32.47s where non-conflicting."
+            git checkout --ours -- . || true
             for sub in MediaServiceCore SharedModules; do
               upstream_sha="$(git ls-tree FETCH_HEAD "$sub" | awk '{print $3}')"
               test -n "$upstream_sha"
@@ -60,7 +60,7 @@ jobs:
           fi
           cd ../..
           git -C third_party/SmartTube-droid submodule update --init --force --recursive
-          echo "SmartTube phone UI base: systematiq-one/master"
+          echo "SmartTube phone UI base: systematiq-one/master (ours wins on merge conflicts)"
           echo "Merged upstream SmartTube stable: 32.47s (51e87ab4ad57ae672fc24bd216427d3e81bbddb7)"
 
       - name: Patch SmartTube for AGP 8.13
