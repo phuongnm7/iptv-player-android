@@ -50,7 +50,7 @@
         } catch (ReflectiveOperationException | RuntimeException error) {
             android.util.Log.e("NM7Playback", "Background session bridge failed", error);
         }
-        if (enabled) {
+        if (enabled && mNm7OwnsPlayback) {
             try {
                 Intent service = new Intent().setClassName(this, "vn.phuong.iptvplayer.BackgroundPlaybackService");
                 service.putExtra("youtube", true);

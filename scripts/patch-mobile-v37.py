@@ -81,10 +81,10 @@ t = replace(t, '            public void onPlayerStateChanged(boolean playWhenRea
                         android.util.Log.e("NM7Playback", "IPTV ownership handoff failed", error);
                     }
                 }
-                if (!playWhenReady) {
+                if (mNm7OwnsPlayback && (!playWhenReady || playbackState == Player.STATE_ENDED)) {
                     stopService(new Intent().setClassName(PlaybackActivity.this,
                             "vn.phuong.iptvplayer.BackgroundPlaybackService"));
-                } else if (isEngineBlocked() && !mNm7Stopped) {
+                } else if (mNm7OwnsPlayback && isEngineBlocked() && !mNm7Stopped) {
                     nm7SetBackground(true);
                 }''')
 t = re.sub(r'    @Override\n(    public (?:float getPitch|void setPitch)\()', r'\1', t)
