@@ -64,14 +64,21 @@ public final class HomeTabBar {
     }
 
     private static void openIptv(Activity activity) {
-        MobileNm7Application.stopYoutubeForIptv();
-        System.setProperty("nm7.youtube.background", "0");
-        SharedPlaybackSession.setYoutubeBackground(activity, false);
-        PlayerActivity.cancelYoutubeHandoff();
+        // Changing tabs is not the same as selecting an IPTV channel. Restore IPTV only
+        // when the user had a channel playing before YouTube took ownership. Otherwise
+        // keep the YouTube mini-player alive above the IPTV channel list.
+        boolean resumeIptv = MobileInlinePlayerProviderV2.shouldResumeIptvAfterYoutube();
+        if (resumeIptv) {
+            MobileNm7Application.stopYoutubeForIptv();
+            System.setProperty("nm7.youtube.background", "0");
+            SharedPlaybackSession.setYoutubeBackground(activity, false);
+            PlayerActivity.cancelYoutubeHandoff();
+        }
         SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_IPTV);
         MobileNm7Application.markTabSwitch();
         Intent intent;
-        if (!MobileInlinePlayerProviderV2.hasSession() && (MobileNm7Application.hasIptvPlayer() || SharedPlaybackSession.loadIptv(activity) != null)) {
+        if (resumeIptv && !MobileInlinePlayerProviderV2.hasSession()
+                && (MobileNm7Application.hasIptvPlayer() || SharedPlaybackSession.loadIptv(activity) != null)) {
             intent = new Intent(activity, PlayerActivity.class);
         } else {
             intent = new Intent(activity, MainActivity.class);
