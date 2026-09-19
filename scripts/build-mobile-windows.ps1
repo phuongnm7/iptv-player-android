@@ -1,5 +1,5 @@
 # NM7 IPTV Mobile 1.10.26 - Windows local build
-# SCRIPT_VERSION: 2026-09-19-PATCH20
+# SCRIPT_VERSION: 2026-09-19-PATCH21
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 $Root = Split-Path -Parent $PSScriptRoot
@@ -152,8 +152,6 @@ $miniMethods=@'
         root.addView(mNm7MiniPlayer, lp);
 
         mNm7MiniPlayer.setOnClickListener(v -> {
-            com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity active =
-                    com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity.getActiveInstance();
             if (active != null) {
                 active.restoreFromMiniPlayer();
             }
