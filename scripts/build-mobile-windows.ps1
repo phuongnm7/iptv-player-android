@@ -352,6 +352,11 @@ $backNew=@'
 
         super.onBackPressed();
     }
+
+    @Override
+    public void onBackPressed() {
+        handleNm7Back();
+    }
 '@
 if($playText.Contains($backOld)){$playText=$playText.Replace($backOld,$backNew)}else{Fail "PlaybackActivity onBackPressed shape changed; refusing unsafe mini-player patch."}
 
