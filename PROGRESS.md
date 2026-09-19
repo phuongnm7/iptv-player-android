@@ -1,3 +1,84 @@
+# HOTFIX 1.10.30 — 2026-09-19 — XỬ LÝ LỖI THỰC TẾ TỪ VIDEO 1.10.29
+
+## Phát hiện từ video máy thật mới nhất
+
+Video người dùng gửi: video_2026-09-19_08-04-08.mp4, dài khoảng 80 giây.
+
+Quan sát chuỗi hình trong video:
+- YouTube Browse mở được và video YouTube bắt đầu phát.
+- Khi rời YouTube về Home/ra khỏi ứng dụng, trạng thái phát không được giữ ổn định.
+- Khi quay lại, player YouTube có trạng thái spinner/loading thay vì tiếp tục ngay trạng thái video đang phát.
+- Không có mini-player đúng yêu cầu khi quay lại Browse.
+- Vì vậy 1.10.29 KHÔNG được coi là đạt yêu cầu runtime.
+
+## Nguyên nhân mã đã xác định trong 1.10.29
+
+### 1. Mini-player chỉ được cài trong BrowseActivity.onCreate()
+
+1.10.29 gọi installNm7MiniPlayer() trong onCreate(). Nhưng HomeTabBar/PlaybackActivity đưa BrowseActivity lên foreground bằng REORDER_TO_FRONT. Nếu BrowseActivity đã tồn tại, onCreate() không chạy lại, nên mini-player không được tạo khi BACK.
+
+**Sửa 1.10.30:**
+- Chuyển hook mini-player sang BrowseActivity.onResume().
+- Giữ onCreate() chỉ khởi tạo Browse.
+- Mỗi lần Browse được đưa lên foreground, onResume() kiểm tra PlaybackActivity.isMiniPlayerActive() và attach TextureView nếu cần.
+
+### 2. HOME/background chỉ dựa vào onUserLeaveHint()
+
+1.10.29 phụ thuộc quá nhiều vào onUserLeaveHint() để đặt:
+- BACKGROUND_MODE_SOUND
+- nm7.youtube.background=1
+- SharedPlaybackSession TAB_YOUTUBE/background
+- blockEngine(true)
+
+Trên thiết bị thực tế, đường lifecycle này không đủ tin cậy để bảo đảm player không bị release trước khi onStop().
+
+**Sửa 1.10.30:**
+- Thêm fallback chính xác vào PlaybackActivity.onPause().
+- Chỉ coi đây là HOME/background khi:
+  - không phải BACK: !mIsBackPressed
+  - Activity chưa finishing
+  - ViewManager không có view transition pending
+  - mPlayer != null và đang playWhenReady.
+- Khi thỏa điều kiện, lưu tab YouTube, đặt background sound, đặt nm7.youtube.background=1 và block engine trước khi Activity tiếp tục pause.
+- onStop() tiếp tục không gọi maybeReleasePlayer() khi nm7.youtube.background=1.
+
+### 3. onResume() của 1.10.29 tự xóa trạng thái background
+
+Patch 1.10.29 từng thêm:
+- nm7.youtube.background=0
+- BACKGROUND_MODE_DEFAULT
+ngay trong onResume().
+
+Điều này có thể xóa trạng thái background trong lúc Android đang khôi phục task/player.
+
+**Sửa 1.10.30:**
+- Bỏ việc ghi đè trạng thái background trong onResume().
+- onResume() chỉ khôi phục player nếu thực sự mPlayer == null và mở lại UI engine; không xóa marker HOME.
+
+## Các thay đổi 1.10.30
+
+- versionCode: 48.
+- versionName: 1.10.30.
+- Build script commit hotfix: e8d6e5abea188277cd63c06cfab5a880c370d40c.
+- Version bump commit: 9f820dec0e84316d73e82e836f76101b89560888.
+- Đây là hotfix tập trung vào 2 lỗi mới nhất: HOME/background và mini-player resume. Không thay đổi IPTV player engine/network.
+
+## Cảnh báo
+
+- Chưa build 1.10.30 sau hotfix.
+- Chưa xác nhận runtime.
+- Không được bàn giao APK 1.10.30 cho người dùng trước khi build SUCCESSFUL.
+- Sau build phải test lại đúng video flow, đặc biệt:
+  1. mở YouTube → phát video;
+  2. bấm HOME → chờ 10–20 giây → kiểm tra audio/video còn chạy;
+  3. quay lại app → video tiếp tục, không spinner/reload;
+  4. YouTube video → BACK 1 lần → Browse + mini-player;
+  5. bấm mini-player → full player;
+  6. IPTV → YouTube Browse không chọn video → IPTV vẫn phát;
+  7. chọn video → IPTV mới release.
+
+---
+
 # BÀN GIAO TIẾN ĐỘ — NM7 IPTV MOBILE 1.10.29 — 2026-09-19
 
 ## Trạng thái hiện tại — BUILD THÀNH CÔNG, CHỜ TEST MÁY THẬT
