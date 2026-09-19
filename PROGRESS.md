@@ -1,3 +1,124 @@
+# CẬP NHẬT TIẾN ĐỘ — MOBILE 1.10.36 — 2026-09-19 11:00 +07:00
+
+## Trạng thái mới nhất
+
+Bản **NM7 IPTV Mobile 1.10.35 đã được người dùng cài và test trên máy thật**. Kết quả: **các lỗi runtime chính vẫn còn**, chưa được xác nhận là đã xử lý.
+
+Vì vậy đã tiếp tục cập nhật source sang **1.10.36**, chỉ dành cho **Mobile**, không build Android TV.
+
+## Source/lifecycle đã cập nhật
+
+### 1. IPTV → YouTube Browse
+
+Không còn dùng việc tạo SmartTube PlaybackActivity làm tín hiệu để pause IPTV.
+
+Trong MobileNm7Application:
+- bỏ pauseIptvPlayer() khỏi nhánh onActivityStarted(PlaybackActivity);
+- IPTV chỉ được release khi SmartTube báo **ExoPlayer thực sự ở STATE_READY và playWhenReady=true**.
+
+Trong SmartTube PlaybackActivity:
+- hook được đặt trực tiếp vào listener của mPlayer;
+- khi video thực sự bắt đầu phát, gọi reflection tới MobileNm7Application.pauseIptvForYoutube().
+
+Mục tiêu: **YouTube Browse không làm IPTV dừng; chỉ khi video YouTube thực sự bắt đầu phát thì IPTV mới nhường player.**
+
+### 2. YouTube BACK
+
+Đã patch phone PlaybackActivity.onBackPressed() theo hướng:
+- tránh thoát playback session ngay ở BACK đầu tiên;
+- đưa BrowseActivity lên trước bằng FLAG_ACTIVITY_REORDER_TO_FRONT;
+- giữ player/session để Browse có thể tiếp tục hiển thị mini-player;
+- có fallback về super.onBackPressed() nếu đường navigation thất bại.
+
+### 3. HOME / khóa màn hình
+
+SmartTube phone được patch thêm:
+- onUserLeaveHint();
+- đặt background mode PLAY_BEHIND;
+- khởi động BackgroundPlaybackService của NM7 với cờ YouTube;
+- tiếp tục dùng player/session hiện tại thay vì tạo một YouTube ExoPlayer thứ hai.
+
+Mục tiêu: **HOME/khóa màn hình không làm mất session YouTube hiện tại.**
+
+### 4. Giữ player khi tab/lifecycle thay đổi
+
+SmartTube onStop() được sửa để không gọi maybeReleasePlayer() khi:
+- đang có background mode;
+- đang là NM7 tab switch;
+- hoặc engine đang bị block.
+
+Điều này nhằm tránh release player do lifecycle transition đơn thuần.
+
+## Kiểm tra source đã hoàn tất
+
+Đã xác minh insertion point thực tế trong SmartTube phone fork:
+- PlaybackActivity.createPlayerObjects()
+- mPlayer.addListener(new Player.EventListener()...)
+- onStop()
+- onBackPressed()
+
+Không dựa vào source shape giả định.
+
+## Build 1.10.36
+
+Đã tăng:
+- versionCode: **54**
+- versionName: **1.10.36**
+
+GitHub Actions:
+- Workflow: **NM7 Mobile Final Build**
+- Run: **#336**
+- Run ID: **35433125590**
+- Job ID: **105871107874**
+- Commit: **82acad1e2c98ec0d123f1b3258c81c5ab8b2379c**
+- Kết quả: **SUCCESS**
+
+Gradle:
+- :app:testMobileDebugUnitTest assembleMobileDebug
+- Gradle 8.13
+- Build thành công.
+
+APK output:
+- NM7-IPTV-Mobile-1.10.36-arm64-v8a.apk
+- NM7-IPTV-Mobile-1.10.36-armeabi-v7a.apk
+
+Không có x86, x86_64 hoặc libvlc.so.
+
+Artifact:
+- NM7-IPTV-Mobile-FINAL
+- Artifact ID: **10581711430**
+- SHA256 artifact: bfb06d7e9e205db08f20115049bb434be6d3b0da5b51a1ca6396a7eae8ae4999
+- Hạn lưu artifact: **2026-10-19**
+
+SHA256 APK:
+- ARM64: 103b1b999f88dd0901b70d155ddca11df602d1193e0cd72a66a128c2c0c303d1
+- ARMv7: 291f64a2e62dbd82bb244bd94d3c0c04048b26bde6f5d6809562ad51750e5a8e
+
+## Quan trọng: chưa runtime PASS
+
+Run #336 chỉ chứng minh source compile, unit test/build pass, Mobile APK được đóng gói đúng và chỉ có 2 ABI ARM.
+
+**Chưa chứng minh runtime đã hết lỗi.**
+
+### Test bắt buộc trên 1.10.36
+
+1. IPTV đang phát → bấm YouTube → **chưa chọn video** → IPTV vẫn phát.
+2. Chọn video YouTube → IPTV chỉ dừng khi video thực sự bắt đầu phát.
+3. YouTube đang phát → HOME/khóa màn hình → session/video không mất.
+4. Mở lại NM7 → đúng YouTube session/video, không spinner bất thường.
+5. YouTube đang phát → BACK 1 lần → Browse + mini-player, video vẫn tiếp tục.
+6. Bấm mini-player → quay lại video lớn đúng session/vị trí.
+7. Chuyển IPTV ↔ YouTube nhiều lần → không crash, không mất player.
+8. Không xuất hiện thành phần Android TV trong bản Mobile.
+
+## Điểm dừng hiện tại
+
+**1.10.36 đã build PASS, đang chờ người dùng test runtime trên máy thật.**
+
+Không tiếp tục sửa theo suy đoán trước khi có kết quả test 1.10.36.
+
+---
+
 # TEST HANDOFF — MOBILE 1.10.35 — 2026-09-19
 
 ## Build Windows đã hoàn tất
