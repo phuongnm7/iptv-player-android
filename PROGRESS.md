@@ -1,3 +1,43 @@
+# CẬP NHẬT MỚI NHẤT — NM7 IPTV MOBILE 1.10.39 — 2026-09-19
+
+## Kết quả build
+
+- Commit: [18f486328c3422163920391d0486b756d7f1fd0c](https://github.com/phuongnm7/iptv-player-android/commit/18f486328c3422163920391d0486b756d7f1fd0c)
+- GitHub Actions: [NM7 Mobile Final Build #347](https://github.com/phuongnm7/iptv-player-android/actions/runs/35452468579)
+- Kết quả: **SUCCESS**
+- Artifact: [NM7-IPTV-Mobile-FINAL](https://github.com/phuongnm7/iptv-player-android/actions/runs/35452468579/artifacts/10587855600)
+- Artifact ID: `10587855600`
+- SHA-256 ZIP: `f482d547fdb532864906d44c9690d6cc8c7ab82b38b9f64ebce26caef1b6c08b`
+- Hết hạn: **2026-10-19**
+- Build có đúng hai APK ARM64-v8a và armeabi-v7a; CI kiểm tra chữ ký, không có x86/x86_64 hoặc libvlc.so.
+
+## Phản hồi và nguyên nhân đã xác minh
+
+Bản 1.10.38 vẫn có lỗi: mini-player YouTube đang mở thì bấm tab IPTV không chuyển được, phải đóng mini-player; tải video YouTube chậm.
+
+Nguyên nhân chính không phải toàn bộ vùng mini-player che thanh tab. `MainActivity.onResume()` tự đặt tab thành YouTube khi thấy cờ phát nền và gọi đưa SmartTube lên trước, kể cả sau thao tác bấm IPTV. Vì vậy ứng dụng bị quay ngược về YouTube.
+
+Source vẫn dùng SmartTube phone native: `BrowseActivity`/RecyclerView và `PlaybackActivity`/ExoPlayer. Không dùng WebView để browse hoặc phát YouTube.
+
+## Thay đổi 1.10.39
+
+- MainActivity chỉ phục hồi YouTube khi tab đang chọn vẫn là YouTube; callback trễ cũng kiểm tra lại tab. Bấm IPTV không còn bị ghi đè.
+- Dùng `MobileMiniPlayer` chung giữa Browse và màn hình IPTV. Surface được chuyển sang view mới trước khi bỏ view cũ; mini-player nằm phía trên thanh tab để thanh tab nhận được thao tác.
+- Không dừng YouTube lúc bấm tab hay chọn kênh IPTV. IPTV chuẩn bị tắt tiếng, không lấy audio focus; chỉ khi phát được (`READY + playWhenReady`) mới dừng YouTube, nhận audio focus và bật tiếng. Có đường xử lý cho inline và PlayerActivity.
+- SmartTube Mobile chuyển sang nền tối, điểm nhấn cam và tiêu đề SmartTube Mobile; giữ giao diện cảm ứng native, không đưa UI TV vào.
+- Giảm ngưỡng bộ đệm để bắt đầu YouTube từ 2500ms xuống 750ms, sau rebuffer từ 5000ms xuống 2000ms; bổ sung log `NM7Startup` để đo thời gian lấy format video.
+- Thêm **Tùy chọn ứng dụng → Hẹn giờ đóng app**: 15/30/45/60/90/120 phút hoặc tùy chỉnh 1–480 phút, tắt hẹn giờ, handler và AlarmManager dự phòng. Hết giờ dừng IPTV, YouTube, service nền và đóng task.
+
+## Giới hạn xác minh hiện tại
+
+CI đã áp dụng patch lên SmartTube commit pin `4825d6aa8b6f1d3181927f9e96c7d89cab13d510`, chạy 21 structural checks và build/test thành công.
+
+**1.10.39 chưa được xác nhận runtime trên thiết bị thật.** Cần test: bấm tab IPTV khi mini-player còn phát, chuyển tab khi có/không có IPTV trước đó, chọn kênh IPTV tải chậm, Home/khóa màn hình, Back/mini-player và hẹn giờ 1 phút cho cả IPTV lẫn YouTube.
+
+Giảm buffer chỉ cải thiện đoạn chờ dữ liệu trước khi phát; chưa có số đo máy thật để kết luận toàn bộ độ chậm tải YouTube đã được xử lý.
+
+---
+
 # CẬP NHẬT MỚI NHẤT — MOBILE 1.10.38 — 2026-09-19
 
 ## Điểm bàn giao hiện tại
