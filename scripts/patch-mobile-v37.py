@@ -25,6 +25,8 @@ t = replace(t, 'private static final String TAG = PlaybackActivity.class.getSimp
 t = replace(t, '        super.onCreate(savedInstanceState);', '''        super.onCreate(savedInstanceState);
         sNm7Active = this;
         if (VERSION.SDK_INT >= 33) Nm7BackApi.register(this);''')
+t = replace(t, '        mPlaybackPresenter.onViewInitialized(); // init all controllers',
+            '        mPlaybackPresenter.onViewInitialized(); // init all controllers\n        // Build the decoder/player before the Activity is shown so the selected video only waits for its stream.\n        initializePlayer();')
 t = method(t, 'protected void onStart()', '''        super.onStart();
         sNm7Active = this;
         if (mPlayer == null) initializePlayer();''')
