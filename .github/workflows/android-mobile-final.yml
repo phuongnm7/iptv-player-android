@@ -95,72 +95,76 @@ jobs:
           playback = root / 'smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java'
           t = playback.read_text()
           t2 = t.replace('import android.content.Context;\n', 'import android.content.Context;\nimport android.content.Intent;\n')
-          old_stop = textwrap.dedent('''          @Override
-          protected void onStop() {
-              super.onStop();
+          old_stop = ''' 
+                  @Override
+              protected void onStop() {
+                  super.onStop();
 
-              if (VERSION.SDK_INT > 23) {
-                  maybeReleasePlayer();
+                  if (VERSION.SDK_INT > 23) {
+                      maybeReleasePlayer();
+                  }
+              }''')
+              new_stop = ''' 
+                  @Override
+              protected void onStop() {
+                  super.onStop();
+
+                  boolean backgroundRequested = getPlayerData().getBackgroundMode() != PlayerData.BACKGROUND_MODE_DEFAULT;
+                  if (VERSION.SDK_INT > 23 && !isNm7TabSwitch() && !backgroundRequested && !isEngineBlocked()) {
+                      maybeReleasePlayer();
+                  }
               }
-          }''')
-          new_stop = textwrap.dedent('''          @Override
-          protected void onStop() {
-              super.onStop();
 
-              boolean backgroundRequested = getPlayerData().getBackgroundMode() != PlayerData.BACKGROUND_MODE_DEFAULT;
-              if (VERSION.SDK_INT > 23 && !isNm7TabSwitch() && !backgroundRequested && !isEngineBlocked()) {
-                  maybeReleasePlayer();
+              private boolean isNm7TabSwitch() {
+                  try {
+                      String until = System.getProperty("nm7.tab.switch.until", "0");
+                      return Long.parseLong(until) > System.currentTimeMillis();
+                  } catch (RuntimeException ignored) {
+                      return false;
+                  }
+              }''')
+              if old_stop not in t2:
+                  raise SystemExit('PlaybackActivity onStop block not found')
+              t2 = t2.replace(old_stop, new_stop)
+              t2 = t2.replace('boolean isScreenOff = getPlayerData().getBackgroundMode() != PlayerData.BACKGROUND_MODE_DEFAULT && Utils.isHardScreenOff(this);', 'boolean isScreenOff = Utils.isHardScreenOff(this);\n        if (isScreenOff) {\n            getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_PLAY_BEHIND);\n            startNm7BackgroundService();\n        }')
+
+              # Android calls onUserLeaveHint for HOME. Force NM7 Play-Behind regardless of stored mode.
+              leave_start = t2.find('    public void onUserLeaveHint()')
+              leave_end = t2.find('    public boolean isInPipMode()', leave_start)
+              if leave_start < 0 or leave_end < 0:
+                  raise SystemExit('PlaybackActivity onUserLeaveHint block not found')
+              leave_method = ''' 
+                  public void onUserLeaveHint() {
+                  if (mIsBackPressed || isFinishing() || getViewManager().isNewViewPending()) {
+                      return;
+                  }
+                  getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_PLAY_BEHIND);
+                  startNm7BackgroundService();
+                  enterBackgroundPlayMode();
               }
-          }
 
-          private boolean isNm7TabSwitch() {
-              try {
-                  String until = System.getProperty("nm7.tab.switch.until", "0");
-                  return Long.parseLong(until) > System.currentTimeMillis();
-              } catch (RuntimeException ignored) {
-                  return false;
-              }
-          }''')
-          if old_stop not in t2:
-              raise SystemExit('PlaybackActivity onStop block not found')
-          t2 = t2.replace(old_stop, new_stop)
-          t2 = t2.replace('boolean isScreenOff = getPlayerData().getBackgroundMode() != PlayerData.BACKGROUND_MODE_DEFAULT && Utils.isHardScreenOff(this);', 'boolean isScreenOff = Utils.isHardScreenOff(this);\n        if (isScreenOff) {\n            getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_PLAY_BEHIND);\n            startNm7BackgroundService();\n        }')
-
-          # Android calls onUserLeaveHint for HOME. Force NM7 Play-Behind regardless of stored mode.
-          leave_start = t2.find('    public void onUserLeaveHint()')
-          leave_end = t2.find('    public boolean isInPipMode()', leave_start)
-          if leave_start < 0 or leave_end < 0:
-              raise SystemExit('PlaybackActivity onUserLeaveHint block not found')
-          leave_method = textwrap.dedent('''          public void onUserLeaveHint() {
-              if (mIsBackPressed || isFinishing() || getViewManager().isNewViewPending()) {
-                  return;
-              }
-              getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_PLAY_BEHIND);
-              startNm7BackgroundService();
-              enterBackgroundPlayMode();
-          }
-
-''')
+'''
           t2 = t2[:leave_start] + leave_method + t2[leave_end:]
 
           # Keep the SmartTube Activity/player process alive with NM7's media FGS.
-          helper = textwrap.dedent('''          private void startNm7BackgroundService() {
-              try {
-                  Intent intent = new Intent();
-                  intent.setComponent(new android.content.ComponentName(this,
-                          "vn.phuong.iptvplayer.BackgroundPlaybackService"));
-                  intent.putExtra("youtube", true);
-                  intent.putExtra("channel_name", "YouTube");
-                  if (VERSION.SDK_INT >= 26) {
-                      startForegroundService(intent);
-                  } else {
-                      startService(intent);
+          helper = ''' 
+                  private void startNm7BackgroundService() {
+                  try {
+                      Intent intent = new Intent();
+                      intent.setComponent(new android.content.ComponentName(this,
+                              "vn.phuong.iptvplayer.BackgroundPlaybackService"));
+                      intent.putExtra("youtube", true);
+                      intent.putExtra("channel_name", "YouTube");
+                      if (VERSION.SDK_INT >= 26) {
+                          startForegroundService(intent);
+                      } else {
+                          startService(intent);
+                      }
+                  } catch (RuntimeException ignored) {
                   }
-              } catch (RuntimeException ignored) {
               }
-          }
 
-''')
+'''
           helper_at = t2.find('    public boolean isInPipMode()')
           if helper_at < 0:
               raise SystemExit('PlaybackActivity isInPipMode marker not found')
@@ -168,50 +172,54 @@ jobs:
           t2 = t2.replace('boolean isScreenOff = getPlayerData().getBackgroundMode() != PlayerData.BACKGROUND_MODE_DEFAULT && Utils.isHardScreenOff(this);', 'boolean isScreenOff = Utils.isHardScreenOff(this);\n        if (isScreenOff) {\n            getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_PLAY_BEHIND);\n            startNm7BackgroundService();\n        }')
 
           # Back from the player always returns to the phone Browse screen.
-          old_back = textwrap.dedent('''          @Override
-          public void onBackPressed() {
-              mIsBackPressed = true;
-
-              super.onBackPressed();
-          }''')
-          new_back = textwrap.dedent('''          @Override
-          public void onBackPressed() {
-              if (mIsBackPressed) {
-                  return;
-              }
-
-              mIsBackPressed = true;
-              try {
-                  Intent intent = new Intent(this,
-                          Class.forName("com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity"));
-                  intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NO_ANIMATION);
-                  startActivity(intent);
-                  overridePendingTransition(0, 0);
-                  finish();
-                  overridePendingTransition(0, 0);
-              } catch (ReflectiveOperationException | RuntimeException e) {
-                  super.onBackPressed();
-              }
-          }''')
-          if old_back not in t2:
-              raise SystemExit('PlaybackActivity onBackPressed block not found')
-          t2 = t2.replace(old_back, new_back)
-
-          # Real YouTube playback ownership hook.
-          # mPlayer is the verified SimpleExoPlayer field in SmartTube PlaybackActivity.
-          # STATE_READY + playWhenReady is the first reliable point where a video is
-          # actually ready to play; Activity creation/onStart is intentionally ignored.
-          listener_marker = textwrap.dedent('''              mPlayer.addListener(new Player.EventListener() {
+          old_back = ''' 
                   @Override
-                  public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {''')
-          listener_hook = textwrap.dedent('''                      if (playWhenReady && playbackState == Player.STATE_READY) {
-                          try {
-                              vn.phuong.iptvplayer.MobileNm7Application.pauseIptvForYoutube();
-                          } catch (RuntimeException ignored) {
-                          }
-                      }
+              public void onBackPressed() {
+                  mIsBackPressed = true;
 
-''')
+                  super.onBackPressed();
+              }''')
+              new_back = ''' 
+                  @Override
+              public void onBackPressed() {
+                  if (mIsBackPressed) {
+                      return;
+                  }
+
+                  mIsBackPressed = true;
+                  try {
+                      Intent intent = new Intent(this,
+                              Class.forName("com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity"));
+                      intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                      startActivity(intent);
+                      overridePendingTransition(0, 0);
+                      finish();
+                      overridePendingTransition(0, 0);
+                  } catch (ReflectiveOperationException | RuntimeException e) {
+                      super.onBackPressed();
+                  }
+              }''')
+              if old_back not in t2:
+                  raise SystemExit('PlaybackActivity onBackPressed block not found')
+              t2 = t2.replace(old_back, new_back)
+
+              # Real YouTube playback ownership hook.
+              # mPlayer is the verified SimpleExoPlayer field in SmartTube PlaybackActivity.
+              # STATE_READY + playWhenReady is the first reliable point where a video is
+              # actually ready to play; Activity creation/onStart is intentionally ignored.
+              listener_marker = ''' 
+                  mPlayer.addListener(new Player.EventListener() {
+                      @Override
+                      public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {''')
+              listener_hook = ''' 
+                  if (playWhenReady && playbackState == Player.STATE_READY) {
+                              try {
+                                  vn.phuong.iptvplayer.MobileNm7Application.pauseIptvForYoutube();
+                              } catch (RuntimeException ignored) {
+                              }
+                          }
+
+'''
           if listener_marker not in t2:
               raise SystemExit('Verified SmartTube mPlayer listener insertion point not found')
           if 'MobileNm7Application.pauseIptvForYoutube()' not in t2:
