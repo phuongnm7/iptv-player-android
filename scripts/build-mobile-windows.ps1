@@ -224,7 +224,8 @@ if($playText -notmatch 'import android.view.TextureView;'){
     $playText=$playText.Replace("import android.view.ViewGroup;", "import android.view.ViewGroup;"+$nl+"import android.view.TextureView;")
 }
 if($playText -notmatch 'static PlaybackActivity sActiveInstance'){
-    $playText=$playText.Replace("private static final String TAG = PlaybackActivity.class.getSimpleName();","private static final String TAG = PlaybackActivity.class.getSimpleName();"+$nl+"    private static PlaybackActivity sActiveInstance;"+$nl+"    private static boolean sMiniPlayerActive;")
+    $playText=$playText.Replace("private static final String TAG = PlaybackActivity.class.getSimpleName();","private static final String TAG = PlaybackActivity.class.getSimpleName();"+$nl+"    private static PlaybackActivity sActiveInstance;"+$nl+"    private static boolean sMiniPlayerActive;
+    private final android.window.OnBackInvokedCallback nm7BackCallback = () -> handleNm7Back();")
 }
 $createOld=@'
         super.onCreate(savedInstanceState);
@@ -234,6 +235,11 @@ $createOld=@'
 $createNew=@'
         super.onCreate(savedInstanceState);
         sActiveInstance = this;
+        if (VERSION.SDK_INT >= 33) {
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                    android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+                    nm7BackCallback);
+        }
 
         setContentView(R.layout.playback_activity);
 '@
@@ -322,13 +328,10 @@ $backOld=@'
     }
 '@
 $backNew=@'
-    @Override
-    public void onBackPressed() {
-        // Details/comments consume BACK first.
+    private void handleNm7Back() {
         if (onDetailsBack()) {
             return;
         }
-
         mIsBackPressed = true;
 
         // NM7 Mobile: direct Browse + in-app mini-player. Keep SmartTube's video engine
@@ -424,6 +427,13 @@ $destroyOld=@'
 $destroyNew=@'
     @Override
     protected void onDestroy() {
+        if (VERSION.SDK_INT >= 33) {
+            try {
+                getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(
+                        nm7BackCallback);
+            } catch (RuntimeException ignored) {
+            }
+        }
         if (sActiveInstance == this && !sMiniPlayerActive) {
             sActiveInstance = null;
         }
@@ -433,6 +443,10 @@ if($playText.Contains($destroyOld)){$playText=$playText.Replace($destroyOld,$des
 
 if($playText -notmatch 'isMiniPlayerActive\(\)' -or $playText -notmatch 'setVideoTextureView\(miniView\)' -or $playText -notmatch 'startActivity\(intent\)'){
     Fail "SmartTube PlaybackActivity mini-player patch validation failed."
+}
+
+if($playText -notmatch 'OnBackInvokedDispatcher\.PRIORITY_DEFAULT' -or $playText -notmatch 'nm7BackCallback'){
+    Fail "SmartTube Android 13+ Back callback patch is missing; refusing to build."
 }
 
 if($playText -notmatch 'VERSION\.SDK_INT > 23 && mPlayer == null'){
@@ -537,6 +551,7 @@ $newResume=@'
     protected void onResume() {
         super.onResume();
 
+        boolean returningFromNm7Background = "1".equals(System.getProperty("nm7.youtube.background", "0"));
         mIsBackPressed = false;
 
         if (VERSION.SDK_INT <= 23 || mPlayer == null) {
@@ -547,8 +562,19 @@ $newResume=@'
         mPlaybackPresenter.onViewResumed();
 
         showHideWidgets(true);
-        // Do not clear NM7's HOME/background marker here. The player must remain
-        // owned by SmartTube while Android restores the task.
+        if (returningFromNm7Background) {
+            System.setProperty("nm7.youtube.background", "0");
+            try {
+                Class<?> session = Class.forName("vn.phuongnm7.iptvplayer.SharedPlaybackSession");
+                session.getMethod("setYoutubeBackground", android.content.Context.class, boolean.class)
+                        .invoke(null, this, false);
+            } catch (ReflectiveOperationException | RuntimeException ignored) {
+            }
+            try {
+                getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_DEFAULT);
+            } catch (RuntimeException ignored) {
+            }
+        }
         blockEngine(false);
     }
 '@
@@ -712,6 +738,15 @@ $newPauseLifecycle=@'
 
         if (nm7HomeBackground && mPlayer != null && mPlayer.getPlayWhenReady()) {
             getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_SOUND);
+            try {
+                Intent nm7Service = new Intent();
+                nm7Service.setComponent(new android.content.ComponentName(this,
+                        "vn.phuongnm7.iptvplayer.BackgroundPlaybackService"));
+                nm7Service.putExtra("youtube", true);
+                nm7Service.putExtra("channel_name", "YouTube");
+                if (VERSION.SDK_INT >= 26) startForegroundService(nm7Service);
+                else startService(nm7Service);
+            } catch (RuntimeException ignored) {}
             System.setProperty("nm7.youtube.background", "1");
             try {
                 Class<?> session = Class.forName("vn.phuongnm7.iptvplayer.SharedPlaybackSession");
