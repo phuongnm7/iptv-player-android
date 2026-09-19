@@ -46,6 +46,7 @@ stop_new = """    @Override
         }
     }
 
+    @Override
     protected void onDestroy()"""
 t, n = stop_re.subn(stop_new, t, count=1)
 if n != 1:
@@ -134,6 +135,8 @@ if marker not in t:
     raise SystemExit("Verified SmartTube mPlayer listener insertion point not found")
 if "MobileNm7Application.pauseIptvForYoutube()" not in t:
     t = t.replace(marker, marker + hook, 1)
+
+t = t.replace("\n    @Override\n    private void startNm7BackgroundService()", "\n    private void startNm7BackgroundService()")
 
 playback.write_text(t)
 print("SmartTube Mobile lifecycle patch completed")
