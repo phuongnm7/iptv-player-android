@@ -216,6 +216,14 @@ $startNew=@'
         super.onStart();
         sActiveInstance = this;
 
+        // NM7 Mobile: release IPTV before SmartTube initializes its own decoder.
+        // Application.onActivityStarted() is too late because it runs after Activity.onStart().
+        try {
+            Class<?> app = Class.forName("vn.phuongnm7.iptvplayer.MobileNm7Application");
+            app.getMethod("pauseIptvForYoutube").invoke(null);
+        } catch (ReflectiveOperationException | RuntimeException ignored) {
+        }
+
         if (VERSION.SDK_INT > 23 && mPlayer == null) {
             initializePlayer();
         }
