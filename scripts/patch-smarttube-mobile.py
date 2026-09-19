@@ -143,8 +143,8 @@ print("SmartTube Mobile lifecycle patch completed")
 # Remove stale override annotations from methods that are present in this fork
 # but are no longer declared by its inherited controller interface.
 playback_text = playback.read_text()
-playback_text = re.sub(r'@Override\\s+public\\s+void\\s+setPitch\\s*\\(', 'public void setPitch(', playback_text, count=1)
-playback_text = re.sub(r'@Override\\s+public\\s+float\\s+getPitch\\s*\\(', 'public float getPitch(', playback_text, count=1)
+playback_text = re.sub(r'@Override\s*\n\s*public\s+void\s+setPitch\s*\(', 'public void setPitch(', playback_text, count=1)
+playback_text = re.sub(r'@Override\s*\n\s*public\s+float\s+getPitch\s*\(', 'public float getPitch(', playback_text, count=1)
 playback.write_text(playback_text)
 
 # Keep this fork buildable when section_is_empty is absent from the phone resource table.
