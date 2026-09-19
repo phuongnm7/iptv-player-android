@@ -1,3 +1,45 @@
+# TRẠNG THÁI XÁC NHẬN — NM7 IPTV MOBILE 1.10.39 — 2026-09-19
+
+## Kết quả test thực tế
+
+Người dùng đã cài và test **NM7 IPTV Mobile 1.10.39**. Các lỗi đã yêu cầu ở vòng 1.10.39 được xác nhận là **đã xử lý xong**:
+
+1. Mini-player YouTube đang phát vẫn bấm được tab IPTV.
+2. Chuyển sang tab IPTV khi chưa chọn kênh mới vẫn giữ YouTube mini-player phát.
+3. YouTube chỉ dừng khi kênh IPTV đã sẵn sàng phát.
+4. Giao diện SmartTube Mobile native đã áp dụng.
+5. Hẹn giờ đóng app đã được thêm trong Tùy chọn ứng dụng.
+
+Bản này đang được người dùng test thêm để phát hiện lỗi khác. Không có lỗi mới đang chờ xử lý tại thời điểm cập nhật.
+
+## Mốc kỹ thuật bàn giao
+
+| Hạng mục | Giá trị |
+|---|---|
+| Phiên bản | 1.10.39 |
+| Version code | 57 |
+| Nhánh | `fix/mobile-1.10.26-sleep-timer-icon` |
+| Commit source | [18f486328c3422163920391d0486b756d7f1fd0c](https://github.com/phuongnm7/iptv-player-android/commit/18f486328c3422163920391d0486b756d7f1fd0c) |
+| Build | [NM7 Mobile Final Build #347](https://github.com/phuongnm7/iptv-player-android/actions/runs/35452468579) — SUCCESS |
+| Artifact | [NM7-IPTV-Mobile-FINAL](https://github.com/phuongnm7/iptv-player-android/actions/runs/35452468579/artifacts/10587855600) |
+| Artifact SHA-256 | `f482d547fdb532864906d44c9690d6cc8c7ab82b38b9f64ebce26caef1b6c08b` |
+| Hết hạn artifact | 2026-10-19 |
+| ABI | Chỉ ARM64-v8a và armeabi-v7a |
+
+## Phạm vi bản chuẩn hiện tại
+
+- Chỉ **Mobile**; không có thay đổi nào đối với Android TV.
+- SmartTube phone native, nền tối/điểm nhấn cam.
+- IPTV và YouTube giữ player riêng; bàn giao quyền phát theo trạng thái phát thực tế.
+- YouTube mini-player có thể tiếp tục phát khi duyệt tab IPTV, sau đó nhường quyền khi IPTV phát được.
+- Hẹn giờ đóng app: preset 15–120 phút và tùy chỉnh 1–480 phút.
+
+## Lưu ý cho vòng test tiếp theo
+
+Nếu phát hiện lỗi mới, lưu kèm thao tác tái hiện, màn hình đang mở và kết quả mong muốn/thực tế. Không xem các build 1.10.35–1.10.38 là mốc ổn định cho luồng IPTV/YouTube; mốc hiện tại là **1.10.39**.
+
+---
+
 # CẬP NHẬT MỚI NHẤT — NM7 IPTV MOBILE 1.10.39 — 2026-09-19
 
 ## Kết quả build
