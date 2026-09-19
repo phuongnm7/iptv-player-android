@@ -33,6 +33,8 @@ jobs:
           git -C third_party/SmartTube-droid submodule update --init --force --recursive
           git -C third_party/SmartTube-droid remote add upstream https://github.com/yuliskov/SmartTube.git
           git -C third_party/SmartTube-droid fetch --depth 1 upstream refs/tags/32.47s
+          git -C third_party/SmartTube-droid config user.name "NM7 CI"
+          git -C third_party/SmartTube-droid config user.email "129863656+phuongnm7@users.noreply.github.com"
           git -C third_party/SmartTube-droid merge --no-edit --allow-unrelated-histories FETCH_HEAD
           git -C third_party/SmartTube-droid submodule update --init --force --recursive
           echo "SmartTube phone UI base: systematiq-one/master"
