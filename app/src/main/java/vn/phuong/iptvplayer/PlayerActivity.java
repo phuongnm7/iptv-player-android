@@ -186,9 +186,16 @@ public final class PlayerActivity extends Activity {
             MediaItem.Builder builder=new MediaItem.Builder().setUri(url); String inferred=mime.isEmpty()?StreamSpec.inferMime(url,options):mime; if(inferred!=null&&!inferred.isEmpty()) builder.setMimeType(inferred);
             DrmSpec drm=DrmSpec.create(drmSystem,drmLicense); findViewById(R.id.btnDrm).setVisibility(drm.hasDrm()?View.VISIBLE:View.GONE); if(drm.remoteClearKey()){resolveRemoteClearKey(drm,headers);return;} DrmPlayback.configure(drm,builder,mediaFactory);
             player=new ExoPlayer.Builder(this,new DefaultRenderersFactory(this).setEnableDecoderFallback(true)).setLoadControl(stableLoadControl()).setMediaSourceFactory(mediaFactory).build();
-            player.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),true); player.setHandleAudioBecomingNoisy(true); playerView.setPlayer(player);
+            player.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),false); player.setVolume(0f); player.setHandleAudioBecomingNoisy(true); playerView.setPlayer(player);
             player.addAnalyticsListener(new AnalyticsListener(){@Override public void onVideoEnabled(EventTime e,DecoderCounters c){videoCounters=c;fpsMeter.reset();}}); applyQuality();
             player.addListener(new Player.Listener(){
+                @Override public void onIsPlayingChanged(boolean playing) {
+                    if(playing && player!=null && player.getVolume()==0f){
+                        MobileNm7Application.stopYoutubeForIptv();
+                        player.setVolume(1f);
+                        player.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),true);
+                    }
+                }
                 @Override public void onPlayerError(PlaybackException e){
                     if(e.errorCode==PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED&&mime.isEmpty()&&!resolvingStreamMime){resolveRedirectedMime(e);return;}
                     if(isTransientPlaybackError(e)){scheduleRecovery("Luồng tạm gián đoạn",false);return;}
@@ -198,6 +205,11 @@ public final class PlayerActivity extends Activity {
                 @Override public void onPlaybackStateChanged(int s){
                     if(s==Player.STATE_BUFFERING){status.setText("Đang tải luồng…");if(bufferingSinceMs==0){bufferingSinceMs=android.os.SystemClock.elapsedRealtime();recoveryHandler.removeCallbacks(stalledPlaybackCheck);recoveryHandler.postDelayed(stalledPlaybackCheck,20_000);}}
                     if(s==Player.STATE_READY){bufferingSinceMs=0;recoveryHandler.removeCallbacks(stalledPlaybackCheck);
+                        if(player.getPlayWhenReady() && player.getVolume()==0f){
+                            MobileNm7Application.stopYoutubeForIptv();
+                            player.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),true);
+                            player.setVolume(1f);
+                        }
                         findViewById(R.id.playerError).setVisibility(View.GONE);VideoSize v=player.getVideoSize();status.setText(v.width>0?v.width+" × "+v.height+" • độ phân giải thực tế":"Đang phát âm thanh");
                         recoveryHandler.removeCallbacks(resetRecoveryAttempts);recoveryHandler.postDelayed(resetRecoveryAttempts,30_000);
                     }

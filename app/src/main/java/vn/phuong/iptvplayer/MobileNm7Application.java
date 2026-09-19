@@ -40,6 +40,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
     private Activity smartTubeBrowseActivity;
     private Activity smartTubePlaybackActivity;
     private volatile boolean tabSwitchPending;
+    private final java.util.Set<Activity> liveActivities = java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
     private final java.util.Map<Activity, Object> smartTubeBackCallbacks = new java.util.HashMap<>();
 
     @Override public void onCreate() {
@@ -102,8 +103,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
             // Creating/resuming PlayerActivity while YouTube owns the session must not
             // send a global MEDIA_PAUSE event to SmartTube.
             if (SharedPlaybackSession.TAB_IPTV.equals(SharedPlaybackSession.tab(activity))) {
-                stopYoutubeForIptv();
-                activity.stopService(new Intent(activity, BackgroundPlaybackService.class));
+                // PlayerActivity commits the handoff when IPTV is READY.
             }
         } else if (SMARTTUBE_BROWSE.equals(name)) {
             smartTubeBrowseActivity = activity;
@@ -146,6 +146,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
     }
 
     @Override public void onActivityCreated(Activity activity, Bundle state) {
+        liveActivities.add(activity);
         String name = activity.getClass().getName();
         if (activity instanceof MainActivity) {
             activity.getWindow().getDecorView().post(() -> {
@@ -194,12 +195,12 @@ public final class MobileNm7Application extends DroidApplication implements andr
     }
 
     @Override public void onActivityResumed(Activity activity) {
+        SleepTimer.restore(activity);
         String name = activity.getClass().getName();
         if (activity instanceof PlayerActivity) {
             clearTabSwitch();
         } else if (activity instanceof MainActivity
-                && SharedPlaybackSession.TAB_IPTV.equals(SharedPlaybackSession.tab(activity))
-                && !MobileInlinePlayerProviderV2.shouldResumeIptvAfterYoutube()) {
+                && SharedPlaybackSession.TAB_IPTV.equals(SharedPlaybackSession.tab(activity))) {
             // The IPTV tab is only a list until a channel is selected. Keep the live
             // YouTube mini-player visible and attached while that list is in front.
             activity.getWindow().getDecorView().post(() -> installYoutubeMiniPlayer(activity));
@@ -220,47 +221,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
      * TextureView in MainActivity while the user only browses the IPTV tab.
      */
     private static void installYoutubeMiniPlayer(Activity activity) {
-        try {
-            Class<?> playback = Class.forName(SMARTTUBE_PLAYBACK);
-            Object active = playback.getMethod("isNm7MiniPlayerActive").invoke(null);
-            if (!(active instanceof Boolean) || !((Boolean) active)) return;
-            View content = activity.findViewById(android.R.id.content);
-            if (!(content instanceof ViewGroup)) return;
-            ViewGroup root = (ViewGroup) content;
-            final int tag = 0x7f0a7e31;
-            View old = root.findViewWithTag(tag);
-            if (old != null) root.removeView(old);
-            float density = activity.getResources().getDisplayMetrics().density;
-            android.widget.FrameLayout box = new android.widget.FrameLayout(activity);
-            box.setTag(tag);
-            box.setBackgroundColor(android.graphics.Color.BLACK);
-            android.widget.FrameLayout.LayoutParams params = new android.widget.FrameLayout.LayoutParams(
-                    (int) (180 * density), (int) (101 * density),
-                    android.view.Gravity.BOTTOM | android.view.Gravity.END);
-            params.bottomMargin = (int) (76 * density);
-            params.rightMargin = (int) (12 * density);
-            android.view.TextureView video = new android.view.TextureView(activity);
-            box.addView(video, new android.widget.FrameLayout.LayoutParams(-1, -1));
-            video.setOnClickListener(v -> {
-                try { playback.getMethod("restoreNm7Player").invoke(null); }
-                catch (ReflectiveOperationException | RuntimeException ignored) { }
-            });
-            android.widget.ImageButton close = new android.widget.ImageButton(activity);
-            close.setImageResource(android.R.drawable.ic_menu_close_clear_cancel);
-            close.setContentDescription("Đóng video YouTube");
-            box.addView(close, new android.widget.FrameLayout.LayoutParams(
-                    (int) (36 * density), (int) (36 * density),
-                    android.view.Gravity.TOP | android.view.Gravity.END));
-            close.setOnClickListener(v -> {
-                try { playback.getMethod("stopForNm7Iptv").invoke(null); }
-                catch (ReflectiveOperationException | RuntimeException ignored) { }
-                root.removeView(box);
-            });
-            root.addView(box, params);
-            playback.getMethod("attachNm7MiniPlayer", android.view.TextureView.class).invoke(null, video);
-        } catch (ReflectiveOperationException | RuntimeException error) {
-            android.util.Log.e("NM7Playback", "IPTV mini-player attach failed", error);
-        }
+        MobileMiniPlayer.attach(activity);
     }
 
     /** Bring the actual YouTube playback/browse Activity back after HOME/process recreation. */
@@ -327,6 +288,28 @@ public final class MobileNm7Application extends DroidApplication implements andr
             Class.forName(SMARTTUBE_PLAYBACK).getMethod("stopForNm7Iptv").invoke(null);
         } catch (ReflectiveOperationException | RuntimeException error) {
             android.util.Log.e("NM7Playback", "YouTube handoff failed", error);
+        }
+        MobileMiniPlayer.remove();
+    }
+
+    public static boolean isYoutubeSessionActive() {
+        try {
+            return Boolean.TRUE.equals(Class.forName(SMARTTUBE_PLAYBACK)
+                    .getMethod("isNm7SessionActive").invoke(null));
+        } catch (ReflectiveOperationException | RuntimeException error) { return false; }
+    }
+
+    public static void closeForSleepTimer() {
+        stopYoutubeForIptv();
+        MobileInlinePlayerProviderV2.stopForSleepTimer();
+        PlayerActivity.releaseForYoutube();
+        if (instance == null) return;
+        instance.stopService(new Intent(instance, BackgroundPlaybackService.class));
+        SharedPlaybackSession.setYoutubeBackground(instance, false);
+        SharedPlaybackSession.setTab(instance, SharedPlaybackSession.TAB_IPTV);
+        System.setProperty("nm7.youtube.background", "0");
+        for (Activity activity : new java.util.ArrayList<>(instance.liveActivities)) {
+            if (!activity.isDestroyed()) activity.finishAndRemoveTask();
         }
     }
 
@@ -493,6 +476,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
 
     @Override public void onActivitySaveInstanceState(Activity activity, Bundle state) { }
     @Override public void onActivityDestroyed(Activity activity) {
+        liveActivities.remove(activity);
         if (Build.VERSION.SDK_INT >= 33) {
             Object callback = smartTubeBackCallbacks.remove(activity);
             if (callback != null) {

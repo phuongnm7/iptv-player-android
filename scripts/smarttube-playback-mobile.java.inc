@@ -4,6 +4,11 @@
     private boolean mNm7OwnsPlayback;
     private Object mNm7BackCallback;
 
+    public static boolean isNm7SessionActive() {
+        return sNm7Active != null && !sNm7Active.mNm7Stopped && !sNm7Active.isDestroyed()
+                && !sNm7Active.isFinishing() && sNm7Active.mPlayer != null;
+    }
+
     public static boolean isNm7MiniPlayerActive() {
         return sNm7Mini && sNm7Active != null && !sNm7Active.isDestroyed()
                 && !sNm7Active.isFinishing() && sNm7Active.mPlayer != null;
@@ -25,6 +30,11 @@
             active.mPlayerView.setPlayer(active.mPlayer);
         }
         sNm7Mini = false;
+        try {
+            Class.forName("vn.phuong.iptvplayer.MobileMiniPlayer").getMethod("remove").invoke(null);
+        } catch (ReflectiveOperationException error) {
+            android.util.Log.e("NM7Playback", "Remove mini surface", error);
+        }
         active.startActivity(new Intent(active, active.getClass())
                 .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NO_USER_ACTION));
     }

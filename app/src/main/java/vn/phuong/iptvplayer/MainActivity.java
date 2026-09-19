@@ -56,16 +56,15 @@ public final class MainActivity extends Activity {
         super.onResume();
         // A launcher relaunch must not rebuild the YouTube Browse page when a live
         // SmartTube PlaybackActivity is already running in the same task.
-        if ("1".equals(System.getProperty("nm7.youtube.background", "0"))) {
-            SharedPlaybackSession.setTab(this, SharedPlaybackSession.TAB_YOUTUBE);
-        }
-        if (SharedPlaybackSession.isYoutubeBackground(this)) {
+        if (SharedPlaybackSession.TAB_YOUTUBE.equals(SharedPlaybackSession.tab(this))
+                && SharedPlaybackSession.isYoutubeBackground(this)) {
             if (MobileNm7Application.bringSmartTubeToFront()) {
                 return;
             }
             // Only fall back to Browse when the actual PlaybackActivity no longer exists.
             findViewById(android.R.id.content).postDelayed(()->{
-                if (isFinishing() || isDestroyed() || !SharedPlaybackSession.isYoutubeBackground(this)) return;
+                if (isFinishing() || isDestroyed() || !SharedPlaybackSession.isYoutubeBackground(this)
+                        || !SharedPlaybackSession.TAB_YOUTUBE.equals(SharedPlaybackSession.tab(this))) return;
                 try{
                     Intent intent=new Intent(this,Class.forName("com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity"));
                     intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT|Intent.FLAG_ACTIVITY_NO_ANIMATION);
@@ -94,7 +93,8 @@ public final class MainActivity extends Activity {
     private void restoreSession() {
         // When YouTube is actively playing in background, do not fetch/parse the IPTV
         // playlist on the launcher critical path.
-        if (SharedPlaybackSession.isYoutubeBackground(this)) {
+        if (SharedPlaybackSession.TAB_YOUTUBE.equals(SharedPlaybackSession.tab(this))
+                && SharedPlaybackSession.isYoutubeBackground(this)) {
             setLoading(false);
             return;
         }
@@ -294,6 +294,7 @@ public final class MainActivity extends Activity {
         List<String> items=new ArrayList<>(java.util.Arrays.asList("Quản lý nguồn IPTV","Thêm hoặc mở URL/tệp","Tải lại playlist hiện tại","Lịch phát sóng (EPG)","Giao diện: "+modeLabel,"Đổi hình nền",urls,rows,fps,clock,playerSource));
         final int backgroundIndex;if(tv)backgroundIndex=-1;else{backgroundIndex=items.size();items.add(background);}
         final int recentIndex=items.size();items.add("Xóa lịch sử Gần đây");
+        final int sleepIndex=items.size();items.add("Hẹn giờ đóng app…");
         final int aboutIndex=items.size();items.add("Thông tin ứng dụng");
         new AlertDialog.Builder(this).setTitle("Tùy chọn ứng dụng")
                 .setItems(items.toArray(new String[0]),(dialog,which)->{
@@ -310,6 +311,7 @@ public final class MainActivity extends Activity {
                     if(which==10)AppPreferences.setShowPlayerSource(this,!AppPreferences.showPlayerSource(this));
                     if(which==backgroundIndex){boolean enabled=!AppPreferences.backgroundPlayback(this);AppPreferences.setBackgroundPlayback(this,enabled);if(!enabled)stopService(new Intent(this,BackgroundPlaybackService.class));if(enabled&&android.os.Build.VERSION.SDK_INT>=33)requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS},104);toast(enabled?"Đã bật phát nền":"Đã tắt phát nền");}
                     if(which==recentIndex){AppPreferences.clearRecent(this);if(activeSection==2)filter();toast("Đã xóa lịch sử");}
+                    if(which==sleepIndex)SleepTimer.showDialog(this);
                     if(which==aboutIndex)showAbout();
                 }).setNegativeButton("Đóng",null).show();
     }

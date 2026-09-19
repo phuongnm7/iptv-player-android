@@ -37,8 +37,9 @@ check('if (mNm7Stopped || isFinishing())' in body('protected void onStop()'), 'B
 check('nm7SetBackground(true)' in body('public void onUserLeaveHint()'), 'Existing Home callback actually replaced')
 check('sNm7Mini = true;' in body('public void onBackPressed()'), 'Back enters mini state')
 check('registerOnBackInvokedCallback' in play, 'Modern Back callback registered')
-check('installNm7MiniPlayer();' in browse and 'attachNm7MiniPlayer(video)' in browse, 'Browse attaches live surface')
-check('restoreNm7Player()' in browse, 'Mini click restores playback')
+overlay = (app / 'MobileMiniPlayer.java').read_text(encoding='utf-8')
+check('installNm7MiniPlayer();' in browse and 'vn.phuong.iptvplayer.MobileMiniPlayer' in browse, 'Browse uses shared mini surface')
+check('"restoreNm7Player"' in overlay, 'Mini click restores playback')
 for path in ['app/src/main/AndroidManifest.xml', 'smarttube/src/main/AndroidManifest.xml']:
     manifest = ET.parse(path)
     ns = '{http://schemas.android.com/apk/res/android}'

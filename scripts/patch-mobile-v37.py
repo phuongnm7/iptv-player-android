@@ -95,6 +95,8 @@ p.write_text(t, encoding='utf-8')
 p = phone / 'browse/BrowseActivity.java'
 t = p.read_text(encoding='utf-8')
 t = replace(t, 'private static final int GRID_COLUMNS = 2;', 'private static final int GRID_COLUMNS = 1;')
+t = replace(t, '        toolbar.inflateMenu(R.menu.browse_toolbar);',
+            '        toolbar.setTitle("SmartTube Mobile");\n        toolbar.inflateMenu(R.menu.browse_toolbar);')
 t = replace(t, 'private static final String TAG = BrowseActivity.class.getSimpleName();',
             'private static final String TAG = BrowseActivity.class.getSimpleName();\n' +
             Path('scripts/smarttube-browse-mobile.java.inc').read_text(encoding='utf-8'))
@@ -103,4 +105,26 @@ p.write_text(t, encoding='utf-8')
 p = phone / 'channeluploads/ChannelUploadsActivity.java'
 t = p.read_text(encoding='utf-8').replace('new GridLayoutManager(this, GRID_COLUMNS)', 'new GridLayoutManager(this, 1)')
 p.write_text(t, encoding='utf-8')
-print('NM7 Mobile lifecycle v37 applied to pinned phone source')
+# Native touch theme: SmartTube cards/sections, dark surface, orange NM7 accent.
+theme = Path('third_party/SmartTube-droid/smarttubedroid/src/main/res/values/themes.xml')
+t = theme.read_text(encoding='utf-8')
+t = t.replace('Theme.MaterialComponents.DayNight.NoActionBar', 'Theme.MaterialComponents.NoActionBar')
+t = t.replace('#FF0000', '#FF7A00').replace('#CC0000', '#D96300')
+t = t.replace('tools:targetApi="23">true', 'tools:targetApi="23">false')
+theme.write_text(t, encoding='utf-8')
+
+initializer = Path('third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/other/ExoPlayerInitializer.java')
+t = initializer.read_text(encoding='utf-8')
+t = replace(t, 'int bufferForPlaybackMs = 2_500;', 'int bufferForPlaybackMs = 750; // Mobile startup threshold; retain forward buffer.')
+t = replace(t, 'int bufferForPlaybackAfterRebufferMs = 5_000;', 'int bufferForPlaybackAfterRebufferMs = 2_000;')
+initializer.write_text(t, encoding='utf-8')
+
+loader = Path('third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java')
+t = loader.read_text(encoding='utf-8')
+t = replace(t, '    private Disposable mFormatInfoAction;', '    private Disposable mFormatInfoAction;\n    private long mNm7FormatStart;')
+t = replace(t, '        mFormatInfoAction = mediaItemManager.getFormatInfoObserve(video.videoId)',
+            '        mNm7FormatStart = android.os.SystemClock.elapsedRealtime();\n        android.util.Log.i("NM7Startup", "format_request");\n        mFormatInfoAction = mediaItemManager.getFormatInfoObserve(video.videoId)')
+t = replace(t, '    private void processFormatInfo(MediaItemFormatInfo formatInfo) {',
+            '    private void processFormatInfo(MediaItemFormatInfo formatInfo) {\n        android.util.Log.i("NM7Startup", "format_ready_ms=" + (android.os.SystemClock.elapsedRealtime() - mNm7FormatStart));')
+loader.write_text(t, encoding='utf-8')
+print('NM7 Mobile lifecycle and native UI v39 applied to pinned phone source')

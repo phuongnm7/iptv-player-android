@@ -68,12 +68,8 @@ public final class HomeTabBar {
         // when the user had a channel playing before YouTube took ownership. Otherwise
         // keep the YouTube mini-player alive above the IPTV channel list.
         boolean resumeIptv = MobileInlinePlayerProviderV2.shouldResumeIptvAfterYoutube();
-        if (resumeIptv) {
-            MobileNm7Application.stopYoutubeForIptv();
-            System.setProperty("nm7.youtube.background", "0");
-            SharedPlaybackSession.setYoutubeBackground(activity, false);
-            PlayerActivity.cancelYoutubeHandoff();
-        }
+        // Leave YouTube alive while the returning IPTV channel buffers.
+        PlayerActivity.cancelYoutubeHandoff();
         SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_IPTV);
         MobileNm7Application.markTabSwitch();
         Intent intent;
@@ -88,8 +84,6 @@ public final class HomeTabBar {
     }
 
     private static void openBrowse(Activity activity) {
-        System.setProperty("nm7.youtube.background", "0");
-        SharedPlaybackSession.setYoutubeBackground(activity, false);
         SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_YOUTUBE);
         MobileNm7Application.markTabSwitch();
         PlayerActivity.prepareForYoutubeHandoff(activity);

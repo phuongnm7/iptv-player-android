@@ -153,7 +153,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
             resumeAfterYoutube = false;
             playInline(currentChannel);
         }
-        stopBackgroundService(main);
+        if (!MobileNm7Application.isYoutubeSessionActive()) stopBackgroundService(main);
         backgroundActive = false;
         if (player != null) {
             player.setWakeMode(C.WAKE_MODE_NONE);
@@ -421,7 +421,6 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
 
     private void playInline(Channel channel) {
         if (currentActivity == null || playerView == null) return;
-        MobileNm7Application.stopYoutubeForIptv();
         SharedPlaybackSession.setTab(currentActivity, SharedPlaybackSession.TAB_IPTV);
         int generation = ++playGeneration;
         recoveryAttempts = 0;
@@ -488,7 +487,8 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
                     .setLoadControl(stableLoadControl())
                     .setMediaSourceFactory(mediaFactory).build();
             next.setAudioAttributes(new AudioAttributes.Builder()
-                    .setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(), true);
+                    .setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(), false);
+            next.setVolume(0f); // Prepare silently; retain YouTube until IPTV is READY.
             next.setHandleAudioBecomingNoisy(true);
             next.setWakeMode(C.WAKE_MODE_NONE);
             player = next;
@@ -521,6 +521,12 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
                         if (bufferingSinceMs == 0) bufferingSinceMs = android.os.SystemClock.elapsedRealtime();
                     }
                     if (state == Player.STATE_READY) {
+                        if (next.getPlayWhenReady() && next.getVolume() == 0f) {
+                            MobileNm7Application.stopYoutubeForIptv();
+                            next.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA)
+                                    .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(), true);
+                            next.setVolume(1f);
+                        }
                         bufferingSinceMs = 0;
                         updateProgramme(channel);
                         updateSeekUi();
@@ -543,6 +549,12 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
                 }
                 @Override public void onPlayWhenReadyChanged(boolean playWhenReady, int reason) {
                     if (generation != playGeneration || next != player) return;
+                    if (playWhenReady && next.getPlaybackState() == Player.STATE_READY && next.getVolume() == 0f) {
+                        MobileNm7Application.stopYoutubeForIptv();
+                        next.setVolume(1f);
+                        next.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA)
+                                .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(), true);
+                    }
                     if (reason == Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST && !lifecyclePauseInProgress) {
                         userPaused = !playWhenReady;
                     }
@@ -1087,6 +1099,18 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
     public static boolean shouldResumeIptvAfterYoutube() {
         MobileInlinePlayerProviderV2 owner = instance;
         return owner != null && owner.resumeAfterYoutube && owner.currentChannel != null;
+    }
+
+    public static void stopForSleepTimer() {
+        MobileInlinePlayerProviderV2 owner = instance;
+        if (owner == null) return;
+        ++owner.playGeneration;
+        owner.resumeAfterYoutube = false;
+        owner.resumeAfterLifecyclePause = false;
+        owner.currentChannel = null;
+        owner.backgroundActive = false;
+        owner.releasePlayer();
+        if (owner.currentActivity != null) owner.stopBackgroundService(owner.currentActivity);
     }
 
     public static void releaseForYoutube() {
