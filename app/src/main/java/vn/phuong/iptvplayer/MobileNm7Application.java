@@ -197,6 +197,12 @@ public final class MobileNm7Application extends DroidApplication implements andr
         String name = activity.getClass().getName();
         if (activity instanceof PlayerActivity) {
             clearTabSwitch();
+        } else if (activity instanceof MainActivity
+                && SharedPlaybackSession.TAB_IPTV.equals(SharedPlaybackSession.tab(activity))
+                && !MobileInlinePlayerProviderV2.shouldResumeIptvAfterYoutube()) {
+            // The IPTV tab is only a list until a channel is selected. Keep the live
+            // YouTube mini-player visible and attached while that list is in front.
+            activity.getWindow().getDecorView().post(() -> installYoutubeMiniPlayer(activity));
         }
         if (SMARTTUBE_PLAYBACK.equals(name)) {
             // Foreground YouTube no longer needs the background keep-alive service.
@@ -207,6 +213,54 @@ public final class MobileNm7Application extends DroidApplication implements andr
     public static boolean hasIptvPlayer() {
         return instance != null && instance.iptvPlayerActivity instanceof PlayerActivity
                 && !instance.iptvPlayerActivity.isFinishing();
+    }
+
+    /**
+     * SmartTube owns the actual YouTube player. Attach that one player to a compact
+     * TextureView in MainActivity while the user only browses the IPTV tab.
+     */
+    private static void installYoutubeMiniPlayer(Activity activity) {
+        try {
+            Class<?> playback = Class.forName(SMARTTUBE_PLAYBACK);
+            Object active = playback.getMethod("isNm7MiniPlayerActive").invoke(null);
+            if (!(active instanceof Boolean) || !((Boolean) active)) return;
+            View content = activity.findViewById(android.R.id.content);
+            if (!(content instanceof ViewGroup)) return;
+            ViewGroup root = (ViewGroup) content;
+            final int tag = 0x7f0a7e31;
+            View old = root.findViewWithTag(tag);
+            if (old != null) root.removeView(old);
+            float density = activity.getResources().getDisplayMetrics().density;
+            android.widget.FrameLayout box = new android.widget.FrameLayout(activity);
+            box.setTag(tag);
+            box.setBackgroundColor(android.graphics.Color.BLACK);
+            android.widget.FrameLayout.LayoutParams params = new android.widget.FrameLayout.LayoutParams(
+                    (int) (180 * density), (int) (101 * density),
+                    android.view.Gravity.BOTTOM | android.view.Gravity.END);
+            params.bottomMargin = (int) (76 * density);
+            params.rightMargin = (int) (12 * density);
+            android.view.TextureView video = new android.view.TextureView(activity);
+            box.addView(video, new android.widget.FrameLayout.LayoutParams(-1, -1));
+            video.setOnClickListener(v -> {
+                try { playback.getMethod("restoreNm7Player").invoke(null); }
+                catch (ReflectiveOperationException | RuntimeException ignored) { }
+            });
+            android.widget.ImageButton close = new android.widget.ImageButton(activity);
+            close.setImageResource(android.R.drawable.ic_menu_close_clear_cancel);
+            close.setContentDescription("Đóng video YouTube");
+            box.addView(close, new android.widget.FrameLayout.LayoutParams(
+                    (int) (36 * density), (int) (36 * density),
+                    android.view.Gravity.TOP | android.view.Gravity.END));
+            close.setOnClickListener(v -> {
+                try { playback.getMethod("stopForNm7Iptv").invoke(null); }
+                catch (ReflectiveOperationException | RuntimeException ignored) { }
+                root.removeView(box);
+            });
+            root.addView(box, params);
+            playback.getMethod("attachNm7MiniPlayer", android.view.TextureView.class).invoke(null, video);
+        } catch (ReflectiveOperationException | RuntimeException error) {
+            android.util.Log.e("NM7Playback", "IPTV mini-player attach failed", error);
+        }
     }
 
     /** Bring the actual YouTube playback/browse Activity back after HOME/process recreation. */
