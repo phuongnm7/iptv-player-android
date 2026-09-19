@@ -263,7 +263,10 @@ $startNew=@'
         } catch (ReflectiveOperationException | RuntimeException ignored) {
         }
 
-        if (VERSION.SDK_INT > 23) {
+        if (VERSION.SDK_INT > 23 && mPlayer == null) {
+            // NM7 Mobile: HOME/background must return to the same live SmartTube
+            // player. Re-running initializePlayer() here recreates the session and
+            // causes the loading spinner seen after returning from HOME.
             initializePlayer();
         }
 
@@ -421,9 +424,8 @@ $destroyOld=@'
 $destroyNew=@'
     @Override
     protected void onDestroy() {
-        if (sActiveInstance == this) {
+        if (sActiveInstance == this && !sMiniPlayerActive) {
             sActiveInstance = null;
-            sMiniPlayerActive = false;
         }
         super.onDestroy();
 '@
@@ -431,6 +433,10 @@ if($playText.Contains($destroyOld)){$playText=$playText.Replace($destroyOld,$des
 
 if($playText -notmatch 'isMiniPlayerActive\(\)' -or $playText -notmatch 'setVideoTextureView\(miniView\)' -or $playText -notmatch 'startActivity\(intent\)'){
     Fail "SmartTube PlaybackActivity mini-player patch validation failed."
+}
+
+if($playText -notmatch 'VERSION\.SDK_INT > 23 && mPlayer == null'){
+    Fail "SmartTube HOME resume guard is missing; refusing to build a session-resetting player."
 }
 WriteT $play $playText
 
