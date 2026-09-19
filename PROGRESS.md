@@ -1,30 +1,77 @@
-# MOBILE 1.10.37 — SOURCE FIX, RUNTIME NOT YET VERIFIED — 2026-09-19
+# CẬP NHẬT TIẾN ĐỘ — NM7 IPTV MOBILE 1.10.37 — 2026-09-19
 
-User confirms both 1.10.35 and 1.10.36 still fail all reported playback transitions. Do not mark either stable, and do not ask for the test video again.
+## Phạm vi
 
-## Verified source causes
+- Repository: `phuongnm7/iptv-player-android`
+- Branch: `fix/mobile-1.10.26-sleep-timer-icon`
+- Chỉ xử lý **NM7 IPTV Mobile**. Không có thay đổi nào đối với dự án Android TV.
+- Không quay lại kiến trúc một ExoPlayer dùng chung cho IPTV và YouTube.
 
-- Actual main-screen IPTV owner is MobileInlinePlayerProviderV2. Its onActivityPaused paused IPTV on opening Browse; previous handoff only addressed PlayerActivity.
-- Windows patch used non-existent vn.phuongnm7.iptvplayer bridge names and swallowed exceptions.
-- 1.10.36 CI patch skipped an already-existing onUserLeaveHint, retained unconditional initializePlayer onStart, and supplied no mini-player surface in Browse.
-- Browse singleTask conflicted with retaining the PlaybackActivity above it.
-- Windows and CI used different patches and unpinned phone sources.
+## Trạng thái bản 1.10.35 và 1.10.36
 
-## Changes in this branch
+Người dùng đã cài và test thực tế: **cả 1.10.35 và 1.10.36 vẫn còn các lỗi chuyển IPTV/YouTube đã báo**. Hai bản này không được xem là ổn định và không được dùng làm mốc bàn giao chức năng.
 
-- Pin phone fork to 4825d6aa8b6f1d3181927f9e96c7d89cab13d510, no upstream history merge.
-- Both builds use scripts/patch-mobile-v37.py and the same Java fragments.
-- Inline IPTV continues during Browse. Ready + playWhenReady hook releases both IPTV owners and cancels stale retries.
-- Explicit IPTV selection closes the existing YouTube session directly, without global media pause keys.
-- Preserve SmartTube player across Home/lock/mini; initialize only when null. Existing MediaSession stays attached to that player.
-- Back callback for API 33+ and legacy Back attach same player to Browse TextureView; click restores it without autoplaying user-paused content.
-- Browse and Playback use singleTop plus reorder, not singleTask.
-- Background service bridge uses actual package; notification returns to YouTube; CPU wake lock is released with service.
-- Version 1.10.37 / code 55. Mobile only; ARM64 and ARMv7 only. No changes to TV project.
+Nguyên nhân đã xác định từ source:
 
-## Verification and remaining acceptance
+1. **1.10.35 chỉ là bản sửa compile**, không thay đổi lifecycle runtime so với patch lỗi trước đó.
+2. IPTV bị dừng khi `PlaybackActivity` bắt đầu hoặc Activity được mở, thay vì đợi YouTube thật sự đạt `STATE_READY + playWhenReady`.
+3. Player IPTV thực tế ở màn hình Mobile là `MobileInlinePlayerProviderV2`; patch cũ chỉ xử lý `PlayerActivity`, nên bỏ sót player người dùng đang xem.
+4. Bản Windows và GitHub Actions đã từng dùng các patch khác nhau; một bridge reflection dùng sai package `vn.phuongnm7.iptvplayer` và nuốt exception.
+5. Patch Back/Home cũ tự dựng mini-player ngoài lifecycle thực tế của SmartTube và không gắn đầy đủ surface/player.
+6. Source SmartTube trước đây không được khóa commit, vì vậy cùng source NM7 có thể cho APK khác nhau khi build.
 
-20 structural checks passed locally on generated phone Java. This is not device/runtime verification. CI must compile and package this exact source before distributing APKs. Generated-source hashes and Java evidence are uploaded separately. No Android device/emulator is available in this workspace; do not claim all runtime bugs are resolved until the 8 requested playback/navigation transitions pass.
+## Các thay đổi trong 1.10.37
+
+- Khóa SmartTube phone fork tại commit `4825d6aa8b6f1d3181927f9e96c7d89cab13d510`; bỏ việc merge history upstream thay đổi theo thời điểm build.
+- Windows và GitHub Actions dùng chung `scripts/patch-mobile-v37.py` cùng các Java fragment.
+- Khi chỉ mở YouTube Browse, IPTV inline tiếp tục phát.
+- Chỉ khi YouTube player báo **READY và playWhenReady** thì mới bàn giao quyền phát và giải phóng cả hai owner IPTV; đồng thời hủy các callback IPTV retry còn chờ.
+- Khi người dùng chọn kênh IPTV, đóng session YouTube đang tồn tại trực tiếp, không gửi phím pause media toàn cục.
+- Giữ SmartTube player qua Home/khóa màn hình/mini-player; chỉ khởi tạo player khi player hiện tại là null.
+- Back lần đầu (API 33+ và Back cũ) đưa về Browse, gắn cùng player vào `TextureView` của mini-player; bấm mini-player quay lại video mà không tự phát lại video đã bị người dùng pause.
+- Browse và Playback dùng `singleTop` + reorder thay cho `singleTask`, tránh xóa PlaybackActivity khỏi back stack.
+- Bridge service nền dùng đúng package `vn.phuong.iptvplayer`; notification mở lại YouTube và wake lock được giải phóng cùng service.
+- Service nền chỉ được thay đổi sau khi YouTube thực sự nhận quyền phát; không làm tắt service IPTV khi YouTube mới mở nhưng chưa phát video.
+
+## Build 1.10.37 đã hoàn tất
+
+- Version: **1.10.37**
+- Version code: **55**
+- Commit build cuối: [f0581431ba7299e89a540914451e2e9f5f309644](https://github.com/phuongnm7/iptv-player-android/commit/f0581431ba7299e89a540914451e2e9f5f309644)
+- GitHub Actions workflow: **NM7 Mobile Final Build**
+- Run: [#338](https://github.com/phuongnm7/iptv-player-android/actions/runs/35437270162)
+- Kết quả: **SUCCESS**
+- Gradle: `:app:testMobileDebugUnitTest assembleMobileDebug`
+- Artifact: [NM7-IPTV-Mobile-FINAL](https://github.com/phuongnm7/iptv-player-android/actions/runs/35437270162/artifacts/10583090783)
+- Artifact ID: `10583090783`
+- Artifact SHA-256: `973162409d6bf5bd5fe6ee10f15bc88400e6302b1ac086c18fc8ba12a877230c`
+- Artifact hết hạn: **2026-10-19**
+
+APK được đóng gói đúng **2 bản Mobile**:
+
+| Kiến trúc | Tên APK | SHA-256 |
+|---|---|---|
+| ARM64-v8a | `NM7-IPTV-Mobile-1.10.37-arm64-v8a.apk` | `415ef2819fe2f73231cd7034b2012ab4e00171c80bfa368b4cc7a62defef443c` |
+| armeabi-v7a | `NM7-IPTV-Mobile-1.10.37-armeabi-v7a.apk` | `f5256b5e3f603591d288ee6cf9ee27e6a0d27c0dd57a6fca943920b7c8a3d867` |
+
+Không chứa ABI x86/x86_64 hoặc `libvlc.so`.
+
+## Mức xác minh hiện tại
+
+CI đã xác nhận patch được áp dụng lên source SmartTube đã khóa, 20 kiểm tra lifecycle source đạt, unit test/build thành công và APK có đúng hai ABI ARM.
+
+**Chưa có kết quả xác nhận runtime trên thiết bị thật cho 1.10.37.** Vì vậy chưa được ghi nhận là đã sửa xong toàn bộ lỗi.
+
+Các tình huống cần xác nhận khi test 1.10.37:
+
+1. IPTV đang phát → mở YouTube Browse, chưa chọn video → IPTV vẫn phát.
+2. Chọn video YouTube → IPTV chỉ dừng khi video YouTube thực sự bắt đầu phát.
+3. YouTube đang phát → Home hoặc khóa màn hình → YouTube tiếp tục phát.
+4. Mở lại app → vẫn giữ đúng phiên YouTube đang phát.
+5. YouTube đang phát → Back một lần → Browse + mini-player, video tiếp tục phát.
+6. Bấm mini-player → quay lại video đang phát.
+7. Chuyển IPTV ↔ YouTube nhiều lần → không crash và không mất player.
+
 
 ---
 
