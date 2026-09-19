@@ -194,8 +194,10 @@ jobs:
           set -o pipefail
           gradle --no-daemon --console=plain -PcompileSdkVersion=android-36 -PminSdkVersion=23 -PtargetSdkVersion=36 -PbuildToolsVersion=36.0.0 -PtestXSupportVersion=1.1.0 -PannotationXVersion=1.1.0 -ProbolectricVersion=4.6.1 -PmobileAbiSplits=true :app:testMobileDebugUnitTest assembleMobileDebug -x :slidableactivity:testMobileDebugUnitTest
           set -euxo pipefail
-          merged="app/build/intermediates/merged_manifest/mobileDebug/processMobileDebugManifest/AndroidManifest.xml"
+          merged="$(find app/build/intermediates -type f -path '*mobileDebug*' -name AndroidManifest.xml | head -n1)"
+          test -n "$merged"
           test -f "$merged"
+          echo "Using merged manifest: $merged"
           ! grep -q 'TvLayoutTunerProvider\|TvStreamRecoveryProvider\|TvPlayerUiProvider\|VlcFallbackActivity' "$merged"
           ! grep -q 'LEANBACK_LAUNCHER' "$merged"
           ! unzip -l app/build/outputs/apk/mobile/debug/app-mobile-arm64-v8a-debug.apk | grep -q 'libvlc\.so'
