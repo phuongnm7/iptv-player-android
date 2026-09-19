@@ -200,7 +200,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
 
     @Override public void onActivityResumed(Activity activity) {
         String name = activity.getClass().getName();
-        if (activity instanceof PlayerActivity || SMARTTUBE_BROWSE.equals(name)) {
+        if (activity instanceof PlayerActivity) {
             clearTabSwitch();
         }
         if (SMARTTUBE_PLAYBACK.equals(name)) {
