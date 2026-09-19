@@ -1,3 +1,56 @@
+# HOTFIX 1.10.32 — 2026-09-19 — THAY ĐỔI KIẾN TRÚC CHO 3 LỖI RUNTIME
+
+## Trạng thái
+
+1.10.31 đã build thành công nhưng người dùng xác nhận cả các lỗi chính vẫn còn. 1.10.32 là vòng sửa mới, **chưa runtime-verified**.
+
+### Thay đổi chính
+
+**A. IPTV → YouTube Browse**
+- Không còn xóa `tabSwitchPending` chỉ vì Browse được resume.
+- Chỉ xóa guard khi PlayerActivity IPTV thực sự resume hoặc khi SmartTube PlaybackActivity thực sự start.
+- PlayerActivity giữ IPTV ExoPlayer trong cả `onStop()` và `onDestroy()` nếu YouTube handoff vẫn pending/tab YouTube.
+- Mục tiêu: không release IPTV chỉ vì Browse xuất hiện.
+
+**B. YouTube BACK → mini-player**
+- Bỏ đường `getViewManager().startParentView()` khỏi mini-player.
+- Bỏ `blockEngine(true)` và background sound mode trong BACK mini-player.
+- BACK giờ mở trực tiếp phone `BrowseActivity` bằng `REORDER_TO_FRONT`.
+- `sMiniPlayerActive=true` bảo vệ SmartTube `onStop()` khỏi `maybeReleasePlayer()`.
+- Browse `onResume()` cài mini-player và attach TextureView vào cùng mPlayer.
+- Lý do: mini-player cần video engine vẫn ở trạng thái video bình thường; block engine/background mode trước khi attach có thể làm mất hình.
+- Đây là thay đổi có chủ đích so với các vòng 1.10.28–1.10.31.
+
+**C. YouTube HOME/background**
+- Start `BackgroundPlaybackService` ngay trong `onUserLeaveHint()`, tức khi Activity vẫn còn foreground/visible, thay vì chỉ trông chờ `onPause()`.
+- Giữ `FOREGROUND_SERVICE_MEDIA_PLAYBACK` và service type `mediaPlayback`.
+- Service không còn tự `stopSelf()` trong `onTaskRemoved()`; playback phải được dừng bởi lifecycle playback thực sự.
+- Android yêu cầu media playback foreground service cho việc tiếp tục phát media ở background; đây là lý do 1.10.32 chuyển điểm start service lên trước khi app rời foreground.
+
+## Version
+
+- Mobile: **1.10.32**
+- versionCode: **50**
+- Build script PATCH17.
+- Commit build-script fix: `e527157177f56ddc5ed25d8f6030eabd8b1205d6`
+- Commit service: `0f71d983996de143e1d1a32272d768746b39b05a`
+- Commit version: `714c6678175209f9c1277ba1d37ae35d3859a645`
+
+## Chưa xác nhận
+
+**Không đánh dấu 1.10.32 PASS trước khi build local và test máy thật.**
+
+Checklist bắt buộc:
+1. IPTV phát → YouTube Browse, không chọn video → IPTV vẫn phát.
+2. Chọn video YouTube → IPTV mới release.
+3. YouTube video → BACK 1 lần → Browse + mini-player.
+4. Mini-player vẫn có hình + tiếng.
+5. Bấm mini-player → full player.
+6. YouTube video → HOME → audio tiếp tục.
+7. Mở lại app → YouTube/video/session còn.
+8. Không thêm Android TV vào Mobile.
+
+---
 # BÀN GIAO KHẨN — 2026-09-19 — MOBILE 1.10.31 VẪN FAIL TOÀN BỘ CÁC LỖI RUNTIME CHÍNH
 
 ## XÁC NHẬN MỚI NHẤT TỪ MÁY THẬT
