@@ -196,6 +196,31 @@ jobs:
           if old_back not in t2:
               raise SystemExit('PlaybackActivity onBackPressed block not found')
           t2 = t2.replace(old_back, new_back)
+
+          # Real YouTube playback ownership hook.
+          # mPlayer is the verified SimpleExoPlayer field in SmartTube PlaybackActivity.
+          # STATE_READY + playWhenReady is the first reliable point where a video is
+          # actually ready to play; Activity creation/onStart is intentionally ignored.
+          listener_marker = '''        mPlayer.addListener(new Player.EventListener() {
+            @Override
+            public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {'''
+          listener_hook = '''                if (playWhenReady && playbackState == Player.STATE_READY) {
+                    try {
+                        vn.phuong.iptvplayer.MobileNm7Application.pauseIptvForYoutube();
+                    } catch (RuntimeException ignored) {
+                    }
+                }
+
+'''
+          if listener_marker not in t2:
+              raise SystemExit('Verified SmartTube mPlayer listener insertion point not found')
+          if 'MobileNm7Application.pauseIptvForYoutube()' not in t2:
+              t2 = t2.replace(
+                  listener_marker,
+                  listener_marker + listener_hook,
+                  1
+              )
+
           playback.write_text(t2)
           print('Patched SmartTube phone feed to 1 column and preserved player across NM7 tab switches')
           PY
@@ -295,7 +320,7 @@ jobs:
       - name: Install SDK packages
         run: sdkmanager "platforms;android-34" "platforms;android-36" "build-tools;36.0.0"
 
-      - name: Build Mobile 1.10.26 only
+      - name: Build Mobile only (NM7 IPTV 1.10.36)
         run: |
           set -o pipefail
           gradle --no-daemon --console=plain -PcompileSdkVersion=android-36 -PminSdkVersion=23 -PtargetSdkVersion=36 -PbuildToolsVersion=36.0.0 -PtestXSupportVersion=1.1.0 -PannotationXVersion=1.1.0 -ProbolectricVersion=4.6.1 -PmobileAbiSplits=true :app:testMobileDebugUnitTest assembleMobileDebug -x :slidableactivity:testMobileDebugUnitTest
@@ -325,5 +350,5 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-# CI trigger refresh: Mobile-only 1.10.26; no TV job.
+# NM7 Mobile-only lifecycle fix: release IPTV only on real YouTube playback start; preserve YouTube on HOME/Back.
 # Budget restored; run Mobile Final CI.
