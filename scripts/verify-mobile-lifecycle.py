@@ -26,6 +26,7 @@ def check(condition, label):
 
 check('vn.phuongnm7.iptvplayer' not in play, 'Bridge uses actual Java package')
 check('pauseIptvForYoutube' not in body('protected void onStart()'), 'Activity start does not release IPTV')
+check('Build the decoder/player before the Activity is shown' in play, 'YouTube player prewarms before first frame')
 check('if (mPlayer == null) initializePlayer();' in body('protected void onStart()'), 'Resume reuses player')
 check('playWhenReady && playbackState == Player.STATE_READY' in play, 'Handoff gated by ready and playing intent')
 check('MobileInlinePlayerProviderV2.releaseForYoutube();' in application, 'Handoff reaches inline owner')
