@@ -1,8 +1,6 @@
 name: Patch SmartTube build compatibility
 
 on:
-  push:
-    branches: ["fix/mobile-1.10.26-sleep-timer-icon"]
   workflow_dispatch:
 
 permissions:
