@@ -180,6 +180,9 @@ if($browseText.Contains($browseNeedle)){$browseText=$browseText.Replace($browseN
 if($browseText -notmatch 'installNm7MiniPlayer\(\)' -or $browseText -notmatch 'new TextureView') { Fail "Browse mini-player patch validation failed." }
 WriteT $browse $browseText
 
+$play=Join-Path $ST "smarttubedroid\src\main\java\com\liskovsoft\smartyoutubetv2\droid\ui\playback\PlaybackActivity.java"
+if(-not(Test-Path $play)){Fail "PlaybackActivity.java not found."}
+
 $playText=ReadT $play
 if($playText -notmatch 'import android.view.TextureView;'){
     $playText=$playText.Replace("import android.view.ViewGroup;", "import android.view.ViewGroup;"+$nl+"import android.view.TextureView;")
