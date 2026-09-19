@@ -142,7 +142,7 @@ print("SmartTube Mobile lifecycle patch completed")
 # Keep this phone fork compatible with the current SmartTube controller interface.
 # Some controller methods are no longer declared by the inherited interface.
 playback_text = playback.read_text()
-playback_text = re.sub(r'(?m)^    @Override\n(?=    public (?:void setPitch|float getPitch)\\b)', '', playback_text)
+playback_text = re.sub(r'(?m)^    @Override\s*\n(?=    public (?:void setPitch|float getPitch)\b)', '', playback_text)
 playback.write_text(playback_text)
 
 # Keep this fork buildable when section_is_empty is absent from the phone resource table.
