@@ -44,6 +44,6 @@ public final class BackgroundPlaybackService extends Service {
         return START_NOT_STICKY;
     }
 
-    @Override public void onTaskRemoved(Intent rootIntent) { stopSelf(); }
+    @Override public void onTaskRemoved(Intent rootIntent) { /* Keep playback service alive; explicit stop is used when playback ends. */ }
     @Override public IBinder onBind(Intent intent) { return null; }
 }
