@@ -1,5 +1,5 @@
 # NM7 IPTV Mobile 1.10.26 - Windows local build
-# SCRIPT_VERSION: 2026-09-19-PATCH15
+# SCRIPT_VERSION: 2026-09-19-PATCH16
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 $Root = Split-Path -Parent $PSScriptRoot
@@ -328,10 +328,9 @@ $backNew=@'
 
         mIsBackPressed = true;
 
-        // NM7 Mobile: use SmartTube's own finish()/parent-view path. With skipPip()
-        // forced false and the engine marked as background, SmartTube brings Browse to
-        // the front while keeping this PlaybackActivity/player alive. BrowseActivity then
-        // attaches the live player surface to the NM7 mini-player.
+        // NM7 Mobile: invoke SmartTube's own parent-view navigation directly.
+        // Do not call finish() here: finish() first evaluates the PIP path, while the
+        // required behavior is an in-app Browse + mini-player handoff.
         if (mPlayer != null && !isFinishing() && !isDestroyed()) {
             sMiniPlayerActive = true;
             System.setProperty("nm7.youtube.background", "1");
@@ -340,7 +339,8 @@ $backNew=@'
             } catch (RuntimeException ignored) {
             }
             blockEngine(true);
-            finish();
+            getViewManager().blockTop(this);
+            getViewManager().startParentView(this);
             return;
         }
 
