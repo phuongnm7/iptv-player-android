@@ -227,7 +227,7 @@ $startNew=@'
         } catch (ReflectiveOperationException | RuntimeException ignored) {
         }
 
-        if (VERSION.SDK_INT > 23 && mPlayer == null) {
+        if (VERSION.SDK_INT > 23) {
             initializePlayer();
         }
 
@@ -251,8 +251,7 @@ $stopOld=@'
     protected void onStop() {
         super.onStop();
 
-        boolean nm7YoutubeBackground = "1".equals(System.getProperty("nm7.youtube.background", "0"));
-        if (VERSION.SDK_INT > 23 && !nm7YoutubeBackground) {
+        if (VERSION.SDK_INT > 23) {
             maybeReleasePlayer();
         }
     }
