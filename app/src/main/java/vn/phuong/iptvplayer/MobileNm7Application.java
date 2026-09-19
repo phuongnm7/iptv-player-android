@@ -98,17 +98,18 @@ public final class MobileNm7Application extends DroidApplication implements andr
         String name = activity.getClass().getName();
         if (activity instanceof PlayerActivity) {
             iptvPlayerActivity = activity;
-            // The active tab is written only by explicit tab navigation. Do not overwrite
-            // a persisted YouTube tab during Android lifecycle callbacks.
-            // Entering IPTV is an explicit media switch. Pause any active SmartTube
-            // session, including Play-Behind/background playback.
-            pauseExternalMedia(activity);
-            // A real IPTV session takes ownership back from YouTube background playback.
-            activity.stopService(new Intent(activity, BackgroundPlaybackService.class));
+            // Only an explicit IPTV tab start may take ownership from YouTube.
+            // Creating/resuming PlayerActivity while YouTube owns the session must not
+            // send a global MEDIA_PAUSE event to SmartTube.
+            if (SharedPlaybackSession.TAB_IPTV.equals(SharedPlaybackSession.tab(activity))) {
+                pauseExternalMedia(activity);
+                activity.stopService(new Intent(activity, BackgroundPlaybackService.class));
+            }
         } else if (SMARTTUBE_BROWSE.equals(name)) {
             smartTubeBrowseActivity = activity;
         } else if (SMARTTUBE_PLAYBACK.equals(name)) {
             smartTubePlaybackActivity = activity;
+            clearTabSwitch();
             SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_YOUTUBE);
             SharedPlaybackSession.setYoutubeBackground(activity, false);
             // Do not enable Play-Behind merely because PlaybackActivity was created.
