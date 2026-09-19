@@ -56,8 +56,7 @@ if "void onUserLeaveHint()" not in t:
     pip_marker = re.search(r"(?m)^    public boolean isInPIPMode\(\)\s*\{", t) or re.search(r"(?m)^    public boolean isInPipMode\(\)\s*\{", t)
     if not pip_marker:
         raise SystemExit("PlaybackActivity PIP method marker not found")
-    leave = """    @Override
-    public void onUserLeaveHint() {
+    leave = """    public void onUserLeaveHint() {
         if (mIsBackPressed || isFinishing()) {
             return;
         }
@@ -124,7 +123,9 @@ marker = """        mPlayer.addListener(new Player.EventListener() {
             public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {"""
 hook = """                if (playWhenReady && playbackState == Player.STATE_READY) {
                     try {
-                        vn.phuong.iptvplayer.MobileNm7Application.pauseIptvForYoutube();
+                        Class.forName("vn.phuong.iptvplayer.MobileNm7Application")
+                                .getMethod("pauseIptvForYoutube")
+                                .invoke(null);
                     } catch (RuntimeException ignored) {
                     }
                 }
@@ -137,3 +138,8 @@ if "MobileNm7Application.pauseIptvForYoutube()" not in t:
 
 playback.write_text(t)
 print("SmartTube Mobile lifecycle patch completed")
+
+# Keep this fork buildable when section_is_empty is absent from the phone resource table.
+playback_text = playback.read_text()
+playback_text = playback_text.replace('showDetailsMessage(getString(R.string.section_is_empty));', 'showDetailsMessage("No comments available");')
+playback.write_text(playback_text)
