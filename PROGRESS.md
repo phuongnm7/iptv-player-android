@@ -1,4 +1,4 @@
-# ĐANG BUILD — NM7 IPTV MOBILE 1.10.40 — GIAO DIỆN THEO SUPER OK
+# ĐÃ BUILD THÀNH CÔNG — NM7 IPTV MOBILE 1.10.40 — GIAO DIỆN THEO SUPER OK
 
 ## Yêu cầu và mốc giữ nguyên
 
@@ -27,8 +27,21 @@ Người dùng yêu cầu tab YouTube giống ảnh `photo_2026-09-20_06-27-50.j
 - Patch áp dụng thành công trên nguồn upstream sạch.
 - 21 kiểm tra cấu trúc lifecycle PASS.
 - So sánh byte xác nhận PlaybackActivity, ExoPlayerInitializer, VideoLoaderController sinh ra giống bản 1.10.39; phương thức chuyển tab IPTV/YouTube cũng giữ nguyên.
-- XML giao diện parse thành công. Đang chờ CI biên dịch và tạo APK ARM64/ARMv7.
+- XML giao diện parse thành công. CI đã biên dịch thành công; unit-test task và assembleMobileDebug hoàn tất. Hai APK đã qua kiểm tra chữ ký/ABI và kiểm tra manifest Mobile.
 - Chưa kiểm thử runtime/giao diện trên điện thoại cho 1.10.40; không xem các kiểm tra source là xác nhận thực tế.
+
+## APK bàn giao 1.10.40
+
+- Source commit: [3cdb120fc59f2cb2395104a0318755430595e789](https://github.com/phuongnm7/iptv-player-android/commit/3cdb120fc59f2cb2395104a0318755430595e789).
+- Version code: **58**.
+- [Build 35476892012 — SUCCESS](https://github.com/phuongnm7/iptv-player-android/actions/runs/35476892012). Gradle hoàn tất trong 6 phút 45 giây.
+- [Tải NM7-IPTV-Mobile-FINAL](https://github.com/phuongnm7/iptv-player-android/actions/runs/35476892012/artifacts/10595085459): ARM64-v8a, armeabi-v7a và SHA256SUMS.txt.
+- Artifact SHA-256: `b92bb0917206b5b68f41bfebbb3a8b38275fd5a99a7f5219984228a472390d46`.
+- APK ARM64 SHA-256: `62811fed5f02bbfef4217f007cbebed5bca92979de16ea0210096ee316307567`.
+- APK ARMv7 SHA-256: `48cbf89de9beec66c052e9364393536007c6a3a3ffc826097c23dd3c1530029a`.
+- Artifact hết hạn: **2026-10-19**.
+- Cần người dùng xác nhận giao diện/thao tác trên điện thoại: cuộn và tải thêm video, tìm kiếm/micro/tài khoản/menu, mini-player khi đổi tab, IPTV tiếp quản khi phát và hẹn giờ đóng app.
+- **1.10.39 vẫn là mốc đã được người dùng test xác nhận. 1.10.40 đã build thành công, đang chờ test thiết bị.**
 
 ---
 
