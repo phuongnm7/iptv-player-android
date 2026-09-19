@@ -546,6 +546,8 @@ $newStop=@'
 
 if($t.Contains($oldStop)){
     $t=$t.Replace($oldStop,$newStop)
+}elseif($t -match 'nm7YoutubeBackground.*sMiniPlayerActive'){
+    # Mini-player patch already owns onStop; keep it.
 }else{
     Fail "SmartTube phone onStop source shape changed; refusing unsafe lifecycle patch."
 }
@@ -695,6 +697,8 @@ $newBack=@'
 '@
 if($t.Contains($oldBack)){
     $t=$t.Replace($oldBack,$newBack)
+}elseif($t -match 'sMiniPlayerActive.*startActivity\(intent\)'){
+    # Mini-player patch already owns phone BACK handling.
 }else{
     Fail "SmartTube phone onBackPressed source shape changed; refusing unsafe mini-player patch."
 }
