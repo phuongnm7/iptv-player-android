@@ -706,11 +706,11 @@ $newBack=@'
 if($t.Contains($oldBack)){
     $t=$t.Replace($oldBack,$newBack)
 }elseif($t -match 'sMiniPlayerActive.*startActivity\(intent\)'){
-    # Mini-player patch already owns phone BACK handling.
+    # The earlier true mini-player patch already owns phone BACK handling.
 }else{
     Fail "SmartTube phone onBackPressed source shape changed; refusing unsafe mini-player patch."
 }
-if($t -notmatch 'void\s+onBackPressed\s*\(\)[\s\S]*?blockEngine\(true\)[\s\S]*?startParentView\(this\)'){
+if($t -notmatch 'sMiniPlayerActive' -or $t -notmatch 'startActivity\(intent\)' -or $t -notmatch 'isMiniPlayerActive\(\)'){
     Fail "SmartTube mini-player BACK patch did not persist."
 }
 WriteT $play $t
