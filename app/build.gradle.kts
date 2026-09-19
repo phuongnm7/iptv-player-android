@@ -11,7 +11,7 @@ android {
         minSdk = 23
         targetSdk = 36
         versionCode = 51
-        versionName = "1.10.32"
+        versionName = "1.10.33"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["applicationClass"] = "vn.phuong.iptvplayer.MobileNm7Application"
