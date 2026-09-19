@@ -1,3 +1,61 @@
+# CẬP NHẬT MỚI NHẤT — MOBILE 1.10.38 — 2026-09-19
+
+## Điểm bàn giao hiện tại
+
+- Repo: `phuongnm7/iptv-player-android`.
+- Nhánh: `fix/mobile-1.10.26-sleep-timer-icon`.
+- **1.10.37: người dùng đã test, đánh giá “gần ổn”; còn lỗi mini-player khi chuyển tab và tải video YouTube chậm.**
+- **1.10.38: đã cập nhật source và BUILD SUCCESS; chưa có kết quả test thiết bị thật.**
+- Chỉ Mobile. Không tác động repo Android TV, không chuyển sang kiến trúc một ExoPlayer chung.
+
+Mục này cập nhật trạng thái mới nhất; các mục phía dưới là lịch sử, bao gồm trạng thái chờ test ở thời điểm cũ.
+
+## Phản hồi test và yêu cầu cần giữ
+
+Video đã cung cấp: `video_2026-09-19_22-02-48.mp4` (khoảng 92,6 giây). Đã xem các khung hình trích theo thời gian và đối chiếu source. Không yêu cầu gửi lại video.
+
+1. Nếu IPTV đang phát trước khi mở video YouTube: từ mini-player YouTube chuyển sang tab IPTV phải phát lại kênh IPTV đó.
+2. Nếu không có IPTV phát trước đó: chuyển sang tab IPTV phải giữ YouTube mini-player tiếp tục phát đến khi người dùng chọn kênh IPTV.
+3. Khi chưa chọn kênh IPTV, chuyển qua lại hai tab không được đóng mini-player hoặc mất phiên YouTube.
+4. Cải thiện thời gian bắt đầu phát video YouTube.
+5. Giữ hành vi Home/khóa màn hình, Back về mini-player, bấm mini-player quay lại video và chuyển nguồn không crash.
+
+## Nguyên nhân và source đã thay đổi
+
+- `HomeTabBar.openIptv()` trước đây gọi `stopYoutubeForIptv()` vô điều kiện ngay khi bấm tab; đây là đường đóng YouTube dù chưa chọn kênh.
+- Thêm `MobileInlinePlayerProviderV2.shouldResumeIptvAfterYoutube()`, dựa vào `resumeAfterYoutube` và kênh đang lưu trong phiên inline.
+- `HomeTabBar` chỉ đóng YouTube khi cờ khôi phục IPTV inline đang bật; nếu không, mở MainActivity và giữ YouTube.
+- `MobileNm7Application` bổ sung `installYoutubeMiniPlayer(Activity)` để gắn cùng SmartTube player vào TextureView ở màn hình IPTV, có nút đóng và thao tác quay lại video.
+- Chọn kênh trong `playInline()` tiếp tục là điểm gọi dừng YouTube để chuyển sang IPTV.
+- Script SmartTube bổ sung `initializePlayer()` sau `onViewInitialized()` trong onCreate để khởi tạo sớm hơn; onStart/onResume vẫn chỉ tạo player khi null.
+- Đây mới là thay đổi thời điểm khởi tạo, **chưa có đo đạc chứng minh giảm độ trễ tải YouTube hoặc xác định đầy đủ nguyên nhân tải chậm**. Không coi phần hiệu năng đã được xác nhận.
+- VersionName **1.10.38**, versionCode **56**.
+- Bộ kiểm tra source tăng từ 20 lên **21 kiểm tra cấu trúc**. Những kiểm tra này không thay thế test hành vi runtime.
+
+## Kết quả CI đã xác minh
+
+- Commit source cuối: [2e947f81e8e822e5349082313e7ed939128fcadb](https://github.com/phuongnm7/iptv-player-android/commit/2e947f81e8e822e5349082313e7ed939128fcadb).
+- Workflow: **NM7 Mobile Final Build**.
+- Run: [#345 — 35450879471](https://github.com/phuongnm7/iptv-player-android/actions/runs/35450879471).
+- Trạng thái kiểm tra trực tiếp: **completed / success**.
+- Artifact APK: [NM7-IPTV-Mobile-FINAL](https://github.com/phuongnm7/iptv-player-android/actions/runs/35450879471/artifacts/10586886241).
+- Artifact ID: `10586886241`.
+- SHA-256 ZIP: `365454aee8abc25d8b38f4d62199dcb6733cd8eec4bb986b56cccfdd35702e3f`.
+- Hết hạn artifact: **2026-10-19**.
+- Artifact bằng chứng source: `Mobile-lifecycle-source-proof`, ID `10587120455`.
+- Workflow kiểm tra đúng hai APK Mobile ARM64-v8a / armeabi-v7a, chữ ký và loại trừ x86/x86_64/libvlc trước khi upload.
+- Dùng artifact của đúng run trên, tránh các build trung gian được tạo khi cập nhật từng file.
+
+## Điểm còn phải kiểm tra ở lượt tiếp theo
+
+**Chưa đánh dấu 1.10.38 ổn định hoặc hết lỗi.** Cần kiểm tra hai tình huống có/không có IPTV trước YouTube, trạng thái IPTV đã pause/đóng, lặp chuyển tab, chọn kênh rồi quay lại YouTube và Home/khóa màn hình.
+
+Cần rà tiếp lifecycle khi giữ YouTube ở MainActivity: provider inline vẫn có đường gọi stopBackgroundService khi resume; lớp mini-player thêm vào MainActivity cần được dọn đúng khi chọn kênh hoặc session YouTube đóng. Nhánh khôi phục mới dựa vào inline provider; cần xác minh riêng nếu phiên IPTV đến từ PlayerActivity. Đây là các điểm cần xác minh từ source/runtime, không phải lỗi mới đã được người dùng xác nhận.
+
+Về tải video: cần phân biệt thời gian lấy metadata/URL, tải dữ liệu, buffer và frame đầu; thay đổi onCreate hiện tại chưa đủ bằng chứng để kết luận xử lý xong độ trễ trong video test.
+
+---
+
 # CẬP NHẬT TIẾN ĐỘ — NM7 IPTV MOBILE 1.10.37 — 2026-09-19
 
 ## Phạm vi
