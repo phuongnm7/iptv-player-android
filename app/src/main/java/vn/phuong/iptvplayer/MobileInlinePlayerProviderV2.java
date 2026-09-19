@@ -1083,6 +1083,12 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         return instance != null && instance.currentActivity != null && instance.currentChannel != null;
     }
 
+    /** True only when the channel that was playing before YouTube must be restored. */
+    public static boolean shouldResumeIptvAfterYoutube() {
+        MobileInlinePlayerProviderV2 owner = instance;
+        return owner != null && owner.resumeAfterYoutube && owner.currentChannel != null;
+    }
+
     public static void releaseForYoutube() {
         MobileInlinePlayerProviderV2 owner = instance;
         if (owner == null) return;
