@@ -1,3 +1,27 @@
+# HOTFIX 1.10.34 — BỔ SUNG PATCH19 SAU KHI 1.10.33 FAIL THỰC TẾ
+
+## Kết luận source sau khi rà lại
+
+1. **Không được dùng lifecycle của PlayerActivity để tự khởi động lại IPTV trong lúc tab YouTube đang active.** Đã chặn `startPlayer()` trong `PlayerActivity.onStart()` khi tab là YouTube/handoff.
+2. **Ownership switch chỉ xảy ra khi người dùng thực sự vào IPTV.** `MobileNm7Application.onActivityStarted(PlayerActivity)` không còn gửi MEDIA_PAUSE cho SmartTube nếu tab hiện tại vẫn là YouTube.
+3. **Android 13–16 Back dùng API mới.** SmartTube phone PlaybackActivity được patch bằng `OnBackInvokedCallback.PRIORITY_DEFAULT`; giữ thêm `onBackPressed()` cho Android cũ. Android 16 target API 36 không còn dispatch `onBackPressed()` mặc định. citeturn6search0turn5search0
+4. **Mini-player attach được retry 150ms + 500ms** và có thể attach lại vào TextureView hiện có nếu BrowseActivity đã tồn tại. Điều này xử lý race giữa `REORDER_TO_FRONT`, `onResume()` của Browse và thời điểm PlaybackActivity chuyển video surface.
+5. **HOME:** onPause có fallback start media foreground service; onResume nhận biết `nm7.youtube.background=1`, khôi phục foreground state và xóa marker thay vì để marker tồn tại sang transition tiếp theo.
+
+## Version
+
+- **1.10.34**
+- versionCode **52**
+- SmartTube patch **PATCH19**
+
+## Cơ sở kỹ thuật
+
+Android yêu cầu media playback background phải được duy trì bằng foreground service loại `mediaPlayback`; Media3 khuyến nghị player/session nằm trong MediaSessionService cho kiến trúc background hoàn chỉnh. Bản NM7 hiện tại vẫn giữ SmartTube làm owner của YouTube player, vì vậy không chuyển ExoPlayer YouTube sang một player thứ hai trong service — làm vậy sẽ tạo thêm một engine và phá yêu cầu giữ đúng session/video. citeturn1search1turn4search1
+
+**Trạng thái: source đã cập nhật, chưa runtime-verified.**
+
+---
+
 # HOTFIX 1.10.34 — 2026-09-19 — SỬA LẠI LIFECYCLE SAU KHI 1.10.33 VẪN LỖI
 
 1. **IPTV → YouTube:** `PlayerActivity.onStart()` không được tự `startPlayer()` khi tab đang là YouTube/handoff. Trước đây Activity IPTV có thể tự dựng lại ExoPlayer trong lúc YouTube đang ở Browse, làm transition sai trạng thái.
