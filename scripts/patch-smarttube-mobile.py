@@ -126,7 +126,7 @@ hook = """                if (playWhenReady && playbackState == Player.STATE_REA
                         Class.forName("vn.phuong.iptvplayer.MobileNm7Application")
                                 .getMethod("pauseIptvForYoutube")
                                 .invoke(null);
-                    } catch (RuntimeException ignored) {
+                    } catch (ReflectiveOperationException | RuntimeException ignored) {
                     }
                 }
 
