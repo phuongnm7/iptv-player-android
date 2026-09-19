@@ -667,54 +667,9 @@ if($t -notmatch 'private\s+boolean\s+skipPip\s*\(\)\s*\{\s*// NM7 Mobile: BACK[\
     Fail "SmartTube BACK parent-view patch did not persist."
 }
 
-# SmartTube's phone PlaybackActivity can receive Android BACK through the legacy
-# onBackPressed() path. Do not call super.onBackPressed() on the first BACK: that
-# destroys PlaybackActivity before Browse can take over. Use SmartTube's own
-# parent-view/engine-block path, which keeps the player alive as its mini-player.
-$oldBack=@'
-    @Override
-    public void onBackPressed() {
-        // The expanded description/comments sheet takes back first
-        if (onDetailsBack()) {
-            return;
-        }
-
-        mIsBackPressed = true;
-
-        super.onBackPressed();
-    }
-'@
-$newBack=@'
-    @Override
-    public void onBackPressed() {
-        // The expanded description/comments sheet takes back first
-        if (onDetailsBack()) {
-            return;
-        }
-
-        mIsBackPressed = true;
-
-        try {
-            blockEngine(true);
-            getViewManager().blockTop(this);
-            getViewManager().startParentView(this);
-        } catch (RuntimeException ignored) {
-            super.onBackPressed();
-        }
-    }
-'@
-if($t.Contains($oldBack)){
-    $t=$t.Replace($oldBack,$newBack)
-}elseif($t -match 'sMiniPlayerActive.*startActivity\(intent\)'){
-    # The earlier true mini-player patch already owns phone BACK handling.
-}else{
-    Fail "SmartTube phone onBackPressed source shape changed; refusing unsafe mini-player patch."
-}
-if($t -notmatch 'sMiniPlayerActive' -or $t -notmatch 'startActivity\(intent\)' -or $t -notmatch 'isMiniPlayerActive\(\)'){
-    Fail "SmartTube mini-player BACK patch did not persist."
-}
-WriteT $play $t
-
+# The phone mini-player patch above is authoritative. Do not run a second BACK patch here.
+# Running another replacement against the freshly cloned source would overwrite the
+# true mini-player implementation with the legacy parent-view path.
 $appJava=ReadT (Join-Path $Root "app\src\main\java\vn\phuong\iptvplayer\MobileNm7Application.java")
 $appUi=ReadT (Join-Path $Root "app\src\main\java\vn\phuong\iptvplayer\MobileIptvUi.java")
 $appManifest=ReadT (Join-Path $Root "app\src\main\AndroidManifest.xml")
