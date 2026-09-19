@@ -112,8 +112,14 @@ if($browseText.Contains($browseCreate)){$browseText=$browseText.Replace($browseC
 
 $miniMethods=@'
     private void installNm7MiniPlayer() {
+        com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity active =
+                com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity.getActiveInstance();
         if (!com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity.isMiniPlayerActive()
-                || mNm7MiniPlayer != null) {
+                || active == null) {
+            return;
+        }
+        if (mNm7MiniPlayer != null && mNm7MiniVideo != null) {
+            active.attachMiniPlayer(mNm7MiniVideo);
             return;
         }
 
@@ -204,6 +210,8 @@ $browseResumeNew=@'
 
         mJustCreated = false;
         installNm7MiniPlayer();
+        getWindow().getDecorView().postDelayed(this::installNm7MiniPlayer, 150L);
+        getWindow().getDecorView().postDelayed(this::installNm7MiniPlayer, 500L);
     }
 '@
 if($browseText.Contains($browseResumeOld)){
