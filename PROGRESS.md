@@ -1,3 +1,83 @@
+# HOTFIX 1.10.33 — 2026-09-19 — PHÂN TÍCH VIDEO MÁY THẬT + SỬA 3 ĐIỂM LIFECYCLE
+
+## Phân tích trực tiếp video người dùng gửi
+
+Video `video_2026-09-19_08-52-18.mp4` (~82.7 giây) cho thấy rõ ba lỗi runtime:
+
+1. **IPTV → YouTube:** trước khi YouTube playback bắt đầu, luồng IPTV không được bảo toàn ổn định qua transition. Source hiện tại có một lỗ hổng rõ trong `PlayerActivity.onDestroy()`: `keepPlayerForTabSwitch`/handoff đã được đặt nhưng `onDestroy()` vẫn có thể gọi `releasePlayer()` vì `backgroundPlaybackActive=false`. Đây là đường release sai đối với navigation-only handoff.
+2. **HOME → quay lại YouTube:** video vẫn tồn tại và có thời điểm xuất hiện cửa sổ video nổi trên launcher, nhưng khi quay lại app có các đoạn spinner/loading kéo dài trước khi hình trở lại. Nguyên nhân source rõ ràng: SmartTube `PlaybackActivity.onStart()` luôn gọi `initializePlayer()`, kể cả khi `mPlayer` cũ vẫn còn sống sau HOME. Điều này có thể dựng lại session thay vì dùng player hiện tại.
+3. **BACK 1 lần:** video trở về Browse nhưng mini-player nội bộ không xuất hiện ổn định. Build target là API 36. Trên Android 16, `onBackPressed()` không còn được gọi mặc định khi target API 36; vì patch mini-player hiện tại nằm trong `onBackPressed()`, đường đó có thể bị bypass hoàn toàn.
+
+## Sửa 1.10.33
+
+### A. Giữ IPTV trong YouTube Browse
+
+`PlayerActivity.onDestroy()` nay có guard:
+
+- không release IPTV nếu Activity đang rời foreground vì YouTube handoff;
+- kiểm tra `keepPlayerForTabSwitch`, `isYoutubeHandoffPending()` và tab YouTube trước khi release;
+- chỉ release bình thường khi không còn ngữ cảnh handoff.
+
+Mục tiêu vẫn giữ nguyên:
+**YouTube Browse không được dừng IPTV; chỉ khi SmartTube PlaybackActivity thực sự bắt đầu video thì `pauseIptvPlayer()` mới release IPTV.**
+
+### B. Không reset YouTube player khi quay lại từ HOME
+
+Build script PATCH18 sửa SmartTube phone `PlaybackActivity.onStart()`:
+
+```
+if (VERSION.SDK_INT > 23 && mPlayer == null) {
+    initializePlayer();
+}
+```
+
+Nếu player cũ còn sống, không gọi `initializePlayer()` lần nữa. Điều này giữ nguyên player/session/vị trí thay vì tạo lại và gây spinner.
+
+### C. Back trên Android 16 phải đi qua patch mini-player
+
+Mobile target API 36 chạy trên Android 16 có predictive back mặc định; Android xác nhận `onBackPressed()` không còn được gọi trong trường hợp này. 1.10.33 đặt:
+
+```
+android:enableOnBackInvokedCallback="false"
+```
+
+riêng cho SmartTube phone `PlaybackActivity`. Đây là cách để đường `onBackPressed()` hiện tại của SmartTube/NM7 thực sự được gọi, thay vì thêm một callback Android 16 thứ hai gây double-dispatch.
+
+Khi `onBackPressed()` chạy:
+- giữ `PlaybackActivity` + `mPlayer`;
+- đặt `sMiniPlayerActive=true`;
+- đưa Browse lên trước;
+- Browse gắn TextureView mini-player vào player đang sống.
+
+## Version
+
+- Mobile: **1.10.33**
+- versionCode: **51**
+- Build script: **PATCH18**
+
+Các commit:
+- `b76897e8b136ee657e04ef5a1d4be1470616e47e` — Fix IPTV handoff destruction guard
+- `f7854229f1f053228ad32e309c916fe44030a18c` — Fix YouTube HOME resume and mini-player lifecycle
+- `7a888e3ac6f5961cb0709179e1ee8cc7960fb06b` — Use legacy SmartTube Back dispatch on Android 16
+- `bc8a62659d84a301921fccfc02adc8757dc5a35a` — Bump Mobile to 1.10.33
+
+## Trạng thái
+
+**1.10.33 đã sửa source nhưng CHƯA được runtime-verified.** Không đánh dấu PASS trước khi build local Windows và test máy thật.
+
+Test bắt buộc:
+1. IPTV phát → YouTube Browse → chờ ít nhất 20 giây → IPTV vẫn có hình + tiếng.
+2. Chọn video YouTube → IPTV chỉ dừng khi PlaybackActivity bắt đầu.
+3. YouTube phát → HOME → chờ 20 giây → audio/video background vẫn còn.
+4. Quay lại app → không spinner kéo dài; đúng video/session/vị trí tiếp tục.
+5. YouTube phát → BACK 1 lần → Browse + mini-player nội bộ có hình.
+6. Bấm mini-player → full player đúng video/vị trí.
+7. Từ Browse bấm IPTV → IPTV hoạt động.
+8. IPTV ↔ YouTube lặp lại nhiều vòng.
+9. Không thêm Android TV vào Mobile.
+
+---
+
 # HOTFIX 1.10.32 — 2026-09-19 — THAY ĐỔI KIẾN TRÚC CHO 3 LỖI RUNTIME
 
 ## Trạng thái
