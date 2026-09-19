@@ -178,7 +178,7 @@ $miniMethods=@'
 $browseNeedle='    // ------------------------------------------------------------------ init'
 if($browseText.Contains($browseNeedle)){$browseText=$browseText.Replace($browseNeedle,$miniMethods+$nl+$browseNeedle)}else{Fail "BrowseActivity helper insertion point not found."}
 if($browseText -notmatch 'installNm7MiniPlayer\(\)' -or $browseText -notmatch 'new TextureView') { Fail "Browse mini-player patch validation failed." }
-WriteT $browseText
+WriteT $browse $browseText
 
 $playText=ReadT $play
 if($playText -notmatch 'import android.view.TextureView;'){
