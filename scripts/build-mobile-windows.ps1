@@ -357,6 +357,10 @@ $helper=@'
             mPlayerView.setPlayer(null);
             mPlayerView.setPlayer(mPlayer);
             mPlayer.setPlayWhenReady(true);
+            Intent intent = new Intent(this, this.getClass());
+            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NO_ANIMATION);
+            startActivity(intent);
+            overridePendingTransition(0, 0);
         } catch (RuntimeException ignored) {
         }
     }
