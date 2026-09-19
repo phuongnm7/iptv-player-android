@@ -1,3 +1,63 @@
+# HOTFIX 1.10.31 — 2026-09-19 — XỬ LÝ DỨT ĐIỂM 2 LỖI CÒN LẠI
+
+## 1. IPTV → YouTube: không được dừng IPTV khi chỉ chuyển tab
+
+Đã bổ sung một cờ handoff cấp process: `nm7.iptv.youtube.handoff`.
+
+Luồng mới:
+1. Đang phát IPTV.
+2. Bấm tab YouTube → đánh dấu handoff đang chờ.
+3. `PlayerActivity.onPause()` và `onStop()` đều giữ ExoPlayer nếu handoff còn chờ.
+4. Browse YouTube chỉ là navigation, không gọi release IPTV.
+5. Chỉ khi SmartTube `PlaybackActivity` thực sự bắt đầu thì `pauseIptvPlayer()` mới pause + release IPTV và xóa cờ handoff.
+6. Khi quay lại IPTV, cờ handoff được xóa trước khi đưa PlayerActivity lên foreground.
+
+Mục tiêu chính: **IPTV tiếp tục phát trong thời gian người dùng chỉ đang duyệt YouTube; YouTube PlaybackActivity mới có quyền lấy decoder khi video thực sự mở.**
+
+## 2. YouTube BACK 1 lần → Browse + mini-player
+
+Đã thay đổi patch Mobile SmartTube theo hướng không gọi `finish()` trong BACK.
+
+BACK lần đầu hiện:
+- giữ `PlaybackActivity` và ExoPlayer sống;
+- bật trạng thái mini-player;
+- đặt background mode của SmartTube;
+- gọi trực tiếp `getViewManager().blockTop(this)`;
+- gọi `getViewManager().startParentView(this)`;
+- BrowseActivity cài mini-player trong `onResume()`, kể cả khi Browse đã tồn tại;
+- chuyển output video sang `TextureView` của mini-player;
+- ép `playWhenReady=true` khi attach;
+- khi mở lại mini-player, trả output về PlayerView trước khi đưa PlaybackActivity lên trước.
+
+Cách này tránh đường `finish() → enterPipMode()`, vốn có thể đưa video vào Android system PiP thay vì mini-player nội bộ của NM7.
+
+## 3. Version / commit
+
+- Mobile version: **1.10.31**
+- versionCode: **49**
+- Build script: **PATCH16**
+- Commit handoff guard: `310f59ee64243d3558676755009a81f7ae97594c`
+- Commit tab ordering: `366e17fe1c3c7095e432f62b22985678493eca43`
+- Commit playback-start handoff cleanup: `dc959cd1d591f159779ceaf53cfe331113f2317d`
+- Commit mini-player lifecycle: `440e76f2cb67034eaa04c81092764537f82b5889`
+- Commit final BACK parent-view path + PATCH16: `b904efbd91f820fb9420c8b1c0ea910cbfe5da71`
+- Version bump: `02ed4332657f2e7a435e50bc90783b6967c62905`
+
+## 4. Trạng thái
+
+**Chưa build và chưa xác nhận máy thật 1.10.31.** Không đánh dấu PASS trước khi APK được build và test.
+
+Checklist bắt buộc:
+1. IPTV đang phát → YouTube tab, **không chọn video** → IPTV vẫn phát.
+2. Ở Browse YouTube 10–20 giây → IPTV vẫn không bị release.
+3. Chọn video YouTube → IPTV mới dừng.
+4. YouTube đang phát → BACK 1 lần → về Browse và xuất hiện mini-player.
+5. Video trong mini-player vẫn chạy.
+6. Bấm mini-player → trở lại full player, video tiếp tục.
+7. Lặp IPTV → YouTube → video → BACK → IPTV ít nhất vài lần.
+8. Không đưa TV UI/code vào bản Mobile.
+
+---
 # HOTFIX 1.10.30 — 2026-09-19 — XỬ LÝ LỖI THỰC TẾ TỪ VIDEO 1.10.29
 
 ## Phát hiện từ video máy thật mới nhất
