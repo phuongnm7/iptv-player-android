@@ -46,7 +46,6 @@ stop_new = """    @Override
         }
     }
 
-    @Override
     protected void onDestroy()"""
 t, n = stop_re.subn(stop_new, t, count=1)
 if n != 1:
