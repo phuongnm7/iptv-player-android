@@ -90,6 +90,312 @@ if($t -notmatch "extends DroidActivity"){Fail "SmartTube phone BrowseActivity is
 $n=$t.Replace("private static final int GRID_COLUMNS = 2;","private static final int GRID_COLUMNS = 1;")
 if($n -eq $t){Fail "GRID_COLUMNS declaration not found."}; WriteT $browse $n
 
+# NM7 Mobile true YouTube mini-player.
+# Back keeps the SmartTube PlaybackActivity/player alive and moves the video output to
+# a TextureView owned by BrowseActivity. This replaces the old parent-view/finish path.
+$browseText=ReadT $browse
+$browseText=$browseText.Replace("import android.view.View;","import android.view.View;"+$nl+"import android.view.TextureView;")
+$browseText=$browseText.Replace("import android.widget.ProgressBar;","import android.widget.ProgressBar;"+$nl+"import android.widget.FrameLayout;"+$nl+"import android.widget.ImageButton;")
+$browseText=$browseText.Replace("    private boolean mJustCreated;","    private boolean mJustCreated;"+$nl+"    private FrameLayout mNm7MiniPlayer;"+$nl+"    private TextureView mNm7MiniVideo;")
+$browseCreate=@'
+        mJustCreated = true;
+
+        mBrowsePresenter.onViewInitialized();
+'@
+$browseCreateNew=@'
+        mJustCreated = true;
+
+        mBrowsePresenter.onViewInitialized();
+        installNm7MiniPlayer();
+'@
+if($browseText.Contains($browseCreate)){$browseText=$browseText.Replace($browseCreate,$browseCreateNew)}else{Fail "BrowseActivity onCreate shape changed; refusing unsafe mini-player patch."}
+
+$miniMethods=@'
+    private void installNm7MiniPlayer() {
+        if (!com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity.isMiniPlayerActive()
+                || mNm7MiniPlayer != null) {
+            return;
+        }
+
+        View content = findViewById(android.R.id.content);
+        if (!(content instanceof FrameLayout)) {
+            return;
+        }
+
+        FrameLayout root = (FrameLayout) content;
+        mNm7MiniPlayer = new FrameLayout(this);
+        mNm7MiniPlayer.setBackgroundColor(android.graphics.Color.BLACK);
+        mNm7MiniPlayer.setElevation(18f);
+
+        mNm7MiniVideo = new TextureView(this);
+        mNm7MiniVideo.setOpaque(true);
+        mNm7MiniPlayer.addView(mNm7MiniVideo, new FrameLayout.LayoutParams(-1, -1));
+
+        ImageButton close = new ImageButton(this);
+        close.setImageResource(android.R.drawable.ic_menu_close_clear_cancel);
+        close.setBackgroundColor(0xAA000000);
+        close.setColorFilter(android.graphics.Color.WHITE);
+        close.setContentDescription("Đóng mini-player");
+        FrameLayout.LayoutParams closeLp = new FrameLayout.LayoutParams(dp(36), dp(36),
+                android.view.Gravity.TOP | android.view.Gravity.END);
+        mNm7MiniPlayer.addView(close, closeLp);
+
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(dp(192), dp(108),
+                android.view.Gravity.BOTTOM | android.view.Gravity.END);
+        lp.setMargins(0, 0, dp(8), dp(72));
+        root.addView(mNm7MiniPlayer, lp);
+
+        mNm7MiniPlayer.setOnClickListener(v -> {
+            com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity active =
+                    com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity.getActiveInstance();
+            if (active != null) {
+                active.restoreFromMiniPlayer();
+            }
+            root.removeView(mNm7MiniPlayer);
+            mNm7MiniPlayer = null;
+            mNm7MiniVideo = null;
+        });
+
+        close.setOnClickListener(v -> {
+            com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity.closeMiniPlayer();
+            root.removeView(mNm7MiniPlayer);
+            mNm7MiniPlayer = null;
+            mNm7MiniVideo = null;
+        });
+
+        com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity active =
+                com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity.getActiveInstance();
+        if (active != null) {
+            active.attachMiniPlayer(mNm7MiniVideo);
+        }
+    }
+
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+'@
+$browseNeedle='    // ------------------------------------------------------------------ init'
+if($browseText.Contains($browseNeedle)){$browseText=$browseText.Replace($browseNeedle,$miniMethods+$nl+$browseNeedle)}else{Fail "BrowseActivity helper insertion point not found."}
+if($browseText -notmatch 'installNm7MiniPlayer\(\)' -or $browseText -notmatch 'new TextureView') { Fail "Browse mini-player patch validation failed." }
+WriteT $browseText
+
+$playText=ReadT $play
+if($playText -notmatch 'import android.view.TextureView;'){
+    $playText=$playText.Replace("import android.view.ViewGroup;", "import android.view.ViewGroup;"+$nl+"import android.view.TextureView;")
+}
+if($playText -notmatch 'static PlaybackActivity sActiveInstance'){
+    $playText=$playText.Replace("private static final String TAG = PlaybackActivity.class.getSimpleName();","private static final String TAG = PlaybackActivity.class.getSimpleName();"+$nl+"    private static PlaybackActivity sActiveInstance;"+$nl+"    private static boolean sMiniPlayerActive;")
+}
+$createOld=@'
+        super.onCreate(savedInstanceState);
+
+        setContentView(R.layout.playback_activity);
+'@
+$createNew=@'
+        super.onCreate(savedInstanceState);
+        sActiveInstance = this;
+
+        setContentView(R.layout.playback_activity);
+'@
+if($playText.Contains($createOld)){$playText=$playText.Replace($createOld,$createNew)}else{Fail "PlaybackActivity onCreate shape changed; refusing unsafe mini-player patch."}
+
+$startOld=@'
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        if (VERSION.SDK_INT > 23 && mPlayer == null) {
+            initializePlayer();
+        }
+    }
+'@
+$startNew=@'
+    @Override
+    protected void onStart() {
+        super.onStart();
+        sActiveInstance = this;
+
+        if (VERSION.SDK_INT > 23 && mPlayer == null) {
+            initializePlayer();
+        }
+
+        if (sMiniPlayerActive && mPlayer != null) {
+            sMiniPlayerActive = false;
+            System.setProperty("nm7.youtube.background", "0");
+            try {
+                getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_DEFAULT);
+            } catch (RuntimeException ignored) {
+            }
+            blockEngine(false);
+            mPlayerView.setPlayer(null);
+            mPlayerView.setPlayer(mPlayer);
+        }
+    }
+'@
+if($playText.Contains($startOld)){$playText=$playText.Replace($startOld,$startNew)}else{Fail "PlaybackActivity onStart shape changed; refusing unsafe mini-player patch."}
+
+$stopOld=@'
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        boolean nm7YoutubeBackground = "1".equals(System.getProperty("nm7.youtube.background", "0"));
+        if (VERSION.SDK_INT > 23 && !nm7YoutubeBackground) {
+            maybeReleasePlayer();
+        }
+    }
+'@
+$stopNew=@'
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        boolean nm7YoutubeBackground = "1".equals(System.getProperty("nm7.youtube.background", "0"));
+        if (VERSION.SDK_INT > 23 && !nm7YoutubeBackground && !sMiniPlayerActive) {
+            maybeReleasePlayer();
+        }
+    }
+'@
+if($playText.Contains($stopOld)){$playText=$playText.Replace($stopOld,$stopNew)}else{Fail "PlaybackActivity onStop shape changed; refusing unsafe mini-player patch."}
+
+$backOld=@'
+    @Override
+    public void onBackPressed() {
+        // The expanded description/comments sheet takes back first
+        if (onDetailsBack()) {
+            return;
+        }
+
+        mIsBackPressed = true;
+
+        try {
+            blockEngine(true);
+            getViewManager().blockTop(this);
+            getViewManager().startParentView(this);
+        } catch (RuntimeException ignored) {
+            super.onBackPressed();
+        }
+    }
+'@
+$backNew=@'
+    @Override
+    public void onBackPressed() {
+        // Details/comments consume BACK first.
+        if (onDetailsBack()) {
+            return;
+        }
+
+        mIsBackPressed = true;
+
+        // NM7 Mobile: first BACK collapses the video into Browse instead of finishing
+        // PlaybackActivity. The same ExoPlayer instance stays alive and Browse gets a
+        // TextureView output, so this is a real in-app mini-player.
+        if (mPlayer != null && !isFinishing() && !isDestroyed()) {
+            sMiniPlayerActive = true;
+            System.setProperty("nm7.youtube.background", "1");
+            try {
+                getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_SOUND);
+            } catch (RuntimeException ignored) {
+            }
+            blockEngine(true);
+            try {
+                Intent intent = new Intent(this, Class.forName("com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity"));
+                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                startActivity(intent);
+                overridePendingTransition(0, 0);
+                return;
+            } catch (ReflectiveOperationException | RuntimeException ignored) {
+                sMiniPlayerActive = false;
+                System.setProperty("nm7.youtube.background", "0");
+                blockEngine(false);
+            }
+        }
+
+        super.onBackPressed();
+    }
+'@
+if($playText.Contains($backOld)){$playText=$playText.Replace($backOld,$backNew)}else{Fail "PlaybackActivity onBackPressed shape changed; refusing unsafe mini-player patch."}
+
+$helper=@'
+    public static boolean isMiniPlayerActive() {
+        return sMiniPlayerActive && sActiveInstance != null
+                && !sActiveInstance.isFinishing() && !sActiveInstance.isDestroyed()
+                && sActiveInstance.mPlayer != null;
+    }
+
+    public static PlaybackActivity getActiveInstance() {
+        return sActiveInstance;
+    }
+
+    public void attachMiniPlayer(TextureView miniView) {
+        if (miniView == null || mPlayer == null || isFinishing() || isDestroyed()) {
+            return;
+        }
+
+        try {
+            mPlayerView.setPlayer(null);
+            mPlayer.setVideoTextureView(miniView);
+            miniView.setOnClickListener(v -> restoreFromMiniPlayer());
+        } catch (RuntimeException ignored) {
+        }
+    }
+
+    public void restoreFromMiniPlayer() {
+        if (mPlayer == null || isFinishing() || isDestroyed()) {
+            return;
+        }
+
+        sMiniPlayerActive = false;
+        System.setProperty("nm7.youtube.background", "0");
+        try {
+            getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_DEFAULT);
+        } catch (RuntimeException ignored) {
+        }
+        blockEngine(false);
+        try {
+            mPlayerView.setPlayer(null);
+            mPlayerView.setPlayer(mPlayer);
+            mPlayer.setPlayWhenReady(true);
+        } catch (RuntimeException ignored) {
+        }
+    }
+
+    public static void closeMiniPlayer() {
+        PlaybackActivity active = sActiveInstance;
+        sMiniPlayerActive = false;
+        System.setProperty("nm7.youtube.background", "0");
+        if (active != null && !active.isFinishing() && !active.isDestroyed()) {
+            active.blockEngine(false);
+            active.finish();
+        }
+    }
+
+'@
+$needle = '    @Override' + [Environment]::NewLine + '    public void onBackPressed()'
+if($playText.Contains($needle)){$playText=$playText.Replace($needle,$helper+$needle)}else{Fail "Could not insert PlaybackActivity mini-player helper methods."}
+
+$destroyOld=@'
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+'@
+$destroyNew=@'
+    @Override
+    protected void onDestroy() {
+        if (sActiveInstance == this) {
+            sActiveInstance = null;
+            sMiniPlayerActive = false;
+        }
+        super.onDestroy();
+'@
+if($playText.Contains($destroyOld)){$playText=$playText.Replace($destroyOld,$destroyNew)}else{Fail "PlaybackActivity onDestroy shape changed."}
+
+if($playText -notmatch 'isMiniPlayerActive\(\)' -or $playText -notmatch 'setVideoTextureView\(miniView\)' -or $playText -notmatch 'startActivity\(intent\)'){
+    Fail "SmartTube PlaybackActivity mini-player patch validation failed."
+}
+WriteT $play $playText
+
 $uploads=Join-Path $ST "smarttubedroid\\src\\main\\java\\com\\liskovsoft\\smartyoutubetv2\\droid\\ui\\channeluploads\\ChannelUploadsActivity.java"
 if(Test-Path $uploads){
     $x=ReadT $uploads
