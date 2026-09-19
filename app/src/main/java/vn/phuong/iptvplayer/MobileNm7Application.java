@@ -239,6 +239,15 @@ public final class MobileNm7Application extends DroidApplication implements andr
     }
 
     /** Pause the integrated IPTV player as soon as a real SmartTube playback Activity starts. */
+    // Called by SmartTube PlaybackActivity before its first player initialization.
+    // This closes the ownership race where SmartTube onStart could initialize its decoder
+    // before Application.onActivityStarted() had released IPTV.
+    public static void pauseIptvForYoutube() {
+        if (instance != null) {
+            instance.pauseIptvPlayer();
+        }
+    }
+
     private void pauseIptvPlayer() {
         Activity activity = iptvPlayerActivity;
         if (!(activity instanceof PlayerActivity)) return;
