@@ -279,13 +279,7 @@ $backOld=@'
 
         mIsBackPressed = true;
 
-        try {
-            blockEngine(true);
-            getViewManager().blockTop(this);
-            getViewManager().startParentView(this);
-        } catch (RuntimeException ignored) {
-            super.onBackPressed();
-        }
+        super.onBackPressed();
     }
 '@
 $backNew=@'
