@@ -208,7 +208,7 @@ $startOld=@'
     protected void onStart() {
         super.onStart();
 
-        if (VERSION.SDK_INT > 23 && mPlayer == null) {
+        if (VERSION.SDK_INT > 23) {
             initializePlayer();
         }
     }
