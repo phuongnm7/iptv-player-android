@@ -1,3 +1,152 @@
+# BÀN GIAO TIẾN ĐỘ — NM7 IPTV MOBILE 1.10.29 — 2026-09-19
+
+## Trạng thái hiện tại — BUILD THÀNH CÔNG, CHỜ TEST MÁY THẬT
+
+- Repo: phuongnm7/iptv-player-android.
+- Branch: fix/mobile-1.10.26-sleep-timer-icon.
+- Mobile version: versionCode 47, versionName 1.10.29.
+- Phạm vi: CHỈ Android Mobile. Không đưa Android TV vào bản Mobile.
+- SmartTube base: build script clone/merge SmartTube upstream tag 32.47s rồi áp dụng patch Mobile.
+- Môi trường Windows đã xác nhận: JDK 17, Gradle 8.13, Android SDK 36, Build Tools 36.0.0.
+- Build ngày 2026-09-19: SUCCESS. Unit test Mobile và assemble Mobile hoàn tất; tạo đúng 2 APK ARM, không universal.
+- APK ARM64: NM7-IPTV-Mobile-1.10.29-arm64-v8a.apk — 61,915,327 bytes.
+- APK ARMv7: NM7-IPTV-Mobile-1.10.29-armeabi-v7a.apk — 51,421,069 bytes.
+- Các warning META-INF/* not protected by signature trong log là warning ký JAR, không phải build failure.
+- Chưa có xác nhận runtime cho 1.10.29. Người dùng đang cài bản này để test. Không đánh dấu lỗi YouTube/IPTV là đã hết chỉ vì build thành công.
+
+## Mục tiêu runtime của 1.10.29
+
+### 1. IPTV → YouTube
+
+Yêu cầu:
+1. IPTV đang phát.
+2. Chuyển sang tab YouTube nhưng chưa chọn video: IPTV phải tiếp tục phát.
+3. Có thể chuyển IPTV ↔ YouTube nhiều lần: IPTV không được tự dừng/release chỉ vì mở Browse.
+4. Chỉ khi SmartTube PlaybackActivity thực sự bắt đầu video thì IPTV mới pause/release.
+
+Các thay đổi:
+- PlayerActivity.prepareForYoutubeHandoff() không còn release IPTV khi chỉ mở YouTube Browse.
+- HomeTabBar.openBrowse() dùng REORDER_TO_FRONT và không finish PlayerActivity.
+- PlayerActivity.onStop() giữ player khi Activity chưa finishing và tab hiện tại là YouTube hoặc tab switch đang pending.
+- MobileNm7Application có pauseIptvForYoutube() để SmartTube yêu cầu release IPTV trước khi tạo decoder.
+- SmartTube PlaybackActivity.onStart() gọi helper này trước initializePlayer(), tránh race giữa decoder YouTube và IPTV.
+- Application lifecycle vẫn có lớp bảo vệ thứ hai khi SmartTube PlaybackActivity thực sự bắt đầu.
+
+### 2. YouTube → BACK lần đầu → mini-player
+
+Yêu cầu:
+- YouTube đang phát → BACK 1 lần → hiện YouTube Browse/Home và video tiếp tục trong mini-player.
+- Không được hiện launcher, màn hình trắng hoặc splash.
+- BACK đầu tiên không được finish PlaybackActivity.
+- Bấm mini-player phải quay lại player lớn.
+- Đóng mini-player phải dừng/finish player.
+
+Kiến trúc 1.10.29:
+- Không dùng startParentView() làm cơ chế mini-player chính.
+- PlaybackActivity.onBackPressed() được patch để đặt sMiniPlayerActive, giữ player và đưa BrowseActivity lên foreground bằng FLAG_ACTIVITY_REORDER_TO_FRONT | FLAG_ACTIVITY_NO_ANIMATION.
+- Thêm sActiveInstance và sMiniPlayerActive.
+- BrowseActivity tạo FrameLayout mini-player và TextureView.
+- attachMiniPlayer() chuyển output video sang TextureView.
+- restoreFromMiniPlayer() khôi phục player view lớn.
+- closeMiniPlayer() tắt mini-player và finish PlaybackActivity.
+- SmartTube onStop() không release player khi mini-player đang active.
+- Đã xóa BACK patch thứ hai dùng startParentView() vì nó từng ghi đè patch mini-player.
+
+### 3. HOME / khóa màn hình YouTube
+
+Các patch background playback từ các vòng trước được giữ:
+- onUserLeaveHint() chọn BACKGROUND_MODE_SOUND, đặt nm7.youtube.background=1, lưu tab YouTube và chặn engine release.
+- Screen-off path chọn sound background và giữ engine khi có thể.
+- SharedPlaybackSession/MainActivity hỗ trợ lưu tab YouTube và khôi phục Browse/Playback khi resume.
+- Vẫn phải xác nhận lại bằng test máy thật.
+
+## Các lỗi build/patch đã gặp và đã xử lý trong vòng 1.10.29
+
+1. Biến PowerShell $play undefined → khai báo PlaybackActivity path đúng trước khi đọc source.
+2. SmartTube onStart thực tế dùng VERSION.SDK_INT > 23 rồi initializePlayer() → patch được điều chỉnh.
+3. SmartTube onStop thực tế dùng VERSION.SDK_INT > 23 rồi maybeReleasePlayer() → patch được điều chỉnh.
+4. SmartTube phone onBackPressed thực tế có onDetailsBack() rồi super.onBackPressed() → patch đúng source shape.
+5. Script còn BACK patch thứ hai dùng startParentView() và ghi đè patch mới → đã xóa.
+6. Compile thiếu android.content.Intent → đã ghi import vào PlaybackActivity.java trước Gradle.
+7. SimpleExoPlayer.setVideoTextureView() đã được kiểm tra có trong API ExoPlayer phù hợp.
+8. Build cuối cùng đã vượt qua compile/package và tạo đủ 2 APK ARM.
+
+## Các commit/điểm mã quan trọng
+
+- 02c7f32f9d4d58f1fe01aaf94623576a95f38b45 — Keep IPTV playing until YouTube video starts.
+- 2cc0d9901b3848569364f1a4d8bcee85e2e10102 — Keep IPTV alive while browsing YouTube.
+- b1ceb839c5f3e2274a011d0e65639c85e5a68fde — Make IPTV YouTube handoff lifecycle explicit.
+- 0414fcb802537a74789bc3f6cc6c37351e09d488 — Keep IPTV player alive while YouTube tab is browsing.
+- 95cc48dc0830ae0436d23a0f658110902a1f1589 — Use native SmartTube Back dispatch for mini-player; không re-add OnBackInvokedCallback cũ.
+- 58bd32d3d695a2e2af764d7e83ac7a6a3387c3a0 — Bump Mobile version for tab handoff and mini-player fix.
+- 284e8697f9857b5cf879b201f2ba94e17cfa715a — Record 1.10.28 playback fixes.
+- 74324d8 — Implement true YouTube mini-player on Mobile Back.
+- eff1ccd — Allow mini-player lifecycle patch in Mobile build script.
+- 5917488 — Fix Browse mini-player patch write target.
+- 729d14f — Remove stale parent-view BACK validation.
+- 4c6a58e — Match SmartTube PlaybackActivity onStart source shape.
+- ba299166 — Match actual SmartTube PlaybackActivity lifecycle for mini-player.
+- 095f22a — Match actual SmartTube phone onBackPressed source shape.
+- 02aa40d1d59213f34f109ae4fc6fc01f9a8599af — Remove duplicate BACK patch that overwrote mini-player.
+- 4bf09ac6ea4bc005d136f3e1ccfb6d14e69288c2 — Persist Intent import for YouTube mini-player compile.
+- b40feb4 — Fix missing PlaybackActivity path in build script.
+- 1.10.29: versionCode 47, versionName 1.10.29.
+
+## Các file/area quan trọng để bàn giao
+
+- scripts/build-mobile-windows.ps1: clone/merge SmartTube, patch lifecycle/mini-player, patch ExoPlayer resource conflict, build/test/package/ABI validation.
+- app/build.gradle.kts: Mobile-only flavor, version 1.10.29, ARM split chỉ armeabi-v7a + arm64-v8a.
+- app/src/main/java/vn/phuong/iptvplayer/PlayerActivity.java: IPTV lifecycle, position persistence, YouTube handoff.
+- app/src/main/java/vn/phuong/iptvplayer/MobileNm7Application.java: cross-player lifecycle, pause/release IPTV khi YouTube PlaybackActivity thực sự khởi động, task/tab restoration.
+- app/src/main/java/vn/phuong/iptvplayer/SharedPlaybackSession.java: lưu tab IPTV/YouTube và trạng thái playback.
+- app/src/main/java/vn/phuong/iptvplayer/HomeTabBar.java: chuyển IPTV ↔ YouTube bằng Activity reorder.
+- app/src/main/java/vn/phuong/iptvplayer/MainActivity.java: restore YouTube tab/SmartTube Activity khi resume.
+- SmartTube generated/patch-at-build files không nằm cố định trong repo; script clone/merge rồi patch lại mỗi lần build. Khi source SmartTube thay đổi phải kiểm tra source sau merge trước khi sửa patch.
+
+## Checklist test 1.10.29 — CHƯA HOÀN TẤT
+
+### IPTV/YouTube handoff
+- [ ] IPTV phát → mở YouTube Browse → IPTV vẫn phát.
+- [ ] YouTube Browse không chọn video → quay IPTV → IPTV vẫn phát.
+- [ ] Lặp IPTV → YouTube → IPTV ít nhất 5 lần → không tự dừng/release IPTV.
+- [ ] Chọn video YouTube → IPTV dừng/release chỉ khi YouTube PlaybackActivity thực sự bắt đầu.
+- [ ] Mở video YouTube bình thường, không crash.
+
+### YouTube mini-player
+- [ ] YouTube đang phát → BACK 1 lần → Browse/Home + mini-player.
+- [ ] Video vẫn chạy, âm thanh/hình ảnh không mất.
+- [ ] Không xuất hiện launcher/blank/splash.
+- [ ] Bấm mini-player → trở lại full player.
+- [ ] BACK tiếp theo có hành vi đúng theo UX mong muốn.
+- [ ] HOME/khóa màn hình → YouTube tiếp tục background.
+- [ ] Mở app lại → vẫn ở YouTube, không nhảy về IPTV.
+
+### Regression
+- [ ] IPTV player vẫn phát bình thường.
+- [ ] Search/group/channel UI không bị thay đổi ngoài yêu cầu.
+- [ ] Logo NM7 Mobile giữ kích thước đã sửa.
+- [ ] Không có TV flavor/TV manifest/component trong APK Mobile.
+- [ ] Chỉ tạo đúng ARM64 + ARMv7, không universal/x86.
+
+## Quy tắc xử lý nếu 1.10.29 FAIL runtime
+
+1. Không sửa hàng loạt lifecycle cùng lúc.
+2. Nếu IPTV dừng khi chỉ mở Browse: lấy logcat quanh thời điểm chuyển tab, tập trung PlayerActivity onPause/onStop/onDestroy, MobileNm7Application onActivityStarted/onActivityStopped và SmartTube PlaybackActivity onStart/onStop.
+3. Nếu YouTube mở video rồi crash: lấy FATAL EXCEPTION và khoảng 100–200 dòng log trước/sau; kiểm tra mini-player field/method trước khi đổi kiến trúc.
+4. Nếu BACK hiện launcher/blank: xác định Activity/task transition trước; không quay lại startParentView() chỉ để che hiện tượng.
+5. Nếu audio còn nhưng mini-player không có hình: kiểm tra ownership video surface/TextureView và thời điểm setPlayer(null)/setVideoTextureView().
+6. Nếu BACK vẫn finish Activity: kiểm tra Android legacy onBackPressed versus predictive/onBackInvoked và Activity stack; không tự động re-add callback cũ.
+7. Nếu build script lại báo source shape changed: kiểm tra source SmartTube sau merge tag 32.47s trước khi sửa.
+8. Chỉ tối ưu tốc độ load YouTube/playlist sau khi lifecycle/runtime ổn định.
+
+## Bàn giao
+
+- Hiện tại source 1.10.29 đã build thành công trên Windows; người dùng đang cài/test.
+- Việc tiếp theo: ghi kết quả test máy thật vào mục này. Nếu FAIL, ưu tiên video + logcat và sửa đúng nguyên nhân. Nếu PASS, ghi kết quả và tạo mốc/tag bàn giao 1.10.29.
+- Không coi BUILD SUCCESSFUL là RUNTIME SUCCESSFUL.
+
+---
+
 # CẬP NHẬT QUAN TRỌNG — KHÔI PHỤC LỊCH SỬ WINDOWS POWERSHELL VÀ KẾT QUẢ TEST THỰC TẾ — 2026-09-18
 
 ## Mục đích của mốc này
