@@ -1,6 +1,6 @@
 name: NM7 Mobile Final Build
 
-on:
+"on":
   push:
     branches: ["fix/mobile-1.10.26-sleep-timer-icon"]
     paths:
@@ -12,8 +12,7 @@ on:
       - "gradle.properties"
   workflow_dispatch:
 
-permissions:
-  contents: read
+permissions: { contents: read }
 
 jobs:
   build:
