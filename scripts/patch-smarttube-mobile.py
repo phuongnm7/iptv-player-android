@@ -158,4 +158,20 @@ playback.write_text(playback_text)
 # Keep this fork buildable when section_is_empty is absent from the phone resource table.
 playback_text = playback.read_text()
 playback_text = playback_text.replace('showDetailsMessage(getString(R.string.section_is_empty));', 'showDetailsMessage("No comments available");')
+playback.write_text(playback_text)playback_text = playback.read_text()
+# The phone fork's controller interface does not declare these pitch methods.
+# Remove the annotation from the exact declarations, including their indentation.
+playback_text = playback_text.replace(
+    "    @Override\\n    public void setPitch(float pitch) {",
+    "    public void setPitch(float pitch) {",
+    1,
+)
+playback_text = playback_text.replace(
+    "    @Override\\n    public float getPitch() {",
+    "    public float getPitch() {",
+    1,
+)
+if "    @Override\\n    public float getPitch() {" in playback_text:
+    raise SystemExit("stale getPitch @Override remains after patch")
 playback.write_text(playback_text)
+
