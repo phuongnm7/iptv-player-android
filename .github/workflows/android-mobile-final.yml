@@ -102,7 +102,7 @@ jobs:
               if (VERSION.SDK_INT > 23) {
                   maybeReleasePlayer();
               }
-          }'''
+          }''')
           new_stop = textwrap.dedent('''          @Override
           protected void onStop() {
               super.onStop();
@@ -120,7 +120,7 @@ jobs:
               } catch (RuntimeException ignored) {
                   return false;
               }
-          }'''
+          }''')
           if old_stop not in t2:
               raise SystemExit('PlaybackActivity onStop block not found')
           t2 = t2.replace(old_stop, new_stop)
@@ -140,7 +140,7 @@ jobs:
               enterBackgroundPlayMode();
           }
 
-'''
+''')
           t2 = t2[:leave_start] + leave_method + t2[leave_end:]
 
           # Keep the SmartTube Activity/player process alive with NM7's media FGS.
@@ -160,7 +160,7 @@ jobs:
               }
           }
 
-'''
+''')
           helper_at = t2.find('    public boolean isInPipMode()')
           if helper_at < 0:
               raise SystemExit('PlaybackActivity isInPipMode marker not found')
@@ -173,7 +173,7 @@ jobs:
               mIsBackPressed = true;
 
               super.onBackPressed();
-          }'''
+          }''')
           new_back = textwrap.dedent('''          @Override
           public void onBackPressed() {
               if (mIsBackPressed) {
@@ -192,7 +192,7 @@ jobs:
               } catch (ReflectiveOperationException | RuntimeException e) {
                   super.onBackPressed();
               }
-          }'''
+          }''')
           if old_back not in t2:
               raise SystemExit('PlaybackActivity onBackPressed block not found')
           t2 = t2.replace(old_back, new_back)
@@ -203,7 +203,7 @@ jobs:
           # actually ready to play; Activity creation/onStart is intentionally ignored.
           listener_marker = textwrap.dedent('''              mPlayer.addListener(new Player.EventListener() {
                   @Override
-                  public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {'''
+                  public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {''')
           listener_hook = textwrap.dedent('''                      if (playWhenReady && playbackState == Player.STATE_READY) {
                           try {
                               vn.phuong.iptvplayer.MobileNm7Application.pauseIptvForYoutube();
@@ -211,7 +211,7 @@ jobs:
                           }
                       }
 
-'''
+''')
           if listener_marker not in t2:
               raise SystemExit('Verified SmartTube mPlayer listener insertion point not found')
           if 'MobileNm7Application.pauseIptvForYoutube()' not in t2:
