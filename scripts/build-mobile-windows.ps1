@@ -178,6 +178,42 @@ $miniMethods=@'
 $browseNeedle='    // ------------------------------------------------------------------ init'
 if($browseText.Contains($browseNeedle)){$browseText=$browseText.Replace($browseNeedle,$miniMethods+$nl+$browseNeedle)}else{Fail "BrowseActivity helper insertion point not found."}
 if($browseText -notmatch 'installNm7MiniPlayer\(\)' -or $browseText -notmatch 'new TextureView') { Fail "Browse mini-player patch validation failed." }
+
+# Browse may already exist when PlaybackActivity sends BACK. onCreate() is not called again
+# by REORDER_TO_FRONT, so install the mini-player from onResume() as well.
+$browseResumeOld=@'
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        if (!mJustCreated) {
+            mBrowsePresenter.onViewResumed();
+        }
+
+        mJustCreated = false;
+    }
+'@
+$browseResumeNew=@'
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        if (!mJustCreated) {
+            mBrowsePresenter.onViewResumed();
+        }
+
+        mJustCreated = false;
+        installNm7MiniPlayer();
+    }
+'@
+if($browseText.Contains($browseResumeOld)){
+    $browseText=$browseText.Replace($browseResumeOld,$browseResumeNew)
+}else{
+    Fail "BrowseActivity onResume shape changed; refusing unsafe mini-player lifecycle patch."
+}
+if($browseText -notmatch 'protected void onResume\(\)[\s\S]*installNm7MiniPlayer\(\)'){
+    Fail "Browse mini-player resume hook did not persist."
+}
 WriteT $browse $browseText
 
 $play=Join-Path $ST "smarttubedroid\src\main\java\com\liskovsoft\smartyoutubetv2\droid\ui\playback\PlaybackActivity.java"
@@ -511,12 +547,9 @@ $newResume=@'
         mPlaybackPresenter.onViewResumed();
 
         showHideWidgets(true);
+        // Do not clear NM7's HOME/background marker here. The player must remain
+        // owned by SmartTube while Android restores the task.
         blockEngine(false);
-        System.setProperty("nm7.youtube.background", "0");
-        try {
-            getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_DEFAULT);
-        } catch (RuntimeException ignored) {
-        }
     }
 '@
 if($t.Contains($oldResume)){$t=$t.Replace($oldResume,$newResume)}
@@ -642,6 +675,67 @@ $pauseScreen = 'boolean isScreenOff = getPlayerData().getBackgroundMode() != Pla
 $pauseScreenNew = 'boolean isScreenOff = Utils.isHardScreenOff(this);' + $nl + '        if (isScreenOff) {' + $nl + '            getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_SOUND);' + $nl + '            if (doNotDestroy()) {' + $nl + '                blockEngine(true);' + $nl + '                getViewManager().blockTop(this);' + $nl + '            }' + $nl + '        }'
 if($t.Contains($pauseScreen)){
     $t=$t.Replace($pauseScreen,$pauseScreenNew)
+}
+
+# Android HOME can reach onPause on some devices/back-dispatch paths before
+# onUserLeaveHint has completed. Preserve the player here as a second, deterministic guard.
+$oldPauseLifecycle=@'
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        // NOTE: don't move this into another place! Multiple components rely on it.
+        mPlaybackPresenter.onViewPaused();
+
+        if (VERSION.SDK_INT <= 23) {
+            maybeReleasePlayer();
+        }
+
+        showHideWidgets(false); // PIP mode fix
+    }
+'@
+$newPauseLifecycle=@'
+    @Override
+    protected void onPause() {
+        boolean nm7HomeBackground = !mIsBackPressed && !isFinishing()
+                && !getViewManager().isNewViewPending();
+
+        if (nm7HomeBackground && mPlayer != null && mPlayer.getPlayWhenReady()) {
+            getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_SOUND);
+            System.setProperty("nm7.youtube.background", "1");
+            try {
+                Class<?> session = Class.forName("vn.phuongnm7.iptvplayer.SharedPlaybackSession");
+                java.lang.reflect.Field tabField = session.getField("TAB_YOUTUBE");
+                String tab = (String) tabField.get(null);
+                session.getMethod("setTab", android.content.Context.class, String.class)
+                        .invoke(null, this, tab);
+                session.getMethod("setYoutubeBackground", android.content.Context.class, boolean.class)
+                        .invoke(null, this, true);
+            } catch (ReflectiveOperationException | RuntimeException ignored) {
+            }
+            blockEngine(true);
+            getViewManager().blockTop(this);
+        }
+
+        super.onPause();
+
+        // NOTE: don't move this into another place! Multiple components rely on it.
+        mPlaybackPresenter.onViewPaused();
+
+        if (VERSION.SDK_INT <= 23) {
+            maybeReleasePlayer();
+        }
+
+        showHideWidgets(false); // PIP mode fix
+    }
+'@
+if($t.Contains($oldPauseLifecycle)){
+    $t=$t.Replace($oldPauseLifecycle,$newPauseLifecycle)
+}else{
+    Fail "SmartTube phone onPause source shape changed; refusing unsafe HOME background patch."
+}
+if($t -notmatch 'nm7HomeBackground' -or $t -notmatch 'setProperty\("nm7\.youtube\.background", "1"\)'){
+    Fail "SmartTube HOME onPause background patch did not persist."
 }
 
 # SmartTube's PlaybackActivity already has a safe BACK -> parent-view/PIP path.
