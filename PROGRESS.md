@@ -1,3 +1,88 @@
+# TEST HANDOFF — MOBILE 1.10.35 — 2026-09-19
+
+## Build Windows đã hoàn tất
+
+Người dùng đã chạy build Mobile trên Windows và xác nhận **BUILD SUCCESSFUL**.
+
+APK đã tạo thành công:
+- `NM7-IPTV-Mobile-1.10.35-arm64-v8a.apk` — **61,915,373 bytes**
+- `NM7-IPTV-Mobile-1.10.35-armeabi-v7a.apk` — **51,421,079 bytes**
+- Chỉ có 2 ABI Mobile: **ARM64 + ARMv7**.
+- **Không build Android TV** trong vòng này.
+- Các cảnh báo `META-INF/* not protected by signature` là warning đóng gói, không phải lỗi build.
+
+## Lỗi compile 1.10.34 đã được xử lý
+
+Build 1.10.34 trước đó dừng tại SmartTube phone `BrowseActivity.java` với lỗi:
+
+```
+error: variable active is already defined in method installNm7MiniPlayer()
+```
+
+Nguyên nhân: patch mini-player khai báo trùng biến cục bộ `active` trong cùng method/lambda scope.
+
+Đã sửa build script:
+- Xóa khai báo trùng.
+- Tái sử dụng reference `active` đã có.
+- Không thay đổi logic IPTV/YouTube lifecycle vì đây chỉ là compile fix.
+
+Commit:
+- `2c7928e96dd416ca9667362edee8a3c85fa8a35a` — fix duplicate mini-player variable.
+- `1ac30b9b414f99f92bb59643f04f60cc006f4ef4` — bump Mobile to 1.10.35.
+
+## Nội dung runtime đang chờ test
+
+Bản 1.10.35 chứa toàn bộ source/lifecycle hotfix đã có ở 1.10.34, gồm:
+
+1. **IPTV → YouTube Browse**
+   - Chuyển sang tab YouTube khi chưa chọn video không được tự release IPTV.
+   - IPTV chỉ nhường player khi SmartTube PlaybackActivity thực sự bắt đầu video.
+   - PlayerActivity không tự `startPlayer()` trong lúc tab YouTube/handoff đang active.
+   - Ownership switch được giới hạn cho trường hợp thực sự vào IPTV.
+
+2. **YouTube HOME/background**
+   - SmartTube giữ player hiện tại khi rời app.
+   - Có đường xử lý `onUserLeaveHint()` và `onPause()` để duy trì background playback.
+   - Khi quay lại, không initialize lại player nếu player cũ vẫn còn.
+   - Giữ đúng YouTube tab/session.
+
+3. **YouTube BACK → mini-player**
+   - SmartTube phone dùng `OnBackInvokedCallback.PRIORITY_DEFAULT` trên Android mới.
+   - BACK lần đầu phải đưa Browse lên trước, giữ PlaybackActivity/player sống và gắn video vào mini-player.
+   - Browse có retry attach mini-player sau 150ms và 500ms để tránh race lifecycle/surface.
+   - Không tạo thêm một ExoPlayer YouTube thứ hai.
+
+4. **Mobile-only**
+   - Vòng test này chỉ dành cho **NM7 IPTV Mobile**.
+   - Không đưa Android TV/UI TV vào APK Mobile.
+
+## Trạng thái
+
+**BUILD PASS — RUNTIME CHƯA XÁC NHẬN.**
+
+Không đánh dấu 1.10.35 là PASS về chức năng cho đến khi người dùng cài APK và test trên máy thật.
+
+### Checklist người dùng đang test
+
+1. IPTV đang phát → bấm YouTube, **chưa chọn video** → IPTV vẫn phát.
+2. Chọn video YouTube → IPTV mới dừng/release.
+3. YouTube đang phát → HOME/khóa màn hình → YouTube tiếp tục phát nền.
+4. Mở lại NM7 → vẫn ở YouTube, đúng video/session, không spinner bất thường.
+5. YouTube đang phát → BACK 1 lần → Browse + mini-player, video vẫn tiếp tục.
+6. Bấm mini-player → quay lại full player đúng video/vị trí.
+7. Chuyển IPTV ↔ YouTube nhiều lần → không crash, không mất player.
+8. Không xuất hiện thành phần Android TV trong bản Mobile.
+
+## Điểm dừng hiện tại
+
+**Không sửa thêm source trước khi có kết quả test 1.10.35 từ máy thật.**
+
+Nếu test phát hiện lỗi, vòng tiếp theo sẽ dựa trên **bước tái hiện chính xác + lifecycle/source/log thực tế**, không sửa theo suy đoán.
+
+Cập nhật: **2026-09-19**.
+
+---
+
 # BUILD FIX — MOBILE 1.10.35 — 2026-09-19
 
 Build 1.10.34 failed during SmartTube Java compilation. The compiler reported `variable active is already defined in method installNm7MiniPlayer()` in the generated phone `BrowseActivity.java`. Root cause: the mini-player click lambda redeclared the enclosing local variable `active`; Java does not permit that shadowing in this lambda scope.
