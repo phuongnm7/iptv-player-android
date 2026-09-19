@@ -112,12 +112,9 @@ public final class MobileNm7Application extends DroidApplication implements andr
             clearTabSwitch();
             SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_YOUTUBE);
             SharedPlaybackSession.setYoutubeBackground(activity, false);
-            // Do not enable Play-Behind merely because PlaybackActivity was created.
-            // Background mode is entered only from SmartTube's HOME/lock lifecycle. This
-            // prevents the initial YouTube play request from being treated as background media.
-            // A real YouTube video has started. Configure ownership and release the
-            // IPTV decoder so the two video engines never contend for hardware resources.
-            pauseIptvPlayer();
+            // PlaybackActivity creation is NOT proof that a YouTube video is playing.
+            // IPTV ownership is released only by the real ExoPlayer STATE_READY +
+            // playWhenReady callback patched into SmartTube PlaybackActivity.
         }
     }
 
