@@ -148,6 +148,16 @@ playback_text = playback_text.replace(set_pitch, "    public void setPitch(float
 playback_text = playback_text.replace(get_pitch, "    public float getPitch() {", 1)
 if get_pitch in playback_text:
     raise SystemExit("stale getPitch @Override remains after patch")
+# Remove the stale annotation by locating the exact method declaration in the generated source.
+playback_text = playback.read_text()
+get_pos = playback_text.find("public float getPitch()")
+if get_pos < 0:
+    raise SystemExit("getPitch declaration not found")
+line_start = playback_text.rfind("\n", 0, get_pos) + 1
+prev_line_end = line_start - 1
+prev_line_start = playback_text.rfind("\n", 0, prev_line_end) + 1
+if playback_text[prev_line_start:prev_line_end + 1].strip() == "@Override":
+    playback_text = playback_text[:prev_line_start] + playback_text[line_start:]
 playback.write_text(playback_text)
 
 # Keep this fork buildable when section_is_empty is absent from the phone resource table.
