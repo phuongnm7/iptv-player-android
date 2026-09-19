@@ -1,5 +1,5 @@
 # NM7 IPTV Mobile 1.10.26 - Windows local build
-# SCRIPT_VERSION: 2026-09-19-PATCH16
+# SCRIPT_VERSION: 2026-09-19-PATCH17
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 $Root = Split-Path -Parent $PSScriptRoot
@@ -328,20 +328,20 @@ $backNew=@'
 
         mIsBackPressed = true;
 
-        // NM7 Mobile: invoke SmartTube's own parent-view navigation directly.
-        // Do not call finish() here: finish() first evaluates the PIP path, while the
-        // required behavior is an in-app Browse + mini-player handoff.
+        // NM7 Mobile: direct Browse + in-app mini-player. Keep SmartTube's video engine
+        // unblocked; Browse will attach the live ExoPlayer output to its TextureView.
         if (mPlayer != null && !isFinishing() && !isDestroyed()) {
             sMiniPlayerActive = true;
-            System.setProperty("nm7.youtube.background", "1");
             try {
-                getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_SOUND);
-            } catch (RuntimeException ignored) {
+                Intent intent = new Intent(this,
+                        Class.forName("com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity"));
+                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                startActivity(intent);
+                overridePendingTransition(0, 0);
+                return;
+            } catch (ReflectiveOperationException | RuntimeException ignored) {
+                sMiniPlayerActive = false;
             }
-            blockEngine(true);
-            getViewManager().blockTop(this);
-            getViewManager().startParentView(this);
-            return;
         }
 
         super.onBackPressed();
@@ -632,6 +632,16 @@ $newLeave=@'
         }
 
         getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_SOUND);
+        try {
+            Intent nm7Service = new Intent();
+            nm7Service.setComponent(new android.content.ComponentName(this,
+                    "vn.phuongnm7.iptvplayer.BackgroundPlaybackService"));
+            nm7Service.putExtra("youtube", true);
+            nm7Service.putExtra("channel_name", "YouTube");
+            if (VERSION.SDK_INT >= 26) startForegroundService(nm7Service);
+            else startService(nm7Service);
+        } catch (RuntimeException ignored) {
+        }
         System.setProperty("nm7.youtube.background", "1");
         try {
             Class<?> session = Class.forName("vn.phuongnm7.iptvplayer.SharedPlaybackSession");
