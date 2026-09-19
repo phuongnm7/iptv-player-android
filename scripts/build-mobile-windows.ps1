@@ -450,6 +450,7 @@ if($t -match 'getString\("Section is empty"\)'){
 }
 # The SmartTube snapshot may omit this generated string resource; keep the build independent of it.
 if($t -notmatch 'import android.content.Intent;'){$t=$t.Replace("import android.content.Context;",("import android.content.Context;"+$nl+"import android.content.Intent;"))}
+WriteT $play $t
 
 # Keep the phone SmartTube ExoPlayer instance alive across Android HOME/background.
 $oldStart=@'
