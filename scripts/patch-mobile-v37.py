@@ -128,3 +128,7 @@ t = replace(t, '    private void processFormatInfo(MediaItemFormatInfo formatInf
             '    private void processFormatInfo(MediaItemFormatInfo formatInfo) {\n        android.util.Log.i("NM7Startup", "format_ready_ms=" + (android.os.SystemClock.elapsedRealtime() - mNm7FormatStart));')
 loader.write_text(t, encoding='utf-8')
 print('NM7 Mobile lifecycle and native UI v39 applied to pinned phone source')
+
+# UI overlay deliberately leaves all v39 playback/lifecycle code above unchanged.
+import runpy
+runpy.run_path("scripts/patch-mobile-ui.py")

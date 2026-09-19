@@ -1,3 +1,37 @@
+# ĐANG BUILD — NM7 IPTV MOBILE 1.10.40 — GIAO DIỆN THEO SUPER OK
+
+## Yêu cầu và mốc giữ nguyên
+
+Người dùng yêu cầu tab YouTube giống ảnh `photo_2026-09-20_06-27-50.jpg` của Super OK và gửi thêm `Super_OK.apk` để tham khảo. Mốc chức năng là **1.10.39**, đã được người dùng xác nhận xử lý xong các lỗi trước đó.
+
+## Thay đổi giao diện
+
+- Nền tối, điểm nhấn cam, logo SmartTube, thanh tìm kiếm, nút tìm bằng giọng nói và tài khoản.
+- Các mục nội dung dạng nút ngang; giữ dữ liệu, tên, thứ tự và tùy chọn mục của SmartTube hiện tại.
+- Feed video một cột với thumbnail 16:9 bo góc, tiêu đề hai dòng, thông tin phụ, thời lượng và tiến độ xem.
+- Nút ba chấm gọi menu video hiện có; thao tác nhấn giữ vẫn hoạt động.
+- Thanh dưới của tab YouTube có bốn nút: YouTube, IPTV, Thư viện (playlist hiện có), Cài đặt SmartTube. Tab IPTV vẫn giữ giao diện hiện tại.
+- Nhấn giữ thanh tìm kiếm mở menu cũ, bao gồm Làm mới. Nút micro gọi tìm kiếm giọng nói hiện có.
+- Nội dung video/thumbnail/tài khoản là dữ liệu thật từ SmartTube, không sao chép nội dung mẫu trong ảnh.
+
+## Giữ nguyên chức năng bản 1.10.39
+
+- Không đổi mã playback YouTube, ngưỡng buffer, loader và luồng bàn giao IPTV/YouTube.
+- Không đổi mini-player dùng chung, dịch vụ phát nền, IPTV player, hẹn giờ đóng app và manifest.
+- Feed dùng adapter riêng cho từng nhóm dữ liệu để giữ phân trang, xóa, đồng bộ, tiếp tục tải và menu video.
+- UI patch dùng chung cho CI và Windows, áp dụng lên đúng upstream đã pin; không sửa repo Android TV.
+- RecyclerView của module SmartTube nâng từ 1.1.0 lên 1.2.1 để dùng ConcatAdapter cho feed phẳng.
+
+## Kiểm tra đến hiện tại
+
+- Patch áp dụng thành công trên nguồn upstream sạch.
+- 21 kiểm tra cấu trúc lifecycle PASS.
+- So sánh byte xác nhận PlaybackActivity, ExoPlayerInitializer, VideoLoaderController sinh ra giống bản 1.10.39; phương thức chuyển tab IPTV/YouTube cũng giữ nguyên.
+- XML giao diện parse thành công. Đang chờ CI biên dịch và tạo APK ARM64/ARMv7.
+- Chưa kiểm thử runtime/giao diện trên điện thoại cho 1.10.40; không xem các kiểm tra source là xác nhận thực tế.
+
+---
+
 # TRẠNG THÁI XÁC NHẬN — NM7 IPTV MOBILE 1.10.39 — 2026-09-19
 
 ## Kết quả test thực tế

@@ -45,6 +45,11 @@ public final class HomeTabBar {
             if (youtubeSelected) openIptv(activity);
         });
 
+        if (youtubeSelected) {
+            addItem(activity, bar, R.drawable.nm7_nav_library, false, () -> openBrowseSection(activity, "nm7OpenLibrary"));
+            addItem(activity, bar, R.drawable.nm7_nav_settings, false, () -> openBrowseSection(activity, "nm7OpenSettings"));
+        }
+
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(activity, 64), Gravity.BOTTOM);
         host.addView(bar, lp);
@@ -54,6 +59,14 @@ public final class HomeTabBar {
                 root.setPadding(root.getPaddingLeft(), root.getPaddingTop(), root.getPaddingRight(),
                         root.getPaddingBottom() + dp(activity, 64));
             }
+        }
+    }
+
+    private static void openBrowseSection(Activity activity, String method) {
+        try {
+            activity.getClass().getMethod(method).invoke(activity);
+        } catch (ReflectiveOperationException error) {
+            android.util.Log.e("NM7Navigation", "Browse section unavailable", error);
         }
     }
 
@@ -119,12 +132,18 @@ public final class HomeTabBar {
         item.addView(icon, new LinearLayout.LayoutParams(size, size));
 
         TextView label = new TextView(activity);
-        label.setText(iconRes == R.drawable.nm7_nav_youtube ? "YouTube" : "IPTV");
+        String title = iconRes == R.drawable.nm7_nav_youtube ? "YouTube"
+                : iconRes == R.drawable.nm7_nav_iptv ? "IPTV"
+                : iconRes == R.drawable.nm7_nav_library ? "Thư viện" : "Cài đặt";
+        label.setText(title);
+        item.setContentDescription(title);
         label.setTextSize(11);
         label.setGravity(Gravity.CENTER);
         label.setTextColor(selected ? Color.WHITE : UNSELECTED);
         label.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
-        item.addView(label, new LinearLayout.LayoutParams(-2, dp(activity, 18)));
+        if (!activity.getClass().getName().equals(BROWSE)) {
+            item.addView(label, new LinearLayout.LayoutParams(-2, dp(activity, 18)));
+        }
 
         bar.addView(item, new LinearLayout.LayoutParams(0, dp(activity, 56), 1f));
     }

@@ -53,7 +53,7 @@ dependencies {
     // SmartTube phone UI dependencies. Keep the upstream versions explicit
     // because SharedModules constants are not exposed to this Kotlin DSL module.
     implementation("androidx.annotation:annotation:1.1.0")
-    implementation("androidx.recyclerview:recyclerview:1.1.0")
+    implementation("androidx.recyclerview:recyclerview:1.2.1")
     implementation("androidx.constraintlayout:constraintlayout:1.1.2")
     implementation("androidx.media:media:1.2.0")
     implementation("androidx.multidex:multidex:2.0.1")
@@ -65,3 +65,4 @@ dependencies {
     implementation("io.reactivex.rxjava2:rxjava:2.2.21")
     implementation("org.conscrypt:conscrypt-android:2.5.3")
 }
+
