@@ -96,14 +96,18 @@ jobs:
           set -euxo pipefail
           python3 - <<'PY'
           from pathlib import Path
+          import re
+
           root = Path('third_party/SmartTube-droid')
 
+          def require_replace(path, old, new, label):
+              text = path.read_text()
+              if old not in text:
+                  raise SystemExit(label + ' not found')
+              path.write_text(text.replace(old, new, 1))
+
           browse = root / 'smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/browse/BrowseActivity.java'
-          t = browse.read_text()
-          t2 = t.replace('private static final int GRID_COLUMNS = 2;', 'private static final int GRID_COLUMNS = 1;')
-          if t2 == t:
-              raise SystemExit('Browse GRID_COLUMNS declaration not found')
-          browse.write_text(t2)
+          require_replace(browse, 'private static final int GRID_COLUMNS = 2;', 'private static final int GRID_COLUMNS = 1;', 'Browse GRID_COLUMNS')
 
           uploads = root / 'smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/channeluploads/ChannelUploadsActivity.java'
           if uploads.is_file():
@@ -114,10 +118,15 @@ jobs:
 
           playback = root / 'smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java'
           t = playback.read_text()
-          t2 = t.replace('import android.content.Context;\\n', 'import android.content.Context;\\nimport android.content.Intent;\\n')
 
-          old_stop = re.compile(r'(?ms)^    @Override\\n    protected void onStop\\(\\) \\{.*?^    \\}\\n\\n    @Override\\n    protected void onDestroy\\(\\)')
-          new_stop = '''    @Override
+          if 'import android.content.Intent;' not in t:
+              if 'import android.content.Context;' in t:
+                  t = t.replace('import android.content.Context;', 'import android.content.Context;\nimport android.content.Intent;', 1)
+              else:
+                  raise SystemExit('PlaybackActivity Context import not found')
+
+          stop_re = re.compile(r'(?ms)^    @Override\n    protected void onStop\(\) \{.*?^    \}\n\n    @Override\n    protected void onDestroy\(\)')
+          stop_new = '''    @Override
     protected void onStop() {
         super.onStop();
 
@@ -138,92 +147,102 @@ jobs:
 
     @Override
     protected void onDestroy()'''
-          t2, n = old_stop.subn(new_stop, t, count=1)
+          t, n = stop_re.subn(stop_new, t, count=1)
           if n != 1:
               raise SystemExit('PlaybackActivity onStop block not found')
 
-          leave_start = t2.find('    public void onUserLeaveHint()')
-          leave_end = t2.find('    public boolean isInPipMode()', leave_start)
-          if leave_start < 0 or leave_end < 0:
-              raise SystemExit('PlaybackActivity onUserLeaveHint block not found')
-          leave_method = "\n".join([
-              '    public void onUserLeaveHint() {',
-              '        if (mIsBackPressed || isFinishing() || getViewManager().isNewViewPending()) {',
-              '            return;',
-              '        }',
-              '        getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_PLAY_BEHIND);',
-              '        startNm7BackgroundService();',
-              '        enterBackgroundPlayMode();',
-              '    }',
-              ''
-          ])
-          t2 = t2[:leave_start] + leave_method + t2[leave_end:]
+          # Preserve YouTube when HOME/lock causes onStop. Insert only if upstream does not already have the hook.
+          if 'void onUserLeaveHint()' not in t:
+              pip_marker = re.search(r'(?m)^    public boolean isInPIPMode\(\)\s*\{', t)
+              if not pip_marker:
+                  pip_marker = re.search(r'(?m)^    public boolean isInPipMode\(\)\s*\{', t)
+              if not pip_marker:
+                  raise SystemExit('PlaybackActivity PIP method marker not found')
+              leave = '''    @Override
+    public void onUserLeaveHint() {
+        if (mIsBackPressed || isFinishing()) {
+            return;
+        }
+        getPlayerData().setBackgroundMode(PlayerData.BACKGROUND_MODE_PLAY_BEHIND);
+        startNm7BackgroundService();
+        enterBackgroundPlayMode();
+    }
 
-          helper = "\n".join([
-              '    private void startNm7BackgroundService() {',
-              '        try {',
-              '            Intent intent = new Intent();',
-              '            intent.setComponent(new android.content.ComponentName(this,',
-              '                    "vn.phuong.iptvplayer.BackgroundPlaybackService"));',
-              '            intent.putExtra("youtube", true);',
-              '            intent.putExtra("channel_name", "YouTube");',
-              '            if (VERSION.SDK_INT >= 26) {',
-              '                startForegroundService(intent);',
-              '            } else {',
-              '                startService(intent);',
-              '            }',
-              '        } catch (RuntimeException ignored) {',
-              '        }',
-              '    }',
-              ''
-          ])
-          helper_at = t2.find('    public boolean isInPipMode()')
-          if helper_at < 0:
-              raise SystemExit('PlaybackActivity isInPipMode marker not found')
-          t2 = t2[:helper_at] + helper + t2[helper_at:]
+'''
+              t = t[:pip_marker.start()] + leave + t[pip_marker.start():]
 
-          old_back = "\n".join([
-              '    @Override',
-              '    public void onBackPressed() {',
-              '        mIsBackPressed = true;',
-              '',
-              '        super.onBackPressed();',
-              '    }'
-          ])
-          new_back = "\n".join([
-              '    @Override',
-              '    public void onBackPressed() {',
-              '        if (mIsBackPressed) {',
-              '            return;',
-              '        }',
-              '',
-              '        mIsBackPressed = true;',
-              '        try {',
-              '            Intent intent = new Intent(this,',
-              '                    Class.forName("com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity"));',
-              '            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NO_ANIMATION);',
-              '            startActivity(intent);',
-              '            overridePendingTransition(0, 0);',
-              '            finish();',
-              '            overridePendingTransition(0, 0);',
-              '        } catch (ReflectiveOperationException | RuntimeException e) {',
-              '            super.onBackPressed();',
-              '        }',
-              '    }'
-          ])
-          if old_back not in t2:
+          if 'private void startNm7BackgroundService()' not in t:
+              pip_marker = re.search(r'(?m)^    public boolean isInPIPMode\(\)\s*\{', t)
+              if not pip_marker:
+                  pip_marker = re.search(r'(?m)^    public boolean isInPipMode\(\)\s*\{', t)
+              if not pip_marker:
+                  raise SystemExit('PlaybackActivity PIP method marker not found for helper')
+              helper = '''    private void startNm7BackgroundService() {
+        try {
+            Intent intent = new Intent();
+            intent.setComponent(new android.content.ComponentName(this,
+                    "vn.phuong.iptvplayer.BackgroundPlaybackService"));
+            intent.putExtra("youtube", true);
+            intent.putExtra("channel_name", "YouTube");
+            if (VERSION.SDK_INT >= 26) {
+                startForegroundService(intent);
+            } else {
+                startService(intent);
+            }
+        } catch (RuntimeException ignored) {
+        }
+    }
+
+'''
+              t = t[:pip_marker.start()] + helper + t[pip_marker.start():]
+
+          # Back: keep the current YouTube session alive and return to Browse.
+          back_re = re.compile(r'(?ms)^    @Override\n    public void onBackPressed\(\) \{.*?^    \}\n\n    @Override')
+          m = back_re.search(t)
+          if not m:
               raise SystemExit('PlaybackActivity onBackPressed block not found')
-          t2 = t2.replace(old_back, new_back)
+          old = m.group(0)
+          if 'startActivity(intent)' not in old:
+              new_back = '''    @Override
+    public void onBackPressed() {
+        if (mIsBackPressed) {
+            return;
+        }
 
-          listener_marker = '        mPlayer.addListener(new Player.EventListener() {\n            @Override\n            public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {'
-          listener_hook = '                if (playWhenReady && playbackState == Player.STATE_READY) {\n                    try {\n                        vn.phuong.iptvplayer.MobileNm7Application.pauseIptvForYoutube();\n                    } catch (RuntimeException ignored) {\n                    }\n                }\n\n'
-          if listener_marker not in t2:
+        mIsBackPressed = true;
+        try {
+            Intent intent = new Intent(this,
+                    Class.forName("com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity"));
+            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NO_ANIMATION);
+            startActivity(intent);
+            overridePendingTransition(0, 0);
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            super.onBackPressed();
+        }
+    }
+
+    @Override'''
+              t = t[:m.start()] + new_back + t[m.end():]
+
+          # Real playback-start handoff: only STATE_READY + playWhenReady releases IPTV.
+          marker = '''        mPlayer.addListener(new Player.EventListener() {
+            @Override
+            public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {'''
+          hook = '''                if (playWhenReady && playbackState == Player.STATE_READY) {
+                    try {
+                        vn.phuong.iptvplayer.MobileNm7Application.pauseIptvForYoutube();
+                    } catch (RuntimeException ignored) {
+                    }
+                }
+
+'''
+          if marker not in t:
               raise SystemExit('Verified SmartTube mPlayer listener insertion point not found')
-          if 'MobileNm7Application.pauseIptvForYoutube()' not in t2:
-              t2 = t2.replace(listener_marker, listener_marker + listener_hook, 1)
+          if 'MobileNm7Application.pauseIptvForYoutube()' not in t:
+              t = t.replace(marker, marker + hook, 1)
 
-          playback.write_text(t2)
-          print('Patched SmartTube phone UI and verified playback lifecycle hooks')
+          playback.write_text(t)
+          print('SmartTube Mobile lifecycle patch completed')
           PY
 
       - name: Patch SmartTube show_buffering resource collision
