@@ -1,3 +1,28 @@
+# BUILD FIX — MOBILE 1.10.35 — 2026-09-19
+
+Build 1.10.34 failed during SmartTube Java compilation. The compiler reported `variable active is already defined in method installNm7MiniPlayer()` in the generated phone `BrowseActivity.java`. Root cause: the mini-player click lambda redeclared the enclosing local variable `active`; Java does not permit that shadowing in this lambda scope.
+
+## Fix
+- Build script PATCH21 removes the duplicate local declaration and reuses the existing `active` reference.
+- Mobile version bumped to **1.10.35**, versionCode **53**.
+- No IPTV/YouTube lifecycle behavior was otherwise changed by this compile fix.
+- TV is not included in the Mobile build.
+
+Commit:
+- `2c7928e96dd416ca9667362edee8a3c85fa8a35a` — fix duplicate mini-player variable in build script.
+- `1ac30b9b414f99f92bb59643f04f60cc006f4ef4` — bump Mobile to 1.10.35.
+
+## Next Windows build
+Run:
+```powershell
+git pull origin fix/mobile-1.10.26-sleep-timer-icon
+powershell -ExecutionPolicy Bypass -File .\scripts\build-mobile-windows.ps1
+```
+
+Do not reuse the failed 1.10.34 APK; the next build output must be **1.10.35**.
+
+---
+
 # HOTFIX 1.10.34 — BỔ SUNG PATCH19 SAU KHI 1.10.33 FAIL THỰC TẾ
 
 ## Kết luận source sau khi rà lại
