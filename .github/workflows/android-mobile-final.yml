@@ -184,6 +184,9 @@ jobs:
           if "@Override\\n    public float getPitch(" in text:
               raise SystemExit("stale getPitch @Override remains")
           print("Pitch override verification complete")
+          for n, line in enumerate(text.splitlines(), 1):
+              if 2425 <= n <= 2455:
+                  print(f"{n}: {line}")
           PY
 
       - name: Build Mobile only (NM7 IPTV 1.10.36)
