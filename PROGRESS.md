@@ -1,34 +1,50 @@
-# ĐANG BUILD — MOBILE 1.10.52 — 2026-09-20
+# BUILD SUCCESS — MOBILE 1.10.52 — CHỜ TEST THIẾT BỊ THẬT — 2026-09-20
 
 Người dùng test 1.10.51 và gửi:
 - `video_2026-09-20_13-01-09.mp4`
 - `photo_2026-09-20_13-00-20.jpg`
 
-## Kết quả test mới
+## Lỗi đầu vào đã xác định
 - Có thể bị kẹt/không thoát được khi đang ở màn hình kết quả tìm kiếm YouTube.
 - Thumbnail kết quả tìm kiếm rất mờ/nhòe.
-- Đây là SearchActivity, không phải BrowseActivity.
+- Màn gặp lỗi là `SearchActivity`, không phải `BrowseActivity`.
 
-## Nguyên nhân
-1. 1.10.51 mới áp dụng mini Back state-machine cho BrowseActivity. SearchActivity vẫn dùng back stack mặc định, nên khi mini còn active Back có thể kéo PlaybackActivity trở lại và tạo cảm giác kẹt.
-2. Nhánh thumbnail maxres/hq720 trong patch UI chỉ chạy khi card có `nm7_card_menu` (card Browse). SearchActivity dùng card grid mặc định nên rơi về `video.getCardImageUrl()`, thường thấp hơn và bị phóng lớn.
+## Thay đổi 1.10.52
+- `SearchActivity.onBackPressed()`:
+  - nếu mini đang active → `consumeNm7BrowseBack()`, đóng mini/session trước, không kéo `PlaybackActivity` quay lại;
+  - nếu không còn mini → dùng Back bình thường;
+  - nút mũi tên Back trong Search dùng cùng luồng này.
+- Nhánh thumbnail chất lượng cao áp dụng cho mọi card YouTube có `videoId` hợp lệ, gồm cả kết quả tìm kiếm:
+  - `maxresdefault.jpg`
+  - `hq720.jpg`
+  - fallback sang `bgImageUrl/getCardImageUrl`
+  - `SIZE_ORIGINAL` + `ARGB_8888` + `DownsampleStrategy.NONE`.
+- Giữ nguyên các phần đã xác nhận trước đó:
+  - IPTV full-screen ẩn tab YouTube/IPTV: PASS.
+  - tap mini không xuyên xuống card phía sau: PASS.
+  - các thay đổi lifecycle/player từ 1.10.51 được giữ nguyên.
 
-## Sửa 1.10.52
-- SearchActivity.override onBackPressed():
-  - nếu mini đang active → consumeNm7BrowseBack(), đóng mini/session và ở lại Search/Home YouTube.
-  - nếu không có mini → dùng Back bình thường.
-  - nút mũi tên Back của Search đã gọi onBackPressed nên cùng hành vi.
-- Nhánh thumbnail chất lượng cao áp dụng cho mọi card YouTube có videoId hợp lệ, gồm Search results:
-  - maxresdefault.jpg
-  - hq720.jpg
-  - bgImageUrl/getCardImageUrl fallback
-  - SIZE_ORIGINAL + ARGB_8888 + DownsampleStrategy.NONE.
-- Giữ nguyên IPTV fullscreen PASS, tapShield PASS và state machine mini/player của 1.10.51.
+## Build xác nhận
+- **VersionName:** `1.10.52`
+- **VersionCode:** `70`
+- **Source commit:** `3b29e3e68ed536661fcfa6ab97e6421279d4725b`
+- **Guard-fix/build commit:** `067b2f8c185c0a0803fff7e92712e3802b188461`
+- **GitHub Actions:** `NM7 Mobile Final Build #366`
+- **Run ID:** `35493388920`
+- **Kết quả:** **SUCCESS**
+- **Artifact:** `NM7-IPTV-Mobile-FINAL`
+- **Artifact ID:** `10599477922`
+- **Artifact SHA256:** `cec71c2986079dc13e75c5a93a775cccb6b309672737d2a89b27a1517655a690`
+- **Source proof artifact:** `10599637310`
 
-## Mốc
-- VersionName: **1.10.52**
-- VersionCode: **70**
-- Chờ CI + test máy thật.
+## Trạng thái hiện tại
+**1.10.52 chưa được đánh dấu stable.** CI/build đã thành công nhưng còn chờ người dùng test thực tế trên điện thoại các điểm:
+1. Back trong Search khi mini đang active.
+2. Có còn bị kẹt/vòng lặp player ↔ mini hay không.
+3. Thumbnail Search/Browse có đủ sắc nét hay không.
+4. Mini ↔ player có còn tình trạng audio chạy nhưng hình đứng hay không.
+
+Mọi phát triển tiếp theo phải giữ nguyên các phần đã PASS và dựa trên source hiện tại của 1.10.52 cho đến khi có kết quả test mới.
 
 ---
 
