@@ -146,7 +146,7 @@ s=once(s,'        String name = cause == null ? "Unknown" : cause.getClass().get
         }''')
 # Full errors retain their type too; previously the label was bypassed outside mini.
 s=once(s,'        if (!sNm7Mini) return true;','')
-s=once(s,'        boolean manual = mNm7ManualRetry;', '        if (!sNm7Mini) return true;\n        boolean manual = mNm7ManualRetry;')
+s=once(s,'        boolean manual = mNm7ManualRetry;', '        if (!sNm7Mini && !name.contains("OutOfMemory")) return true;\n        boolean manual = mNm7ManualRetry;')
 # Mini -> Home does not invoke the stopped PlaybackActivity.onUserLeaveHint.
 s=once(s,'    public static boolean isNm7Playing() {','''    public static void prepareNm7Background() {
         if (!isNm7SessionActive() || !sNm7Mini || sNm7SuspendedForIptv
@@ -197,7 +197,7 @@ s=once(s, '    private void installNm7WatchFeed() {', '''    private void update
     private void installNm7WatchFeed() {''')
 # A hidden poster must not retain its decoded bitmap after a playable source arrives.
 s=once(s, '        if (TextUtils.isEmpty(url) || isFinishing() || isDestroyed()) {', '''        if (TextUtils.isEmpty(url)) {
-            Glide.with(this).clear(mBackgroundView);
+            Glide.with(getApplicationContext()).clear(mBackgroundView);
             mBackgroundView.setImageDrawable(null);
             mBackgroundView.setVisibility(View.GONE);
             return;
@@ -205,5 +205,12 @@ s=once(s, '        if (TextUtils.isEmpty(url) || isFinishing() || isDestroyed())
         if (isFinishing() || isDestroyed()) {''')
 s=once(s, '        Glide.with(this).load(url).into(mBackgroundView);',
        '        Glide.with(this).load(url).override(960, 540).into(mBackgroundView);')
+p.write_text(s)
+# After OOM, reloading a source on the same engine can retain the failed allocation.
+# Recreate it after cache trim; both mini and full OOM pass through the one-retry gate.
+p = root / 'common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/ErrorFixerController.java'
+s = p.read_text()
+s = once(s, '                getPlayerTweaksData().setSectionPlaylistEnabled(false);\n                restartEngine = false;',
+         '                getPlayerTweaksData().setSectionPlaylistEnabled(false);\n                restartEngine = true; // Mobile OOM: release allocator/decoder before retry.')
 p.write_text(s)
 print('v58 shared recycling, watch metadata header, pill actions, comments and mini/Home lifecycle applied')

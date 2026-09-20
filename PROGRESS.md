@@ -1,4 +1,4 @@
-# SOURCE READY — MOBILE 1.10.58 / 76 — CHỜ CI VÀ TEST THẬT — 2026-09-21
+# SOURCE READY — MOBILE 1.10.58 / 76 — CHỜ CI VÀ TEST THẬT — 2026-09-20
 
 ## Bằng chứng và yêu cầu
 - Mốc nền: commit `576375331c2dc42259a65af010fdcf6cb21501c5`, 1.10.57 / 75. Người dùng cung cấp ảnh build #373 thành công nhưng xác nhận bản này vẫn lỗi; không stable.
@@ -10,7 +10,7 @@
 - Vuốt đổi tab ngay khi vượt ngưỡng chuyển tab, không chờ nhấc ngón tay. Mỗi gesture chỉ đổi một tab; giữ CANCEL để không mở nhầm card. Hit-test mini/header chỉ chạy lúc DOWN. Presenter chạy sau frame cập nhật tab và gộp yêu cầu vuốt nhanh; bỏ dữ liệu thuộc tab cũ.
 - Các nhóm trong feed dùng chung view type để tái sử dụng holder, tránh mỗi nhóm tạo một pool riêng. Tắt item animation trong Browse; giữ cache holder nhỏ.
 - Glide có ngân sách heap riêng: cache ảnh tối đa 16 MiB, bitmap pool tối đa 8 MiB, array pool 2 MiB. Thumbnail ưu tiên hq720, có fallback maxres/nguồn gốc; decode giới hạn 960px, không SIZE_ORIGINAL. Giảm lưu lượng tải ảnh và cấp phát cạnh tranh với player; chưa có đo thời gian mở video trên máy thật.
-- Dọn bitmap poster khi nguồn phát sẵn sàng và trim image cache khi engine báo OOM trước phục hồi. Giữ giới hạn bộ đệm video và retry của 1.10.57; không coi đây là bằng chứng OOM đã hết.
+- Dọn bitmap poster khi nguồn phát sẵn sàng và trim image cache khi engine báo OOM trước phục hồi. OOM dựng lại engine để giải phóng allocator/decoder; giới hạn một lần tự phục hồi áp dụng cả mini và full khi OOM. Giữ giới hạn bộ đệm video và retry của 1.10.57; không coi đây là bằng chứng OOM đã hết.
 - Mini host đi ra nền gọi đúng bridge giữ phiên phát và foreground service. Trước đây Home từ Browse không gọi onUserLeaveHint của PlaybackActivity đã stopped. Service giữ Wi-Fi lock cùng wake lock, giải phóng khi dừng/chuyển ownership. Giữ pause và IPTV guard.
 - Metadata/nút/bình luận trở thành một header của RecyclerView gợi ý, không bọc toàn bộ feed trong ScrollView. Cuộn lên sẽ cuộn khuất thông tin, video vẫn ở trên; cuộn xuống đầu danh sách hiện lại.
 - Hàng hành động gồm avatar, đăng ký dạng pill đen, like/dislike trong cùng nền bo tròn, chia sẻ/lưu và các chức năng chất lượng/tốc độ/menu. Giữ handler native. Số like/dislike chỉ hiện khi metadata có, không tự tạo số.
