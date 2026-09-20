@@ -1,3 +1,21 @@
+# BUILD THÀNH CÔNG — MOBILE 1.10.43 — 2026-09-20
+
+GitHub Actions **NM7 Mobile Final Build #352** đã PASS toàn bộ.
+
+- Run ID: `35480267429`
+- Source commit build: `3617e902983a23217eb59799600f48bab169c319`
+- Artifact: `NM7-IPTV-Mobile-FINAL`
+- Artifact ID: `10595786897`
+- Artifact digest: `sha256:1e14d566e12b79807c216a83a2d8172af75a1c465747b449bd57ab1e4d5e5c35`
+- Patch SmartTube: PASS
+- Lifecycle regression guards: PASS
+- Gradle build Mobile: PASS
+- Upload APK: PASS
+
+Bản 1.10.43 giữ phần thumbnail rõ nét của 1.10.42 và bổ sung bắt gesture ngang tại `BrowseActivity.dispatchTouchEvent()` để chuyển section/tab YouTube. Cần test trên điện thoại thật để xác nhận vuốt trái/phải hoạt động đúng giữa **Trang chủ ↔ Kênh đăng ký ↔ Danh sách phát ↔ ...**.
+
+---
+
 # ĐANG BUILD — MOBILE 1.10.43 — 2026-09-20
 
 Người dùng đã test 1.10.42: thumbnail YouTube đã rõ nét hơn; vuốt trái/phải đổi section vẫn chưa hoạt động.
