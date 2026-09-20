@@ -1,3 +1,33 @@
+# ĐANG BUILD — MOBILE 1.10.49 — 2026-09-20
+
+Người dùng test 1.10.48:
+- Lỗi tap xuyên xuống card video phía sau mini-player: **đã khắc phục**.
+- Lỗi mini-player đen/đứng hình: **vẫn còn**.
+- Yêu cầu mới: IPTV inline khi mở rộng/toàn màn hình phải ẩn thanh tab YouTube/IPTV phía dưới; thoát toàn màn hình mới hiện lại.
+
+## Sửa 1.10.49
+### Mini-player
+- Không dùng ExoPlayer PlayerView làm surface mini nữa.
+- Dùng TextureView trực tiếp và chỉ attach sau onSurfaceTextureAvailable/isAvailable.
+- Giữ engine mở từ sửa 1.10.48.
+- Không gọi clearVideoSurface().
+- Không seekTo(currentPosition).
+- Khi restore fullscreen YouTube: detach TextureView rồi gắn player lại vào SmartTube PlayerView.
+- Giữ nguyên tapShield đã được người dùng xác nhận sửa lỗi tap xuyên.
+
+### IPTV fullscreen
+- HomeTabBar có BAR_TAG và API setVisible().
+- enterFullscreen() của MobileInlinePlayerProviderV2 ẩn HomeTabBar trước khi immersive fullscreen.
+- exitFullscreen() hiện HomeTabBar lại.
+- Không thay playback IPTV, channel switching hoặc các chức năng khác.
+
+## Mốc
+- VersionName: **1.10.49**
+- VersionCode: **67**
+- Chờ CI + test điện thoại thật.
+
+---
+
 # ⚠️ 1.10.47 STABLE STATUS REVOKED — ĐANG BUILD 1.10.48 — 2026-09-20
 
 Sau khi test thêm và gửi video màn hình, người dùng phát hiện lỗi nghiêm trọng còn tồn tại trong 1.10.47:

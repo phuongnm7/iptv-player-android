@@ -4,15 +4,15 @@ import android.app.Activity;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.TextureView;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 
 /** One bounded touch surface shared across native Browse and the IPTV list. */
 public final class MobileMiniPlayer {
     private static FrameLayout host;
-    private static View surface;
+    private static TextureView surface;
     private static final String PLAYER = "com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity";
-    private static final String EXO_PLAYER_VIEW = "com.google.android.exoplayer2.ui.PlayerView";
 
     private MobileMiniPlayer() { }
 
@@ -39,7 +39,7 @@ public final class MobileMiniPlayer {
             box.bottomMargin = (int)(80 * d);
             box.rightMargin = (int)(12 * d);
 
-            View video = createPlayerView(activity);
+            TextureView video = new TextureView(activity);
             video.setClickable(false);
             video.setFocusable(false);
             next.addView(video, new FrameLayout.LayoutParams(-1, -1));
@@ -73,49 +73,35 @@ public final class MobileMiniPlayer {
             host = next;
             surface = video;
 
-            // Let ExoPlayer PlayerView own its SurfaceView/TextureView lifecycle.
-            // No manual clearVideoSurface()/seekTo() is used: those calls caused
-            // decoder stalls and audio-only mini playback on some phones.
-            video.post(() -> {
+            final Runnable attachSurface = () -> {
                 if (host != next || surface != video
                         || activity.isFinishing() || activity.isDestroyed()) return;
                 try {
-                    bridge.getMethod("attachNm7MiniPlayer", View.class, View.class)
-                            .invoke(null, previousSurface, video);
+                    bridge.getMethod("attachNm7MiniPlayer", TextureView.class).invoke(null, video);
                     if (previousHost != null && previousHost.getParent() instanceof ViewGroup)
                         ((ViewGroup) previousHost.getParent()).removeView(previousHost);
                 } catch (ReflectiveOperationException | RuntimeException error) {
-                    android.util.Log.e("NM7Playback", "Attach mini PlayerView", error);
+                    android.util.Log.e("NM7Playback", "Attach mini TextureView", error);
                 }
-            });
+            };
+            if (video.isAvailable()) {
+                video.post(attachSurface);
+            } else {
+                video.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
+                    @Override public void onSurfaceTextureAvailable(android.graphics.SurfaceTexture st, int w, int h) {
+                        video.post(attachSurface);
+                    }
+                    @Override public void onSurfaceTextureSizeChanged(android.graphics.SurfaceTexture st, int w, int h) { }
+                    @Override public boolean onSurfaceTextureDestroyed(android.graphics.SurfaceTexture st) { return true; }
+                    @Override public void onSurfaceTextureUpdated(android.graphics.SurfaceTexture st) { }
+                });
+            }
         } catch (ReflectiveOperationException | RuntimeException error) {
             android.util.Log.e("NM7Playback", "Attach mini", error);
         }
     }
 
-    private static View createPlayerView(Activity activity) throws ReflectiveOperationException {
-        Class<?> cls = Class.forName(EXO_PLAYER_VIEW);
-        Object object = cls.getConstructor(android.content.Context.class).newInstance(activity);
-        cls.getMethod("setUseController", boolean.class).invoke(object, false);
-        return (View) object;
-    }
-
-    private static void detachPlayerView(View view) {
-        if (view == null) return;
-        try {
-            for (java.lang.reflect.Method method : view.getClass().getMethods()) {
-                if ("setPlayer".equals(method.getName()) && method.getParameterTypes().length == 1) {
-                    method.invoke(view, new Object[]{null});
-                    return;
-                }
-            }
-        } catch (ReflectiveOperationException | RuntimeException error) {
-            android.util.Log.e("NM7Playback", "Detach mini PlayerView", error);
-        }
-    }
-
     public static void remove() {
-        detachPlayerView(surface);
         if (host != null && host.getParent() instanceof ViewGroup)
             ((ViewGroup) host.getParent()).removeView(host);
         host = null;

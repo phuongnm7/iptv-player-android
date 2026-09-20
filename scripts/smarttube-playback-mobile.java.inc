@@ -15,27 +15,18 @@
                 && !sNm7Active.isFinishing() && sNm7Active.mPlayer != null;
     }
 
-    public static void attachNm7MiniPlayer(android.view.View previousSurface, android.view.View nextSurface) {
+    public static void attachNm7MiniPlayer(android.view.TextureView surface) {
         PlaybackActivity active = sNm7Active;
-        if (!isNm7MiniPlayerActive()) return;
-        if (!(nextSurface instanceof com.google.android.exoplayer2.ui.PlayerView)) return;
+        if (!isNm7MiniPlayerActive() || surface == null || !surface.isAvailable()) return;
 
-        if (previousSurface instanceof com.google.android.exoplayer2.ui.PlayerView) {
-            ((com.google.android.exoplayer2.ui.PlayerView) previousSurface).setPlayer(null);
-        }
-        active.mPlayerView.setPlayer(null);
-        com.google.android.exoplayer2.ui.PlayerView mini =
-                (com.google.android.exoplayer2.ui.PlayerView) nextSurface;
-        mini.setUseController(false);
-        mini.setPlayer(active.mPlayer);
-
-        // Mini-player is foreground playback inside BrowseActivity, not background playback.
-        // Keep the decoder/renderers running while PlaybackActivity itself is paused.
+        // Keep the player/decoder running and hand video output directly to the ready TextureView.
+        // Do not clear the surface first and do not seek: both operations caused visible stalls.
         active.blockEngine(false);
+        active.mPlayerView.setPlayer(null);
+        active.mPlayer.setVideoTextureView(surface);
 
         if (sNm7ResumeAfterIptv) {
             sNm7ResumeAfterIptv = false;
-            active.blockEngine(false);
             active.mPlayer.setPlayWhenReady(true);
         }
     }
@@ -43,6 +34,9 @@
     public static void restoreNm7Player() {
         PlaybackActivity active = sNm7Active;
         if (active == null || active.isDestroyed() || active.isFinishing()) return;
+        if (active.mPlayer != null) {
+            active.mPlayer.setVideoTextureView(null);
+        }
         try {
             Class.forName("vn.phuong.iptvplayer.MobileMiniPlayer").getMethod("remove").invoke(null);
         } catch (ReflectiveOperationException error) {

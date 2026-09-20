@@ -16,6 +16,7 @@ import android.widget.TextView;
 /** Single Mobile navigation bar, overlaid at the bottom of NM7, player, and SmartTube Browse. */
 public final class HomeTabBar {
     private static final int TAG_KEY = R.id.mainRoot;
+    private static final String BAR_TAG = "nm7_home_tab_bar";
     private static final int BG = Color.rgb(23, 23, 28);
     private static final int SELECTED = Color.rgb(255, 122, 0);
     private static final int UNSELECTED = Color.rgb(135, 137, 145);
@@ -31,6 +32,7 @@ public final class HomeTabBar {
         host.setTag(TAG_KEY, Boolean.TRUE);
 
         LinearLayout bar = new LinearLayout(activity);
+        bar.setTag(BAR_TAG);
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER);
         bar.setBackground(new ColorDrawable(BG));
@@ -58,6 +60,19 @@ public final class HomeTabBar {
             if (root != null) {
                 root.setPadding(root.getPaddingLeft(), root.getPaddingTop(), root.getPaddingRight(),
                         root.getPaddingBottom() + dp(activity, 64));
+            }
+        }
+    }
+
+    public static void setVisible(Activity activity, boolean visible) {
+        View content = activity.findViewById(android.R.id.content);
+        if (!(content instanceof ViewGroup)) return;
+        ViewGroup group = (ViewGroup) content;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            if (BAR_TAG.equals(child.getTag())) {
+                child.setVisibility(visible ? View.VISIBLE : View.GONE);
+                return;
             }
         }
     }

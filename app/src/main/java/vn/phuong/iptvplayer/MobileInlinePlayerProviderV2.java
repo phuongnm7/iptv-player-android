@@ -344,6 +344,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);
         fullscreenHost.addView(videoContainer, full);
         videoContainer.bringToFront();
+        HomeTabBar.setVisible(currentActivity, false);
         hideSystemBars();
         updateFullscreenIcon();
         if (requestLandscape) currentActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
@@ -357,6 +358,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         int width = currentActivity.getResources().getDisplayMetrics().widthPixels;
         panel.addView(videoContainer, 0, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, calculateVideoHeight(currentActivity, width)));
+        HomeTabBar.setVisible(currentActivity, true);
         showSystemBars();
         updateFullscreenIcon();
         videoContainer.post(() -> {
