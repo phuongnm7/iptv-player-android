@@ -62,11 +62,13 @@ public class YouTubeWatchFeedTest {
         int videoTop = video.getTop(), videoHeight = video.getHeight();
         assertTrue(videoHeight > 0);
         int oldHeaderTop = header.getTop();
-        list.scrollBy(0, 200);
+        // Keep part of the compact header visible: detached/recycled views retain stale bounds.
+        int scrollDistance = Math.max(1, Math.min(80, header.getHeight() / 2));
+        list.scrollBy(0, scrollDistance);
         assertTrue("metadata must move with recommendations", header.getTop() < oldHeaderTop);
         assertEquals(videoTop, video.getTop());
         assertEquals(videoHeight, video.getHeight());
-        list.scrollBy(0, -200);
+        list.scrollBy(0, -scrollDistance);
         button.performClick();
         assertEquals("native action listener survives scrolling", 1, clicks[0]);
         assertEquals(2, concatType.getMethod("getItemCount").invoke(concat));
