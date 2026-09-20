@@ -1,4 +1,4 @@
-# SOURCE READY — MOBILE 1.10.59 / 77 — CHỜ CI VÀ TEST THIẾT BỊ
+# BUILD SUCCESS — MOBILE 1.10.59 / 77 — CHỜ TEST THIẾT BỊ — 2026-09-20
 
 - Người dùng xác nhận 1.10.58 vẫn có mini-player đen với thông báo chung; ảnh mới không đủ xác định loại lỗi. Không coi v58 stable.
 - Engine dispatch lỗi về PlaybackActivity thực sự sở hữu player, rebind presenter trước khi chuyển qua chuỗi lưu vị trí/phục hồi gốc. Retry xử lý cả player đã mất và nguồn rơi vào IDLE; vẫn giữ giới hạn tự phục hồi, pause intent và guard IPTV.
@@ -6,6 +6,15 @@
 - Chi tiết theo ảnh mẫu: title một dòng, dòng thông tin có ‘…xem thêm’, bỏ mô tả lặp và hàng tên kênh thừa; avatar 32dp, pill 32dp, icon viền 18dp, share chỉ biểu tượng. Mô tả đầy đủ vẫn mở trong sheet.
 - Bình luận thật được tải sau khi video READY, hiển thị avatar/tác giả/nội dung; cache trang đầu dùng lại khi mở sheet. Hủy request khi đổi video/destroy, loại response cũ. Số bình luận lấy từ contextualInfo nếu YouTube cung cấp; không dùng kích thước trang làm tổng giả.
 - Đã áp dụng toàn bộ patch lên source upstream sạch; 89 structural checks PASS. Bổ sung kiểm tra bố cục và phân loại lỗi không lộ URL trong unit tests. Chưa xác nhận runtime trên điện thoại.
+
+## Xác minh 1.10.59
+- Source: `dc7f495e09946dc435686c0c999a35455cf1fb46`; retry IDLE: `ef54f9d4afacc83c7a81842680b90de491b74f5c`; commit đã build: `22c0300d23b8025586ae56eb2d640e5f18ea4b11`.
+- Build #377: Java/Kotlin compile thành công, 50/51 test qua; test cuộn dùng 200px làm header nhỏ rời viewport, nên đọc bounds cũ. Sửa test cuộn theo nửa chiều cao header (tối đa 80px), vẫn kiểm tra metadata di chuyển, video giữ vị trí/kích thước và nút giữ listener.
+- [Build #378 SUCCESS](https://github.com/phuongnm7/iptv-player-android/actions/runs/35542810501): Gradle 7m54s; `:app:testMobileDebugUnitTest` và assembleMobileDebug thành công; kiểm tra chữ ký/ABI, upload hai APK thành công.
+- [APK ARM64/ARMv7 + SHA256SUMS](https://github.com/phuongnm7/iptv-player-android/actions/runs/35542810501/artifacts/10615413353), hết hạn 2026-10-20.
+- ARM64 SHA256: `e23545c6f09a34a9c1683284c18c646be78ea1483e3592c1f4aea2e047bcdc9a`.
+- ARMv7 SHA256: `c7b15fd4d47fb3981400aaeed3e92de0946d47acbd4bb21723728351181ac4bc`.
+- Chưa test điện thoại, chưa khẳng định mini đen hoặc dừng nền đã hết. Cần kiểm tra full→mini→full, phát mini/nền kéo dài, pause/retry sau lỗi và chuyển IPTV; đối chiếu UI/nội dung bình luận với ảnh mẫu. Nếu vẫn lỗi, ghi lại loại lỗi mới trong mini để phân biệt nguồn/HTTP/decoder/bộ nhớ.
 
 ---
 
