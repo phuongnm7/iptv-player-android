@@ -1,5 +1,6 @@
     private static PlaybackActivity sNm7Active;
     private static boolean sNm7Mini;
+    private static boolean sNm7RestorePending;
     private static boolean sNm7ResumeAfterIptv;
     private boolean mNm7Stopped;
     private boolean mNm7OwnsPlayback;
@@ -45,7 +46,19 @@
 
     public static void restoreNm7Player() {
         PlaybackActivity active = sNm7Active;
-        if (active == null || active.isDestroyed() || active.isFinishing()) return;
+        if (active == null || active.isDestroyed() || active.isFinishing() || active.mPlayer == null) return;
+
+        // Do not switch the video target while PlaybackActivity is still stopped.
+        // Bring it to foreground first; onResume completes the surface handoff.
+        sNm7RestorePending = true;
+        active.startActivity(new Intent(active, active.getClass())
+                .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NO_ANIMATION
+                        | Intent.FLAG_ACTIVITY_NO_USER_ACTION));
+    }
+
+    private void completeNm7RestoreOnResume() {
+        if (!sNm7RestorePending || mPlayer == null) return;
+
         android.view.View miniSurface = null;
         try {
             miniSurface = (android.view.View) Class.forName("vn.phuong.iptvplayer.MobileMiniPlayer")
@@ -53,20 +66,37 @@
         } catch (ReflectiveOperationException error) {
             android.util.Log.e("NM7Playback", "Read mini surface", error);
         }
-        if (active.mPlayer != null && miniSurface instanceof com.google.android.exoplayer2.ui.PlayerView) {
+
+        if (miniSurface instanceof com.google.android.exoplayer2.ui.PlayerView) {
             com.google.android.exoplayer2.ui.PlayerView.switchTargetView(
-                    active.mPlayer,
+                    mPlayer,
                     (com.google.android.exoplayer2.ui.PlayerView) miniSurface,
-                    active.mPlayerView);
+                    mPlayerView);
+        } else {
+            mPlayerView.setPlayer(mPlayer);
         }
+
         try {
             Class.forName("vn.phuong.iptvplayer.MobileMiniPlayer").getMethod("remove").invoke(null);
         } catch (ReflectiveOperationException error) {
-            android.util.Log.e("NM7Playback", "Remove mini surface", error);
+            android.util.Log.e("NM7Playback", "Remove mini surface after restore", error);
         }
+
+        sNm7RestorePending = false;
         sNm7Mini = false;
-        active.startActivity(new Intent(active, active.getClass())
-                .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NO_USER_ACTION));
+        blockEngine(false);
+    }
+
+    public static boolean consumeNm7BrowseBack() {
+        if (!isNm7MiniPlayerActive()) return false;
+        sNm7RestorePending = false;
+        try {
+            Class.forName("vn.phuong.iptvplayer.MobileMiniPlayer").getMethod("remove").invoke(null);
+        } catch (ReflectiveOperationException error) {
+            android.util.Log.e("NM7Playback", "Remove mini from Browse Back", error);
+        }
+        stopForNm7Iptv();
+        return true;
     }
 
     public static void suspendForNm7Iptv() {
@@ -89,6 +119,7 @@
     public static void stopForNm7Iptv() {
         PlaybackActivity active = sNm7Active;
         sNm7Mini = false;
+        sNm7RestorePending = false;
         sNm7ResumeAfterIptv = false;
         if (active == null || active.isDestroyed()) return;
         active.mNm7Stopped = true;

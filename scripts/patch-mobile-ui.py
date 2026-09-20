@@ -100,7 +100,14 @@ s = replace(s, '    public void onBackPressed() {', '''    public boolean dispat
     }
 
     @Override
-    public void onBackPressed() {''')
+    public void onBackPressed() {
+        try {
+            if (com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity.consumeNm7BrowseBack()) {
+                return;
+            }
+        } catch (RuntimeException error) {
+            android.util.Log.e("NM7Playback", "Browse Back mini close failed", error);
+        }''')
 
 p.write_text(s)
 p = ui / 'shared/VideoCardHolder.java'
@@ -121,20 +128,25 @@ s = replace(s, '        Glide.with(context)\n                .load(video.getCard
             RequestOptions options = new RequestOptions()
                     .dontTransform()
                     .override(com.bumptech.glide.request.target.Target.SIZE_ORIGINAL)
+                    .format(com.bumptech.glide.load.DecodeFormat.PREFER_ARGB_8888)
+                    .downsample(com.bumptech.glide.load.resource.bitmap.DownsampleStrategy.NONE)
                     .skipMemoryCache(false)
                     .diskCacheStrategy(DiskCacheStrategy.DATA);
             String imageRoot = "https://i.ytimg.com/vi/" + video.videoId + "/";
             com.bumptech.glide.RequestBuilder<android.graphics.drawable.Drawable> request =
-                    Glide.with(context).load(imageRoot + "maxresdefault.jpg").apply(options);
+                    Glide.with(context).load(imageRoot + "maxresdefault.jpg").apply(options)
+                            .error(Glide.with(context).load(imageRoot + "hq720.jpg").apply(options));
             if (video.bgImageUrl != null && video.bgImageUrl.startsWith("http")) {
-                request = request.error(Glide.with(context).load(video.bgImageUrl).apply(options)
+                request = request.error(Glide.with(context).load(imageRoot + "hq720.jpg").apply(options)
+                        .error(Glide.with(context).load(video.bgImageUrl).apply(options)
+                                .error(Glide.with(context).load(video.getCardImageUrl()).apply(options)
+                                        .error(Glide.with(context).load(video.cardImageUrl).apply(options)
+                                                .error(R.drawable.shared_card_placeholder)))));
+            } else {
+                request = request.error(Glide.with(context).load(imageRoot + "hq720.jpg").apply(options)
                         .error(Glide.with(context).load(video.getCardImageUrl()).apply(options)
                                 .error(Glide.with(context).load(video.cardImageUrl).apply(options)
                                         .error(R.drawable.shared_card_placeholder))));
-            } else {
-                request = request.error(Glide.with(context).load(video.getCardImageUrl()).apply(options)
-                        .error(Glide.with(context).load(video.cardImageUrl).apply(options)
-                                .error(R.drawable.shared_card_placeholder)));
             }
             request.placeholder(R.drawable.shared_card_placeholder).into(mThumbnail);
             return;

@@ -1,3 +1,40 @@
+# ĐANG BUILD — MOBILE 1.10.51 — 2026-09-20
+
+Người dùng test 1.10.50 và gửi video `video_2026-09-20_12-22-18.mp4`.
+
+## Kết quả test
+- IPTV fullscreen ẩn tab dưới: giữ nguyên PASS.
+- Tap mini không xuyên xuống card: giữ nguyên PASS.
+- Mini → YouTube player: vẫn có trường hợp audio chạy nhưng hình đứng.
+- Back trong tab YouTube: đang lặp player → mini → player → mini; chỉ thoát được khi đóng mini thủ công.
+- Thumbnail YouTube được người dùng đánh giá kém sắc nét hơn trước.
+
+## Nguyên nhân/sửa 1.10.51
+### Restore mini → player
+1.10.50 gọi PlayerView.switchTargetView() khi PlaybackActivity vẫn đang stopped/background. Target mPlayerView chưa active hoàn toàn nên surface handoff có thể giữ audio nhưng không render frame.
+- restoreNm7Player() nay chỉ đặt `sNm7RestorePending=true` và REORDER_TO_FRONT PlaybackActivity.
+- `onResume()` của PlaybackActivity mới gọi `completeNm7RestoreOnResume()` để switchTargetView từ mini → mPlayerView khi target đã foreground.
+- Sau khi switch thành công mới remove mini và clear mini state.
+
+### Back state machine YouTube
+- Player foreground + Back lần 1: vào mini đúng một lần.
+- Browse/Home YouTube + mini đang hiện + Back lần 2: `consumeNm7BrowseBack()` đóng mini/session và giữ Browse ở màn hình chính, không pop PlaybackActivity trở lại.
+- Không còn vòng lặp player ↔ mini do back stack.
+- Back tiếp theo khi không còn mini dùng hành vi Browse bình thường.
+
+### Thumbnail
+- Giữ maxresdefault làm nguồn đầu tiên.
+- Thêm hq720 trước các URL fallback thấp hơn.
+- Decode ARGB_8888 + DownsampleStrategy.NONE + SIZE_ORIGINAL cho card 16:9 lớn.
+- Không thay layout/feed/swipe.
+
+## Mốc
+- VersionName: **1.10.51**
+- VersionCode: **69**
+- Chờ CI và test máy thật.
+
+---
+
 # ĐANG BUILD — MOBILE 1.10.50 — 2026-09-20
 
 Người dùng test 1.10.49:

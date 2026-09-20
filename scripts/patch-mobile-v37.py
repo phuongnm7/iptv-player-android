@@ -32,11 +32,14 @@ t = method(t, 'protected void onStart()', '''        super.onStart();
         if (mPlayer == null) initializePlayer();''')
 t = method(t, 'protected void onResume()', '''        super.onResume();
         mIsBackPressed = false;
-        sNm7Mini = false;
         nm7SetBackground(false);
         if (mPlayer == null) initializePlayer();
         blockEngine(false);
-        mPlayerView.setPlayer(mPlayer);
+        if (sNm7RestorePending) {
+            completeNm7RestoreOnResume();
+        } else if (!sNm7Mini) {
+            mPlayerView.setPlayer(mPlayer);
+        }
         mPlaybackPresenter.onViewResumed();
         showHideWidgets(true);''')
 t = method(t, 'protected void onPause()', '''        // When Back enters NM7 mini, playback remains foreground in BrowseActivity.
@@ -60,9 +63,11 @@ t = method(t, 'public void onUserLeaveHint()', '''        super.onUserLeaveHint(
         }''')
 t = method(t, 'public void onBackPressed()', '''        if (onDetailsBack()) return;
         if (mPlayer == null || mNm7Stopped) { super.onBackPressed(); return; }
+        if (sNm7Mini && !sNm7RestorePending) return;
         mIsBackPressed = true;
+        sNm7RestorePending = false;
         sNm7Mini = true;
-        // Browse mini-player is still foreground playback; keep video renderers alive.
+        // First Back from the player always enters mini mode exactly once.
         blockEngine(false);
         Intent intent = new Intent(this,
                 com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity.class);
