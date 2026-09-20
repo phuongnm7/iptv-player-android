@@ -51,8 +51,7 @@ s = replace(s, '    private static final int GRID_COLUMNS = 1;', '''    public v
 s = replace(s, '        mGridView = findViewById(R.id.browse_grid);', '''        mNm7BrowseContent = findViewById(R.id.browse_content);
         mNm7SwipeSlop = android.view.ViewConfiguration.get(this).getScaledTouchSlop();
         mGridView = findViewById(R.id.browse_grid);''')
-s = replace(s, '    @Override\\n    public void onBackPressed() {', '''    @Override
-    public boolean dispatchTouchEvent(android.view.MotionEvent event) {
+s = replace(s, '    public void onBackPressed() {', '''    public boolean dispatchTouchEvent(android.view.MotionEvent event) {
         final int action = event.getActionMasked();
 
         if (action == android.view.MotionEvent.ACTION_DOWN) {
