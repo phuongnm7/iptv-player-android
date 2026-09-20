@@ -191,7 +191,7 @@ public final class PlayerActivity extends Activity {
             player.addListener(new Player.Listener(){
                 @Override public void onIsPlayingChanged(boolean playing) {
                     if(playing && player!=null && player.getVolume()==0f){
-                        MobileNm7Application.stopYoutubeForIptv();
+                        MobileNm7Application.suspendYoutubeForIptv();
                         player.setVolume(1f);
                         player.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),true);
                     }
@@ -206,7 +206,7 @@ public final class PlayerActivity extends Activity {
                     if(s==Player.STATE_BUFFERING){status.setText("Đang tải luồng…");if(bufferingSinceMs==0){bufferingSinceMs=android.os.SystemClock.elapsedRealtime();recoveryHandler.removeCallbacks(stalledPlaybackCheck);recoveryHandler.postDelayed(stalledPlaybackCheck,20_000);}}
                     if(s==Player.STATE_READY){bufferingSinceMs=0;recoveryHandler.removeCallbacks(stalledPlaybackCheck);
                         if(player.getPlayWhenReady() && player.getVolume()==0f){
-                            MobileNm7Application.stopYoutubeForIptv();
+                            MobileNm7Application.suspendYoutubeForIptv();
                             player.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),true);
                             player.setVolume(1f);
                         }

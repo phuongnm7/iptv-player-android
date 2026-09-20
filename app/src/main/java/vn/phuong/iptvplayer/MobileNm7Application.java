@@ -283,6 +283,23 @@ public final class MobileNm7Application extends DroidApplication implements andr
         } catch (ReflectiveOperationException | RuntimeException ignored) { }
     }
 
+    /**
+     * IPTV has started real playback. Pause/detach YouTube but preserve its player session
+     * so returning to the YouTube tab can recreate the mini-player for the same video.
+     */
+    public static void suspendYoutubeForIptv() {
+        try {
+            Class.forName(SMARTTUBE_PLAYBACK).getMethod("suspendForNm7Iptv").invoke(null);
+        } catch (ReflectiveOperationException | RuntimeException error) {
+            android.util.Log.e("NM7Playback", "Suspend YouTube for IPTV failed", error);
+        }
+        // Hide the old overlay on the IPTV screen. The SmartTube session remains marked mini
+        // and BrowseActivity will attach a fresh surface when the YouTube tab returns.
+        MobileMiniPlayer.remove();
+        SharedPlaybackSession.setYoutubeBackground(instance, false);
+        System.setProperty("nm7.youtube.background", "0");
+    }
+
     public static void stopYoutubeForIptv() {
         try {
             Class.forName(SMARTTUBE_PLAYBACK).getMethod("stopForNm7Iptv").invoke(null);

@@ -40,6 +40,10 @@ check('registerOnBackInvokedCallback' in play, 'Modern Back callback registered'
 overlay = (app / 'MobileMiniPlayer.java').read_text(encoding='utf-8')
 check('installNm7MiniPlayer();' in browse and 'vn.phuong.iptvplayer.MobileMiniPlayer' in browse, 'Browse uses shared mini surface')
 check('"restoreNm7Player"' in overlay, 'Mini click restores playback')
+check('suspendForNm7Iptv' in play, 'YouTube session can be suspended for IPTV without finish')
+check('sNm7Mini = true;' in body('public static void suspendForNm7Iptv()'), 'IPTV suspend preserves mini state')
+check('finishReally()' not in body('public static void suspendForNm7Iptv()'), 'IPTV suspend does not destroy YouTube player')
+check('suspendYoutubeForIptv();' in Path('app/src/main/java/vn/phuong/iptvplayer/PlayerActivity.java').read_text(), 'IPTV READY suspends instead of closes YouTube')
 for path in ['app/src/main/AndroidManifest.xml', 'smarttube/src/main/AndroidManifest.xml']:
     manifest = ET.parse(path)
     ns = '{http://schemas.android.com/apk/res/android}'

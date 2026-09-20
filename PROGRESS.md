@@ -1,3 +1,29 @@
+# ĐANG BUILD — MOBILE 1.10.44 — 2026-09-20
+
+Người dùng xác nhận **1.10.43**:
+- Vuốt trái/phải giữa các tab YouTube: **đã hoạt động**.
+- Thumbnail: **đã rõ nét**.
+- Phát sinh lỗi mới: nếu mini-player YouTube đang tồn tại, sau đó phát IPTV thì khi quay lại tab YouTube mini-player bị mất và không còn biết video trước đó.
+
+## Nguyên nhân
+Khi IPTV thực sự bắt đầu phát, `PlayerActivity` gọi `MobileNm7Application.stopYoutubeForIptv()`. Hàm này gọi `PlaybackActivity.stopForNm7Iptv()`, đặt `sNm7Mini=false`, đánh dấu stopped và `finishReally()`, tức là đóng hẳn phiên YouTube.
+
+## Sửa 1.10.44
+- Thêm `PlaybackActivity.suspendForNm7Iptv()`.
+- Khi IPTV bắt đầu phát: YouTube chỉ pause, detach surface/audio và giữ nguyên player/video/vị trí.
+- Giữ `sNm7Mini=true` để khi quay lại Browse YouTube, `MobileMiniPlayer.attach()` dựng lại mini-player đúng video cũ.
+- Trên màn hình IPTV, overlay mini cũ được gỡ để không che nội dung IPTV.
+- Nút X mini-player vẫn gọi `stopYoutubeForIptv()` và đóng YouTube thật như trước.
+- Hẹn giờ đóng app vẫn dùng đường stop thật.
+- Giữ nguyên toàn bộ gesture vuốt, thumbnail, IPTV, player, phát nền và UI của 1.10.43.
+
+## Mốc kỹ thuật
+- VersionName: **1.10.44**
+- VersionCode: **62**
+- Chờ CI build và test trên thiết bị thật.
+
+---
+
 # BUILD THÀNH CÔNG — MOBILE 1.10.43 — 2026-09-20
 
 GitHub Actions **NM7 Mobile Final Build #352** đã PASS toàn bộ.

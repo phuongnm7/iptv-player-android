@@ -39,6 +39,23 @@
                 .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NO_USER_ACTION));
     }
 
+    public static void suspendForNm7Iptv() {
+        PlaybackActivity active = sNm7Active;
+        if (active == null || active.isDestroyed() || active.isFinishing() || active.mPlayer == null) return;
+
+        // IPTV may own playback now, but keep the YouTube session and exact video/position alive.
+        sNm7Mini = true;
+        active.mNm7Stopped = false;
+        active.mNm7OwnsPlayback = false;
+        active.blockEngine(true);
+        active.mPlayer.setPlayWhenReady(false);
+        active.mPlayerView.setPlayer(null);
+        active.mPlayer.setVideoTextureView(null);
+        active.nm7SetBackground(false);
+        active.stopService(new Intent().setClassName(active,
+                "vn.phuong.iptvplayer.BackgroundPlaybackService"));
+    }
+
     public static void stopForNm7Iptv() {
         PlaybackActivity active = sNm7Active;
         sNm7Mini = false;
