@@ -39,13 +39,17 @@ t = method(t, 'protected void onResume()', '''        super.onResume();
         mPlayerView.setPlayer(mPlayer);
         mPlaybackPresenter.onViewResumed();
         showHideWidgets(true);''')
-t = method(t, 'protected void onPause()', '''        // Guard before all presenter/lifecycle callbacks, including Android 6.
-        if (!mNm7Stopped && !isFinishing() && mPlayer != null) {
+t = method(t, 'protected void onPause()', '''        // When Back enters NM7 mini, playback remains foreground in BrowseActivity.
+        // Do not block the decoder/renderers or notify presenter of a full playback pause.
+        if (sNm7Mini && !mNm7Stopped && !isFinishing() && mPlayer != null) {
+            blockEngine(false);
+            nm7SetBackground(false);
+        } else if (!mNm7Stopped && !isFinishing() && mPlayer != null) {
             blockEngine(true);
             if (mPlayer.getPlayWhenReady()) nm7SetBackground(true);
         }
         super.onPause();
-        mPlaybackPresenter.onViewPaused();
+        if (!sNm7Mini) mPlaybackPresenter.onViewPaused();
         showHideWidgets(false);''')
 t = method(t, 'protected void onStop()', '''        super.onStop();
         if (mNm7Stopped || isFinishing()) maybeReleasePlayer();''')
@@ -58,7 +62,8 @@ t = method(t, 'public void onBackPressed()', '''        if (onDetailsBack()) ret
         if (mPlayer == null || mNm7Stopped) { super.onBackPressed(); return; }
         mIsBackPressed = true;
         sNm7Mini = true;
-        blockEngine(true);
+        // Browse mini-player is still foreground playback; keep video renderers alive.
+        blockEngine(false);
         Intent intent = new Intent(this,
                 com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NO_ANIMATION

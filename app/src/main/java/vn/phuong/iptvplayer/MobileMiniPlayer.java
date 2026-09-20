@@ -40,14 +40,24 @@ public final class MobileMiniPlayer {
             box.rightMargin = (int)(12 * d);
 
             View video = createPlayerView(activity);
+            video.setClickable(false);
+            video.setFocusable(false);
             next.addView(video, new FrameLayout.LayoutParams(-1, -1));
-            video.setOnClickListener(v -> {
+
+            // Dedicated transparent touch layer above PlayerView. This consumes every tap
+            // inside the mini area so RecyclerView/cards behind it can never receive the event.
+            View tapShield = new View(activity);
+            tapShield.setClickable(true);
+            tapShield.setFocusable(true);
+            tapShield.setOnClickListener(v -> {
                 try {
                     bridge.getMethod("restoreNm7Player").invoke(null);
                 } catch (ReflectiveOperationException error) {
                     android.util.Log.e("NM7Playback", "Restore mini", error);
                 }
             });
+            next.addView(tapShield, new FrameLayout.LayoutParams(-1, -1));
+            next.setClickable(true);
 
             ImageButton close = new ImageButton(activity);
             close.setImageResource(android.R.drawable.ic_menu_close_clear_cancel);

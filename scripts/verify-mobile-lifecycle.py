@@ -75,3 +75,10 @@ check('sNm7ResumeAfterIptv' in play and 'setPlayWhenReady(true)' in body('public
 loader = Path('third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java').read_text()
 check('prefetchNm7FormatInfo(item);' in loader, 'YouTube format lookup overlaps engine initialization')
 check('mNm7PrefetchedFormatInfo' in loader, 'Prefetched YouTube format result is reused')
+
+pause_body = body('protected void onPause()')
+back_body = body('public void onBackPressed()')
+check('if (sNm7Mini' in pause_body and 'blockEngine(false)' in pause_body, 'Mini lifecycle keeps decoder/renderers active while PlaybackActivity pauses')
+check('sNm7Mini = true;' in back_body and 'blockEngine(false)' in back_body, 'Back enters mini without blocking video engine')
+check('tapShield' in overlay and 'tapShield.setClickable(true)' in overlay, 'Mini has dedicated touch shield above PlayerView')
+check('video.setClickable(false)' in overlay, 'Underlying PlayerView cannot steal mini restore taps')

@@ -29,6 +29,10 @@
         mini.setUseController(false);
         mini.setPlayer(active.mPlayer);
 
+        // Mini-player is foreground playback inside BrowseActivity, not background playback.
+        // Keep the decoder/renderers running while PlaybackActivity itself is paused.
+        active.blockEngine(false);
+
         if (sNm7ResumeAfterIptv) {
             sNm7ResumeAfterIptv = false;
             active.blockEngine(false);

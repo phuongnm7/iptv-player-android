@@ -1,3 +1,32 @@
+# ⚠️ 1.10.47 STABLE STATUS REVOKED — ĐANG BUILD 1.10.48 — 2026-09-20
+
+Sau khi test thêm và gửi video màn hình, người dùng phát hiện lỗi nghiêm trọng còn tồn tại trong 1.10.47:
+- YouTube đang phát → chuyển sang mini-player: mini đen/đứng hình.
+- Chạm vào mini-player không restore video hiện tại; thao tác có thể lọt xuống card video nằm phía sau và mở card đó.
+
+Vì vậy nhãn **"bản ổn định hiện tại" của 1.10.47 được thu hồi**. Tuy nhiên 1.10.47 vẫn là baseline source gần nhất để phát triển 1.10.48; các chức năng khác đã ổn phải giữ nguyên.
+
+## Nguyên nhân xác định
+1. onBackPressed() của PlaybackActivity đặt sNm7Mini=true nhưng đồng thời gọi blockEngine(true).
+2. Sau khi BrowseActivity được đưa lên, PlaybackActivity.onPause() lại tiếp tục blockEngine(true) và gọi presenter onViewPaused().
+3. PlayerView mini vì vậy nhận Player nhưng decoder/video renderer đang bị block, gây black/frozen video.
+4. PlayerView không có lớp touch độc lập phía trên, khiến tap có thể đi vào RecyclerView/card phía sau thay vì restore mini.
+
+## Sửa 1.10.48
+- Khi Back vào mini: sNm7Mini=true nhưng blockEngine(false).
+- onPause(): nếu đang ở mini mode thì giữ engine mở, không chuyển sang background state và không gọi presenter onViewPaused như một phiên playback bị pause hoàn toàn.
+- attach mini PlayerView luôn bảo đảm blockEngine(false).
+- Thêm View tapShield trong suốt phủ toàn bộ PlayerView, clickable/focusable và consume tap để gọi restoreNm7Player().
+- PlayerView bên dưới được đặt non-clickable; nút X nằm trên tapShield nên vẫn đóng video bình thường.
+- Không thay đổi IPTV, prefetch FormatInfo, gesture, thumbnail, sleep timer, source management hay UI khác.
+
+## Mốc
+- VersionName: **1.10.48**
+- VersionCode: **66**
+- Chờ CI + test điện thoại thật.
+
+---
+
 # ✅ BẢN ỔN ĐỊNH HIỆN TẠI — MOBILE 1.10.47 — 2026-09-20
 
 Người dùng đã test trên điện thoại thật và xác nhận **1.10.47 đã xử lý được lỗi mini-player bị đơ/đứng hình**. Các chức năng khác của 1.10.46/1.10.47 hiện hoạt động ổn định.
