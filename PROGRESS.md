@@ -1,3 +1,30 @@
+# ĐANG BUILD — MOBILE 1.10.45 — 2026-09-20
+
+Người dùng test 1.10.44:
+- Gesture vuốt YouTube và thumbnail tiếp tục ổn.
+- Mini-player vẫn mất khi: YouTube mini → phát IPTV → quay lại YouTube.
+- Mini-player đôi lúc có tiếng nhưng hình đen/đứng.
+- Yêu cầu tối ưu thêm tốc độ mở video YouTube.
+
+## Nguyên nhân xác định
+1. BrowseActivity dùng REORDER_TO_FRONT. Sau khi 1.10.44 gỡ overlay mini khỏi màn IPTV, quay lại Browse cũ không chạy lại hàm attach vì trước đây attach chỉ nằm ở lúc khởi tạo Browse.
+2. MobileMiniPlayer nối ExoPlayer với TextureView ngay sau addView, khi SurfaceTexture có thể chưa sẵn sàng. Điều này tạo race gây audio-only/black frame trên một số thiết bị.
+
+## Sửa 1.10.45
+- Trong MobileNm7Application.onActivityResumed(), mỗi lần BrowseActivity trở lại foreground đều gọi lại MobileMiniPlayer.attach().
+- MobileMiniPlayer chờ TextureView SurfaceTexture available rồi mới nối ExoPlayer.
+- Khi chuyển surface: clear video surface cũ → set TextureView mới → seek về chính currentPosition để ép renderer xuất frame lên surface mới; không đổi trạng thái play/pause của người dùng.
+- Giữ cơ chế suspend 1.10.44: IPTV không finish phiên YouTube.
+- Tối ưu startup YouTube: bufferForPlayback 750ms → 500ms; rebuffer 2000ms → 1500ms. Không thay forward-buffer/playlist/player ownership.
+- Giữ nguyên gesture, thumbnail, IPTV, mini UI, sleep timer và các chức năng 1.10.43/1.10.44.
+
+## Mốc kỹ thuật
+- VersionName: **1.10.45**
+- VersionCode: **63**
+- Chờ CI và test thiết bị thật.
+
+---
+
 # BUILD THÀNH CÔNG — MOBILE 1.10.44 — 2026-09-20
 
 GitHub Actions **NM7 Mobile Final Build #353** đã PASS toàn bộ.

@@ -199,6 +199,10 @@ public final class MobileNm7Application extends DroidApplication implements andr
         String name = activity.getClass().getName();
         if (activity instanceof PlayerActivity) {
             clearTabSwitch();
+        } else if (SMARTTUBE_BROWSE.equals(name)) {
+            // BrowseActivity is normally REORDER_TO_FRONT rather than recreated. Re-attach
+            // the preserved YouTube mini session every time Browse becomes visible again.
+            activity.getWindow().getDecorView().post(() -> installYoutubeMiniPlayer(activity));
         } else if (activity instanceof MainActivity
                 && SharedPlaybackSession.TAB_IPTV.equals(SharedPlaybackSession.tab(activity))) {
             // The IPTV tab is only a list until a channel is selected. Keep the live

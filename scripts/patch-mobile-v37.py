@@ -115,8 +115,8 @@ theme.write_text(t, encoding='utf-8')
 
 initializer = Path('third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/other/ExoPlayerInitializer.java')
 t = initializer.read_text(encoding='utf-8')
-t = replace(t, 'int bufferForPlaybackMs = 2_500;', 'int bufferForPlaybackMs = 750; // Mobile startup threshold; retain forward buffer.')
-t = replace(t, 'int bufferForPlaybackAfterRebufferMs = 5_000;', 'int bufferForPlaybackAfterRebufferMs = 2_000;')
+t = replace(t, 'int bufferForPlaybackMs = 2_500;', 'int bufferForPlaybackMs = 500; // Mobile: faster first-frame threshold; retain forward buffer.')
+t = replace(t, 'int bufferForPlaybackAfterRebufferMs = 5_000;', 'int bufferForPlaybackAfterRebufferMs = 1_500;')
 initializer.write_text(t, encoding='utf-8')
 
 loader = Path('third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java')

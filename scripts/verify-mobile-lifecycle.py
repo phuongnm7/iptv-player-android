@@ -44,6 +44,9 @@ check('suspendForNm7Iptv' in play, 'YouTube session can be suspended for IPTV wi
 check('sNm7Mini = true;' in body('public static void suspendForNm7Iptv()'), 'IPTV suspend preserves mini state')
 check('finishReally()' not in body('public static void suspendForNm7Iptv()'), 'IPTV suspend does not destroy YouTube player')
 check('suspendYoutubeForIptv();' in Path('app/src/main/java/vn/phuong/iptvplayer/PlayerActivity.java').read_text(), 'IPTV READY suspends instead of closes YouTube')
+check('SMARTTUBE_BROWSE.equals(name)' in application and 'installYoutubeMiniPlayer(activity)' in application, 'Browse resume reattaches preserved mini player')
+check('video.isAvailable()' in overlay and 'SurfaceTextureListener' in overlay, 'Mini waits for TextureView surface availability')
+check('clearVideoSurface()' in play and 'seekTo(position)' in play, 'Mini surface transfer forces current frame render')
 for path in ['app/src/main/AndroidManifest.xml', 'smarttube/src/main/AndroidManifest.xml']:
     manifest = ET.parse(path)
     ns = '{http://schemas.android.com/apk/res/android}'

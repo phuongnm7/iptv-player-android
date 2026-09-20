@@ -18,7 +18,12 @@
         PlaybackActivity active = sNm7Active;
         if (!isNm7MiniPlayerActive()) return;
         active.mPlayerView.setPlayer(null);
+        active.mPlayer.clearVideoSurface();
         active.mPlayer.setVideoTextureView(surface);
+        // Force a frame onto a newly-created TextureView even when this preserved session
+        // is paused behind IPTV. This also recovers occasional audio-only mini surfaces.
+        long position = active.mPlayer.getCurrentPosition();
+        active.mPlayer.seekTo(position);
         // Surface attachment must not change the user's pause state.
     }
 

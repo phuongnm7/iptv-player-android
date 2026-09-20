@@ -45,12 +45,35 @@ public final class MobileMiniPlayer {
             next.addView(close, new FrameLayout.LayoutParams((int)(40*d), (int)(40*d), Gravity.TOP | Gravity.END));
             close.setOnClickListener(v -> MobileNm7Application.stopYoutubeForIptv());
             root.addView(next, box);
-            // Transfer first, then remove the obsolete view so its destroy callback
-            // cannot detach the newly active video surface.
-            bridge.getMethod("attachNm7MiniPlayer", TextureView.class).invoke(null, video);
             FrameLayout previous = host;
             host = next;
             surface = video;
+
+            // A TextureView added to a new Activity window may not own a SurfaceTexture yet.
+            // Attaching ExoPlayer before onSurfaceTextureAvailable is the source of intermittent
+            // audio-only / black mini-player frames on some phones.
+            final Runnable attachSurface = () -> {
+                if (host != next || surface != video || activity.isFinishing() || activity.isDestroyed()) return;
+                try {
+                    bridge.getMethod("attachNm7MiniPlayer", TextureView.class).invoke(null, video);
+                } catch (ReflectiveOperationException | RuntimeException error) {
+                    android.util.Log.e("NM7Playback", "Attach ready mini surface", error);
+                }
+            };
+            if (video.isAvailable()) {
+                video.post(attachSurface);
+            } else {
+                video.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
+                    @Override public void onSurfaceTextureAvailable(android.graphics.SurfaceTexture st, int w, int h) {
+                        video.post(attachSurface);
+                    }
+                    @Override public void onSurfaceTextureSizeChanged(android.graphics.SurfaceTexture st, int w, int h) { }
+                    @Override public boolean onSurfaceTextureDestroyed(android.graphics.SurfaceTexture st) { return true; }
+                    @Override public void onSurfaceTextureUpdated(android.graphics.SurfaceTexture st) { }
+                });
+            }
+
+            // Remove the obsolete host only after the replacement is installed in the window.
             if (previous != null && previous.getParent() instanceof ViewGroup)
                 ((ViewGroup) previous.getParent()).removeView(previous);
         } catch (ReflectiveOperationException | RuntimeException e) {
