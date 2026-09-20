@@ -68,7 +68,7 @@ s=once(s,'        if (sNm7SuspendedForIptv || mNm7Stopped || mPlayer == null) re
             }
             return;
         }''')
-s=once(s,'        if (mNm7RecoveryPending) {\n            mNm7RecoveryWantsPlay = !', '        if (mNm7RecoveryPending || (mNm7RecoveryRestoreIntent && mPlayer.getPlaybackError() == null)) {\n            mNm7RecoveryWantsPlay = !')
+s=once(s,'        if (mNm7RecoveryPending) {\n            mNm7RecoveryWantsPlay = !', '        if (mNm7RecoveryPending || (mNm7RecoveryRestoreIntent && mPlayer.getPlaybackError() == null && mPlayer.getPlaybackState() != Player.STATE_IDLE)) {\n            mNm7RecoveryWantsPlay = !')
 s=once(s,'        if (error == null) { mPlayer.setPlayWhenReady(!mPlayer.getPlayWhenReady()); return; }','''        if (error == null) {
             if (mPlayer.getPlaybackState() == Player.STATE_IDLE && mNm7SessionVideo != null) {
                 // A failed source reload can leave IDLE with no retained ExoPlayer exception.
