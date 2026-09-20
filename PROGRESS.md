@@ -1,3 +1,26 @@
+# ĐANG BUILD — MOBILE 1.10.43 — 2026-09-20
+
+Người dùng đã test 1.10.42: thumbnail YouTube đã rõ nét hơn; vuốt trái/phải đổi section vẫn chưa hoạt động.
+
+## Nguyên nhân
+Patch 1.10.42 không thực sự chèn listener gesture vào BrowseActivity trong source generated, nên APK không có xử lý vuốt section.
+
+## Sửa 1.10.43
+- Bắt gesture tại BrowseActivity.dispatchTouchEvent(), trước RecyclerView/card.
+- Chỉ nhận vuốt bắt đầu trong browse_content.
+- Vuốt trái chọn section kế tiếp; vuốt phải chọn section trước.
+- TabLayout chuyển đồng bộ theo section: Trang chủ ↔ Kênh đăng ký ↔ Danh sách phát ↔ ...
+- Không cướp touch: cuộn dọc và tap card giữ nguyên.
+- Chặn multi-touch, phân biệt ngang/dọc, không quay vòng đầu/cuối.
+- Giữ nguyên sửa thumbnail 1.10.42 và toàn bộ playback/lifecycle/mini-player/IPTV/hẹn giờ.
+
+## Mốc kỹ thuật
+- VersionName: 1.10.43
+- VersionCode: 61
+- Chờ CI build và test thiết bị thật.
+
+---
+
 # ĐANG BUILD — MOBILE 1.10.42 — 2026-09-20
 
 Người dùng xác nhận **1.10.41 vẫn chưa xử lý được hai lỗi của 1.10.40**:

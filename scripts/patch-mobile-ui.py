@@ -30,7 +30,16 @@ s = replace(s, '        toolbar.setTitle("SmartTube Mobile");', '''        findV
             menu.show();
             return true;
         });''')
-s = replace(s, '    private static final int GRID_COLUMNS = 1;', '''    public void nm7OpenLibrary() {
+s = replace(s, '    private static final int GRID_COLUMNS = 1;
+
+    // NM7 1.10.43: observe horizontal section swipes at Activity dispatch level.
+    private android.view.View mNm7BrowseContent;
+    private float mNm7SwipeDownX;
+    private float mNm7SwipeDownY;
+    private boolean mNm7SwipeEligible;
+    private boolean mNm7SwipeVertical;
+    private boolean mNm7SwipeMultiple;
+    private int mNm7SwipeSlop;', '''    public void nm7OpenLibrary() {
         mBrowsePresenter.selectSection(com.liskovsoft.mediaserviceinterfaces.data.MediaGroup.TYPE_USER_PLAYLISTS);
     }
 
@@ -39,7 +48,61 @@ s = replace(s, '    private static final int GRID_COLUMNS = 1;', '''    public v
     }
 
     private static final int GRID_COLUMNS = 1;''')
-s = replace(s, '        mGridView = findViewById(R.id.browse_grid);', '''        mGridView = findViewById(R.id.browse_grid);''')
+s = replace(s, '        mNm7BrowseContent = findViewById(R.id.browse_content);
+        mNm7SwipeSlop = android.view.ViewConfiguration.get(this).getScaledTouchSlop();
+        mGridView = findViewById(R.id.browse_grid);', '''        mGridView = findViewById(R.id.browse_grid);''')
+s = replace(s, '    @Override\\n    public void onBackPressed() {', '''    @Override
+    public boolean dispatchTouchEvent(android.view.MotionEvent event) {
+        final int action = event.getActionMasked();
+
+        if (action == android.view.MotionEvent.ACTION_DOWN) {
+            mNm7SwipeDownX = event.getX();
+            mNm7SwipeDownY = event.getY();
+            mNm7SwipeVertical = false;
+            mNm7SwipeMultiple = false;
+            mNm7SwipeEligible = mNm7BrowseContent != null
+                    && mNm7BrowseContent.getVisibility() == android.view.View.VISIBLE
+                    && mNm7SwipeDownY >= mNm7BrowseContent.getTop()
+                    && mNm7SwipeDownY <= mNm7BrowseContent.getBottom();
+        } else if (action == android.view.MotionEvent.ACTION_POINTER_DOWN) {
+            mNm7SwipeMultiple = true;
+        } else if (action == android.view.MotionEvent.ACTION_MOVE && mNm7SwipeEligible) {
+            float dx = Math.abs(event.getX() - mNm7SwipeDownX);
+            float dy = Math.abs(event.getY() - mNm7SwipeDownY);
+            if (dy > mNm7SwipeSlop && dy >= dx) {
+                mNm7SwipeVertical = true;
+            }
+        } else if (action == android.view.MotionEvent.ACTION_UP && mNm7SwipeEligible) {
+            float dx = event.getX() - mNm7SwipeDownX;
+            float dy = event.getY() - mNm7SwipeDownY;
+            float density = getResources().getDisplayMetrics().density;
+            float threshold = Math.max(mNm7SwipeSlop * 3f,
+                    Math.min(mNm7BrowseContent.getWidth() * 0.14f, 56f * density));
+
+            if (!mNm7SwipeMultiple && !mNm7SwipeVertical
+                    && Math.abs(dx) >= threshold
+                    && Math.abs(dx) > Math.abs(dy) * 1.20f
+                    && mTabLayout != null && mTabLayout.getTabCount() > 0) {
+                int direction = dx < 0 ? 1 : -1;
+                if (mNm7BrowseContent.getLayoutDirection() == android.view.View.LAYOUT_DIRECTION_RTL) {
+                    direction = -direction;
+                }
+                int target = mTabLayout.getSelectedTabPosition() + direction;
+                if (target >= 0 && target < mTabLayout.getTabCount()) {
+                    selectSection(target, false);
+                }
+            }
+            mNm7SwipeEligible = false;
+        } else if (action == android.view.MotionEvent.ACTION_CANCEL) {
+            mNm7SwipeEligible = false;
+        }
+
+        return super.dispatchTouchEvent(event);
+    }
+
+    @Override
+    public void onBackPressed() {''')
+
 p.write_text(s)
 p = ui / 'shared/VideoCardHolder.java'
 s = p.read_text()
@@ -80,4 +143,4 @@ s = replace(s, '        Glide.with(context)\n                .load(video.getCard
         Glide.with(context)
                 .load(video.getCardImageUrl())''')
 p.write_text(s)
-print('NM7 Mobile v42 Super-style browse presentation applied')
+print('NM7 Mobile v43 Super-style browse presentation applied')
