@@ -65,3 +65,11 @@ out.mkdir(parents=True, exist_ok=True)
     'browse_sha256': hashlib.sha256(browse.encode()).hexdigest(),
 }, indent=2))
 print(f'{checks} structural checks passed; device runtime not verified')
+
+inline_text = Path('app/src/main/java/vn/phuong/iptvplayer/MobileInlinePlayerProviderV2.java').read_text()
+check('stopYoutubeForIptv();' not in inline_text, 'Inline IPTV never destroys preserved YouTube session')
+check(inline_text.count('suspendYoutubeForIptv();') >= 2, 'Inline IPTV READY paths suspend YouTube')
+check('sNm7ResumeAfterIptv' in play and 'setPlayWhenReady(true)' in body('public static void attachNm7MiniPlayer(android.view.TextureView surface)'), 'Mini resumes only after replacement surface attach')
+loader = Path('third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java').read_text()
+check('prefetchNm7FormatInfo(item);' in loader, 'YouTube format lookup overlaps engine initialization')
+check('mNm7PrefetchedFormatInfo' in loader, 'Prefetched YouTube format result is reused')

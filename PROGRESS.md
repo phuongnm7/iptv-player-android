@@ -1,3 +1,27 @@
+# ĐANG BUILD — MOBILE 1.10.46 — 2026-09-20
+
+Người dùng test 1.10.45 và gửi video màn hình: mini-player vẫn mất sau YouTube mini → IPTV → YouTube, mini đôi lúc audio-only/đứng hình, và video YouTube vẫn mở chậm.
+
+## Nguyên nhân xác định
+- Mobile có hai pipeline IPTV. PlayerActivity đã suspend YouTube, nhưng MobileInlinePlayerProviderV2 còn 2 đường READY gọi stopYoutubeForIptv(), nên chính luồng inline trong video vẫn đóng hẳn phiên YouTube.
+- Surface mini cũ bị gỡ trước khi surface mới attach chắc chắn.
+- Trạng thái playWhenReady trước IPTV chưa được khôi phục sau khi mini surface mới sẵn sàng.
+- FormatInfo YouTube bắt đầu sau engine init, làm thời gian khởi tạo player và thời gian gọi mạng nối tiếp nhau.
+
+## Sửa 1.10.46
+- Đổi cả 2 đường IPTV inline từ stop sang suspend.
+- Ghi nhớ playWhenReady trước IPTV và chỉ resume khi TextureView mới attach thành công.
+- Giữ surface cũ tới khi surface mới attach xong rồi mới gỡ.
+- Prefetch FormatInfo ngay khi onNewVideo nhận video trong lúc engine chưa init; tái sử dụng kết quả khi engine ready và tránh request trùng.
+- Giữ nguyên gesture, thumbnail, UI, IPTV, sleep timer và các chức năng ổn trước đó.
+
+## Mốc kỹ thuật
+- VersionName: **1.10.46**
+- VersionCode: **64**
+- Chờ CI và test thiết bị thật.
+
+---
+
 # BUILD THÀNH CÔNG — MOBILE 1.10.45 — 2026-09-20
 
 GitHub Actions **NM7 Mobile Final Build #354** đã PASS toàn bộ.

@@ -1,5 +1,6 @@
     private static PlaybackActivity sNm7Active;
     private static boolean sNm7Mini;
+    private static boolean sNm7ResumeAfterIptv;
     private boolean mNm7Stopped;
     private boolean mNm7OwnsPlayback;
     private Object mNm7BackCallback;
@@ -20,11 +21,13 @@
         active.mPlayerView.setPlayer(null);
         active.mPlayer.clearVideoSurface();
         active.mPlayer.setVideoTextureView(surface);
-        // Force a frame onto a newly-created TextureView even when this preserved session
-        // is paused behind IPTV. This also recovers occasional audio-only mini surfaces.
         long position = active.mPlayer.getCurrentPosition();
         active.mPlayer.seekTo(position);
-        // Surface attachment must not change the user's pause state.
+        if (sNm7ResumeAfterIptv) {
+            sNm7ResumeAfterIptv = false;
+            active.blockEngine(false);
+            active.mPlayer.setPlayWhenReady(true);
+        }
     }
 
     public static void restoreNm7Player() {
@@ -50,6 +53,7 @@
 
         // IPTV may own playback now, but keep the YouTube session and exact video/position alive.
         sNm7Mini = true;
+        sNm7ResumeAfterIptv = active.mPlayer.getPlayWhenReady();
         active.mNm7Stopped = false;
         active.mNm7OwnsPlayback = false;
         active.blockEngine(true);
@@ -64,6 +68,7 @@
     public static void stopForNm7Iptv() {
         PlaybackActivity active = sNm7Active;
         sNm7Mini = false;
+        sNm7ResumeAfterIptv = false;
         if (active == null || active.isDestroyed()) return;
         active.mNm7Stopped = true;
         active.blockEngine(false);

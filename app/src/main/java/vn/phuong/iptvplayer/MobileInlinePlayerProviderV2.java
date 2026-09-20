@@ -522,7 +522,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
                     }
                     if (state == Player.STATE_READY) {
                         if (next.getPlayWhenReady() && next.getVolume() == 0f) {
-                            MobileNm7Application.stopYoutubeForIptv();
+                            MobileNm7Application.suspendYoutubeForIptv();
                             next.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA)
                                     .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(), true);
                             next.setVolume(1f);
@@ -550,7 +550,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
                 @Override public void onPlayWhenReadyChanged(boolean playWhenReady, int reason) {
                     if (generation != playGeneration || next != player) return;
                     if (playWhenReady && next.getPlaybackState() == Player.STATE_READY && next.getVolume() == 0f) {
-                        MobileNm7Application.stopYoutubeForIptv();
+                        MobileNm7Application.suspendYoutubeForIptv();
                         next.setVolume(1f);
                         next.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA)
                                 .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(), true);

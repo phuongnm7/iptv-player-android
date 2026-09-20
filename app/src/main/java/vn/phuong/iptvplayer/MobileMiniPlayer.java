@@ -45,17 +45,18 @@ public final class MobileMiniPlayer {
             next.addView(close, new FrameLayout.LayoutParams((int)(40*d), (int)(40*d), Gravity.TOP | Gravity.END));
             close.setOnClickListener(v -> MobileNm7Application.stopYoutubeForIptv());
             root.addView(next, box);
-            FrameLayout previous = host;
+            final FrameLayout previous = host;
             host = next;
             surface = video;
 
-            // A TextureView added to a new Activity window may not own a SurfaceTexture yet.
-            // Attaching ExoPlayer before onSurfaceTextureAvailable is the source of intermittent
-            // audio-only / black mini-player frames on some phones.
+            // Keep the old surface alive until the replacement TextureView is actually ready.
+            // Removing it earlier can leave ExoPlayer audio running with no render surface.
             final Runnable attachSurface = () -> {
                 if (host != next || surface != video || activity.isFinishing() || activity.isDestroyed()) return;
                 try {
                     bridge.getMethod("attachNm7MiniPlayer", TextureView.class).invoke(null, video);
+                    if (previous != null && previous.getParent() instanceof ViewGroup)
+                        ((ViewGroup) previous.getParent()).removeView(previous);
                 } catch (ReflectiveOperationException | RuntimeException error) {
                     android.util.Log.e("NM7Playback", "Attach ready mini surface", error);
                 }
@@ -73,9 +74,6 @@ public final class MobileMiniPlayer {
                 });
             }
 
-            // Remove the obsolete host only after the replacement is installed in the window.
-            if (previous != null && previous.getParent() instanceof ViewGroup)
-                ((ViewGroup) previous.getParent()).removeView(previous);
         } catch (ReflectiveOperationException | RuntimeException e) {
             android.util.Log.e("NM7Playback", "Attach mini", e);
         }
