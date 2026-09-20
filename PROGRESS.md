@@ -15,7 +15,7 @@
 
 ## Kiểm tra và bàn giao
 - Patch áp dụng trên upstream pin 4825d6aa8b6f1d3181927f9e96c7d89cab13d510.
-- 74 kiểm tra cấu trúc PASS; Python syntax và git diff --check PASS.
+- 75 kiểm tra cấu trúc PASS; Python syntax và git diff --check PASS. Kéo mini không kích hoạt vuốt đổi mục Browse phía sau.
 - Thêm 2 Robolectric tests cold start/preserve saved IPTV. Chờ CI chạy unit tests và assemble; chưa có APK 1.10.55 được xác nhận.
 - Cần test: force-stop sau tab YouTube rồi mở IPTV ngay; đổi 5 kênh; mini phát 10 phút và sau lỗi mạng; pause/restore; kéo mini; vuốt player xuống; Back Search/Browse; xoay ngang/dọc; đo thời gian chạm → frame đầu trên cùng video/mạng.
 

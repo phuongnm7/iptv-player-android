@@ -119,6 +119,7 @@ check('DNS_TYPE_SYSTEM' in body('private void initializePlayer()') and 'PLAYER_D
 check('mSuggestionsView.setAdapter(mSuggestionsAdapter.adapter)' in play and 'Nm7FeedAdapter' in play, 'Recommendations use full-width vertical feed')
 check('handleNm7MinimizeGesture(event)' in play, 'Portrait player supports swipe to mini')
 check('toggleNm7Playback' in overlay and 'getScaledTouchSlop' in overlay, 'Mini supports pause/play and bounded dragging')
+check('mNm7SwipeEligible = !isNm7MiniTouch(event)' in browse and 'containsPoint(float rawX, float rawY)' in overlay, 'Dragging mini does not swipe Browse sections underneath')
 out.mkdir(parents=True, exist_ok=True)
 (out/'lifecycle-source-proof.json').write_text(json.dumps({
     'structural_checks': checks,

@@ -154,6 +154,12 @@ public final class MobileMiniPlayer {
         return surface;
     }
 
+    public static boolean containsPoint(float rawX, float rawY) {
+        if (host == null || !host.isShown()) return false;
+        android.graphics.Rect bounds = new android.graphics.Rect();
+        return host.getGlobalVisibleRect(bounds) && bounds.contains((int) rawX, (int) rawY);
+    }
+
     public static void remove() {
         if (host != null && host.getParent() instanceof ViewGroup) {
             ((ViewGroup) host.getParent()).removeView(host);

@@ -55,6 +55,23 @@ s = once(s, '    private boolean mIsLandscape;', '''    private boolean mIsLands
     }''')
 p.write_text(s)
 
+# Dragging the mini belongs to the overlay, not the Browse section-swipe observer.
+p = ui / 'browse/BrowseActivity.java'
+s = once(p.read_text(), 'mNm7SwipeEligible = mNm7BrowseContent != null',
+         'mNm7SwipeEligible = !isNm7MiniTouch(event) && mNm7BrowseContent != null')
+anchor = '    private boolean mNm7SwipeEligible;'
+s = once(s, anchor, anchor + '''
+
+    private boolean isNm7MiniTouch(android.view.MotionEvent event) {
+        try {
+            return Boolean.TRUE.equals(Class.forName("vn.phuong.iptvplayer.MobileMiniPlayer")
+                    .getMethod("containsPoint", float.class, float.class)
+                    .invoke(null, event.getRawX(), event.getRawY()));
+        } catch (ReflectiveOperationException error) { return false; }
+    }
+''')
+p.write_text(s)
+
 # Match the full-width feed in search results too.
 p = ui / 'search/SearchActivity.java'
 s = once(p.read_text(), 'new GridLayoutManager(this, 2)', 'new GridLayoutManager(this, 1)')
