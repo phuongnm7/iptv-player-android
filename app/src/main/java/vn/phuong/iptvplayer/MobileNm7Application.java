@@ -148,6 +148,9 @@ public final class MobileNm7Application extends DroidApplication implements andr
     @Override public void onActivityCreated(Activity activity, Bundle state) {
         liveActivities.add(activity);
         String name = activity.getClass().getName();
+        if (SMARTTUBE_BROWSE.equals(name) || (SMARTTUBE_PACKAGE + "search.SearchActivity").equals(name)) {
+            installSmartTubeBackHandling(activity);
+        }
         if (activity instanceof MainActivity) {
             activity.getWindow().getDecorView().post(() -> {
                 MobileIptvUi.install(activity);
@@ -514,3 +517,4 @@ public final class MobileNm7Application extends DroidApplication implements andr
         if (activity == smartTubePlaybackActivity) smartTubePlaybackActivity = null;
     }
 }
+

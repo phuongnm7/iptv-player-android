@@ -3,6 +3,8 @@
     private static boolean sNm7RestorePending;
     private static boolean sNm7ResumeAfterIptv;
     private boolean mNm7Stopped;
+    private boolean mNm7LeavingForMini;
+    private com.google.android.exoplayer2.ui.PlayerView mNm7VideoTarget;
     private boolean mNm7OwnsPlayback;
     private Object mNm7BackCallback;
 
@@ -22,21 +24,15 @@
         if (!(nextSurface instanceof com.google.android.exoplayer2.ui.PlayerView)) return;
 
         active.blockEngine(false);
-        com.google.android.exoplayer2.ui.PlayerView oldMini =
-                previousSurface instanceof com.google.android.exoplayer2.ui.PlayerView
-                        ? (com.google.android.exoplayer2.ui.PlayerView) previousSurface : null;
         com.google.android.exoplayer2.ui.PlayerView mini =
                 (com.google.android.exoplayer2.ui.PlayerView) nextSurface;
         mini.setUseController(false);
-
-        // ExoPlayer's supported surface handoff. This attaches the new target before
-        // detaching the old one, preventing late SurfaceView callbacks from clearing
-        // the newly-selected video output and causing audio-only/black mini playback.
-        if (oldMini != null) {
-            com.google.android.exoplayer2.ui.PlayerView.switchTargetView(active.mPlayer, oldMini, mini);
-        } else {
-            com.google.android.exoplayer2.ui.PlayerView.switchTargetView(active.mPlayer, active.mPlayerView, mini);
-        }
+        // Track the target in the player owner, not in a potentially stale overlay host.
+        com.google.android.exoplayer2.ui.PlayerView oldTarget = active.mNm7VideoTarget;
+        if (oldTarget == null) oldTarget = active.mPlayerView;
+        com.google.android.exoplayer2.ui.PlayerView.switchTargetView(active.mPlayer, oldTarget, mini);
+        active.mNm7VideoTarget = mini;
+        android.util.Log.i("NM7Playback", "target=mini state=" + active.mPlayer.getPlaybackState());
 
         if (sNm7ResumeAfterIptv) {
             sNm7ResumeAfterIptv = false;
@@ -57,34 +53,37 @@
     }
 
     private void completeNm7RestoreOnResume() {
-        if (!sNm7RestorePending || mPlayer == null) return;
-
-        android.view.View miniSurface = null;
-        try {
-            miniSurface = (android.view.View) Class.forName("vn.phuong.iptvplayer.MobileMiniPlayer")
-                    .getMethod("surfaceView").invoke(null);
-        } catch (ReflectiveOperationException error) {
-            android.util.Log.e("NM7Playback", "Read mini surface", error);
+        if (mPlayer == null) return;
+        com.google.android.exoplayer2.ui.PlayerView oldTarget = mNm7VideoTarget;
+        if (oldTarget == null) {
+            try {
+                android.view.View view = (android.view.View) Class.forName("vn.phuong.iptvplayer.MobileMiniPlayer")
+                        .getMethod("surfaceView").invoke(null);
+                if (view instanceof com.google.android.exoplayer2.ui.PlayerView)
+                    oldTarget = (com.google.android.exoplayer2.ui.PlayerView) view;
+            } catch (ReflectiveOperationException error) {
+                android.util.Log.e("NM7Playback", "Read mini target", error);
+            }
         }
-
-        if (miniSurface instanceof com.google.android.exoplayer2.ui.PlayerView) {
-            com.google.android.exoplayer2.ui.PlayerView.switchTargetView(
-                    mPlayer,
-                    (com.google.android.exoplayer2.ui.PlayerView) miniSurface,
-                    mPlayerView);
-        } else {
+        if (oldTarget != mPlayerView) {
+            com.google.android.exoplayer2.ui.PlayerView.switchTargetView(mPlayer, oldTarget, mPlayerView);
+        } else if (mPlayerView.getPlayer() != mPlayer) {
             mPlayerView.setPlayer(mPlayer);
         }
-
+        mNm7VideoTarget = mPlayerView;
+        sNm7RestorePending = false;
+        sNm7Mini = false;
+        if (sNm7ResumeAfterIptv) {
+            sNm7ResumeAfterIptv = false;
+            mPlayer.setPlayWhenReady(true);
+        }
+        blockEngine(false);
         try {
             Class.forName("vn.phuong.iptvplayer.MobileMiniPlayer").getMethod("remove").invoke(null);
         } catch (ReflectiveOperationException error) {
-            android.util.Log.e("NM7Playback", "Remove mini surface after restore", error);
+            android.util.Log.e("NM7Playback", "Remove mini after foreground handoff", error);
         }
-
-        sNm7RestorePending = false;
-        sNm7Mini = false;
-        blockEngine(false);
+        android.util.Log.i("NM7Playback", "target=fullscreen; mini=false; back enabled");
     }
 
     public static boolean consumeNm7BrowseBack() {
@@ -110,6 +109,8 @@
         active.mNm7OwnsPlayback = false;
         active.blockEngine(true);
         active.mPlayer.setPlayWhenReady(false);
+        if (active.mNm7VideoTarget != null) active.mNm7VideoTarget.setPlayer(null);
+        active.mNm7VideoTarget = null;
         active.mPlayerView.setPlayer(null);
         active.nm7SetBackground(false);
         active.stopService(new Intent().setClassName(active,
@@ -167,3 +168,4 @@
             }
         }
     }
+

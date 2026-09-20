@@ -57,16 +57,6 @@ for path in ['app/src/main/AndroidManifest.xml', 'smarttube/src/main/AndroidMani
             check(activity.get(ns+'launchMode') == 'singleTop', path + ': no singleTask stack destruction')
 check('scripts/patch-mobile-v37.py' in Path('scripts/build-mobile-windows.ps1').read_text(), 'Windows shared patch')
 check('scripts/patch-mobile-v37.py' in Path('.github/workflows/android-mobile-final.yml').read_text(), 'CI shared patch')
-out = Path('dist/mobile-diagnostics')
-out.mkdir(parents=True, exist_ok=True)
-(out/'lifecycle-source-proof.json').write_text(json.dumps({
-    'structural_checks': checks,
-    'runtime_verified': False,
-    'smarttube_commit': '4825d6aa8b6f1d3181927f9e96c7d89cab13d510',
-    'playback_sha256': hashlib.sha256(play.encode()).hexdigest(),
-    'browse_sha256': hashlib.sha256(browse.encode()).hexdigest(),
-}, indent=2))
-print(f'{checks} structural checks passed; device runtime not verified')
 
 inline_text = Path('app/src/main/java/vn/phuong/iptvplayer/MobileInlinePlayerProviderV2.java').read_text()
 check('stopYoutubeForIptv();' not in inline_text, 'Inline IPTV never destroys preserved YouTube session')
@@ -101,3 +91,23 @@ check('hq720.jpg' in ui_patch and 'PREFER_ARGB_8888' in ui_patch and 'Downsample
 
 check("phone / 'search/SearchActivity.java'" in patch_script and 'Search Back mini close failed' in patch_script, 'SearchActivity Back closes active mini before normal back stack')
 check('if (video.videoId != null' in ui_patch and 'itemView.findViewById(R.id.nm7_card_menu) != null && video.videoId' not in ui_patch, 'High-resolution thumbnail path applies to Search/grid cards too')
+
+
+check('if (sNm7RestorePending)' not in body('protected void onResume()'), 'Every foreground entry restores target, not just mini taps')
+check('mNm7LeavingForMini = false' in body('protected void onResume()'), 'Foreground entry resets Back transition debounce')
+check('if (sNm7Mini && !sNm7RestorePending) return' not in back_body, 'Stale mini flag cannot swallow foreground Back')
+check('mNm7VideoTarget' in play, 'Player owner tracks actual video target across Activities')
+check('sNm7Mini = false;' in body('private void completeNm7RestoreOnResume()'), 'Foreground normalization always clears mini state')
+check('installSmartTubeBackHandling(activity);' in application, 'Android 13 Browse/Search Back callback installed')
+check('texture_view' in Path('app/src/main/res/layout/nm7_mini_player.xml').read_text(), 'Mini inflates texture-backed legacy PlayerView')
+check('app:surface_type="texture_view"' in Path('third_party/SmartTube-droid/smarttubedroid/src/main/res/layout/playback_activity.xml').read_text(), 'Fullscreen target also uses TextureView')
+out = Path('dist/mobile-diagnostics')
+out.mkdir(parents=True, exist_ok=True)
+(out/'lifecycle-source-proof.json').write_text(json.dumps({
+    'structural_checks': checks,
+    'runtime_verified': False,
+    'smarttube_commit': '4825d6aa8b6f1d3181927f9e96c7d89cab13d510',
+    'playback_sha256': hashlib.sha256(play.encode()).hexdigest(),
+    'browse_sha256': hashlib.sha256(browse.encode()).hexdigest(),
+}, indent=2))
+print(f'{checks} structural checks passed; device runtime not verified')

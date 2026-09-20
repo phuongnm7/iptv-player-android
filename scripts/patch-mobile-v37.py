@@ -35,11 +35,10 @@ t = method(t, 'protected void onResume()', '''        super.onResume();
         nm7SetBackground(false);
         if (mPlayer == null) initializePlayer();
         blockEngine(false);
-        if (sNm7RestorePending) {
-            completeNm7RestoreOnResume();
-        } else if (!sNm7Mini) {
-            mPlayerView.setPlayer(mPlayer);
-        }
+        // Every foreground entry owns the full target, including opening another video
+        // while a mini session exists (not only a tap on the mini overlay).
+        mNm7LeavingForMini = false;
+        completeNm7RestoreOnResume();
         mPlaybackPresenter.onViewResumed();
         showHideWidgets(true);''')
 t = method(t, 'protected void onPause()', '''        // When Back enters NM7 mini, playback remains foreground in BrowseActivity.
@@ -63,7 +62,8 @@ t = method(t, 'public void onUserLeaveHint()', '''        super.onUserLeaveHint(
         }''')
 t = method(t, 'public void onBackPressed()', '''        if (onDetailsBack()) return;
         if (mPlayer == null || mNm7Stopped) { super.onBackPressed(); return; }
-        if (sNm7Mini && !sNm7RestorePending) return;
+        if (mNm7LeavingForMini) return;
+        mNm7LeavingForMini = true;
         mIsBackPressed = true;
         sNm7RestorePending = false;
         sNm7Mini = true;
@@ -234,3 +234,10 @@ print('NM7 Mobile lifecycle and native UI v39 applied to pinned phone source')
 # UI overlay deliberately leaves all v39 playback/lifecycle code above unchanged.
 import runpy
 runpy.run_path("scripts/patch-mobile-ui.py")
+
+
+# Both ends use TextureView-backed PlayerView; ExoPlayer owns the surface callbacks.
+p = Path('third_party/SmartTube-droid/smarttubedroid/src/main/res/layout/playback_activity.xml')
+t = p.read_text()
+t = replace(t, 'app:surface_type="surface_view"', 'app:surface_type="texture_view"')
+p.write_text(t)

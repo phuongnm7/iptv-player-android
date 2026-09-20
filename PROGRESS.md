@@ -1,3 +1,31 @@
+# ĐANG BUILD — MOBILE 1.10.53 — BACK / MINI TARGET — 2026-09-20
+
+## Kết quả mới từ người dùng
+1.10.52 vẫn lỗi: Back trong YouTube không thoát trình phát; mini-player còn đứng hình. Đã xem ảnh bàn giao 1.10.52 và video `video_2026-09-20_14-02-10.mp4`. **1.10.52 không stable.**
+
+## Phát hiện từ mã hiện tại
+- onResume chỉ restore target khi sNm7RestorePending=true (tap mini). Nếu mở trình phát qua đường khác trong lúc sNm7Mini=true, cờ mini không xóa, full PlayerView không được gắn lại.
+- onBackPressed có nhánh return khi sNm7Mini=true và restorePending=false: đúng trạng thái trên sẽ bỏ qua Back.
+- Overlay tự giữ previousSurface, nhưng không phải lúc nào previousSurface cũng là đích video thực tế.
+- Mini và fullscreen dùng SurfaceView. 1.10.53 chuyển cả hai sang PlayerView dùng TextureView để tránh cửa sổ SurfaceView độc lập khi Activity đổi trạng thái. Đây là thay đổi cần kiểm chứng bằng video thực tế, không kết luận decoder đã sửa chỉ từ source.
+
+## Sửa 1.10.53 / versionCode 71
+- Mọi onResume của PlaybackActivity đều chuẩn hóa về fullscreen: chuyển target rồi xóa mini/restore flags.
+- Back chỉ chống bấm lặp trong cùng lần chuyển Activity; cờ chặn được reset khi foreground, không dùng cờ mini cũ để bỏ qua Back.
+- Player owner giữ mNm7VideoTarget và dùng PlayerView.switchTargetView cho hai hướng chuyển; không clearVideoSurface/seekTo ép frame.
+- Mini và fullscreen đều texture-backed PlayerView; tapShield/nút đóng mini giữ nguyên.
+- Cài callback Android 13+ cho Browse/Search; Playback giữ callback riêng, không đăng ký trùng.
+- Giữ IPTV full-screen ẩn tab (PASS), tap mini không xuyên card (PASS), thumbnail, swipe, prefetch, hẹn giờ và IPTV ownership hiện tại.
+- Chỉ repo Mobile, không thay repo Android TV.
+
+## Kiểm tra / bàn giao
+- 59 kiểm tra cấu trúc PASS trên nguồn pin.
+- Thêm Robolectric test inflate XML thực tế sau merge tài nguyên: mini và fullscreen phải tạo TextureView, controller tắt.
+- Đang chờ CI/unit tests/APK; chưa test giải mã video và Back trên thiết bị thật.
+- Cần test: mở video khi mini cũ tồn tại → Back; lặp mini/fullscreen 5 lần; Back tại Search/Browse; đổi IPTV khi mini; hình chuyển động đồng thời với tiếng.
+
+---
+
 # BUILD SUCCESS — MOBILE 1.10.52 — CHỜ TEST THIẾT BỊ THẬT — 2026-09-20
 
 Người dùng test 1.10.51 và gửi:
