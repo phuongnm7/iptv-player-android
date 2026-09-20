@@ -1,3 +1,21 @@
+# BUILD THÀNH CÔNG — MOBILE 1.10.45 — 2026-09-20
+
+GitHub Actions **NM7 Mobile Final Build #354** đã PASS toàn bộ.
+
+- Run ID: `35482091272`
+- Source commit build: `7d48d53035ccadd08a041b7f8ae54ac9a1120cf5`
+- Artifact: `NM7-IPTV-Mobile-FINAL`
+- Artifact ID: `10595859662`
+- Artifact digest: `sha256:05bbedc4df9ac4f63e44dc98b10f5e5a40b780794866cd37b12dd72c2e437190`
+- Patch SmartTube: PASS
+- Lifecycle regression guards: PASS
+- Gradle build Mobile: PASS
+- Upload APK: PASS
+
+Bản 1.10.45 sửa việc BrowseActivity không attach lại mini-player khi được REORDER_TO_FRONT, chờ SurfaceTexture sẵn sàng trước khi nối ExoPlayer để giảm lỗi audio-only/black mini-player, ép render lại frame hiện tại sau khi đổi surface, và giảm ngưỡng start/rebuffer YouTube để mở video nhanh hơn. Cần test thực tế trên điện thoại.
+
+---
+
 # ĐANG BUILD — MOBILE 1.10.45 — 2026-09-20
 
 Người dùng test 1.10.44:
