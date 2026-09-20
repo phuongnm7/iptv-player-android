@@ -1,3 +1,31 @@
+# SOURCE READY — MOBILE 1.10.56 / 74 — CHỜ CI VÀ TEST THẬT — 2026-09-20
+
+## Phản hồi và bằng chứng
+- Người dùng xác nhận 1.10.55 còn nhiều lỗi; không stable.
+- Đã xem hai video video_2026-09-20_19-21-55.mp4 (139 giây, NM7 lỗi) và video_2026-09-20_19-21-48.mp4 (32 giây, mẫu thao tác).
+- Video NM7 có thông báo Unexpected OutOfMemoryError, player/mini đen; một số lần sau đó vẫn phát. Chưa có logcat để quy kết duy nhất cho bitmap hay video buffer.
+- Yêu cầu: vuốt đổi thẻ không mở nhầm video; tìm kiếm chỉ còn kính lúp; cuộn feed ẩn thanh trên/dưới; player mở như panel trong video; mini phát được.
+
+## Thay đổi 1.10.56
+- Gesture Browse dùng tọa độ màn hình, loại trừ mini. Khi vuốt ngang vượt touch slop: gửi ACTION_CANCEL xuống card và giữ toàn bộ chuỗi sự kiện, không truyền ACTION_UP xuống card. Bắt cả vuốt nhanh chỉ có DOWN/UP; vuốt ngắn không mở card, vuốt dọc/tap vẫn hoạt động.
+- Thay thanh tìm kiếm bằng nút kính lúp 48dp. Giữ tìm kiếm, giọng nói, tài khoản và menu nhấn giữ.
+- Cả feed hàng và grid: cuộn lên ẩn app bar/thanh điều hướng và bỏ khoảng trống dưới; cuộn xuống hiện lại; quay về Browse hiện lại điều hướng.
+- Watch view mở từ dưới lên, Back/vuốt xuống thu về mini; giữ player 16:9, metadata, gợi ý và fullscreen xoay ngang. Vẫn dùng Activity native hiện có để giữ chức năng; đây là chuyển động panel, chưa phải tái kiến trúc player nhúng chung Activity hay sao chép đầy đủ animation mẫu.
+- Sửa màu chữ/icon của các nút hành động bị trắng trên panel trắng.
+- Thumbnail giữ nguồn chất lượng cao/fallback, nhưng decode theo chiều rộng màn hình tối đa 1280px và tỷ lệ 16:9; bỏ SIZE_ORIGINAL/DownsampleStrategy.NONE để tránh bitmap không giới hạn.
+- Bộ đệm video tính theo heap app: tối đa 32 MiB hoặc 1/8 heap (sàn 4 MiB), ưu tiên giới hạn byte, bỏ back-buffer giữ lâu. Không còn tính theo tổng RAM thiết bị.
+- Mini xác nhận gắn đúng player sau target switch; giữ sửa rebind engine restart của 1.10.55. Có vòng tải và thông báo lỗi; nút phát thử lại khi engine báo lỗi. Không tự retry vô hạn, không ép seek hay reset video khi đổi target.
+- Vuốt thu nhỏ player giữ chuỗi touch tới UP/CANCEL để không kích hoạt nhầm phần dưới.
+
+## Kiểm tra và bước tiếp
+- Patch áp dụng đúng upstream pin 4825d6aa8b6f1d3181927f9e96c7d89cab13d510.
+- 82 structural checks PASS. Thêm 6 Robolectric tests cho chuỗi vuốt, tap, cuộn dọc, cancel, vuốt nhanh và mini exclusion; chờ CI chạy.
+- Chưa có APK 1.10.56 xác nhận tại thời điểm commit source.
+- Cần thiết bị thật: vuốt qua lại nhanh trên thumbnail 20 lần không mở nhầm; cuộn ẩn/hiện thanh; tap video mở panel; Back/mini/restore 10 vòng; mini phát 10 phút; đổi IPTV; xoay ngang; thumbnail nét và không OutOfMemoryError.
+- Không đánh dấu sửa triệt để mini/decoder khi chưa test máy thật. Chỉ repo Mobile.
+
+---
+
 # BUILD SUCCESS — MOBILE 1.10.55 / 73 — CHỜ TEST THIẾT BỊ THẬT — 2026-09-20
 
 ## Trạng thái mới nhất

@@ -26,14 +26,11 @@
                 android:layout_marginStart="6dp" android:layout_marginEnd="12dp"
                 android:text="SmartTube" android:textColor="#FFFFFF" android:textSize="16sp"
                 android:fontFamily="sans-serif-medium" />
-            <TextView android:id="@+id/nm7_search" android:layout_width="0dp"
-                android:layout_weight="1" android:layout_height="40dp"
-                android:background="@drawable/nm7_search_bg" android:gravity="center_vertical"
-                android:paddingStart="12dp" android:paddingEnd="8dp"
-                android:drawableStart="@drawable/browse_ic_search" android:drawablePadding="8dp"
-                android:text="Tìm kiếm…" android:textSize="13sp" android:textColor="#929299"
-                android:singleLine="true" android:ellipsize="end"
-                android:clickable="true" android:focusable="true" />
+            <Space android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+            <ImageButton android:id="@+id/nm7_search" android:layout_width="48dp"
+                android:layout_height="48dp" android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/browse_ic_search" android:tint="#333333"
+                android:contentDescription="Tìm kiếm" />
             <ImageButton android:id="@+id/nm7_voice" android:layout_width="40dp"
                 android:layout_height="48dp" android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/nm7_mic" android:contentDescription="Tìm kiếm bằng giọng nói" />
@@ -140,4 +137,5 @@
     </FrameLayout>
 
 </LinearLayout>
+
 

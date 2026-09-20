@@ -260,3 +260,6 @@ t = p.read_text()
 t = replace(t, 'app:surface_type="surface_view"', 'app:surface_type="texture_view"')
 p.write_text(t)
 runpy.run_path("scripts/patch-mobile-v55-ui.py")
+
+
+runpy.run_path("scripts/patch-mobile-v56.py")

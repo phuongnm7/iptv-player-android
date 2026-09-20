@@ -100,11 +100,24 @@ public final class MobileMiniPlayer {
             playPause.setColorFilter(android.graphics.Color.WHITE);
             next.addView(playPause, new FrameLayout.LayoutParams(
                     (int)(48 * d), (int)(48 * d), Gravity.TOP | Gravity.START));
+            android.widget.ProgressBar buffering = new android.widget.ProgressBar(activity);
+            buffering.setClickable(false);
+            next.addView(buffering, new FrameLayout.LayoutParams((int)(32 * d), (int)(32 * d), Gravity.CENTER));
+            android.widget.TextView status = new android.widget.TextView(activity);
+            status.setTextColor(android.graphics.Color.WHITE);
+            status.setBackgroundColor(0xaa000000);
+            status.setTextSize(12);
+            status.setGravity(Gravity.CENTER);
+            status.setText("Lỗi phát • bấm ▶ để thử lại");
+            next.addView(status, new FrameLayout.LayoutParams(-1, (int)(32 * d), Gravity.BOTTOM));
             Runnable refreshControl = new Runnable() {
                 @Override public void run() {
                     if (host != next || !next.isAttachedToWindow()) return;
                     try {
-                        boolean playing = Boolean.TRUE.equals(bridge.getMethod("isNm7Playing").invoke(null));
+                        int state = ((Number) bridge.getMethod("getNm7PlaybackState").invoke(null)).intValue();
+                        buffering.setVisibility(state == 2 ? View.VISIBLE : View.GONE);
+                        status.setVisibility(state == -1 ? View.VISIBLE : View.GONE);
+                        boolean playing = state != -1 && Boolean.TRUE.equals(bridge.getMethod("isNm7Playing").invoke(null));
                         playPause.setImageResource(playing ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play);
                         playPause.setContentDescription(playing ? "Tạm dừng YouTube" : "Phát YouTube");
                     } catch (ReflectiveOperationException ignored) { }
@@ -168,3 +181,4 @@ public final class MobileMiniPlayer {
         surface = null;
     }
 }
+

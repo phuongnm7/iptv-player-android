@@ -87,7 +87,7 @@ check('consumeNm7BrowseBack()' in play, 'Browse Back can close active mini sessi
 ui_patch = Path('scripts/patch-mobile-ui.py').read_text()
 patch_script = Path('scripts/patch-mobile-v37.py').read_text()
 check('consumeNm7BrowseBack()' in ui_patch, 'Browse Back consumes the second Back when mini is visible')
-check('hq720.jpg' in ui_patch and 'PREFER_ARGB_8888' in ui_patch and 'DownsampleStrategy.NONE' in ui_patch, 'YouTube cards prefer high-resolution thumbnail decode/fallback')
+check('hq720.jpg' in ui_patch and 'PREFER_ARGB_8888' in ui_patch and 'DownsampleStrategy.AT_MOST' in ui_patch, 'YouTube cards bound high-resolution decode to display dimensions')
 
 check("phone / 'search/SearchActivity.java'" in patch_script and 'Search Back mini close failed' in patch_script, 'SearchActivity Back closes active mini before normal back stack')
 check('if (video.videoId != null' in ui_patch and 'itemView.findViewById(R.id.nm7_card_menu) != null && video.videoId' not in ui_patch, 'High-resolution thumbnail path applies to Search/grid cards too')
@@ -120,6 +120,15 @@ check('mSuggestionsView.setAdapter(mSuggestionsAdapter.adapter)' in play and 'Nm
 check('handleNm7MinimizeGesture(event)' in play, 'Portrait player supports swipe to mini')
 check('toggleNm7Playback' in overlay and 'getScaledTouchSlop' in overlay, 'Mini supports pause/play and bounded dragging')
 check('mNm7SwipeEligible = !isNm7MiniTouch(event)' in browse and 'containsPoint(float rawX, float rawY)' in overlay, 'Dragging mini does not swipe Browse sections underneath')
+card = (root / 'shared/VideoCardHolder.java').read_text()
+initializer = Path('third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/other/ExoPlayerInitializer.java').read_text()
+check('SIZE_ORIGINAL' not in card and 'DownsampleStrategy.AT_MOST' in card, 'Thumbnail bitmap dimensions are bounded')
+check('Runtime.getRuntime().maxMemory() / 8' in initializer and 'setPrioritizeTimeOverSizeThresholds(false)' in initializer, 'Video buffer obeys app heap budget, not device RAM')
+check('cancel.setAction(android.view.MotionEvent.ACTION_CANCEL)' in browse and 'return consumed || super.dispatchTouchEvent(event)' in browse, 'Claimed swipe cancels child and consumes UP')
+check('getGlobalVisibleRect(bounds)' in browse, 'Gesture hit bounds use screen coordinates')
+check('installNm7ScrollChrome(mRowsView)' in browse and 'installNm7ScrollChrome(mGridView)' in browse, 'Both feed modes collapse navigation on scroll')
+check('getNm7PlaybackState' in overlay and 'Lỗi phát' in overlay, 'Mini displays buffering/errors instead of silent black rectangle')
+check('nm7_watch_enter' in play and 'nm7_watch_exit' in play, 'Watch panel uses vertical opening and closing motion')
 out.mkdir(parents=True, exist_ok=True)
 (out/'lifecycle-source-proof.json').write_text(json.dumps({
     'structural_checks': checks,
@@ -129,3 +138,4 @@ out.mkdir(parents=True, exist_ok=True)
     'browse_sha256': hashlib.sha256(browse.encode()).hexdigest(),
 }, indent=2))
 print(f'{checks} structural checks passed; device runtime not verified')
+

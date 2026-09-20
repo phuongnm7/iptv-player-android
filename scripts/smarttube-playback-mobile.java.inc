@@ -45,7 +45,16 @@
 
     public static void toggleNm7Playback() {
         if (!isNm7SessionActive() || sNm7SuspendedForIptv) return;
-        sNm7Active.mPlayer.setPlayWhenReady(!sNm7Active.mPlayer.getPlayWhenReady());
+        if (sNm7Active.mPlayer.getPlaybackError() != null) {
+            sNm7Active.mPlayer.retry();
+            sNm7Active.mPlayer.setPlayWhenReady(true);
+        } else sNm7Active.mPlayer.setPlayWhenReady(!sNm7Active.mPlayer.getPlayWhenReady());
+    }
+
+    public static int getNm7PlaybackState() {
+        if (!isNm7SessionActive()) return -1;
+        if (sNm7Active.mPlayer.getPlaybackError() != null) return -1;
+        return sNm7Active.mPlayer.getPlaybackState();
     }
 
     public static boolean isNm7SessionActive() {
@@ -268,3 +277,4 @@
             }
         }
     }
+

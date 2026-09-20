@@ -122,13 +122,13 @@ s = replace(s, '        mVideo = null;', '''        mVideo = null;
         View menu = itemView.findViewById(R.id.nm7_card_menu);
         if (menu != null) menu.setOnClickListener(null);''')
 s = replace(s, '        Glide.with(context)\n                .load(video.getCardImageUrl())', '''        if (video.videoId != null && video.videoId.matches("[A-Za-z0-9_-]{11}")) {
-            // Keep the source pixels intact for the large 16:9 mobile card. The previous
-            // centerCrop request could decode to a smaller target and then upscale it.
+            // Decode for the physical display width, never an unbounded original bitmap.
+            int imageWidth = Math.max(320, Math.min(1280, context.getResources().getDisplayMetrics().widthPixels));
             RequestOptions options = new RequestOptions()
                     .dontTransform()
-                    .override(com.bumptech.glide.request.target.Target.SIZE_ORIGINAL)
+                    .override(imageWidth, (imageWidth * 9 + 15) / 16)
                     .format(com.bumptech.glide.load.DecodeFormat.PREFER_ARGB_8888)
-                    .downsample(com.bumptech.glide.load.resource.bitmap.DownsampleStrategy.NONE)
+                    .downsample(com.bumptech.glide.load.resource.bitmap.DownsampleStrategy.AT_MOST)
                     .skipMemoryCache(false)
                     .diskCacheStrategy(DiskCacheStrategy.DATA);
             String imageRoot = "https://i.ytimg.com/vi/" + video.videoId + "/";
@@ -152,3 +152,4 @@ s = replace(s, '        Glide.with(context)\n                .load(video.getCard
                 .load(video.getCardImageUrl())''')
 p.write_text(s)
 print('NM7 Mobile v43 Super-style browse presentation applied')
+
