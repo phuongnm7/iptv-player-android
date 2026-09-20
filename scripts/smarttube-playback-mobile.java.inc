@@ -15,15 +15,27 @@
                 && !sNm7Active.isFinishing() && sNm7Active.mPlayer != null;
     }
 
-    public static void attachNm7MiniPlayer(android.view.TextureView surface) {
+    public static void attachNm7MiniPlayer(android.view.View previousSurface, android.view.View nextSurface) {
         PlaybackActivity active = sNm7Active;
-        if (!isNm7MiniPlayerActive() || surface == null || !surface.isAvailable()) return;
+        if (!isNm7MiniPlayerActive()) return;
+        if (!(nextSurface instanceof com.google.android.exoplayer2.ui.PlayerView)) return;
 
-        // Keep the player/decoder running and hand video output directly to the ready TextureView.
-        // Do not clear the surface first and do not seek: both operations caused visible stalls.
         active.blockEngine(false);
-        active.mPlayerView.setPlayer(null);
-        active.mPlayer.setVideoTextureView(surface);
+        com.google.android.exoplayer2.ui.PlayerView oldMini =
+                previousSurface instanceof com.google.android.exoplayer2.ui.PlayerView
+                        ? (com.google.android.exoplayer2.ui.PlayerView) previousSurface : null;
+        com.google.android.exoplayer2.ui.PlayerView mini =
+                (com.google.android.exoplayer2.ui.PlayerView) nextSurface;
+        mini.setUseController(false);
+
+        // ExoPlayer's supported surface handoff. This attaches the new target before
+        // detaching the old one, preventing late SurfaceView callbacks from clearing
+        // the newly-selected video output and causing audio-only/black mini playback.
+        if (oldMini != null) {
+            com.google.android.exoplayer2.ui.PlayerView.switchTargetView(active.mPlayer, oldMini, mini);
+        } else {
+            com.google.android.exoplayer2.ui.PlayerView.switchTargetView(active.mPlayer, active.mPlayerView, mini);
+        }
 
         if (sNm7ResumeAfterIptv) {
             sNm7ResumeAfterIptv = false;
@@ -34,16 +46,23 @@
     public static void restoreNm7Player() {
         PlaybackActivity active = sNm7Active;
         if (active == null || active.isDestroyed() || active.isFinishing()) return;
-        if (active.mPlayer != null) {
-            active.mPlayer.setVideoTextureView(null);
+        android.view.View miniSurface = null;
+        try {
+            miniSurface = (android.view.View) Class.forName("vn.phuong.iptvplayer.MobileMiniPlayer")
+                    .getMethod("surfaceView").invoke(null);
+        } catch (ReflectiveOperationException error) {
+            android.util.Log.e("NM7Playback", "Read mini surface", error);
+        }
+        if (active.mPlayer != null && miniSurface instanceof com.google.android.exoplayer2.ui.PlayerView) {
+            com.google.android.exoplayer2.ui.PlayerView.switchTargetView(
+                    active.mPlayer,
+                    (com.google.android.exoplayer2.ui.PlayerView) miniSurface,
+                    active.mPlayerView);
         }
         try {
             Class.forName("vn.phuong.iptvplayer.MobileMiniPlayer").getMethod("remove").invoke(null);
         } catch (ReflectiveOperationException error) {
             android.util.Log.e("NM7Playback", "Remove mini surface", error);
-        }
-        if (active.mPlayer != null) {
-            active.mPlayerView.setPlayer(active.mPlayer);
         }
         sNm7Mini = false;
         active.startActivity(new Intent(active, active.getClass())

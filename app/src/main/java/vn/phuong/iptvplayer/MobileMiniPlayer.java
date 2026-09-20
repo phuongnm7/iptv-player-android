@@ -4,15 +4,15 @@ import android.app.Activity;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.TextureView;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 
 /** One bounded touch surface shared across native Browse and the IPTV list. */
 public final class MobileMiniPlayer {
     private static FrameLayout host;
-    private static TextureView surface;
+    private static View surface;
     private static final String PLAYER = "com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity";
+    private static final String EXO_PLAYER_VIEW = "com.google.android.exoplayer2.ui.PlayerView";
 
     private MobileMiniPlayer() { }
 
@@ -39,7 +39,7 @@ public final class MobileMiniPlayer {
             box.bottomMargin = (int)(80 * d);
             box.rightMargin = (int)(12 * d);
 
-            TextureView video = new TextureView(activity);
+            View video = createPlayerView(activity);
             video.setClickable(false);
             video.setFocusable(false);
             next.addView(video, new FrameLayout.LayoutParams(-1, -1));
@@ -73,14 +73,19 @@ public final class MobileMiniPlayer {
             host = next;
             surface = video;
 
-            final Runnable attachSurface = () -> {
+            video.post(() -> {
                 if (host != next || surface != video
                         || activity.isFinishing() || activity.isDestroyed()) return;
                 try {
-                    bridge.getMethod("attachNm7MiniPlayer", TextureView.class).invoke(null, video);
+                    bridge.getMethod("attachNm7MiniPlayer", View.class, View.class)
+                            .invoke(null, previousSurface, video);
                     if (previousHost != null && previousHost.getParent() instanceof ViewGroup)
                         ((ViewGroup) previousHost.getParent()).removeView(previousHost);
                 } catch (ReflectiveOperationException | RuntimeException error) {
+                    android.util.Log.e("NM7Playback", "Switch mini PlayerView", error);
+                }
+            });
+        } catch (ReflectiveOperationException | RuntimeException error) {
                     android.util.Log.e("NM7Playback", "Attach mini TextureView", error);
                 }
             };
@@ -99,6 +104,17 @@ public final class MobileMiniPlayer {
         } catch (ReflectiveOperationException | RuntimeException error) {
             android.util.Log.e("NM7Playback", "Attach mini", error);
         }
+    }
+
+    private static View createPlayerView(Activity activity) throws ReflectiveOperationException {
+        Class<?> cls = Class.forName(EXO_PLAYER_VIEW);
+        Object object = cls.getConstructor(android.content.Context.class).newInstance(activity);
+        cls.getMethod("setUseController", boolean.class).invoke(object, false);
+        return (View) object;
+    }
+
+    public static View surfaceView() {
+        return surface;
     }
 
     public static void remove() {

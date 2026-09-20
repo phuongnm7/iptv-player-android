@@ -1,3 +1,31 @@
+# ĐANG BUILD — MOBILE 1.10.50 — 2026-09-20
+
+Người dùng test 1.10.49:
+- IPTV fullscreen ẩn tab YouTube/IPTV: **PASS**.
+- Mini-player vẫn đen/đứng hình: **FAIL**.
+
+## Nguyên nhân mới xác định
+Các bản 1.10.47–1.10.49 đều chuyển output video bằng thao tác thủ công (detach old view / attach new view hoặc setVideoTextureView). Với ExoPlayer, surface cũ có callback lifecycle bất đồng bộ; callback destroy/detach đến muộn có thể clear output vừa attach sang mini, tạo audio-only/black/frozen video.
+
+## Sửa 1.10.50
+- Dùng ExoPlayer PlayerView cho mini.
+- Chuyển player bằng API chính thức PlayerView.switchTargetView(player, oldView, newView).
+- Khi chuyển full → mini: switchTargetView từ SmartTube mPlayerView sang mini PlayerView.
+- Khi mini được reattach giữa Browse/Main: switchTargetView từ mini cũ sang mini mới.
+- Khi bấm mini để restore: switchTargetView từ mini về SmartTube mPlayerView.
+- Không clearVideoSurface, không setVideoTextureView thủ công, không seekTo.
+- Giữ engine/lifecycle fix của 1.10.48.
+- Giữ tapShield đã PASS.
+- Giữ IPTV fullscreen ẩn tab đã PASS ở 1.10.49.
+- Không thay đổi các chức năng khác.
+
+## Mốc
+- VersionName: **1.10.50**
+- VersionCode: **68**
+- Chờ CI + test điện thoại thật.
+
+---
+
 # ĐANG BUILD — MOBILE 1.10.49 — 2026-09-20
 
 Người dùng test 1.10.48:
