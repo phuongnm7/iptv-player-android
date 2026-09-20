@@ -1,4 +1,4 @@
-# ĐANG BUILD — MOBILE 1.10.41 — 2026-09-20
+# ĐÃ BUILD THÀNH CÔNG — MOBILE 1.10.41 — 2026-09-20
 
 Người dùng báo **1.10.40 chưa ổn**: thumbnail mờ như phóng to và không vuốt ngang để đổi mục YouTube được. 1.10.39 vẫn là mốc chức năng đã được xác nhận.
 
@@ -13,7 +13,14 @@ Người dùng báo **1.10.40 chưa ổn**: thumbnail mờ như phóng to và kh
 ## Kiểm tra
 
 - Patch nguồn sạch thành công; 21 kiểm tra cấu trúc lifecycle PASS; XML hợp lệ.
-- Đang chờ CI tạo APK ARM64/ARMv7.
+- CI build và unit-test task thành công, có APK ARM64/ARMv7; kiểm tra chữ ký, ABI và manifest Mobile đạt.
+- 12 kiểm tra logic cử chỉ bằng Java với stub Android PASS (trái/phải, cuộn dọc, tap, drag ngắn, cancel, đa điểm, RTL). Đây không phải kiểm thử dispatch touch/render trên thiết bị.
+- [Build 35477926488 — SUCCESS](https://github.com/phuongnm7/iptv-player-android/actions/runs/35477926488), Gradle 6 phút 44 giây.
+- [Tải APK 1.10.41](https://github.com/phuongnm7/iptv-player-android/actions/runs/35477926488/artifacts/10595425938), hết hạn 2026-10-20.
+- Source commit: `e29c86cab3a614e22aebd0fb0fa2007778b4e329`.
+- Artifact SHA-256: `a4fa679f94eb94a2134dcb6a55d1f638aa9f5900f253d2e887096fbfb55a86df`.
+- ARM64 APK SHA-256: `88121a0bab630e7ede509eea33d24c74387e91c45a789c657f6c582cb30e1757`.
+- ARMv7 APK SHA-256: `9da0635aa3f35e04bd4d98da9df0c427a6d500128170192bfd2a928138fcaa06`.
 - Chưa xác nhận thực tế độ nét/cử chỉ trên điện thoại. Chất lượng thumbnail còn phụ thuộc ảnh YouTube cung cấp; không hứa mọi video đều có maxres.
 
 ---
