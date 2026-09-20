@@ -1,4 +1,4 @@
-# SOURCE READY — MOBILE 1.10.58 / 76 — CHỜ CI VÀ TEST THẬT — 2026-09-20
+# BUILD SUCCESS — MOBILE 1.10.58 / 76 — CHỜ TEST THIẾT BỊ THẬT — 2026-09-20
 
 ## Bằng chứng và yêu cầu
 - Mốc nền: commit `576375331c2dc42259a65af010fdcf6cb21501c5`, 1.10.57 / 75. Người dùng cung cấp ảnh build #373 thành công nhưng xác nhận bản này vẫn lỗi; không stable.
@@ -21,8 +21,19 @@
 - Patch áp dụng thành công trên upstream pin `4825d6aa8b6f1d3181927f9e96c7d89cab13d510`.
 - 89 structural guards PASS; Python syntax và generated XML parse PASS.
 - Cập nhật test gesture cho chuyển tab trước UP và chỉ chuyển một lần. Bổ sung 2 Robolectric tests: metadata cuộn trong RecyclerView trong khi player giữ nguyên bounds, listener nút vẫn chạy; đủ controls và card bình luận trong header.
-- Chờ CI compile/unit tests/assemble và APK. Chưa kiểm thử trên thiết bị thật; chưa stable.
+- CI :app:testMobileDebugUnitTest và assembleMobileDebug SUCCESS; Gradle BUILD SUCCESSFUL trong 5 phút 43 giây. Chưa kiểm thử trên thiết bị thật; chưa stable.
 - Test tiếp: vuốt tab nhanh 20 lần; đo chạm video đến frame đầu cùng video/mạng; mini + cuộn feed 15 phút; Home/khóa máy 15 phút từ mini và full player; pause rồi Home không tự phát; đổi IPTV; cuộn mô tả và trở lại; like/subscription với tài khoản; bình luận/replies; Back và xoay ngang.
+
+
+## Build / APK đã xác nhận
+- Source commit: `63fc91b594c3629564be13a5dce90a1cb320960b`.
+- [NM7 Mobile Final Build #375 — SUCCESS](https://github.com/phuongnm7/iptv-player-android/actions/runs/35519495736), run ID `35519495736`. Đây là bản bàn giao sau bổ sung phục hồi OOM, thay build #374.
+- [Tải APK ARM64/ARMv7 và SHA256SUMS](https://github.com/phuongnm7/iptv-player-android/actions/runs/35519495736/artifacts/10607738558).
+- Artifact `NM7-IPTV-Mobile-FINAL`, ID `10607738558`, hết hạn 2026-10-20.
+- Artifact SHA256: `7d05310686a852b9021a8e599e8656db356fcb446ffe06648a82581bb8626aa3`.
+- ARM64 APK SHA256: `be2df03ac1a4395b081bee26725924bc6866aa4d34ebb87f8b23f4131b163503`.
+- ARMv7 APK SHA256: `89b0e1880410bde6148dd6247c8d6733a264bd79fee02e9a9b05b2bb0c71f4ca`.
+- Không khẳng định hết lag, tải chậm hoặc OOM chỉ từ kết quả build/unit test; chờ người dùng kiểm tra trên máy thật.
 
 ---
 
