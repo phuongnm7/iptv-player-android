@@ -1,3 +1,21 @@
+# BUILD THÀNH CÔNG — MOBILE 1.10.44 — 2026-09-20
+
+GitHub Actions **NM7 Mobile Final Build #353** đã PASS toàn bộ.
+
+- Run ID: `35481324535`
+- Source commit build: `781d7673c70924dd89162f2020a39b48cd9e72bd`
+- Artifact: `NM7-IPTV-Mobile-FINAL`
+- Artifact ID: `10595628743`
+- Artifact digest: `sha256:e6765564b757e45c84cabeab609735101a975e3e89c813cf9dbe73eff13c9dd9`
+- Patch SmartTube: PASS
+- Lifecycle regression guards: PASS
+- Gradle build Mobile: PASS
+- Upload APK: PASS
+
+Bản 1.10.44 giữ nguyên toàn bộ tính năng 1.10.43 và thay hành vi khi IPTV bắt đầu phát: YouTube được suspend thay vì stop/finish, giữ nguyên video/vị trí và trạng thái mini để khi quay lại tab YouTube có thể dựng lại mini-player của video trước đó. Cần test thực tế chuỗi: YouTube mini → phát IPTV → quay lại YouTube.
+
+---
+
 # ĐANG BUILD — MOBILE 1.10.44 — 2026-09-20
 
 Người dùng xác nhận **1.10.43**:
