@@ -4,13 +4,13 @@ Nm7 IPTV 1.7 — ứng dụng Android tiếng Việt cho mobile và Android TV, 
 
 Mốc công việc, lỗi đã sửa, kết quả xác minh và bước tiếp theo: [PROGRESS.md](PROGRESS.md). Đọc file này trước khi tiếp tục ở một phiên khác; không chỉ dựa vào lịch sử trò chuyện hay thư mục tạm.
 
-> **Trạng thái Mobile hiện tại:** **1.10.55 (VersionCode 73)** đã sửa source cho IPTV cold-start, mini target sau engine restart, DNS transport và giao diện YouTube mobile theo mẫu. **Chờ CI/APK và test thiết bị thật; chưa stable.** 1.10.54 được người dùng báo còn lỗi. Xem [PROGRESS.md](PROGRESS.md).
+> **Trạng thái Mobile hiện tại:** **1.10.55 (VersionCode 73)** đã sửa source cho IPTV cold-start, mini target sau engine restart, DNS transport và giao diện YouTube mobile theo mẫu. **Build #370 SUCCESS, đã có APK; chờ test thiết bị thật, chưa stable.** 1.10.54 được người dùng báo còn lỗi. Xem [PROGRESS.md](PROGRESS.md).
 
 ## Nhận APK
 
-**Mobile 1.10.55:** đang chờ build; chưa có liên kết APK được xác nhận. APK 1.10.54 đã được người dùng cài thử nhưng còn lỗi, không phải bản stable.
+**Mobile 1.10.55 / versionCode 73:** [build #370 thành công](https://github.com/phuongnm7/iptv-player-android/actions/runs/35504581687). [Tải APK ARM64/ARMv7 và SHA256SUMS](https://github.com/phuongnm7/iptv-player-android/actions/runs/35504581687/artifacts/10603078762) — artifact hết hạn 2026-10-20. Chưa xác nhận stable trên thiết bị thật. APK 1.10.54 đã được người dùng cài thử nhưng còn lỗi, không phải bản stable.
 
-Trong GitHub, mở **Actions → Build private Android APK**, chọn lần chạy thành công, tải **Nm7-IPTV-1.7-APK** trong Artifacts, giải nén và mở **Nm7-IPTV-1.7.apk** trên Android 6.0 trở lên.
+Trong GitHub, mở **Actions → NM7 Mobile Final Build → #370**, tải **NM7-IPTV-Mobile-FINAL** trong Artifacts, giải nén và chọn APK **1.10.55** phù hợp kiến trúc ARM64 hoặc ARMv7 trên Android 6.0 trở lên.
 
 APK dùng chữ ký debug dành cho cài thử cá nhân; không phải bản phát hành Google Play. Không tắt Play Protect. Nếu Android yêu cầu, chỉ cho phép cài APK từ ứng dụng tải tệp mà bạn tin cậy rồi tắt lại quyền đó sau khi cài.
 

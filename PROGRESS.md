@@ -1,4 +1,10 @@
-# SOURCE READY — MOBILE 1.10.55 / 73 — CHỜ CI VÀ TEST THẬT — 2026-09-20
+# BUILD SUCCESS — MOBILE 1.10.55 / 73 — CHỜ TEST THIẾT BỊ THẬT — 2026-09-20
+
+## Trạng thái mới nhất
+- **Bản hiện tại: 1.10.55 / versionCode 73**, người dùng đã xác nhận lại số phiên bản.
+- **NM7 Mobile Final Build #370: SUCCESS**. Có APK; không còn ở trạng thái chờ CI.
+- Back và chuyển mini của 1.10.53 đã được người dùng xác nhận khắc phục. Các lỗi phát sinh sau đó và thay đổi mới của 1.10.55 vẫn cần kiểm tra lại trên điện thoại.
+- **Chưa đánh dấu 1.10.55 stable.** Build/unit tests thành công không xác nhận hết lỗi hình đứng, xoay ngang hoặc tốc độ tải thực tế.
 
 ## Đầu vào
 - Người dùng có APK 1.10.54 và báo IPTV mở kênh bị đen, chỉ phát lại sau khi mở YouTube; YouTube tải chậm; mini đang xem dừng/đen.
@@ -16,12 +22,23 @@
 ## Kiểm tra và bàn giao
 - Patch áp dụng trên upstream pin 4825d6aa8b6f1d3181927f9e96c7d89cab13d510.
 - 75 kiểm tra cấu trúc PASS; Python syntax và git diff --check PASS. Kéo mini không kích hoạt vuốt đổi mục Browse phía sau.
-- Thêm 2 Robolectric tests cold start/preserve saved IPTV. Chờ CI chạy unit tests và assemble; chưa có APK 1.10.55 được xác nhận.
+- Thêm 2 Robolectric tests cold start/preserve saved IPTV. CI đã chạy thành công :app:testMobileDebugUnitTest và assembleMobileDebug; Gradle BUILD SUCCESSFUL trong 8 phút 21 giây.
 - Cần test: force-stop sau tab YouTube rồi mở IPTV ngay; đổi 5 kênh; mini phát 10 phút và sau lỗi mạng; pause/restore; kéo mini; vuốt player xuống; Back Search/Browse; xoay ngang/dọc; đo thời gian chạm → frame đầu trên cùng video/mạng.
+
+## Build và APK 1.10.55 đã xác nhận
+- Source commit: `fa883bbf75ffabaa13f13ff45baadf098e62765f` (bao gồm tách thao tác kéo mini khỏi vuốt Browse).
+- [NM7 Mobile Final Build #370 — SUCCESS](https://github.com/phuongnm7/iptv-player-android/actions/runs/35504581687), run ID `35504581687`. Đây là build mới nhất, thay cho #369 cùng phiên bản.
+- [Tải NM7-IPTV-Mobile-FINAL: APK ARM64/ARMv7 và SHA256SUMS](https://github.com/phuongnm7/iptv-player-android/actions/runs/35504581687/artifacts/10603078762).
+- Artifact ID: `10603078762`; hết hạn 2026-10-20.
+- Artifact SHA256: `5a5003706f67c7efdd462c6d3d307c9d276cac9d20197e5b99374eb8f29ea9f5`.
+- ARM64 APK SHA256: `25734b1ed80c2ed92d938c24f7ee719e09087c080c1182d349986212230b069e`.
+- ARMv7 APK SHA256: `0d5e788520af61a91e95b1e94169f11357e36af1702b72df1c52fafd359e83b9`.
+- Source evidence artifact: `10603362594`, hết hạn 2026-12-19.
+- Ưu tiên test tiếp: IPTV ngay sau khởi động; mini không đen/đứng sau restart engine; mini → player hình/tiếng; xoay ngang YouTube tự fullscreen; tốc độ tải cùng video/mạng; vuốt đổi mục và độ nét thumbnail. Chưa có xác nhận PASS mới cho các mục này.
 
 ---
 
-# ĐANG BUILD — MOBILE 1.10.54 — XOAY YOUTUBE / ĐỒNG BỘ MINI → PLAYER — 2026-09-20
+# MỐC CŨ — MOBILE 1.10.54 — XOAY YOUTUBE / ĐỒNG BỘ MINI → PLAYER — 2026-09-20
 
 ## Kết quả người dùng test 1.10.53
 - **Back: PASS**, đã khắc phục.
@@ -40,7 +57,7 @@
 
 ## Kiểm tra
 - 64 kiểm tra cấu trúc PASS trên upstream pin.
-- Đang chờ CI/unit tests/APK. Chưa test cảm biến và độ trễ video trên thiết bị.
+- Build #368 (run 35498630434) đã SUCCESS. Sau đó người dùng báo còn lỗi; 1.10.55 là bản hiện tại. Chưa xác nhận PASS cảm biến và độ trễ video trên thiết bị.
 - Cần test quay dọc/ngang khi đang xem; restore mini ở hai hướng; restore video đang pause; Back sau restore; chuyển IPTV.
 
 ---
@@ -75,7 +92,7 @@
 - Artifact SHA256: `4b354dd82b5ce6bdd05e04b83868d887aa123c9786bf6e8ba14f4f91c1872b85`.
 - ARM64 SHA256: `c0bbd178c77a15c6650443d71eda19ce9c8d8808db6fec00fa0a3565f9e3003d`.
 - ARMv7 SHA256: `d96cec579f4ba447a1c2af72c9e07d633f4580fa294cb17faef75c6150845ea5`.
-- **1.10.53 chưa stable; cần người dùng xác nhận Back và mini chuyển động trên máy thật.**
+- **Cập nhật sau bàn giao: người dùng đã xác nhận Back và chuyển mini được khắc phục; còn xoay ngang YouTube và độ trễ hình khi mini → player. Không đánh dấu toàn bộ bản stable.**
 - Cần test: mở video khi mini cũ tồn tại → Back; lặp mini/fullscreen 5 lần; Back tại Search/Browse; đổi IPTV khi mini; hình chuyển động đồng thời với tiếng.
 
 ---
