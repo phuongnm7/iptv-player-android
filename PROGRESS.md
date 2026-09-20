@@ -1,3 +1,30 @@
+# ✅ BẢN ỔN ĐỊNH HIỆN TẠI — MOBILE 1.10.47 — 2026-09-20
+
+Người dùng đã test trên điện thoại thật và xác nhận **1.10.47 đã xử lý được lỗi mini-player bị đơ/đứng hình**. Các chức năng khác của 1.10.46/1.10.47 hiện hoạt động ổn định.
+
+## Baseline phát triển mới
+- **VersionName:** `1.10.47`
+- **VersionCode:** `65`
+- **Baseline commit:** `e78d544d0e97eabb5dbac21c3d976414cbd410ed`
+- **Feature commit:** `6418e89ff78f5dec09f921282ea5bcfe0a4b652f`
+- **GitHub Actions:** `NM7 Mobile Final Build #358`
+- **Run ID:** `35485031054`
+- **Artifact:** `NM7-IPTV-Mobile-FINAL`
+- **Artifact ID:** `10597149065`
+- **Artifact SHA256:** `0f9c8fe8c1633d47ad24ca21ca7bc9dd2fd998dce840ac10bd764cf25e6b625b`
+- **CI:** SUCCESS
+- **Thiết bị thật:** người dùng xác nhận ổn định
+
+## Trạng thái đã chốt
+- Giữ được phiên YouTube mini-player khi chuyển sang IPTV và quay lại YouTube.
+- Mini-player không còn lỗi đóng như các bản trước.
+- Lỗi hình mini-player bị đơ/đứng hoặc có tiếng nhưng hình không chạy đã được xử lý bằng ExoPlayer PlayerView.
+- Gesture vuốt tab YouTube, thumbnail rõ nét, prefetch/tối ưu mở video, IPTV, sleep timer và các chức năng đã ổn trước đó được giữ nguyên.
+
+> **Quy ước phát triển:** Tất cả nâng cấp, sửa lỗi và cải tiến Mobile sau ngày 2026-09-20 phải lấy **NM7 IPTV Mobile 1.10.47** làm baseline. Không quay lại baseline cũ nếu không có yêu cầu rõ ràng.
+
+---
+
 # ĐANG BUILD — MOBILE 1.10.47 — 2026-09-20
 
 Người dùng xác nhận 1.10.46 đã sửa được lỗi mini-player bị đóng khi quay lại YouTube. Các chức năng khác hiện ổn định và phải giữ nguyên. Lỗi còn lại: mini-player thường đứng hình/đơ một lúc rồi mới chạy tiếp, đôi khi âm thanh vẫn phát nhưng hình không cập nhật.
