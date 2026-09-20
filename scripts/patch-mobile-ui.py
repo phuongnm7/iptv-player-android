@@ -30,7 +30,15 @@ s = replace(s, '        toolbar.setTitle("SmartTube Mobile");', '''        findV
             menu.show();
             return true;
         });''')
-s = replace(s, '    private static final int GRID_COLUMNS = 1;
+s = replace(s, '    private static final int GRID_COLUMNS = 1;', '''    public void nm7OpenLibrary() {
+        mBrowsePresenter.selectSection(com.liskovsoft.mediaserviceinterfaces.data.MediaGroup.TYPE_USER_PLAYLISTS);
+    }
+
+    public void nm7OpenSettings() {
+        mBrowsePresenter.selectSection(com.liskovsoft.mediaserviceinterfaces.data.MediaGroup.TYPE_SETTINGS);
+    }
+
+    private static final int GRID_COLUMNS = 1;
 
     // NM7 1.10.43: observe horizontal section swipes at Activity dispatch level.
     private android.view.View mNm7BrowseContent;
@@ -39,18 +47,10 @@ s = replace(s, '    private static final int GRID_COLUMNS = 1;
     private boolean mNm7SwipeEligible;
     private boolean mNm7SwipeVertical;
     private boolean mNm7SwipeMultiple;
-    private int mNm7SwipeSlop;', '''    public void nm7OpenLibrary() {
-        mBrowsePresenter.selectSection(com.liskovsoft.mediaserviceinterfaces.data.MediaGroup.TYPE_USER_PLAYLISTS);
-    }
-
-    public void nm7OpenSettings() {
-        mBrowsePresenter.selectSection(com.liskovsoft.mediaserviceinterfaces.data.MediaGroup.TYPE_SETTINGS);
-    }
-
-    private static final int GRID_COLUMNS = 1;''')
-s = replace(s, '        mNm7BrowseContent = findViewById(R.id.browse_content);
+    private int mNm7SwipeSlop;''')
+s = replace(s, '        mGridView = findViewById(R.id.browse_grid);', '''        mNm7BrowseContent = findViewById(R.id.browse_content);
         mNm7SwipeSlop = android.view.ViewConfiguration.get(this).getScaledTouchSlop();
-        mGridView = findViewById(R.id.browse_grid);', '''        mGridView = findViewById(R.id.browse_grid);''')
+        mGridView = findViewById(R.id.browse_grid);''')
 s = replace(s, '    @Override\\n    public void onBackPressed() {', '''    @Override
     public boolean dispatchTouchEvent(android.view.MotionEvent event) {
         final int action = event.getActionMasked();
