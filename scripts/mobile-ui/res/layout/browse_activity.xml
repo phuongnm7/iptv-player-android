@@ -62,7 +62,7 @@
 
     </com.google.android.material.appbar.AppBarLayout>
 
-    <FrameLayout
+    <com.liskovsoft.smartyoutubetv2.droid.ui.shared.Nm7SwipeFrameLayout
         android:id="@+id/browse_content"
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -137,7 +137,7 @@
             android:indeterminate="true"
             android:visibility="gone" />
 
-    </FrameLayout>
+    </com.liskovsoft.smartyoutubetv2.droid.ui.shared.Nm7SwipeFrameLayout>
 
 </LinearLayout>
 

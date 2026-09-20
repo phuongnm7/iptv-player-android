@@ -1,3 +1,23 @@
+# ĐANG BUILD — MOBILE 1.10.41 — 2026-09-20
+
+Người dùng báo **1.10.40 chưa ổn**: thumbnail mờ như phóng to và không vuốt ngang để đổi mục YouTube được. 1.10.39 vẫn là mốc chức năng đã được xác nhận.
+
+## Sửa trong 1.10.41 (version code 59)
+
+- Card video lớn dùng thumbnail maxres, dự phòng hq720, hqdefault và URL gốc; Glide giữ cache và lấy kích thước theo ImageView. Không áp dụng URL video cho card kênh/playlist không có video ID hợp lệ.
+- Bổ sung nhận diện vuốt ngang trong vùng nội dung YouTube: trái sang mục kế tiếp, phải sang mục trước; đồng bộ lựa chọn thanh mục. Không quay vòng ở đầu/cuối.
+- Phân biệt vuốt ngang với cuộn dọc, bỏ qua đa điểm và cử chỉ bị hủy, hủy thao tác chạm card khi nhận diện vuốt để không mở nhầm video.
+- Vùng vuốt không chứa mini-player và thanh điều hướng IPTV. Chặn gesture thoát cạnh màn hình của lớp Activity cha trong chuỗi chạm ở vùng nội dung.
+- Mã player, mini-player, dịch vụ nền, chuyển IPTV và hẹn giờ giữ nguyên.
+
+## Kiểm tra
+
+- Patch nguồn sạch thành công; 21 kiểm tra cấu trúc lifecycle PASS; XML hợp lệ.
+- Đang chờ CI tạo APK ARM64/ARMv7.
+- Chưa xác nhận thực tế độ nét/cử chỉ trên điện thoại. Chất lượng thumbnail còn phụ thuộc ảnh YouTube cung cấp; không hứa mọi video đều có maxres.
+
+---
+
 # ĐÃ BUILD THÀNH CÔNG — NM7 IPTV MOBILE 1.10.40 — GIAO DIỆN THEO SUPER OK
 
 ## Yêu cầu và mốc giữ nguyên

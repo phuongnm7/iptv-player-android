@@ -14,7 +14,8 @@ for source in Path('scripts/mobile-ui/res').rglob('*.xml'):
     dest = root / 'res' / source.relative_to('scripts/mobile-ui/res')
     dest.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(source, dest)
-shutil.copyfile('scripts/mobile-ui/java/Nm7FeedAdapter.java', ui / 'shared/Nm7FeedAdapter.java')
+for source in Path('scripts/mobile-ui/java').glob('*.java'):
+    shutil.copyfile(source, ui / 'shared' / source.name)
 p = ui / 'browse/BrowseActivity.java'
 s = p.read_text()
 s = s.replace('VideoRowsAdapter', 'Nm7FeedAdapter')
@@ -38,6 +39,12 @@ s = replace(s, '    private static final int GRID_COLUMNS = 1;', '''    public v
     }
 
     private static final int GRID_COLUMNS = 1;''')
+s = replace(s, '        mGridView = findViewById(R.id.browse_grid);', '''        ((com.liskovsoft.smartyoutubetv2.droid.ui.shared.Nm7SwipeFrameLayout)
+                findViewById(R.id.browse_content)).setListener(direction -> {
+            int target = mTabLayout.getSelectedTabPosition() + direction;
+            if (target >= 0 && target < mTabLayout.getTabCount()) selectSection(target, false);
+        });
+        mGridView = findViewById(R.id.browse_grid);''')
 p.write_text(s)
 p = ui / 'shared/VideoCardHolder.java'
 s = p.read_text()
@@ -50,5 +57,23 @@ s = replace(s, '        if (listener != null) {', '''        View menu = itemVie
 s = replace(s, '        mVideo = null;', '''        mVideo = null;
         View menu = itemView.findViewById(R.id.nm7_card_menu);
         if (menu != null) menu.setOnClickListener(null);''')
+s = replace(s, '        Glide.with(context)\n                .load(video.getCardImageUrl())', '''        if (itemView.findViewById(R.id.nm7_card_menu) != null && video.videoId != null
+                && video.videoId.matches("[A-Za-z0-9_-]{11}")) {
+            // Full-width phone cards need a full-resolution source, not an enlarged TV card.
+            RequestOptions options = new RequestOptions().centerCrop()
+                    .skipMemoryCache(false).diskCacheStrategy(DiskCacheStrategy.AUTOMATIC);
+            String imageRoot = "https://i.ytimg.com/vi/" + video.videoId + "/";
+            Glide.with(context).load(imageRoot + "maxresdefault.jpg").apply(options)
+                    .placeholder(R.drawable.shared_card_placeholder)
+                    .error(Glide.with(context).load(imageRoot + "hq720.jpg").apply(options)
+                        .error(Glide.with(context).load(imageRoot + "hqdefault.jpg").apply(options)
+                            .error(Glide.with(context).load(video.getCardImageUrl()).apply(options)
+                                .error(Glide.with(context).load(video.cardImageUrl).apply(options)
+                                    .error(R.drawable.shared_card_placeholder)))))
+                    .into(mThumbnail);
+            return;
+        }
+        Glide.with(context)
+                .load(video.getCardImageUrl())''')
 p.write_text(s)
-print('NM7 Mobile v40 Super-style browse presentation applied')
+print('NM7 Mobile v41 Super-style browse presentation applied')
