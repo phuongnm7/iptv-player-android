@@ -1,3 +1,37 @@
+# ĐANG BUILD — MOBILE 1.10.52 — 2026-09-20
+
+Người dùng test 1.10.51 và gửi:
+- `video_2026-09-20_13-01-09.mp4`
+- `photo_2026-09-20_13-00-20.jpg`
+
+## Kết quả test mới
+- Có thể bị kẹt/không thoát được khi đang ở màn hình kết quả tìm kiếm YouTube.
+- Thumbnail kết quả tìm kiếm rất mờ/nhòe.
+- Đây là SearchActivity, không phải BrowseActivity.
+
+## Nguyên nhân
+1. 1.10.51 mới áp dụng mini Back state-machine cho BrowseActivity. SearchActivity vẫn dùng back stack mặc định, nên khi mini còn active Back có thể kéo PlaybackActivity trở lại và tạo cảm giác kẹt.
+2. Nhánh thumbnail maxres/hq720 trong patch UI chỉ chạy khi card có `nm7_card_menu` (card Browse). SearchActivity dùng card grid mặc định nên rơi về `video.getCardImageUrl()`, thường thấp hơn và bị phóng lớn.
+
+## Sửa 1.10.52
+- SearchActivity.override onBackPressed():
+  - nếu mini đang active → consumeNm7BrowseBack(), đóng mini/session và ở lại Search/Home YouTube.
+  - nếu không có mini → dùng Back bình thường.
+  - nút mũi tên Back của Search đã gọi onBackPressed nên cùng hành vi.
+- Nhánh thumbnail chất lượng cao áp dụng cho mọi card YouTube có videoId hợp lệ, gồm Search results:
+  - maxresdefault.jpg
+  - hq720.jpg
+  - bgImageUrl/getCardImageUrl fallback
+  - SIZE_ORIGINAL + ARGB_8888 + DownsampleStrategy.NONE.
+- Giữ nguyên IPTV fullscreen PASS, tapShield PASS và state machine mini/player của 1.10.51.
+
+## Mốc
+- VersionName: **1.10.52**
+- VersionCode: **70**
+- Chờ CI + test máy thật.
+
+---
+
 # ĐANG BUILD — MOBILE 1.10.51 — 2026-09-20
 
 Người dùng test 1.10.50 và gửi video `video_2026-09-20_12-22-18.mp4`.

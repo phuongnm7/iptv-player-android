@@ -112,6 +112,23 @@ t = replace(t, 'private static final String TAG = BrowseActivity.class.getSimple
             Path('scripts/smarttube-browse-mobile.java.inc').read_text(encoding='utf-8'))
 t = replace(t, '        mJustCreated = false;', '        mJustCreated = false;\n        installNm7MiniPlayer();')
 p.write_text(t, encoding='utf-8')
+p = phone / 'search/SearchActivity.java'
+t = p.read_text(encoding='utf-8')
+t = replace(t, '    private void initAppBar() {', '''    @Override
+    public void onBackPressed() {
+        try {
+            if (com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity.consumeNm7BrowseBack()) {
+                return;
+            }
+        } catch (RuntimeException error) {
+            android.util.Log.e("NM7Playback", "Search Back mini close failed", error);
+        }
+        super.onBackPressed();
+    }
+
+    private void initAppBar() {''')
+p.write_text(t, encoding='utf-8')
+
 p = phone / 'channeluploads/ChannelUploadsActivity.java'
 t = p.read_text(encoding='utf-8').replace('new GridLayoutManager(this, GRID_COLUMNS)', 'new GridLayoutManager(this, 1)')
 p.write_text(t, encoding='utf-8')

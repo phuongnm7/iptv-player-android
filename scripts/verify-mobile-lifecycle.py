@@ -97,3 +97,6 @@ check('consumeNm7BrowseBack()' in play, 'Browse Back can close active mini sessi
 ui_patch = Path('scripts/patch-mobile-ui.py').read_text()
 check('consumeNm7BrowseBack()' in ui_patch, 'Browse Back consumes the second Back when mini is visible')
 check('hq720.jpg' in ui_patch and 'PREFER_ARGB_8888' in ui_patch and 'DownsampleStrategy.NONE' in ui_patch, 'YouTube cards prefer high-resolution thumbnail decode/fallback')
+
+check("phone / 'search/SearchActivity.java'" in patch_script and 'Search Back mini close failed' in patch_script, 'SearchActivity Back closes active mini before normal back stack')
+check('if (video.videoId != null' in ui_patch and 'itemView.findViewById(R.id.nm7_card_menu) != null && video.videoId' not in ui_patch, 'High-resolution thumbnail path applies to Search/grid cards too')

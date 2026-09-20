@@ -121,8 +121,7 @@ s = replace(s, '        if (listener != null) {', '''        View menu = itemVie
 s = replace(s, '        mVideo = null;', '''        mVideo = null;
         View menu = itemView.findViewById(R.id.nm7_card_menu);
         if (menu != null) menu.setOnClickListener(null);''')
-s = replace(s, '        Glide.with(context)\n                .load(video.getCardImageUrl())', '''        if (itemView.findViewById(R.id.nm7_card_menu) != null && video.videoId != null
-                && video.videoId.matches("[A-Za-z0-9_-]{11}")) {
+s = replace(s, '        Glide.with(context)\n                .load(video.getCardImageUrl())', '''        if (video.videoId != null && video.videoId.matches("[A-Za-z0-9_-]{11}")) {
             // Keep the source pixels intact for the large 16:9 mobile card. The previous
             // centerCrop request could decode to a smaller target and then upscale it.
             RequestOptions options = new RequestOptions()
@@ -140,13 +139,11 @@ s = replace(s, '        Glide.with(context)\n                .load(video.getCard
                 request = request.error(Glide.with(context).load(imageRoot + "hq720.jpg").apply(options)
                         .error(Glide.with(context).load(video.bgImageUrl).apply(options)
                                 .error(Glide.with(context).load(video.getCardImageUrl()).apply(options)
-                                        .error(Glide.with(context).load(video.cardImageUrl).apply(options)
-                                                .error(R.drawable.shared_card_placeholder)))));
+                                        .error(R.drawable.shared_card_placeholder))));
             } else {
                 request = request.error(Glide.with(context).load(imageRoot + "hq720.jpg").apply(options)
                         .error(Glide.with(context).load(video.getCardImageUrl()).apply(options)
-                                .error(Glide.with(context).load(video.cardImageUrl).apply(options)
-                                        .error(R.drawable.shared_card_placeholder))));
+                                .error(R.drawable.shared_card_placeholder)));
             }
             request.placeholder(R.drawable.shared_card_placeholder).into(mThumbnail);
             return;
