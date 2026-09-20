@@ -1,3 +1,14 @@
+# SOURCE READY — MOBILE 1.10.59 / 77 — CHỜ CI VÀ TEST THIẾT BỊ
+
+- Người dùng xác nhận 1.10.58 vẫn có mini-player đen với thông báo chung; ảnh mới không đủ xác định loại lỗi. Không coi v58 stable.
+- Engine dispatch lỗi về PlaybackActivity thực sự sở hữu player, rebind presenter trước khi chuyển qua chuỗi lưu vị trí/phục hồi gốc. Retry xử lý cả player đã mất và nguồn rơi vào IDLE; vẫn giữ giới hạn tự phục hồi, pause intent và guard IPTV.
+- Mini hiển thị loại lỗi nguồn/mạng/HTTP/decoder/OOM an toàn, không đưa URL hoặc token lên UI.
+- Chi tiết theo ảnh mẫu: title một dòng, dòng thông tin có ‘…xem thêm’, bỏ mô tả lặp và hàng tên kênh thừa; avatar 32dp, pill 32dp, icon viền 18dp, share chỉ biểu tượng. Mô tả đầy đủ vẫn mở trong sheet.
+- Bình luận thật được tải sau khi video READY, hiển thị avatar/tác giả/nội dung; cache trang đầu dùng lại khi mở sheet. Hủy request khi đổi video/destroy, loại response cũ. Số bình luận lấy từ contextualInfo nếu YouTube cung cấp; không dùng kích thước trang làm tổng giả.
+- Đã áp dụng toàn bộ patch lên source upstream sạch; 89 structural checks PASS. Bổ sung kiểm tra bố cục và phân loại lỗi không lộ URL trong unit tests. Chưa xác nhận runtime trên điện thoại.
+
+---
+
 # BUILD SUCCESS — MOBILE 1.10.58 / 76 — CHỜ TEST THIẾT BỊ THẬT — 2026-09-20
 
 ## Bằng chứng và yêu cầu

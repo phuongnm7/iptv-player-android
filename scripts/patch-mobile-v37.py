@@ -268,3 +268,5 @@ runpy.run_path("scripts/patch-mobile-v57.py")
 
 
 runpy.run_path("scripts/patch-mobile-v58.py")
+
+runpy.run_path("scripts/patch-mobile-v59.py")

@@ -80,7 +80,10 @@ public class YouTubeWatchFeedTest {
         assertNotNull(header.findViewById(id(c, "playback_chip_like")));
         assertNotNull(header.findViewById(id(c, "playback_chip_dislike")));
         assertNotNull(header.findViewById(id(c, "playback_comments_card")));
-        assertEquals("Xem bình luận…", ((TextView) header.findViewById(id(c, "nm7_comment_preview"))).getText().toString());
+        assertEquals("Đang tải bình luận…", ((TextView) header.findViewById(id(c, "nm7_comment_preview"))).getText().toString());
+        assertEquals(View.GONE, header.findViewById(id(c, "playback_description_card")).getVisibility());
+        assertNotNull(header.findViewById(id(c, "nm7_details_more")));
+        assertEquals(1, ((TextView) header.findViewById(id(c, "playback_title"))).getMaxLines());
         assertEquals(1, ((TextView) header.findViewById(id(c, "playback_second_title"))).getMaxLines());
     }
 }
