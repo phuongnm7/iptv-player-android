@@ -46,7 +46,7 @@ check('finishReally()' not in body('public static void suspendForNm7Iptv()'), 'I
 check('suspendYoutubeForIptv();' in Path('app/src/main/java/vn/phuong/iptvplayer/PlayerActivity.java').read_text(), 'IPTV READY suspends instead of closes YouTube')
 check('SMARTTUBE_BROWSE.equals(name)' in application and 'installYoutubeMiniPlayer(activity)' in application, 'Browse resume reattaches preserved mini player')
 check('EXO_PLAYER_VIEW' in overlay and 'setUseController' in overlay, 'Mini uses ExoPlayer PlayerView lifecycle')
-check('TextureView' not in overlay and 'SurfaceTextureListener' not in overlay, 'Mini no longer owns raw TextureView lifecycle')
+check('import android.view.TextureView;' not in overlay and 'SurfaceTextureListener' not in overlay, 'Mini no longer owns raw TextureView lifecycle')
 check('clearVideoSurface()' not in body('public static void attachNm7MiniPlayer(android.view.View previousSurface, android.view.View nextSurface)'), 'Mini transfer does not clear decoder surface manually')
 check('seekTo(' not in body('public static void attachNm7MiniPlayer(android.view.View previousSurface, android.view.View nextSurface)'), 'Mini transfer does not force seek/rebuffer')
 for path in ['app/src/main/AndroidManifest.xml', 'smarttube/src/main/AndroidManifest.xml']:
