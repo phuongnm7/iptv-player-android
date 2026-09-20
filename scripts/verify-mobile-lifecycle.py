@@ -95,6 +95,7 @@ check('sNm7RestorePending' in play, 'YouTube mini restore has explicit pending s
 check('completeNm7RestoreOnResume()' in play, 'Mini-to-player surface handoff is deferred until PlaybackActivity resumes')
 check('consumeNm7BrowseBack()' in play, 'Browse Back can close active mini session instead of reopening player')
 ui_patch = Path('scripts/patch-mobile-ui.py').read_text()
+patch_script = Path('scripts/patch-mobile-v37.py').read_text()
 check('consumeNm7BrowseBack()' in ui_patch, 'Browse Back consumes the second Back when mini is visible')
 check('hq720.jpg' in ui_patch and 'PREFER_ARGB_8888' in ui_patch and 'DownsampleStrategy.NONE' in ui_patch, 'YouTube cards prefer high-resolution thumbnail decode/fallback')
 
