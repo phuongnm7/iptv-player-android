@@ -39,12 +39,7 @@ s = replace(s, '    private static final int GRID_COLUMNS = 1;', '''    public v
     }
 
     private static final int GRID_COLUMNS = 1;''')
-s = replace(s, '        mGridView = findViewById(R.id.browse_grid);', '''        ((com.liskovsoft.smartyoutubetv2.droid.ui.shared.Nm7SwipeFrameLayout)
-                findViewById(R.id.browse_content)).setListener(direction -> {
-            int target = mTabLayout.getSelectedTabPosition() + direction;
-            if (target >= 0 && target < mTabLayout.getTabCount()) selectSection(target, false);
-        });
-        mGridView = findViewById(R.id.browse_grid);''')
+s = replace(s, '        mGridView = findViewById(R.id.browse_grid);', '''        mGridView = findViewById(R.id.browse_grid);''')
 p.write_text(s)
 p = ui / 'shared/VideoCardHolder.java'
 s = p.read_text()
@@ -59,21 +54,30 @@ s = replace(s, '        mVideo = null;', '''        mVideo = null;
         if (menu != null) menu.setOnClickListener(null);''')
 s = replace(s, '        Glide.with(context)\n                .load(video.getCardImageUrl())', '''        if (itemView.findViewById(R.id.nm7_card_menu) != null && video.videoId != null
                 && video.videoId.matches("[A-Za-z0-9_-]{11}")) {
-            // Full-width phone cards need a full-resolution source, not an enlarged TV card.
-            RequestOptions options = new RequestOptions().centerCrop()
-                    .skipMemoryCache(false).diskCacheStrategy(DiskCacheStrategy.AUTOMATIC);
+            // Keep the source pixels intact for the large 16:9 mobile card. The previous
+            // centerCrop request could decode to a smaller target and then upscale it.
+            RequestOptions options = new RequestOptions()
+                    .dontTransform()
+                    .override(com.bumptech.glide.request.target.Target.SIZE_ORIGINAL)
+                    .skipMemoryCache(false)
+                    .diskCacheStrategy(DiskCacheStrategy.DATA);
             String imageRoot = "https://i.ytimg.com/vi/" + video.videoId + "/";
-            Glide.with(context).load(imageRoot + "maxresdefault.jpg").apply(options)
-                    .placeholder(R.drawable.shared_card_placeholder)
-                    .error(Glide.with(context).load(imageRoot + "hq720.jpg").apply(options)
-                        .error(Glide.with(context).load(imageRoot + "hqdefault.jpg").apply(options)
-                            .error(Glide.with(context).load(video.getCardImageUrl()).apply(options)
+            com.bumptech.glide.RequestBuilder<android.graphics.drawable.Drawable> request =
+                    Glide.with(context).load(imageRoot + "maxresdefault.jpg").apply(options);
+            if (video.bgImageUrl != null && video.bgImageUrl.startsWith("http")) {
+                request = request.error(Glide.with(context).load(video.bgImageUrl).apply(options)
+                        .error(Glide.with(context).load(video.getCardImageUrl()).apply(options)
                                 .error(Glide.with(context).load(video.cardImageUrl).apply(options)
-                                    .error(R.drawable.shared_card_placeholder)))))
-                    .into(mThumbnail);
+                                        .error(R.drawable.shared_card_placeholder))));
+            } else {
+                request = request.error(Glide.with(context).load(video.getCardImageUrl()).apply(options)
+                        .error(Glide.with(context).load(video.cardImageUrl).apply(options)
+                                .error(R.drawable.shared_card_placeholder)));
+            }
+            request.placeholder(R.drawable.shared_card_placeholder).into(mThumbnail);
             return;
         }
         Glide.with(context)
                 .load(video.getCardImageUrl())''')
 p.write_text(s)
-print('NM7 Mobile v41 Super-style browse presentation applied')
+print('NM7 Mobile v42 Super-style browse presentation applied')
