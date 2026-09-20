@@ -24,6 +24,7 @@ public final class MobileMiniPlayer {
                 remove();
                 return;
             }
+
             ViewGroup root = activity.findViewById(android.R.id.content);
             if (!(root instanceof FrameLayout)) return;
             if (host != null && host.getParent() == root) return;
@@ -32,6 +33,7 @@ public final class MobileMiniPlayer {
             FrameLayout next = new FrameLayout(activity);
             next.setBackgroundColor(0xff111318);
             next.setElevation(4 * d);
+
             int width = Math.min((int)(220 * d),
                     activity.getResources().getDisplayMetrics().widthPixels - (int)(24 * d));
             FrameLayout.LayoutParams box = new FrameLayout.LayoutParams(
@@ -44,8 +46,6 @@ public final class MobileMiniPlayer {
             video.setFocusable(false);
             next.addView(video, new FrameLayout.LayoutParams(-1, -1));
 
-            // Dedicated transparent touch layer above PlayerView. This consumes every tap
-            // inside the mini area so RecyclerView/cards behind it can never receive the event.
             View tapShield = new View(activity);
             tapShield.setClickable(true);
             tapShield.setFocusable(true);
@@ -79,28 +79,13 @@ public final class MobileMiniPlayer {
                 try {
                     bridge.getMethod("attachNm7MiniPlayer", View.class, View.class)
                             .invoke(null, previousSurface, video);
-                    if (previousHost != null && previousHost.getParent() instanceof ViewGroup)
+                    if (previousHost != null && previousHost.getParent() instanceof ViewGroup) {
                         ((ViewGroup) previousHost.getParent()).removeView(previousHost);
+                    }
                 } catch (ReflectiveOperationException | RuntimeException error) {
                     android.util.Log.e("NM7Playback", "Switch mini PlayerView", error);
                 }
             });
-        } catch (ReflectiveOperationException | RuntimeException error) {
-                    android.util.Log.e("NM7Playback", "Attach mini TextureView", error);
-                }
-            };
-            if (video.isAvailable()) {
-                video.post(attachSurface);
-            } else {
-                video.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
-                    @Override public void onSurfaceTextureAvailable(android.graphics.SurfaceTexture st, int w, int h) {
-                        video.post(attachSurface);
-                    }
-                    @Override public void onSurfaceTextureSizeChanged(android.graphics.SurfaceTexture st, int w, int h) { }
-                    @Override public boolean onSurfaceTextureDestroyed(android.graphics.SurfaceTexture st) { return true; }
-                    @Override public void onSurfaceTextureUpdated(android.graphics.SurfaceTexture st) { }
-                });
-            }
         } catch (ReflectiveOperationException | RuntimeException error) {
             android.util.Log.e("NM7Playback", "Attach mini", error);
         }
@@ -118,8 +103,9 @@ public final class MobileMiniPlayer {
     }
 
     public static void remove() {
-        if (host != null && host.getParent() instanceof ViewGroup)
+        if (host != null && host.getParent() instanceof ViewGroup) {
             ((ViewGroup) host.getParent()).removeView(host);
+        }
         host = null;
         surface = null;
     }
