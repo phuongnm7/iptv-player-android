@@ -89,7 +89,7 @@ check('HomeTabBar.setVisible(currentActivity, false)' in inline_text, 'IPTV full
 check('HomeTabBar.setVisible(currentActivity, true)' in inline_text, 'IPTV fullscreen exit restores YouTube/IPTV tab bar')
 
 check('surfaceView()' in overlay, 'Mini exposes current PlayerView for reverse target switch')
-check('switchTargetView' in body('public static void restoreNm7Player()'), 'Restore uses supported ExoPlayer reverse target switch')
+check('switchTargetView' in body('private void completeNm7RestoreOnResume()'), 'Restore uses supported ExoPlayer reverse target switch after PlaybackActivity resumes')
 
 check('sNm7RestorePending' in play, 'YouTube mini restore has explicit pending state')
 check('completeNm7RestoreOnResume()' in play, 'Mini-to-player surface handoff is deferred until PlaybackActivity resumes')
