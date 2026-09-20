@@ -1,4 +1,4 @@
-# SOURCE READY — MOBILE 1.10.60 / 78 — PHÁT NỀN / KHÓA MÀN HÌNH — CHỜ CI — 2026-09-21
+# BUILD SUCCESS — MOBILE 1.10.60 / 78 — PHÁT NỀN / KHÓA MÀN HÌNH — CHỜ TEST THIẾT BỊ — 2026-09-21
 
 ## Phản hồi và bằng chứng
 - Người dùng xác nhận 1.10.59 lỗi nghiêm trọng: mini phát nền sau khi tắt màn hình chỉ được một lúc rồi tự đóng.
@@ -16,9 +16,20 @@
 ## Xác minh / giới hạn
 - Áp dụng toàn bộ patch 1.10.60 lên source pin sạch, gồm MediaServiceCore đúng SHA; 94 structural checks PASS, Python syntax PASS.
 - Thêm 6 Robolectric tests: mini lock/unlock; full foreground/background; close/IPTV; wake policy khi pause/recovery; service thật giữ notification và nhả/giữ lock qua pause/resume; predicate mini thật vẫn active khi decoder=null nhưng session còn.
-- Chờ CI compile/unit tests/APK. Chưa có kiểm tra trên điện thoại, không khẳng định hết lỗi khóa màn hình hoặc mini đen chỉ từ source tests.
+- CI compile, `:app:testMobileDebugUnitTest` (gồm 6 test mới) và assembleMobileDebug SUCCESS. Chưa có kiểm tra trên điện thoại, không khẳng định hết lỗi khóa màn hình hoặc mini đen chỉ từ source/unit tests.
 - Cần test bản mới: phát mini rồi khóa màn hình 15–30 phút; mở khóa phải giữ video/vị trí; Home 15 phút; pause rồi khóa không tự phát; full→mini→full 10 vòng; mini khi đổi tab; chọn IPTV/đóng mini/hẹn giờ phải nhả phiên nền.
 - Kiến trúc player hiện vẫn thuộc PlaybackActivity; bản sửa giữ foreground service và tránh dừng nhầm, chưa chuyển toàn bộ engine sang service owner độc lập. Không cam kết tiếp tục phát sau force-stop hoặc khi hệ thống thực sự hủy process/Activity.
+
+## Build / APK 1.10.60 đã xác nhận
+- Source commit: `3349081178e99f195b4c347f98e781688b913430`.
+- [NM7 Mobile Final Build #379 — SUCCESS](https://github.com/phuongnm7/iptv-player-android/actions/runs/35545715388); run ID `35545715388`, job ID `106171114435`.
+- Gradle BUILD SUCCESSFUL trong 8 phút 6 giây; unit tests, assemble, kiểm tra chữ ký/ABI và upload APK thành công.
+- [Tải APK ARM64/ARMv7 và SHA256SUMS](https://github.com/phuongnm7/iptv-player-android/actions/runs/35545715388/artifacts/10616478461).
+- Artifact `NM7-IPTV-Mobile-FINAL`, ID `10616478461`, hết hạn 2026-10-20.
+- Artifact SHA256: `ac166d196eed0d34af1fe438b738fc2699f4031ae017ba6aa21783fc24f6fdbd`.
+- ARM64 APK SHA256: `95b2c01c3b02fbd06d3f1ff04423dec53cbfb647304262836bb53f782cef3a82`.
+- ARMv7 APK SHA256: `6d2b3d0cac2fa8ffd71fbf5bdf1a07d358f509b1f24f0d9f8311200190e4fe69`.
+- Chưa stable; cần người dùng xác nhận phát mini khi khóa màn hình 15–30 phút và mở khóa/đổi target/chuyển IPTV.
 
 ---
 

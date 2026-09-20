@@ -4,11 +4,11 @@ Nm7 IPTV 1.7 — ứng dụng Android tiếng Việt cho mobile và Android TV, 
 
 Mốc công việc, lỗi đã sửa, kết quả xác minh và bước tiếp theo: [PROGRESS.md](PROGRESS.md). Đọc file này trước khi tiếp tục ở một phiên khác; không chỉ dựa vào lịch sử trò chuyện hay thư mục tạm.
 
-> **Trạng thái Mobile hiện tại:** **1.10.60 (VersionCode 78)** đang chờ CI, sửa phiên mini/phát nền khi khóa màn hình và giữ dịch vụ qua phục hồi decoder. **1.10.59 được người dùng xác nhận còn lỗi; chưa stable.** Xem [PROGRESS.md](PROGRESS.md).
+> **Trạng thái Mobile hiện tại:** **1.10.60 (VersionCode 78)** build #379 thành công, sửa phiên mini/phát nền khi khóa màn hình và giữ dịch vụ qua phục hồi decoder. **Chờ test thiết bị, chưa stable.** **1.10.59 được người dùng xác nhận còn lỗi; chưa stable.** Xem [PROGRESS.md](PROGRESS.md).
 
 ## Nhận APK
 
-**1.10.60:** đang chờ CI xác nhận APK; các bản cũ dưới đây chưa stable.
+**1.10.60:** [Tải APK ARM64/ARMv7 và SHA256SUMS — build #379](https://github.com/phuongnm7/iptv-player-android/actions/runs/35545715388/artifacts/10616478461), hết hạn 2026-10-20. Unit tests/build thành công; **chờ kiểm tra khóa màn hình 15–30 phút trên thiết bị, chưa stable**. Source commit: `3349081`.
 
 **1.10.59:** [Tải APK ARM64/ARMv7 và SHA256SUMS — build #378](https://github.com/phuongnm7/iptv-player-android/actions/runs/35542810501/artifacts/10615413353), hết hạn 2026-10-20. Unit tests/build thành công; **chờ test thiết bị thật, chưa stable**. Commit đã build: `22c0300`.
 
@@ -18,7 +18,7 @@ Mốc công việc, lỗi đã sửa, kết quả xác minh và bước tiếp t
 
 **Mobile 1.10.55 / versionCode 73:** [build #370 thành công](https://github.com/phuongnm7/iptv-player-android/actions/runs/35504581687). [Tải APK ARM64/ARMv7 và SHA256SUMS](https://github.com/phuongnm7/iptv-player-android/actions/runs/35504581687/artifacts/10603078762) — artifact hết hạn 2026-10-20. Chưa xác nhận stable trên thiết bị thật. APK 1.10.54 đã được người dùng cài thử nhưng còn lỗi, không phải bản stable.
 
-Trong GitHub, mở **Actions → NM7 Mobile Final Build → #372**, tải **NM7-IPTV-Mobile-FINAL** trong Artifacts, giải nén và chọn APK **1.10.56** phù hợp kiến trúc ARM64 hoặc ARMv7 trên Android 6.0 trở lên.
+Trong GitHub, mở **Actions → NM7 Mobile Final Build → #379**, tải **NM7-IPTV-Mobile-FINAL** trong Artifacts, giải nén và chọn APK **1.10.60** phù hợp kiến trúc ARM64 hoặc ARMv7 trên Android 6.0 trở lên.
 
 APK dùng chữ ký debug dành cho cài thử cá nhân; không phải bản phát hành Google Play. Không tắt Play Protect. Nếu Android yêu cầu, chỉ cho phép cài APK từ ứng dụng tải tệp mà bạn tin cậy rồi tắt lại quyền đó sau khi cài.
 
