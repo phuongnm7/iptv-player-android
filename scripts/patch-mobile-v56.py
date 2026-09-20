@@ -101,6 +101,9 @@ s = once(s, '        startActivity(intent);', '''        startActivity(intent);
 # On first-frame/surface restoration the overlay must not retain a released engine binding.
 s = once(s, '        active.mNm7VideoTarget = mini;', '''        if (mini.getPlayer() != active.mPlayer) mini.setPlayer(active.mPlayer);
         active.mNm7VideoTarget = mini;''')
+# Runtime button-state updates also need a dark foreground on the light metadata panel.
+s = once(s, '            MaterialButton button = (MaterialButton) view;', '''            MaterialButton button = (MaterialButton) view;
+            if (buttonState == BUTTON_OFF) color = android.graphics.Color.rgb(15, 15, 15);''')
 p.write_text(s)
 anim = res / 'anim'; anim.mkdir(exist_ok=True)
 (anim/'nm7_watch_enter.xml').write_text('''<translate xmlns:android="http://schemas.android.com/apk/res/android" android:fromYDelta="100%p" android:toYDelta="0" android:duration="220" android:interpolator="@android:interpolator/decelerate_cubic" />''')
