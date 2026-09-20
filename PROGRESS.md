@@ -1,3 +1,27 @@
+# ĐANG BUILD — MOBILE 1.10.47 — 2026-09-20
+
+Người dùng xác nhận 1.10.46 đã sửa được lỗi mini-player bị đóng khi quay lại YouTube. Các chức năng khác hiện ổn định và phải giữ nguyên. Lỗi còn lại: mini-player thường đứng hình/đơ một lúc rồi mới chạy tiếp, đôi khi âm thanh vẫn phát nhưng hình không cập nhật.
+
+## Nguyên nhân kỹ thuật
+1. Mini-player 1.10.46 dùng TextureView thô và tự quản lý SurfaceTexture.
+2. Mỗi lần chuyển surface, bridge gọi clearVideoSurface() rồi setVideoTextureView(), sau đó seekTo(currentPosition) để ép frame.
+3. clear + seek ngay trong lúc player đang chạy có thể làm video renderer flush/rebuffer trong khi audio renderer tiếp tục, tạo đúng hiện tượng audio chạy nhưng hình đứng/đen.
+
+## Sửa 1.10.47
+- Thay TextureView thô bằng ExoPlayer PlayerView chuẩn.
+- Chỉ chuyển cùng một ExoPlayer giữa PlayerView fullscreen và PlayerView mini.
+- Loại bỏ clearVideoSurface(), setVideoTextureView() và seekTo(currentPosition) trong đường mini-player.
+- Khi chuyển mini giữa các Activity, detach PlayerView cũ rồi attach PlayerView mới; host cũ chỉ bị gỡ sau khi player đã chuyển.
+- Khi mở lại fullscreen, detach mini PlayerView trước rồi mới gắn player lại vào SmartTube PlayerView.
+- Giữ nguyên toàn bộ logic 1.10.46: giữ phiên YouTube qua IPTV, prefetch FormatInfo, gesture, thumbnail, IPTV, sleep timer và UI.
+
+## Mốc kỹ thuật
+- VersionName: **1.10.47**
+- VersionCode: **65**
+- Chờ CI và test thiết bị thật.
+
+---
+
 # ĐANG BUILD — MOBILE 1.10.46 — 2026-09-20
 
 Người dùng test 1.10.45 và gửi video màn hình: mini-player vẫn mất sau YouTube mini → IPTV → YouTube, mini đôi lúc audio-only/đứng hình, và video YouTube vẫn mở chậm.

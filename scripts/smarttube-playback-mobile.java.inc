@@ -15,14 +15,20 @@
                 && !sNm7Active.isFinishing() && sNm7Active.mPlayer != null;
     }
 
-    public static void attachNm7MiniPlayer(android.view.TextureView surface) {
+    public static void attachNm7MiniPlayer(android.view.View previousSurface, android.view.View nextSurface) {
         PlaybackActivity active = sNm7Active;
         if (!isNm7MiniPlayerActive()) return;
+        if (!(nextSurface instanceof com.google.android.exoplayer2.ui.PlayerView)) return;
+
+        if (previousSurface instanceof com.google.android.exoplayer2.ui.PlayerView) {
+            ((com.google.android.exoplayer2.ui.PlayerView) previousSurface).setPlayer(null);
+        }
         active.mPlayerView.setPlayer(null);
-        active.mPlayer.clearVideoSurface();
-        active.mPlayer.setVideoTextureView(surface);
-        long position = active.mPlayer.getCurrentPosition();
-        active.mPlayer.seekTo(position);
+        com.google.android.exoplayer2.ui.PlayerView mini =
+                (com.google.android.exoplayer2.ui.PlayerView) nextSurface;
+        mini.setUseController(false);
+        mini.setPlayer(active.mPlayer);
+
         if (sNm7ResumeAfterIptv) {
             sNm7ResumeAfterIptv = false;
             active.blockEngine(false);
@@ -33,16 +39,15 @@
     public static void restoreNm7Player() {
         PlaybackActivity active = sNm7Active;
         if (active == null || active.isDestroyed() || active.isFinishing()) return;
-        if (active.mPlayer != null) {
-            active.mPlayer.setVideoTextureView(null);
-            active.mPlayerView.setPlayer(active.mPlayer);
-        }
-        sNm7Mini = false;
         try {
             Class.forName("vn.phuong.iptvplayer.MobileMiniPlayer").getMethod("remove").invoke(null);
         } catch (ReflectiveOperationException error) {
             android.util.Log.e("NM7Playback", "Remove mini surface", error);
         }
+        if (active.mPlayer != null) {
+            active.mPlayerView.setPlayer(active.mPlayer);
+        }
+        sNm7Mini = false;
         active.startActivity(new Intent(active, active.getClass())
                 .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NO_USER_ACTION));
     }
@@ -59,7 +64,6 @@
         active.blockEngine(true);
         active.mPlayer.setPlayWhenReady(false);
         active.mPlayerView.setPlayer(null);
-        active.mPlayer.setVideoTextureView(null);
         active.nm7SetBackground(false);
         active.stopService(new Intent().setClassName(active,
                 "vn.phuong.iptvplayer.BackgroundPlaybackService"));
