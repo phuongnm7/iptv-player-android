@@ -166,7 +166,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
             // Use SmartTube's native Android Back dispatch. The custom callback previously
             // called onBackPressed() from onBackInvoked(), which could bypass the patched
             // parent-view/PIP path and close PlaybackActivity immediately.
-            activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+            activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
             activity.getWindow().getDecorView().post(() -> {
                 installSmartTubeFontFix(activity);
                 View root = activity.findViewById(android.R.id.content);

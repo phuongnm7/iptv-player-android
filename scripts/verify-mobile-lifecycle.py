@@ -101,6 +101,11 @@ check('sNm7Mini = false;' in body('private void completeNm7RestoreOnResume()'), 
 check('installSmartTubeBackHandling(activity);' in application, 'Android 13 Browse/Search Back callback installed')
 check('texture_view' in Path('app/src/main/res/layout/nm7_mini_player.xml').read_text(), 'Mini inflates texture-backed legacy PlayerView')
 check('app:surface_type="texture_view"' in Path('third_party/SmartTube-droid/smarttubedroid/src/main/res/layout/playback_activity.xml').read_text(), 'Fullscreen target also uses TextureView')
+check('SCREEN_ORIENTATION_SENSOR' in application.split('public void onActivityCreated')[1].split('public void onActivityPaused')[0], 'YouTube playback allows sensor rotation')
+check('armNm7FirstFrameResume();' in body('private void completeNm7RestoreOnResume()'), 'Restore waits for new-target frame before releasing media clock')
+check('onRenderedFirstFrame()' in play and 'postDelayed(mNm7TargetRestoreTimeout, 750)' in play, 'First-frame gate has bounded audio-only fallback')
+check('cancelNm7TargetRestore(true);' in back_body and 'cancelNm7TargetRestore(false);' in body('public static void suspendForNm7Iptv()'), 'Back and IPTV suspend clean up pending restore gate')
+check('mPlayer.getPlayWhenReady() || sNm7ResumeAfterIptv' in body('private void beginNm7TargetRestore()'), 'Restore remembers intended playback and preserves user pause')
 out = Path('dist/mobile-diagnostics')
 out.mkdir(parents=True, exist_ok=True)
 (out/'lifecycle-source-proof.json').write_text(json.dumps({

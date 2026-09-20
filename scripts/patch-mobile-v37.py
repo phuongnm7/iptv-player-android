@@ -40,8 +40,10 @@ t = method(t, 'protected void onResume()', '''        super.onResume();
         mNm7LeavingForMini = false;
         completeNm7RestoreOnResume();
         mPlaybackPresenter.onViewResumed();
+        if (mNm7TargetRestoreWaiting && mPlayer != null) mPlayer.setPlayWhenReady(false);
         showHideWidgets(true);''')
-t = method(t, 'protected void onPause()', '''        // When Back enters NM7 mini, playback remains foreground in BrowseActivity.
+t = method(t, 'protected void onPause()', '''        cancelNm7TargetRestore(true);
+        // When Back enters NM7 mini, playback remains foreground in BrowseActivity.
         // Do not block the decoder/renderers or notify presenter of a full playback pause.
         if (sNm7Mini && !mNm7Stopped && !isFinishing() && mPlayer != null) {
             blockEngine(false);
@@ -64,6 +66,7 @@ t = method(t, 'public void onBackPressed()', '''        if (onDetailsBack()) ret
         if (mPlayer == null || mNm7Stopped) { super.onBackPressed(); return; }
         if (mNm7LeavingForMini) return;
         mNm7LeavingForMini = true;
+        cancelNm7TargetRestore(true);
         mIsBackPressed = true;
         sNm7RestorePending = false;
         sNm7Mini = true;
@@ -75,6 +78,7 @@ t = method(t, 'public void onBackPressed()', '''        if (onDetailsBack()) ret
                 | Intent.FLAG_ACTIVITY_NO_USER_ACTION);
         startActivity(intent);''')
 t = replace(t, '    protected void onDestroy() {\n        super.onDestroy();', '''    protected void onDestroy() {
+        cancelNm7TargetRestore(false);
         if (VERSION.SDK_INT >= 33) Nm7BackApi.unregister(this);
         if (sNm7Active == this) {
             sNm7Active = null;

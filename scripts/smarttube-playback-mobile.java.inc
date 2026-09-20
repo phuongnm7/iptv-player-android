@@ -4,6 +4,11 @@
     private static boolean sNm7ResumeAfterIptv;
     private boolean mNm7Stopped;
     private boolean mNm7LeavingForMini;
+    private boolean mNm7TargetRestoreWaiting;
+    private boolean mNm7ResumeAfterTarget;
+    private com.google.android.exoplayer2.video.VideoListener mNm7FirstFrameListener;
+    private Runnable mNm7TargetRestoreTimeout;
+    private long mNm7TargetRestoreStarted;
     private com.google.android.exoplayer2.ui.PlayerView mNm7VideoTarget;
     private boolean mNm7OwnsPlayback;
     private Object mNm7BackCallback;
@@ -46,6 +51,8 @@
 
         // Do not switch the video target while PlaybackActivity is still stopped.
         // Bring it to foreground first; onResume completes the surface handoff.
+        if (sNm7RestorePending) return;
+        active.beginNm7TargetRestore();
         sNm7RestorePending = true;
         active.startActivity(new Intent(active, active.getClass())
                 .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NO_ANIMATION
@@ -65,6 +72,8 @@
                 android.util.Log.e("NM7Playback", "Read mini target", error);
             }
         }
+        if (oldTarget != mPlayerView && !mNm7TargetRestoreWaiting) beginNm7TargetRestore();
+        if (mNm7TargetRestoreWaiting) armNm7FirstFrameResume();
         if (oldTarget != mPlayerView) {
             com.google.android.exoplayer2.ui.PlayerView.switchTargetView(mPlayer, oldTarget, mPlayerView);
         } else if (mPlayerView.getPlayer() != mPlayer) {
@@ -75,7 +84,8 @@
         sNm7Mini = false;
         if (sNm7ResumeAfterIptv) {
             sNm7ResumeAfterIptv = false;
-            mPlayer.setPlayWhenReady(true);
+            if (mNm7TargetRestoreWaiting) mNm7ResumeAfterTarget = true;
+            else mPlayer.setPlayWhenReady(true);
         }
         blockEngine(false);
         try {
@@ -84,6 +94,46 @@
             android.util.Log.e("NM7Playback", "Remove mini after foreground handoff", error);
         }
         android.util.Log.i("NM7Playback", "target=fullscreen; mini=false; back enabled");
+    }
+
+    private void beginNm7TargetRestore() {
+        if (mPlayer == null || mNm7TargetRestoreWaiting) return;
+        mNm7TargetRestoreWaiting = true;
+        mNm7ResumeAfterTarget = mPlayer.getPlayWhenReady() || sNm7ResumeAfterIptv;
+        mNm7TargetRestoreStarted = android.os.SystemClock.elapsedRealtime();
+        // Pause the shared media clock, not just audio, during the window/surface handoff.
+        // A paused ExoPlayer renders its first frame on a new surface before playback resumes.
+        if (mNm7ResumeAfterTarget) mPlayer.setPlayWhenReady(false);
+    }
+
+    private void armNm7FirstFrameResume() {
+        if (mPlayer == null || !mNm7TargetRestoreWaiting || mNm7FirstFrameListener != null) return;
+        mNm7FirstFrameListener = new com.google.android.exoplayer2.video.VideoListener() {
+            @Override public void onRenderedFirstFrame() {
+                if (mNm7VideoTarget != mPlayerView || sNm7Mini || mNm7Stopped) return;
+                android.util.Log.i("NM7Playback", "restore_first_frame_ms="
+                        + (android.os.SystemClock.elapsedRealtime() - mNm7TargetRestoreStarted));
+                cancelNm7TargetRestore(true);
+            }
+        };
+        mPlayer.addVideoListener(mNm7FirstFrameListener);
+        mNm7TargetRestoreTimeout = () -> {
+            android.util.Log.w("NM7Playback", "restore first-frame timeout; releasing transition gate");
+            cancelNm7TargetRestore(!mNm7Stopped && !sNm7Mini && !isFinishing());
+        };
+        // Never leave an audio-only stream or a decoder with no frame callback paused forever.
+        mHandler.postDelayed(mNm7TargetRestoreTimeout, 750);
+    }
+
+    private void cancelNm7TargetRestore(boolean resume) {
+        if (mNm7TargetRestoreTimeout != null) mHandler.removeCallbacks(mNm7TargetRestoreTimeout);
+        if (mNm7FirstFrameListener != null && mPlayer != null) mPlayer.removeVideoListener(mNm7FirstFrameListener);
+        boolean play = mNm7TargetRestoreWaiting && mNm7ResumeAfterTarget;
+        mNm7TargetRestoreTimeout = null;
+        mNm7FirstFrameListener = null;
+        mNm7TargetRestoreWaiting = false;
+        mNm7ResumeAfterTarget = false;
+        if (resume && play && mPlayer != null && !mNm7Stopped) mPlayer.setPlayWhenReady(true);
     }
 
     public static boolean consumeNm7BrowseBack() {
@@ -104,7 +154,8 @@
 
         // IPTV may own playback now, but keep the YouTube session and exact video/position alive.
         sNm7Mini = true;
-        sNm7ResumeAfterIptv = active.mPlayer.getPlayWhenReady();
+        sNm7ResumeAfterIptv = active.mPlayer.getPlayWhenReady() || active.mNm7ResumeAfterTarget;
+        active.cancelNm7TargetRestore(false);
         active.mNm7Stopped = false;
         active.mNm7OwnsPlayback = false;
         active.blockEngine(true);
@@ -124,6 +175,7 @@
         sNm7ResumeAfterIptv = false;
         if (active == null || active.isDestroyed()) return;
         active.mNm7Stopped = true;
+        active.cancelNm7TargetRestore(false);
         active.blockEngine(false);
         active.nm7SetBackground(false);
         active.stopService(new Intent().setClassName(active, "vn.phuong.iptvplayer.BackgroundPlaybackService"));

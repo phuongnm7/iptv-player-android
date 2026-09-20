@@ -1,3 +1,27 @@
+# ĐANG BUILD — MOBILE 1.10.54 — XOAY YOUTUBE / ĐỒNG BỘ MINI → PLAYER — 2026-09-20
+
+## Kết quả người dùng test 1.10.53
+- **Back: PASS**, đã khắc phục.
+- **Chuyển mini-player: PASS**, đã khắc phục.
+- Còn: YouTube không tự xoay ngang/fullscreen khi quay điện thoại; IPTV đã fullscreen được.
+- Còn: mini → player hình chậm/đứng một chút so với tiếng.
+- Giữ các phần đã PASS, không đánh đồng thành toàn bộ 1.10.53 stable.
+
+## Thay đổi 1.10.54 / versionCode 72
+- Bỏ SCREEN_ORIENTATION_PORTRAIT riêng cho PlaybackActivity; dùng SCREEN_ORIENTATION_SENSOR. Browse/Search vẫn dọc.
+- Giữ onConfigurationChanged/applyOrientation hiện có: ngang = video toàn màn hình, ẩn panel/thanh hệ thống; dọc = player 16:9 và panel. Manifest giữ configChanges để không tạo lại engine khi xoay.
+- Khi restore mini → player: ghi nhớ trạng thái đang phát/tạm dừng và tạm dừng media clock trong quá trình chuyển cửa sổ/target.
+- Gắn VideoListener trước switchTargetView; tiếp tục khi onRenderedFirstFrame của target fullscreen đến. Giữ ý định pause của người dùng.
+- Timeout 750 ms sau khi gắn target để không kẹt pause với nội dung chỉ có tiếng hoặc decoder không gửi callback. Khi timeout xảy ra không thể khẳng định hình/tiếng đã đồng bộ.
+- Dọn listener/timeout khi Back, pause Activity, nhường IPTV và đóng player. Không seek, không tải lại video, giữ fix Back/mini của 1.10.53.
+
+## Kiểm tra
+- 64 kiểm tra cấu trúc PASS trên upstream pin.
+- Đang chờ CI/unit tests/APK. Chưa test cảm biến và độ trễ video trên thiết bị.
+- Cần test quay dọc/ngang khi đang xem; restore mini ở hai hướng; restore video đang pause; Back sau restore; chuyển IPTV.
+
+---
+
 # BUILD SUCCESS — MOBILE 1.10.53 — BACK / MINI TARGET — 2026-09-20
 
 ## Kết quả mới từ người dùng
