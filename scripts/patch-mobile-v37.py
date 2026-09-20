@@ -186,8 +186,19 @@ t = replace(t, '    private void loadFormatInfo(Video video) {', '''    private 
     }
 
     private void loadFormatInfo(Video video) {''')
-t = replace(t, '        mFormatInfoAction = mediaItemManager.getFormatInfoObserve(video.videoId)',
-            '        mNm7FormatStart = android.os.SystemClock.elapsedRealtime();\n        android.util.Log.i("NM7Startup", "format_request");\n        mFormatInfoAction = mediaItemManager.getFormatInfoObserve(video.videoId)')
+t = replace(t, '''        Utils.post(mShowProgressBar);
+        disposeActions();
+
+        ServiceManager service = YouTubeServiceManager.instance();
+        MediaItemService mediaItemManager = service.getMediaItemService();
+        mFormatInfoAction = mediaItemManager.getFormatInfoObserve(video.videoId)''', '''        Utils.post(mShowProgressBar);
+        disposeActions();
+
+        ServiceManager service = YouTubeServiceManager.instance();
+        MediaItemService mediaItemManager = service.getMediaItemService();
+        mNm7FormatStart = android.os.SystemClock.elapsedRealtime();
+        android.util.Log.i("NM7Startup", "format_request");
+        mFormatInfoAction = mediaItemManager.getFormatInfoObserve(video.videoId)''')
 t = replace(t, '    private void processFormatInfo(MediaItemFormatInfo formatInfo) {',
             '    private void processFormatInfo(MediaItemFormatInfo formatInfo) {\n        android.util.Log.i("NM7Startup", "format_ready_ms=" + (android.os.SystemClock.elapsedRealtime() - mNm7FormatStart));')
 loader.write_text(t, encoding='utf-8')
