@@ -4,9 +4,11 @@ Nm7 IPTV 1.7 — ứng dụng Android tiếng Việt cho mobile và Android TV, 
 
 Mốc công việc, lỗi đã sửa, kết quả xác minh và bước tiếp theo: [PROGRESS.md](PROGRESS.md). Đọc file này trước khi tiếp tục ở một phiên khác; không chỉ dựa vào lịch sử trò chuyện hay thư mục tạm.
 
-> **Trạng thái Mobile hiện tại:** **1.10.52 (VersionCode 70)** đã build thành công tại GitHub Actions **#366** nhưng **chưa được đánh dấu stable** vì vẫn chờ test thiết bị thật. Mốc source hiện tại gồm xử lý Back ở YouTube Search, thumbnail chất lượng cao cho Search/Browse, giữ IPTV full-screen ẩn tab và tap-shield mini đã PASS. Chi tiết đầy đủ và lịch sử lỗi/xác minh xem tại [PROGRESS.md](PROGRESS.md).
+> **Trạng thái Mobile hiện tại:** **1.10.53 (VersionCode 71)** đã build và chạy unit tests thành công tại GitHub Actions **#367**. 1.10.52 được người dùng báo vẫn lỗi Back/mini; 1.10.53 sửa trạng thái foreground và quản lý video target. **Chưa stable — chờ test thiết bị thật.** Giữ nguyên IPTV fullscreen ẩn tab và mini tap-shield đã PASS. Xem [PROGRESS.md](PROGRESS.md).
 
 ## Nhận APK
+
+**Mobile mới nhất:** [Tải APK 1.10.53 — ARM64/ARMv7](https://github.com/phuongnm7/iptv-player-android/actions/runs/35496093973/artifacts/10601495287). Đây là bản chờ xác nhận lỗi Back/mini trên điện thoại.
 
 Trong GitHub, mở **Actions → Build private Android APK**, chọn lần chạy thành công, tải **Nm7-IPTV-1.7-APK** trong Artifacts, giải nén và mở **Nm7-IPTV-1.7.apk** trên Android 6.0 trở lên.
 

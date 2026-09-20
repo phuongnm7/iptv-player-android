@@ -1,4 +1,4 @@
-# ĐANG BUILD — MOBILE 1.10.53 — BACK / MINI TARGET — 2026-09-20
+# BUILD SUCCESS — MOBILE 1.10.53 — BACK / MINI TARGET — 2026-09-20
 
 ## Kết quả mới từ người dùng
 1.10.52 vẫn lỗi: Back trong YouTube không thoát trình phát; mini-player còn đứng hình. Đã xem ảnh bàn giao 1.10.52 và video `video_2026-09-20_14-02-10.mp4`. **1.10.52 không stable.**
@@ -21,7 +21,14 @@
 ## Kiểm tra / bàn giao
 - 59 kiểm tra cấu trúc PASS trên nguồn pin.
 - Thêm Robolectric test inflate XML thực tế sau merge tài nguyên: mini và fullscreen phải tạo TextureView, controller tắt.
-- Đang chờ CI/unit tests/APK; chưa test giải mã video và Back trên thiết bị thật.
+- CI :app:testMobileDebugUnitTest và assembleMobileDebug thành công; hai Robolectric tests inflate XML có trong test suite. Chưa test giải mã video và Back trên thiết bị thật.
+- Build **NM7 Mobile Final Build #367**, run **35496093973**, SUCCESS; Gradle 8 phút 6 giây.
+- Source commit: `6c6502d866b1fd6bc8cc31a681133f2758651ab6`.
+- [APK ARM64/ARMv7 và SHA256SUMS](https://github.com/phuongnm7/iptv-player-android/actions/runs/35496093973/artifacts/10601495287), hết hạn 2026-10-20.
+- Artifact SHA256: `4b354dd82b5ce6bdd05e04b83868d887aa123c9786bf6e8ba14f4f91c1872b85`.
+- ARM64 SHA256: `c0bbd178c77a15c6650443d71eda19ce9c8d8808db6fec00fa0a3565f9e3003d`.
+- ARMv7 SHA256: `d96cec579f4ba447a1c2af72c9e07d633f4580fa294cb17faef75c6150845ea5`.
+- **1.10.53 chưa stable; cần người dùng xác nhận Back và mini chuyển động trên máy thật.**
 - Cần test: mở video khi mini cũ tồn tại → Back; lặp mini/fullscreen 5 lần; Back tại Search/Browse; đổi IPTV khi mini; hình chuyển động đồng thời với tiếng.
 
 ---
