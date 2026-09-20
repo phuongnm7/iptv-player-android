@@ -47,7 +47,8 @@ public final class BackgroundPlaybackService extends Service {
                 .setContentText(name == null || name.isEmpty() ? "Chạm để quay lại ứng dụng" : name)
                 .setContentIntent(content).setOngoing(true).setCategory(Notification.CATEGORY_SERVICE).build();
         startForeground(NOTIFICATION_ID, notification);
-        if (youtube && youtubeWakeLock == null) {
+        boolean youtubeActive = youtube && intent.getBooleanExtra("youtube_active", true);
+        if (youtubeActive && youtubeWakeLock == null) {
             android.os.PowerManager power = (android.os.PowerManager) getSystemService(POWER_SERVICE);
             if (power != null) {
                 youtubeWakeLock = power.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "NM7:YouTubePlayback");
@@ -64,7 +65,7 @@ public final class BackgroundPlaybackService extends Service {
                     youtubeWifiLock.acquire();
                 } catch (RuntimeException error) { youtubeWifiLock = null; }
             }
-        } else if (!youtube) {
+        } else if (!youtubeActive) {
             releaseYoutubeWakeLock();
         }
         return START_NOT_STICKY;

@@ -137,6 +137,11 @@ check('!mNm7InitialTransportSelected' in play, 'Engine recovery preserves ErrorF
 check('mPlayer.retry()' not in play and 'ErrorFixerController.class' in body('private void retryNm7Mini()'), 'Mini retry uses source-aware recovery rather than same failed URL')
 check('mNm7RecoveryGate.allow' in play and 'sNm7SuspendedForIptv' in body('public void restartEngine()'), 'Automatic mini recovery is bounded and cannot restart while IPTV owns playback')
 check('mNm7SessionVideo = item' in play, 'Active video survives feed replacement and GC during recovery')
+check('stopService' not in body('public static void resumeNm7Foreground()'), 'Unlocking the mini host does not stop its service')
+check('(!playWhenReady || playbackState == Player.STATE_ENDED)' not in play and 'syncNm7KeepAlive();' in play, 'Transient player states cannot stop mini keep-alive')
+check('setRendererDisabled(i, true)' in play and 'mNm7SavedVideoRenderers.get(i)' in play, 'Background audio temporarily disables and restores only video renderers')
+check('mNm7SessionVideo != null' in body('public static boolean isNm7MiniPlayerActive()'), 'Mini presence survives a null decoder during rebuild')
+check('youtube_active' in Path('app/src/main/java/vn/phuong/iptvplayer/BackgroundPlaybackService.java').read_text(), 'Service separates session notification from wake-lock playing intent')
 out.mkdir(parents=True, exist_ok=True)
 (out/'lifecycle-source-proof.json').write_text(json.dumps({
     'structural_checks': checks,

@@ -223,10 +223,6 @@ public final class MobileNm7Application extends DroidApplication implements andr
             // YouTube mini-player visible and attached while that list is in front.
             activity.getWindow().getDecorView().post(() -> installYoutubeMiniPlayer(activity));
         }
-        if (SMARTTUBE_PLAYBACK.equals(name)) {
-            // Foreground YouTube no longer needs the background keep-alive service.
-            activity.stopService(new Intent(activity, BackgroundPlaybackService.class));
-        }
     }
 
     public static boolean hasIptvPlayer() {

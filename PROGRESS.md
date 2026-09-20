@@ -1,3 +1,27 @@
+# SOURCE READY — MOBILE 1.10.60 / 78 — PHÁT NỀN / KHÓA MÀN HÌNH — CHỜ CI — 2026-09-21
+
+## Phản hồi và bằng chứng
+- Người dùng xác nhận 1.10.59 lỗi nghiêm trọng: mini phát nền sau khi tắt màn hình chỉ được một lúc rồi tự đóng.
+- Đã xem video_2026-09-21_06-38-42.mp4 (66,54 giây): mini vẫn có lúc đen khi đổi video/thu nhỏ. Video không có đủ log hệ thống để xác định Android đã kill process hay codec/source lỗi; tình trạng khóa màn hình là phản hồi trực tiếp của người dùng.
+- 1.10.59 không stable.
+
+## Phát hiện và sửa 1.10.60
+- Callback trạng thái cũ dừng foreground service khi playWhenReady=false, bao gồm tạm dừng trong phục hồi/đổi target; resume mini host cũng dừng service. Nay giữ service theo vòng đời phiên mini hoặc phát nền, không theo các trạng thái tạm IDLE/BUFFERING/pause.
+- Bắt đầu giữ service ngay khi chuyển vào mini lúc Activity còn foreground; mở khóa/quay về Browse vẫn giữ phiên. Đóng video, chuyển quyền sang IPTV và sleep timer vẫn dừng đúng luồng.
+- Service tách việc giữ notification/session khỏi wake/Wi-Fi lock. User pause/ended giải phóng lock; phát hoặc recovery chủ động giữ lock. Không biến pause thành auto-play.
+- Khi vào nền/khóa màn hình, tạm vô hiệu hóa renderer video, giữ audio, nguồn và vị trí. Quay lại foreground phục hồi đúng trạng thái renderer trước đó. Engine mới cũng áp dụng trạng thái audio nền trước mở nguồn.
+- Mini còn tồn tại nếu video/session còn sống trong khoảng decoder=null khi engine được tạo lại; không xóa overlay chỉ vì khoảng trống đó. Target mới được lưu để engine gắn lại.
+- Giữ các thay đổi giao diện/bình luận/gesture/bộ nhớ và phục hồi lỗi của 1.10.59. Chỉ Mobile, không thay repo TV.
+
+## Xác minh / giới hạn
+- Áp dụng toàn bộ patch 1.10.60 lên source pin sạch, gồm MediaServiceCore đúng SHA; 94 structural checks PASS, Python syntax PASS.
+- Thêm 6 Robolectric tests: mini lock/unlock; full foreground/background; close/IPTV; wake policy khi pause/recovery; service thật giữ notification và nhả/giữ lock qua pause/resume; predicate mini thật vẫn active khi decoder=null nhưng session còn.
+- Chờ CI compile/unit tests/APK. Chưa có kiểm tra trên điện thoại, không khẳng định hết lỗi khóa màn hình hoặc mini đen chỉ từ source tests.
+- Cần test bản mới: phát mini rồi khóa màn hình 15–30 phút; mở khóa phải giữ video/vị trí; Home 15 phút; pause rồi khóa không tự phát; full→mini→full 10 vòng; mini khi đổi tab; chọn IPTV/đóng mini/hẹn giờ phải nhả phiên nền.
+- Kiến trúc player hiện vẫn thuộc PlaybackActivity; bản sửa giữ foreground service và tránh dừng nhầm, chưa chuyển toàn bộ engine sang service owner độc lập. Không cam kết tiếp tục phát sau force-stop hoặc khi hệ thống thực sự hủy process/Activity.
+
+---
+
 # BUILD SUCCESS — MOBILE 1.10.59 / 77 — CHỜ TEST THIẾT BỊ — 2026-09-20
 
 - Người dùng xác nhận 1.10.58 vẫn có mini-player đen với thông báo chung; ảnh mới không đủ xác định loại lỗi. Không coi v58 stable.
