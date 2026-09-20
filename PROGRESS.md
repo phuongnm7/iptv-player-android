@@ -1,3 +1,28 @@
+# ĐANG BUILD — MOBILE 1.10.42 — 2026-09-20
+
+Người dùng xác nhận **1.10.41 vẫn chưa xử lý được hai lỗi của 1.10.40**:
+1. Vuốt trái/phải trong giao diện chính YouTube chưa chuyển qua lại các mục ở thanh tab phía trên như Super OK.
+2. Thumbnail YouTube vẫn nhòe/mờ trên card lớn.
+
+## Thay đổi 1.10.42 (version code 60)
+
+- Bỏ cơ chế bắt vuốt ở `Nm7SwipeFrameLayout` bao ngoài vì RecyclerView/card con có thể giành chuỗi touch trước khi parent nhận đủ ACTION_UP.
+- Gắn `Nm7SectionSwipeTouchListener` trực tiếp vào cả ba RecyclerView nội dung (grid, rows, settings). Khi gesture ngang đủ ngưỡng, RecyclerView dừng cuộn và chuyển đúng section liền kề bằng `selectSection()`; vuốt dọc/tap vẫn giữ hành vi cũ.
+- Giảm ngưỡng phân biệt ngang/dọc để thao tác tự nhiên hơn trên điện thoại, vẫn chặn multi-touch và không quay vòng đầu/cuối.
+- Thumbnail card video lớn dùng ảnh nguồn nguyên kích thước: Glide `SIZE_ORIGINAL`, `dontTransform()`, cache dữ liệu gốc; ưu tiên `maxresdefault`, sau đó ảnh nền chất lượng cao từ metadata, rồi mới fallback card URL. Không ép centerCrop ở bước decode để tránh lấy bitmap nhỏ rồi phóng.
+- Không thay đổi player YouTube, IPTV, mini-player, phát nền, lifecycle chuyển nguồn hoặc hẹn giờ.
+
+## Mốc kỹ thuật
+
+- VersionName: **1.10.42**
+- VersionCode: **60**
+- Source commit: `5f58d25ceb89d81317c8e22dd5ddc3eb16ddd140`
+- GitHub Actions Mobile Final Build run: **35479392064**
+- Trạng thái tại thời điểm cập nhật: **đang chạy CI**.
+- Chưa đánh dấu hai lỗi là PASS cho đến khi build thành công và người dùng test trên điện thoại thật.
+
+---
+
 # ĐÃ BUILD THÀNH CÔNG — MOBILE 1.10.41 — 2026-09-20
 
 Người dùng báo **1.10.40 chưa ổn**: thumbnail mờ như phóng to và không vuốt ngang để đổi mục YouTube được. 1.10.39 vẫn là mốc chức năng đã được xác nhận.
