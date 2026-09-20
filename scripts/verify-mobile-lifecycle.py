@@ -129,6 +129,14 @@ check('getGlobalVisibleRect(bounds)' in browse, 'Gesture hit bounds use screen c
 check('installNm7ScrollChrome(mRowsView)' in browse and 'installNm7ScrollChrome(mGridView)' in browse, 'Both feed modes collapse navigation on scroll')
 check('getNm7PlaybackState' in overlay and 'Lỗi phát' in overlay, 'Mini displays buffering/errors instead of silent black rectangle')
 check('nm7_watch_enter' in play and 'nm7_watch_exit' in play, 'Watch panel uses vertical opening and closing motion')
+chrome_method = browse.split('private void setNm7ChromeHidden')[1].split('private void installNm7ScrollChrome')[0]
+check('View.INVISIBLE' in chrome_method and 'setPadding' not in chrome_method, 'Chrome toggle preserves feed geometry')
+check('addOnScrollListener' not in browse and 'mNm7ChromeGesture.update' in browse, 'Layout and fling callbacks cannot toggle chrome')
+check('!isNm7ChromeTouch(event)' in browse, 'Overlay header and footer excluded from feed gestures')
+check('!mNm7InitialTransportSelected' in play, 'Engine recovery preserves ErrorFixer transport fallback')
+check('mPlayer.retry()' not in play and 'ErrorFixerController.class' in body('private void retryNm7Mini()'), 'Mini retry uses source-aware recovery rather than same failed URL')
+check('mNm7RecoveryGate.allow' in play and 'sNm7SuspendedForIptv' in body('public void restartEngine()'), 'Automatic mini recovery is bounded and cannot restart while IPTV owns playback')
+check('mNm7SessionVideo = item' in play, 'Active video survives feed replacement and GC during recovery')
 out.mkdir(parents=True, exist_ok=True)
 (out/'lifecycle-source-proof.json').write_text(json.dumps({
     'structural_checks': checks,

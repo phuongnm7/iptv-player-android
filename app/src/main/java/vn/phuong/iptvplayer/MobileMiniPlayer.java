@@ -117,6 +117,7 @@ public final class MobileMiniPlayer {
                         int state = ((Number) bridge.getMethod("getNm7PlaybackState").invoke(null)).intValue();
                         buffering.setVisibility(state == 2 ? View.VISIBLE : View.GONE);
                         status.setVisibility(state == -1 ? View.VISIBLE : View.GONE);
+                        if (state == -1) status.setText(String.valueOf(bridge.getMethod("getNm7ErrorLabel").invoke(null)) + " • ▶ thử lại");
                         boolean playing = state != -1 && Boolean.TRUE.equals(bridge.getMethod("isNm7Playing").invoke(null));
                         playPause.setImageResource(playing ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play);
                         playPause.setContentDescription(playing ? "Tạm dừng YouTube" : "Phát YouTube");

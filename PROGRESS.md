@@ -1,3 +1,31 @@
+# SOURCE READY — MOBILE 1.10.57 / 75 — CHỜ CI VÀ TEST THẬT — 2026-09-20
+
+## Phản hồi mới và bằng chứng
+- Người dùng test 1.10.56: cuộn lên làm giao diện nháy liên tục; mini chuyển sang thông báo lỗi.
+- Đã xem video_2026-09-20_19-52-25.mp4 (110 giây). Mini có lúc phát rồi chuyển đen/báo lỗi; mở video khác có thể phát lại.
+- Thông báo trong 1.10.56 chỉ là “Lỗi phát • bấm ▶ để thử lại”, không có nguyên nhân engine/HTTP. Không kết luận video mới là OOM chỉ từ thông báo này.
+- 1.10.56 không stable.
+
+## Sửa 1.10.57
+- Nguyên nhân nháy từ source: onScrolled ẩn/hiện AppBar bằng GONE/VISIBLE và đổi padding root, làm thay đổi chiều cao RecyclerView ngay trong cuộn; callback/layout sau đó có thể đảo trạng thái.
+- Chuyển Browse sang FrameLayout: feed có viewport cố định, app bar và thanh dưới phủ lên; padding đầu/cuối của danh sách đặt một lần. Ẩn header bằng INVISIBLE, không đổi kích thước/padding khi cuộn.
+- Chỉ chuyển trạng thái thanh theo chuyển động ngón tay thật; không còn onScrolled phản ứng với relayout/fling. Cuộn lên ẩn, kéo xuống hiện; kéo mini và thao tác trên header/footer không đổi mục phía sau.
+- Sửa xung đột phục hồi: lựa chọn DNS transport sớm chỉ chạy một lần cho phiên Activity; restart engine tôn trọng transport mới do ErrorFixer chọn, không ép trở lại OkHttp sau mỗi lỗi.
+- Nút thử lại mini đi qua ErrorFixer để tải lại nguồn/client hoặc dựng lại decoder theo loại lỗi; bỏ retry trực tiếp cùng MediaSource lỗi.
+- Tự phục hồi lỗi engine trong mini tối đa một lần mỗi video; người dùng được chủ động thử lại. Giữ ý định pause trong lúc phục hồi. Khi IPTV sở hữu playback thì không tự restart hay phát YouTube trở lại.
+- Giữ tham chiếu video đang phát trong player owner để recovery không phụ thuộc card còn trong Browse hay WeakReference đã bị thu gom.
+- Gắn lại controller view sau engine release/recreate. Thông báo mini phân biệt lỗi nguồn, mạng, giải mã, thiếu bộ nhớ; có mã HTTP nếu engine cung cấp. Log chỉ type/renderer/class, không URL/cookie/token.
+- Giữ sửa vuốt chọn nhầm, kính lúp, thumbnail có giới hạn bộ nhớ, xoay ngang/fullscreen, Back/mini, IPTV và hẹn giờ.
+
+## Kiểm tra và bàn giao
+- 89 structural checks PASS trên upstream pin 4825d6aa8b6f1d3181927f9e96c7d89cab13d510; XML parse và Python syntax PASS.
+- Thêm 7 Robolectric tests: ngón tay đứng yên không đảo thanh; kéo xuống hiện; loại trừ mini/vuốt ngang; inflate và đo layout thật khi header ẩn/hiện 10 lần không đổi viewport; giới hạn retry; pause/IPTV; retry thủ công/video mới.
+- Chờ CI unit tests/assemble và APK 1.10.57. Chưa test thiết bị thật, chưa stable.
+- Test tiếp: cuộn lên/xuống rồi thả tay 20 lần, không nháy; giữ nguyên ngón tay khi thanh ẩn; vuốt thẻ không mở nhầm; mini phát 10 phút trong lúc cuộn/đổi thẻ; pause khi phục hồi; đổi IPTV; Back/restore/xoay ngang. Nếu mini còn lỗi, ghi lại dòng thông báo mới để phân biệt nguyên nhân.
+- Chỉ repo Mobile, không thay repo TV.
+
+---
+
 # BUILD SUCCESS — MOBILE 1.10.56 / 74 — CHỜ TEST THIẾT BỊ THẬT — 2026-09-20
 
 ## Phản hồi và bằng chứng
