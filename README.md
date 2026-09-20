@@ -4,15 +4,15 @@ Nm7 IPTV 1.7 — ứng dụng Android tiếng Việt cho mobile và Android TV, 
 
 Mốc công việc, lỗi đã sửa, kết quả xác minh và bước tiếp theo: [PROGRESS.md](PROGRESS.md). Đọc file này trước khi tiếp tục ở một phiên khác; không chỉ dựa vào lịch sử trò chuyện hay thư mục tạm.
 
-> **Trạng thái Mobile hiện tại:** **1.10.56 (VersionCode 74)** đang chờ CI: sửa nhận diện vuốt, thu gọn tìm kiếm/điều hướng, chuyển động watch panel và giới hạn bộ nhớ gây lỗi player. **1.10.55 được người dùng báo còn lỗi; chưa stable.** Xem [PROGRESS.md](PROGRESS.md).
+> **Trạng thái Mobile hiện tại:** **1.10.56 (VersionCode 74), build #372 SUCCESS:** sửa nhận diện vuốt, thu gọn tìm kiếm/điều hướng, chuyển động watch panel và giới hạn bộ nhớ gây lỗi player. **1.10.55 được người dùng báo còn lỗi; chưa stable.** Xem [PROGRESS.md](PROGRESS.md).
 
 ## Nhận APK
 
-**1.10.56:** chờ CI xác nhận APK. Liên kết 1.10.55 bên dưới là bản cũ còn lỗi.
+**1.10.56:** [Tải APK ARM64/ARMv7 và SHA256SUMS — build #372](https://github.com/phuongnm7/iptv-player-android/actions/runs/35510885621/artifacts/10605087490), hết hạn 2026-10-20. Unit tests/build thành công; **chờ test thiết bị thật, chưa stable**. Liên kết 1.10.55 bên dưới là bản cũ còn lỗi.
 
 **Mobile 1.10.55 / versionCode 73:** [build #370 thành công](https://github.com/phuongnm7/iptv-player-android/actions/runs/35504581687). [Tải APK ARM64/ARMv7 và SHA256SUMS](https://github.com/phuongnm7/iptv-player-android/actions/runs/35504581687/artifacts/10603078762) — artifact hết hạn 2026-10-20. Chưa xác nhận stable trên thiết bị thật. APK 1.10.54 đã được người dùng cài thử nhưng còn lỗi, không phải bản stable.
 
-Trong GitHub, mở **Actions → NM7 Mobile Final Build → #370**, tải **NM7-IPTV-Mobile-FINAL** trong Artifacts, giải nén và chọn APK **1.10.55** phù hợp kiến trúc ARM64 hoặc ARMv7 trên Android 6.0 trở lên.
+Trong GitHub, mở **Actions → NM7 Mobile Final Build → #372**, tải **NM7-IPTV-Mobile-FINAL** trong Artifacts, giải nén và chọn APK **1.10.56** phù hợp kiến trúc ARM64 hoặc ARMv7 trên Android 6.0 trở lên.
 
 APK dùng chữ ký debug dành cho cài thử cá nhân; không phải bản phát hành Google Play. Không tắt Play Protect. Nếu Android yêu cầu, chỉ cho phép cài APK từ ứng dụng tải tệp mà bạn tin cậy rồi tắt lại quyền đó sau khi cài.
 

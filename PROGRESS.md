@@ -1,4 +1,4 @@
-# SOURCE READY — MOBILE 1.10.56 / 74 — CHỜ CI VÀ TEST THẬT — 2026-09-20
+# BUILD SUCCESS — MOBILE 1.10.56 / 74 — CHỜ TEST THIẾT BỊ THẬT — 2026-09-20
 
 ## Phản hồi và bằng chứng
 - Người dùng xác nhận 1.10.55 còn nhiều lỗi; không stable.
@@ -19,10 +19,23 @@
 
 ## Kiểm tra và bước tiếp
 - Patch áp dụng đúng upstream pin 4825d6aa8b6f1d3181927f9e96c7d89cab13d510.
-- 82 structural checks PASS. Thêm 6 Robolectric tests cho chuỗi vuốt, tap, cuộn dọc, cancel, vuốt nhanh và mini exclusion; chờ CI chạy.
-- Chưa có APK 1.10.56 xác nhận tại thời điểm commit source.
+- 82 structural checks PASS. Thêm 6 Robolectric tests cho chuỗi vuốt, tap, cuộn dọc, cancel, vuốt nhanh và mini exclusion; CI :app:testMobileDebugUnitTest đã thành công. XML tạo ra parse thành công.
+- APK 1.10.56 đã xác nhận qua build #372; chưa có xác nhận test thiết bị thật.
 - Cần thiết bị thật: vuốt qua lại nhanh trên thumbnail 20 lần không mở nhầm; cuộn ẩn/hiện thanh; tap video mở panel; Back/mini/restore 10 vòng; mini phát 10 phút; đổi IPTV; xoay ngang; thumbnail nét và không OutOfMemoryError.
 - Không đánh dấu sửa triệt để mini/decoder khi chưa test máy thật. Chỉ repo Mobile.
+
+## Build / bàn giao đã xác nhận
+- **VersionName 1.10.56 / VersionCode 74**.
+- Source commit: `ae0fa0c9dab62f2c325da77fabc3adc76a8fe92b`.
+- [NM7 Mobile Final Build #372 — SUCCESS](https://github.com/phuongnm7/iptv-player-android/actions/runs/35510885621); run ID `35510885621`.
+- CI unit tests và assembleMobileDebug SUCCESS; Gradle 7 phút 39 giây.
+- [APK ARM64/ARMv7 và SHA256SUMS](https://github.com/phuongnm7/iptv-player-android/actions/runs/35510885621/artifacts/10605087490).
+- Artifact `NM7-IPTV-Mobile-FINAL`, ID `10605087490`; hết hạn 2026-10-20.
+- Artifact SHA256: `3403841bbdc8c0eda3f7033b2d7d34324dab9be80151e911ecbcc4cce259ed88`.
+- ARM64 SHA256: `ce853151b531f32a5d63af0f4c4f836e835807d00c6d87ada8a16282581c75c0`.
+- ARMv7 SHA256: `51992a251beaae96dc608287b779bd8b1f10d4231093dd230169e529dec8df11`.
+- Source evidence artifact: `10605311501`.
+- **Chưa stable:** thành công CI không chứng minh hết OOM/mini đen trên thiết bị. Chờ người dùng test theo danh sách trên.
 
 ---
 
