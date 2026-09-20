@@ -4,6 +4,8 @@ Nm7 IPTV 1.7 — ứng dụng Android tiếng Việt cho mobile và Android TV, 
 
 Mốc công việc, lỗi đã sửa, kết quả xác minh và bước tiếp theo: [PROGRESS.md](PROGRESS.md). Đọc file này trước khi tiếp tục ở một phiên khác; không chỉ dựa vào lịch sử trò chuyện hay thư mục tạm.
 
+> **Mobile stable baseline hiện tại: NM7 IPTV 1.10.47 (VersionCode 65).** Bản này đã được người dùng test thực tế và xác nhận ổn định, bao gồm việc giữ mini-player qua YouTube ↔ IPTV và xử lý lỗi mini-player đứng hình/audio-only. Mọi nâng cấp Mobile tiếp theo phải phát triển từ baseline 1.10.47. Build xác nhận: GitHub Actions #358, commit `e78d544d0e97eabb5dbac21c3d976414cbd410ed`.
+
 ## Nhận APK
 
 Trong GitHub, mở **Actions → Build private Android APK**, chọn lần chạy thành công, tải **Nm7-IPTV-1.7-APK** trong Artifacts, giải nén và mở **Nm7-IPTV-1.7.apk** trên Android 6.0 trở lên.
