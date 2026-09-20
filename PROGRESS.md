@@ -1,3 +1,26 @@
+# SOURCE READY — MOBILE 1.10.55 / 73 — CHỜ CI VÀ TEST THẬT — 2026-09-20
+
+## Đầu vào
+- Người dùng có APK 1.10.54 và báo IPTV mở kênh bị đen, chỉ phát lại sau khi mở YouTube; YouTube tải chậm; mini đang xem dừng/đen.
+- Đã xem video 16-54-40 (mini đen), 16-54-57 (IPTV đen, YouTube tải lâu và hiện thông báo sửa DNS), 16-54-46 (mẫu giao diện/chuyển player YouTube).
+- ZIP người dùng cung cấp đúng source 1.10.54. Không đánh dấu 1.10.54 stable.
+
+## Phát hiện từ source và bản sửa
+- Cold start chỉ xóa cờ background nhưng giữ tab YouTube cũ. Inline provider bỏ qua attach khi tab=YouTube; MainActivity rơi vào PlayerActivity, nơi onStart không startPlayer khi tab cũ là YouTube. Nay reset tab về IPTV khi tạo process và đặt lại ownership/handoff trước thao tác mở kênh trực tiếp.
+- SmartTube restartEngine luôn gắn bộ phát mới vào mPlayerView của Activity đã ẩn. Nay gắn lại mini đang attached nếu người dùng đang xem mini; detach target cũ trước release. Đây là sửa lỗi source, chưa chứng minh bao phủ mọi trường hợp mini đứng trên máy thật.
+- Suspend IPTV có cờ riêng, idempotent; delayed attach từ Main không được tự giành lại quyền phát. Chỉ quay lại YouTube mới phục hồi intent trước đó.
+- Với custom DNS và cơ chế sửa mạng đang bật, chọn OkHttp trước initializePlayer thay vì chờ ErrorFixer phát hiện long buffering rồi restart. Không đổi DNS, không tắt TLS, không log URL/cookie/DRM. Chưa có số đo tốc độ trên điện thoại.
+- Giao diện YouTube nền sáng, feed/search/gợi ý một cột; player 16:9 dọc và fullscreen ngang được giữ. Vuốt xuống từ giữa vùng video dọc gọi luồng mini đã có; mini có phát/tạm dừng, đóng, kéo vị trí và chạm khôi phục. Chưa khẳng định giống hoàn toàn animation của app mẫu.
+- Giữ Back, tap-shield, xoay cảm biến, first-frame restore gate 750ms, IPTV fullscreen ẩn tab, sleep timer và các tính năng hiện có. Không sửa repo TV.
+
+## Kiểm tra và bàn giao
+- Patch áp dụng trên upstream pin 4825d6aa8b6f1d3181927f9e96c7d89cab13d510.
+- 74 kiểm tra cấu trúc PASS; Python syntax và git diff --check PASS.
+- Thêm 2 Robolectric tests cold start/preserve saved IPTV. Chờ CI chạy unit tests và assemble; chưa có APK 1.10.55 được xác nhận.
+- Cần test: force-stop sau tab YouTube rồi mở IPTV ngay; đổi 5 kênh; mini phát 10 phút và sau lỗi mạng; pause/restore; kéo mini; vuốt player xuống; Back Search/Browse; xoay ngang/dọc; đo thời gian chạm → frame đầu trên cùng video/mạng.
+
+---
+
 # ĐANG BUILD — MOBILE 1.10.54 — XOAY YOUTUBE / ĐỒNG BỘ MINI → PLAYER — 2026-09-20
 
 ## Kết quả người dùng test 1.10.53

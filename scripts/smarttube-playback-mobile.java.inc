@@ -2,6 +2,7 @@
     private static boolean sNm7Mini;
     private static boolean sNm7RestorePending;
     private static boolean sNm7ResumeAfterIptv;
+    private static boolean sNm7SuspendedForIptv;
     private boolean mNm7Stopped;
     private boolean mNm7LeavingForMini;
     private boolean mNm7TargetRestoreWaiting;
@@ -12,6 +13,40 @@
     private com.google.android.exoplayer2.ui.PlayerView mNm7VideoTarget;
     private boolean mNm7OwnsPlayback;
     private Object mNm7BackCallback;
+
+    private void bindNm7PlayerTarget() {
+        // ErrorFixerController may rebuild the engine while PlaybackActivity is stopped.
+        // Binding the new player to its hidden full view leaves the visible mini black.
+        if (sNm7SuspendedForIptv) {
+            mPlayerView.setPlayer(null);
+            mPlayer.setPlayWhenReady(false);
+            return;
+        }
+        com.google.android.exoplayer2.ui.PlayerView target = mPlayerView;
+        if (sNm7Mini) {
+            try {
+                android.view.View view = (android.view.View) Class.forName("vn.phuong.iptvplayer.MobileMiniPlayer")
+                        .getMethod("surfaceView").invoke(null);
+                if (view instanceof com.google.android.exoplayer2.ui.PlayerView && view.isAttachedToWindow()) {
+                    target = (com.google.android.exoplayer2.ui.PlayerView) view;
+                }
+            } catch (ReflectiveOperationException error) {
+                android.util.Log.e("NM7Playback", "Read target after engine restart", error);
+            }
+        }
+        com.google.android.exoplayer2.ui.PlayerView.switchTargetView(mPlayer, mNm7VideoTarget, target);
+        if (target.getPlayer() != mPlayer) target.setPlayer(mPlayer);
+        mNm7VideoTarget = target;
+    }
+
+    public static boolean isNm7Playing() {
+        return isNm7SessionActive() && sNm7Active.mPlayer.getPlayWhenReady();
+    }
+
+    public static void toggleNm7Playback() {
+        if (!isNm7SessionActive() || sNm7SuspendedForIptv) return;
+        sNm7Active.mPlayer.setPlayWhenReady(!sNm7Active.mPlayer.getPlayWhenReady());
+    }
 
     public static boolean isNm7SessionActive() {
         return sNm7Active != null && !sNm7Active.mNm7Stopped && !sNm7Active.isDestroyed()
@@ -27,6 +62,15 @@
         PlaybackActivity active = sNm7Active;
         if (!isNm7MiniPlayerActive()) return;
         if (!(nextSurface instanceof com.google.android.exoplayer2.ui.PlayerView)) return;
+        // A delayed MainActivity attach must not take playback back from IPTV.
+        if (sNm7SuspendedForIptv) {
+            try {
+                Object tab = Class.forName("vn.phuong.iptvplayer.SharedPlaybackSession")
+                        .getMethod("tab", android.content.Context.class).invoke(null, active);
+                if (!"youtube".equals(tab)) return;
+            } catch (ReflectiveOperationException error) { return; }
+            sNm7SuspendedForIptv = false;
+        }
 
         active.blockEngine(false);
         com.google.android.exoplayer2.ui.PlayerView mini =
@@ -61,6 +105,7 @@
 
     private void completeNm7RestoreOnResume() {
         if (mPlayer == null) return;
+        sNm7SuspendedForIptv = false;
         com.google.android.exoplayer2.ui.PlayerView oldTarget = mNm7VideoTarget;
         if (oldTarget == null) {
             try {
@@ -151,6 +196,8 @@
     public static void suspendForNm7Iptv() {
         PlaybackActivity active = sNm7Active;
         if (active == null || active.isDestroyed() || active.isFinishing() || active.mPlayer == null) return;
+        if (sNm7SuspendedForIptv) return; // Do not overwrite the saved playing intent.
+        sNm7SuspendedForIptv = true;
 
         // IPTV may own playback now, but keep the YouTube session and exact video/position alive.
         sNm7Mini = true;
@@ -173,6 +220,7 @@
         sNm7Mini = false;
         sNm7RestorePending = false;
         sNm7ResumeAfterIptv = false;
+        sNm7SuspendedForIptv = false;
         if (active == null || active.isDestroyed()) return;
         active.mNm7Stopped = true;
         active.cancelNm7TargetRestore(false);
@@ -220,4 +268,3 @@
             }
         }
     }
-

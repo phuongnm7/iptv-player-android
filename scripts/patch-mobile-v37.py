@@ -25,6 +25,20 @@ t = replace(t, 'private static final String TAG = PlaybackActivity.class.getSimp
 t = replace(t, '        super.onCreate(savedInstanceState);', '''        super.onCreate(savedInstanceState);
         sNm7Active = this;
         if (VERSION.SDK_INT >= 33) Nm7BackApi.register(this);''')
+t = replace(t, '        mExoPlayerController.setPlayer(mPlayer);\n        mPlayerView.setPlayer(mPlayer);',
+            '        mExoPlayerController.setPlayer(mPlayer);\n        bindNm7PlayerTarget();')
+t = replace(t, '        createPlayerObjects();', '''        // The upstream fallback switches to OkHttp only after long buffering.
+        // Respect an existing custom DNS setting from the first request instead.
+        if (getPlayerTweaksData().getPreferredDnsType()
+                != com.liskovsoft.smartyoutubetv2.common.prefs.PlayerTweaksData.DNS_TYPE_SYSTEM
+                && !getPlayerTweaksData().isNetworkErrorFixingDisabled()) {
+            getPlayerTweaksData().setPlayerDataSource(
+                    com.liskovsoft.smartyoutubetv2.common.prefs.PlayerTweaksData.PLAYER_DATA_SOURCE_OKHTTP);
+        }
+        createPlayerObjects();''')
+t = replace(t, '        mPlayerInitializer.release();', '''        cancelNm7TargetRestore(false);
+        if (mNm7VideoTarget != null) mNm7VideoTarget.setPlayer(null);
+        mPlayerInitializer.release();''')
 t = replace(t, '        mPlaybackPresenter.onViewInitialized(); // init all controllers',
             '        mPlaybackPresenter.onViewInitialized(); // init all controllers\n        // Build the decoder/player before the Activity is shown so the selected video only waits for its stream.\n        initializePlayer();')
 t = method(t, 'protected void onStart()', '''        super.onStart();
@@ -88,7 +102,7 @@ t = replace(t, '    protected void onDestroy() {\n        super.onDestroy();', '
         }
         super.onDestroy();''')
 t = replace(t, '            public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {', '''            public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
-                if (playWhenReady && playbackState == Player.STATE_READY && !mNm7Stopped && !mNm7OwnsPlayback) {
+                if (playWhenReady && playbackState == Player.STATE_READY && !mNm7Stopped && !sNm7SuspendedForIptv && !mNm7OwnsPlayback) {
                     try {
                         Class.forName("vn.phuong.iptvplayer.MobileNm7Application")
                                 .getMethod("pauseIptvForYoutube").invoke(null);
@@ -245,3 +259,4 @@ p = Path('third_party/SmartTube-droid/smarttubedroid/src/main/res/layout/playbac
 t = p.read_text()
 t = replace(t, 'app:surface_type="surface_view"', 'app:surface_type="texture_view"')
 p.write_text(t)
+runpy.run_path("scripts/patch-mobile-v55-ui.py")

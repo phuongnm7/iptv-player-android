@@ -107,6 +107,18 @@ check('onRenderedFirstFrame()' in play and 'postDelayed(mNm7TargetRestoreTimeout
 check('cancelNm7TargetRestore(true);' in back_body and 'cancelNm7TargetRestore(false);' in body('public static void suspendForNm7Iptv()'), 'Back and IPTV suspend clean up pending restore gate')
 check('mPlayer.getPlayWhenReady() || sNm7ResumeAfterIptv' in body('private void beginNm7TargetRestore()'), 'Restore remembers intended playback and preserves user pause')
 out = Path('dist/mobile-diagnostics')
+session = (app / 'SharedPlaybackSession.java').read_text()
+check('.putString(KEY_TAB, TAB_IPTV)' in session.split('void clearTransientState')[1].split('public static synchronized void saveIptv')[0], 'Cold start clears persisted YouTube owner')
+main = (app / 'MainActivity.java').read_text()
+check('private void play(Channel c){SharedPlaybackSession.setTab(this,SharedPlaybackSession.TAB_IPTV);PlayerActivity.cancelYoutubeHandoff();' in main, 'Explicit channel selection clears stale handoff before opening player')
+check('bindNm7PlayerTarget();' in body('private void createPlayerObjects()'), 'Engine recreation rebinds visible target')
+check('surfaceView' in body('private void bindNm7PlayerTarget()') and 'view.isAttachedToWindow()' in body('private void bindNm7PlayerTarget()'), 'Engine recreation uses attached mini when present')
+check('sNm7SuspendedForIptv' in body('public static void attachNm7MiniPlayer(android.view.View previousSurface, android.view.View nextSurface)'), 'Delayed mini attach cannot steal IPTV owner')
+check('if (sNm7SuspendedForIptv) return;' in body('public static void suspendForNm7Iptv()'), 'Duplicate suspend preserves resume intent')
+check('DNS_TYPE_SYSTEM' in body('private void initializePlayer()') and 'PLAYER_DATA_SOURCE_OKHTTP' in body('private void initializePlayer()'), 'Custom DNS transport selected before engine initialization')
+check('mSuggestionsView.setAdapter(mSuggestionsAdapter.adapter)' in play and 'Nm7FeedAdapter' in play, 'Recommendations use full-width vertical feed')
+check('handleNm7MinimizeGesture(event)' in play, 'Portrait player supports swipe to mini')
+check('toggleNm7Playback' in overlay and 'getScaledTouchSlop' in overlay, 'Mini supports pause/play and bounded dragging')
 out.mkdir(parents=True, exist_ok=True)
 (out/'lifecycle-source-proof.json').write_text(json.dumps({
     'structural_checks': checks,

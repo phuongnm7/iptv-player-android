@@ -48,7 +48,10 @@ public final class SharedPlaybackSession {
 
     /** Clear transient YouTube-background state when a new app process is created. */
     public static synchronized void clearTransientState(Context context) {
-        prefs(context).edit().putBoolean(KEY_YOUTUBE_BACKGROUND, false).apply();
+        // No Activity/player survives process death. A persisted YouTube tab otherwise
+        // makes the inline IPTV provider skip its first attach on the launcher screen.
+        prefs(context).edit().putBoolean(KEY_YOUTUBE_BACKGROUND, false)
+                .putString(KEY_TAB, TAB_IPTV).apply();
     }
 
     public static synchronized void saveIptv(Context context, String name, String url,

@@ -10,8 +10,8 @@ android {
         applicationId = "vn.phuong.iptvplayer"
         minSdk = 23
         targetSdk = 36
-        versionCode = 72
-        versionName = "1.10.54"
+        versionCode = 73
+        versionName = "1.10.55"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["applicationClass"] = "vn.phuong.iptvplayer.MobileNm7Application"
@@ -90,4 +90,3 @@ dependencies {
     testImplementation("org.json:json:20240303")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }
-

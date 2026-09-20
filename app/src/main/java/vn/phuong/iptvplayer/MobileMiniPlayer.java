@@ -57,6 +57,35 @@ public final class MobileMiniPlayer {
                 }
             });
             next.addView(tapShield, new FrameLayout.LayoutParams(-1, -1));
+            tapShield.setOnTouchListener(new View.OnTouchListener() {
+                float downX, downY, startX, startY;
+                boolean dragging;
+                @Override public boolean onTouch(View view, android.view.MotionEvent event) {
+                    switch (event.getActionMasked()) {
+                        case android.view.MotionEvent.ACTION_DOWN:
+                            downX = event.getRawX(); downY = event.getRawY();
+                            startX = next.getTranslationX(); startY = next.getTranslationY();
+                            dragging = false;
+                            return true;
+                        case android.view.MotionEvent.ACTION_MOVE:
+                            float dx = event.getRawX() - downX, dy = event.getRawY() - downY;
+                            if (Math.abs(dx) + Math.abs(dy) > android.view.ViewConfiguration.get(activity).getScaledTouchSlop()) dragging = true;
+                            if (dragging) {
+                                float x = Math.max(0, Math.min(root.getWidth() - next.getWidth(), next.getLeft() + startX + dx));
+                                float y = Math.max(0, Math.min(root.getHeight() - next.getHeight() - 80 * d, next.getTop() + startY + dy));
+                                next.setTranslationX(x - next.getLeft());
+                                next.setTranslationY(y - next.getTop());
+                            }
+                            return true;
+                        case android.view.MotionEvent.ACTION_UP:
+                            if (!dragging) view.performClick();
+                            return true;
+                        case android.view.MotionEvent.ACTION_CANCEL:
+                            return true;
+                        default: return true;
+                    }
+                }
+            });
             next.setClickable(true);
 
             ImageButton close = new ImageButton(activity);
@@ -66,12 +95,36 @@ public final class MobileMiniPlayer {
                     (int)(40 * d), (int)(40 * d), Gravity.TOP | Gravity.END));
             close.setOnClickListener(v -> MobileNm7Application.stopYoutubeForIptv());
 
+            ImageButton playPause = new ImageButton(activity);
+            playPause.setBackgroundColor(0x66000000);
+            playPause.setColorFilter(android.graphics.Color.WHITE);
+            next.addView(playPause, new FrameLayout.LayoutParams(
+                    (int)(48 * d), (int)(48 * d), Gravity.TOP | Gravity.START));
+            Runnable refreshControl = new Runnable() {
+                @Override public void run() {
+                    if (host != next || !next.isAttachedToWindow()) return;
+                    try {
+                        boolean playing = Boolean.TRUE.equals(bridge.getMethod("isNm7Playing").invoke(null));
+                        playPause.setImageResource(playing ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play);
+                        playPause.setContentDescription(playing ? "Tạm dừng YouTube" : "Phát YouTube");
+                    } catch (ReflectiveOperationException ignored) { }
+                    next.postDelayed(this, 500);
+                }
+            };
+            playPause.setOnClickListener(v -> {
+                try { bridge.getMethod("toggleNm7Playback").invoke(null); }
+                catch (ReflectiveOperationException error) {
+                    android.util.Log.e("NM7Playback", "Toggle mini playback", error);
+                }
+            });
+
             root.addView(next, box);
 
             final FrameLayout previousHost = host;
             final View previousSurface = surface;
             host = next;
             surface = video;
+            next.post(refreshControl);
 
             video.post(() -> {
                 if (host != next || surface != video
@@ -109,4 +162,3 @@ public final class MobileMiniPlayer {
         surface = null;
     }
 }
-

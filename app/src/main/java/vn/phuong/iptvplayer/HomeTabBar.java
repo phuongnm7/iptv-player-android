@@ -35,7 +35,7 @@ public final class HomeTabBar {
         bar.setTag(BAR_TAG);
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER);
-        bar.setBackground(new ColorDrawable(BG));
+        bar.setBackground(new ColorDrawable(youtubeSelected ? Color.WHITE : BG));
         bar.setElevation(dp(activity, 8));
         bar.setPadding(0, dp(activity, 4), 0, dp(activity, 4));
 
@@ -141,7 +141,8 @@ public final class HomeTabBar {
 
         ImageView icon = new ImageView(activity);
         icon.setImageResource(iconRes);
-        icon.setColorFilter(selected ? SELECTED : UNSELECTED);
+        boolean light = activity.getClass().getName().equals(BROWSE);
+        icon.setColorFilter(light ? (selected ? Color.BLACK : 0xff606060) : (selected ? SELECTED : UNSELECTED));
         icon.setContentDescription(null);
         int size = dp(activity, 30);
         item.addView(icon, new LinearLayout.LayoutParams(size, size));
@@ -154,11 +155,9 @@ public final class HomeTabBar {
         item.setContentDescription(title);
         label.setTextSize(11);
         label.setGravity(Gravity.CENTER);
-        label.setTextColor(selected ? Color.WHITE : UNSELECTED);
+        label.setTextColor(light ? (selected ? Color.BLACK : 0xff606060) : (selected ? Color.WHITE : UNSELECTED));
         label.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
-        if (!activity.getClass().getName().equals(BROWSE)) {
-            item.addView(label, new LinearLayout.LayoutParams(-2, dp(activity, 18)));
-        }
+        item.addView(label, new LinearLayout.LayoutParams(-2, dp(activity, 18)));
 
         bar.addView(item, new LinearLayout.LayoutParams(0, dp(activity, 56), 1f));
     }
