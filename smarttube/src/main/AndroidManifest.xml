@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <application android:usesCleartextTraffic="true">
+        <meta-data android:name="com.liskovsoft.smartyoutubetv2.droid.ui.shared.Nm7GlideModule" android:value="GlideModule" />
         <activity android:name="com.liskovsoft.smartyoutubetv2.droid.ui.splash.SplashActivity" android:exported="false" android:noHistory="true" />
         <activity android:name="com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity" android:launchMode="singleTop" android:exported="false" />
         <activity android:name="com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity" android:launchMode="singleTop" android:exported="false" android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|keyboardHidden|layoutDirection" android:supportsPictureInPicture="true" android:resizeableActivity="true" android:showWhenLocked="true" />

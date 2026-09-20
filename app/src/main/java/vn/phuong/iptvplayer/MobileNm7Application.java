@@ -184,7 +184,17 @@ public final class MobileNm7Application extends DroidApplication implements andr
         }
     }
 
+    private void notifyYoutubeVisibility(String method) {
+        try {
+            Class.forName(SMARTTUBE_PLAYBACK).getMethod(method).invoke(null);
+        } catch (ReflectiveOperationException error) {
+            android.util.Log.w("NM7Playback", "YouTube visibility bridge unavailable");
+        }
+    }
+
     @Override public void onActivityPaused(Activity activity) {
+        // Start while the mini host is still foreground; its PlaybackActivity is already stopped.
+        if (activity != smartTubePlaybackActivity) notifyYoutubeVisibility("prepareNm7Background");
         if (activity instanceof PlayerActivity && tabSwitchPending) {
             // PlayerActivity normally releases ExoPlayer in onStop when background playback is off.
             // During a tab transition keep the player object alive so returning to IPTV restores
@@ -198,6 +208,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
     }
 
     @Override public void onActivityResumed(Activity activity) {
+        notifyYoutubeVisibility("resumeNm7Foreground");
         SleepTimer.restore(activity);
         String name = activity.getClass().getName();
         if (activity instanceof PlayerActivity) {
@@ -517,4 +528,3 @@ public final class MobileNm7Application extends DroidApplication implements andr
         if (activity == smartTubePlaybackActivity) smartTubePlaybackActivity = null;
     }
 }
-

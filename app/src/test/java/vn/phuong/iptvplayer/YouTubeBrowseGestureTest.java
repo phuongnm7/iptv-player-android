@@ -37,8 +37,11 @@ public class YouTubeBrowseGestureTest {
         assertEquals(0, direction(g));
         assertTrue(event(g, 2, 120, 200, true));
         assertFalse(cancel(g));
+        assertEquals(1, direction(g)); // respond before the finger is lifted
+        assertTrue(event(g, 2, 90, 200, true));
+        assertEquals(0, direction(g));
         assertTrue(event(g, 1, 100, 200, true));
-        assertEquals(1, direction(g));
+        assertEquals(0, direction(g));
         assertFalse(event(g, 0, 200, 200, true));
         assertEquals(0, direction(g));
     }

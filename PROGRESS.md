@@ -1,3 +1,31 @@
+# SOURCE READY — MOBILE 1.10.58 / 76 — CHỜ CI VÀ TEST THẬT — 2026-09-21
+
+## Bằng chứng và yêu cầu
+- Mốc nền: commit `576375331c2dc42259a65af010fdcf6cb21501c5`, 1.10.57 / 75. Người dùng cung cấp ảnh build #373 thành công nhưng xác nhận bản này vẫn lỗi; không stable.
+- Đã kiểm tra video_2026-09-20_22-04-59.mp4 (40,69 giây): mini đen/dừng, khoảng giây 11 có toast `Unexpected OutOfMemoryError`. Chưa có stack trace để kết luận thành phần cấp phát gây OOM.
+- Đã kiểm tra video mẫu video_2026-09-20_22-05-06.mp4 (16,69 giây) và photo_2026-09-20_22-05-03.jpg: player cố định, thông tin/nút/bình luận cuộn khuất theo danh sách gợi ý.
+- Người dùng báo thêm vuốt tab lag, mở video chậm và YouTube phát nền một lúc rồi dừng.
+
+## Thay đổi 1.10.58
+- Vuốt đổi tab ngay khi vượt ngưỡng chuyển tab, không chờ nhấc ngón tay. Mỗi gesture chỉ đổi một tab; giữ CANCEL để không mở nhầm card. Hit-test mini/header chỉ chạy lúc DOWN. Presenter chạy sau frame cập nhật tab và gộp yêu cầu vuốt nhanh; bỏ dữ liệu thuộc tab cũ.
+- Các nhóm trong feed dùng chung view type để tái sử dụng holder, tránh mỗi nhóm tạo một pool riêng. Tắt item animation trong Browse; giữ cache holder nhỏ.
+- Glide có ngân sách heap riêng: cache ảnh tối đa 16 MiB, bitmap pool tối đa 8 MiB, array pool 2 MiB. Thumbnail ưu tiên hq720, có fallback maxres/nguồn gốc; decode giới hạn 960px, không SIZE_ORIGINAL. Giảm lưu lượng tải ảnh và cấp phát cạnh tranh với player; chưa có đo thời gian mở video trên máy thật.
+- Dọn bitmap poster khi nguồn phát sẵn sàng và trim image cache khi engine báo OOM trước phục hồi. Giữ giới hạn bộ đệm video và retry của 1.10.57; không coi đây là bằng chứng OOM đã hết.
+- Mini host đi ra nền gọi đúng bridge giữ phiên phát và foreground service. Trước đây Home từ Browse không gọi onUserLeaveHint của PlaybackActivity đã stopped. Service giữ Wi-Fi lock cùng wake lock, giải phóng khi dừng/chuyển ownership. Giữ pause và IPTV guard.
+- Metadata/nút/bình luận trở thành một header của RecyclerView gợi ý, không bọc toàn bộ feed trong ScrollView. Cuộn lên sẽ cuộn khuất thông tin, video vẫn ở trên; cuộn xuống đầu danh sách hiện lại.
+- Hàng hành động gồm avatar, đăng ký dạng pill đen, like/dislike trong cùng nền bo tròn, chia sẻ/lưu và các chức năng chất lượng/tốc độ/menu. Giữ handler native. Số like/dislike chỉ hiện khi metadata có, không tự tạo số.
+- Card bình luận nền xám bo tròn, mở sheet bình luận thật khi chạm; sau khi tải hiện trích đoạn/avatar bình luận. Không giả làm ô gửi bình luận khi backend hiện chỉ hỗ trợ đọc. Sửa chữ/icon bình luận cho nền sáng.
+- Chỉ thay repo Mobile, không thay repo TV.
+
+## Kiểm tra và bàn giao
+- Patch áp dụng thành công trên upstream pin `4825d6aa8b6f1d3181927f9e96c7d89cab13d510`.
+- 89 structural guards PASS; Python syntax và generated XML parse PASS.
+- Cập nhật test gesture cho chuyển tab trước UP và chỉ chuyển một lần. Bổ sung 2 Robolectric tests: metadata cuộn trong RecyclerView trong khi player giữ nguyên bounds, listener nút vẫn chạy; đủ controls và card bình luận trong header.
+- Chờ CI compile/unit tests/assemble và APK. Chưa kiểm thử trên thiết bị thật; chưa stable.
+- Test tiếp: vuốt tab nhanh 20 lần; đo chạm video đến frame đầu cùng video/mạng; mini + cuộn feed 15 phút; Home/khóa máy 15 phút từ mini và full player; pause rồi Home không tự phát; đổi IPTV; cuộn mô tả và trở lại; like/subscription với tài khoản; bình luận/replies; Back và xoay ngang.
+
+---
+
 # SOURCE READY — MOBILE 1.10.57 / 75 — CHỜ CI VÀ TEST THẬT — 2026-09-20
 
 ## Phản hồi mới và bằng chứng

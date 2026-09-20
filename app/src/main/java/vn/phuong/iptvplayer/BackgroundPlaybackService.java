@@ -19,6 +19,7 @@ public final class BackgroundPlaybackService extends Service {
     private static final String CHANNEL_ID = "background_playback";
     private static final int NOTIFICATION_ID = 180;
     private android.os.PowerManager.WakeLock youtubeWakeLock;
+    private android.net.wifi.WifiManager.WifiLock youtubeWifiLock;
 
     @Override public void onCreate() {
         super.onCreate();
@@ -53,6 +54,16 @@ public final class BackgroundPlaybackService extends Service {
                 youtubeWakeLock.setReferenceCounted(false);
                 youtubeWakeLock.acquire();
             }
+            android.net.wifi.WifiManager wifi = (android.net.wifi.WifiManager)
+                    getApplicationContext().getSystemService(WIFI_SERVICE);
+            if (wifi != null) {
+                try {
+                    youtubeWifiLock = wifi.createWifiLock(android.net.wifi.WifiManager.WIFI_MODE_FULL_HIGH_PERF,
+                            "NM7:YouTubeBackgroundWifi");
+                    youtubeWifiLock.setReferenceCounted(false);
+                    youtubeWifiLock.acquire();
+                } catch (RuntimeException error) { youtubeWifiLock = null; }
+            }
         } else if (!youtube) {
             releaseYoutubeWakeLock();
         }
@@ -62,6 +73,8 @@ public final class BackgroundPlaybackService extends Service {
     @Override public void onTaskRemoved(Intent rootIntent) { /* Keep playback service alive; explicit stop is used when playback ends. */ }
     @Override public IBinder onBind(Intent intent) { return null; }
     private void releaseYoutubeWakeLock() {
+        if (youtubeWifiLock != null && youtubeWifiLock.isHeld()) youtubeWifiLock.release();
+        youtubeWifiLock = null;
         if (youtubeWakeLock != null && youtubeWakeLock.isHeld()) youtubeWakeLock.release();
         youtubeWakeLock = null;
     }
