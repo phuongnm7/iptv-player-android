@@ -255,9 +255,12 @@ runpy.run_path("scripts/patch-mobile-ui.py")
 
 
 # Mobile playback uses SurfaceView for stable decoder-to-surface rendering across mini/fullscreen handoff.
+# The pinned SmartTube source is already SurfaceView; keep the patch idempotent so CI
+# does not fail when the source has not been transformed by an earlier patch.
 p = Path('third_party/SmartTube-droid/smarttubedroid/src/main/res/layout/playback_activity.xml')
 t = p.read_text()
-t = replace(t, 'app:surface_type="texture_view"', 'app:surface_type="surface_view"')
+if 'app:surface_type="surface_view"' not in t:
+    t = replace(t, 'app:surface_type="texture_view"', 'app:surface_type="surface_view"')
 p.write_text(t)
 runpy.run_path("scripts/patch-mobile-v55-ui.py")
 
