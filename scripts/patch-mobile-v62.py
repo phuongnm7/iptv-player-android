@@ -62,7 +62,7 @@ s = once(s, "    private boolean mNm7OwnsPlayback;", """    private boolean mNm7
                 android.util.Log.w("NM7Playback", "OOM track cap unavailable", error);
             }
         }
-        android.util.Debug.MemoryInfo mi = new android.util.Debug.MemoryInfo();
+        android.os.Debug.MemoryInfo mi = new android.util.Debug.MemoryInfo();
         android.os.Debug.getMemoryInfo(mi);
         android.util.Log.e("NM7Playback",
                 "oom_recovery heapPssKb=" + mi.dalvikPss + " nativePssKb=" + mi.nativePss
