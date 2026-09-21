@@ -195,7 +195,7 @@ run_adb("shell", "settings", "put", "system", "accelerometer_rotation", "0", che
 run_adb("shell", "settings", "put", "system", "user_rotation", "0", check=False)
 time.sleep(.8)
 root = launch_main()
-required = ["btnWallpaper", "btnAllChannels", "btnFavorites", "btnRecent"]
+required = ["btnWallpaper", "inputSearch", "listChannels"]
 missing = [name for name in required if not has_id(root, name)]
 if missing:
     print_diagnostics()
