@@ -1,3 +1,34 @@
+# MOBILE 1.10.65 / 83 — THAM KHẢO YOUTUBE 21.37.42 + HARDEN DECODER/BLACK-FRAME RECOVERY — 2026-09-21
+
+## Bằng chứng app tham khảo
+
+Người dùng cung cấp APK `YouTube_21.37.42_APKPure.apk` để tham khảo cách xử lý lỗi video đen. Phân tích APK cho thấy app tham khảo dùng AndroidX Media3/ExoPlayer (chuỗi build xác định Media3 1.11.1) và Cronet, đồng thời có cả SurfaceView/TextureView trong các đường phát khác nhau. Quan trọng hơn, APK có các đường xử lý lỗi decoder/MediaCodec với retry chủ động, gồm các thông điệp tương ứng `DecoderInitializationException`, `MediaCodec exception`, retry playback và giảm số decoder khi retry không thành công. APK cũng có xử lý trường hợp ExoPlayer vào ENDED nhưng frame cuối bị mất.
+
+## Sửa NM7 1.10.65
+
+Áp dụng nguyên lý tương tự, nhưng không sao chép mã độc quyền của YouTube:
+
+- Thêm playback observer theo từng ExoPlayer instance để bắt trực tiếp `onPlayerError` và lỗi decoder/MediaCodec.
+- Khi lỗi decoder/MediaCodec xảy ra: retry tối đa 3 lần, giữ vị trí hiện tại, re-bind video target và tiếp tục phát.
+- Ở lần retry thứ 3, giới hạn video tối đa 1280x720 / 4 Mbps để giảm khả năng decoder thất bại do profile/áp lực tài nguyên.
+- Nếu chuỗi retry vẫn thất bại, reset engine thay vì để PlaybackActivity rơi vào trạng thái video đen nhưng session vẫn còn.
+- Cải tiến render watchdog: không chỉ re-bind surface một lần; theo dõi `onRenderedFirstFrame`, thực hiện tối đa 3 vòng phục hồi khi player READY/BUFFERING nhưng không xuất hiện frame.
+- Sau 3 lần không có frame, reset engine để tạo lại decoder/render path.
+- Observer được gắn theo đúng instance player và được tháo khi session kết thúc, tránh listener bị nhân đôi sau decoder recreation.
+- Giữ SurfaceView của 1.10.64; không quay lại TextureView.
+- Không thay đổi luồng IPTV, Android TV hay mốc stable Mobile 1.10.60.
+
+## Commit
+
+- `6e9240880794ff69233ce032856f1249846fc810` — harden decoder/error + black-frame recovery.
+- `a0c4a61a749f5657d87961cb5d2b0201a2b3cd0c` — Mobile 1.10.65 / versionCode 83.
+
+## Trạng thái
+
+Source đã sửa và tăng version lên **1.10.65 / 83**. Cần CI Mobile-only build và sau đó test trên thiết bị thật bằng đúng video/kịch bản đã tái hiện. Chưa đánh dấu bản này stable cho đến khi người dùng kiểm tra.
+
+---
+
 # MOBILE 1.10.64 / 82 — XỬ LÝ LỖI VIDEO ĐEN/RENDERER — 2026-09-21
 
 ## Cập nhật CI mới nhất
