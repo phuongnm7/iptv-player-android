@@ -1,3 +1,24 @@
+# MOBILE 1.10.61 / 79 — SOURCE READY, CHỜ CI VÀ TEST THIẾT BỊ — 2026-09-21
+
+## Phản hồi sau khi test dài hơn
+- Người dùng báo lại lỗi sau mốc 1.10.60 đã tạm xác nhận ổn định. Đã xem video_2026-09-21_08-50-40.mp4, dài 108,30 giây: mini phát khi cuộn Browse, khoảng giây 97 chuyển đen và hiện **‘Phiên phát đã kết thúc • ▶ thử lại’** trong khi Browse vẫn hoạt động.
+- Dòng thông báo này tương ứng owner không còn/đã stopped/destroyed; video không có log để phân biệt chính xác finish/Android hủy Activity. Không quy kết OOM hay khóa màn hình cho clip mới.
+- 1.10.60 vẫn là nền phát triển và nhánh stable/mobile-1.10.60 giữ nguyên để đối chiếu, nhưng đã có lỗi tái hiện; không tiếp tục coi mốc đó là bằng chứng mọi lỗi đã hết.
+
+## Sửa 1.10.61
+- Phát hiện trong source: ExoPlayerController dừng engine và gửi onPlayEnd khi DISCONTINUITY_REASON_PERIOD_TRANSITION. Với Mobile, bỏ đường legacy này: đổi period không phải hết toàn bộ video; kết thúc thật vẫn đi qua STATE_ENDED.
+- ErrorFixer trước đây coi lỗi/buffering trong 180 giây cuối video archived-live là kết thúc. Mobile nay chỉ nhận kết thúc khi engine thực sự STATE_ENDED và không có lỗi; các lỗi nguồn tiếp tục qua recovery có giới hạn.
+- Với chế độ đóng sau video: mini thực sự phát hết sẽ dừng/nhả wake lock nhưng giữ phiên để bấm phát lại, không đóng Activity rồi để lại ô đen. Không thay autoplay/queue đã chọn. Mini hiển thị ‘Đã phát hết • ▶ phát lại’; nút phát seek về đầu cho STATE_ENDED.
+- Bổ sung log vòng đời finishReally/onDestroy chỉ trạng thái, vị trí, thời lượng; không URL/token. Hai lỗi source là đường có thể đóng sớm, chưa khẳng định duy nhất nguyên nhân clip khi thiếu log trên máy.
+- Giữ sửa nền/khóa màn hình, ownership IPTV, UI, bình luận của 1.10.60. Chỉ repo Mobile.
+
+## Kiểm tra
+- Toàn bộ patch chạy trên upstream pin sạch: 94 structural guards PASS, Python syntax PASS.
+- Thêm ba test regression qua controller thật: 100 period transitions/seek không phát event kết thúc hoặc stop engine; STATE_ENDED thật phát event đúng một lần; lỗi archived-live gần cuối không bị coi là hết video.
+- Chờ CI compile/unit tests/APK và người dùng kiểm tra lại mini cùng video ít nhất 10–15 phút, khóa/mở màn hình, hết video/phát lại, đóng mini và chọn IPTV. Chưa stable.
+
+---
+
 # STABLE BASELINE — MOBILE 1.10.60 / 78 — NGƯỜI DÙNG ĐÃ TEST — 2026-09-21
 
 

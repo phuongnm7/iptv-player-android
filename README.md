@@ -4,11 +4,11 @@ Nm7 IPTV 1.7 — ứng dụng Android tiếng Việt cho mobile và Android TV, 
 
 Mốc công việc, lỗi đã sửa, kết quả xác minh và bước tiếp theo: [PROGRESS.md](PROGRESS.md). Đọc file này trước khi tiếp tục ở một phiên khác; không chỉ dựa vào lịch sử trò chuyện hay thư mục tạm.
 
-> **Trạng thái Mobile hiện tại: STABLE — 1.10.60 (VersionCode 78).** Người dùng đã test và xác nhận tạm thời các lỗi đã được khắc phục ngày **2026-09-21**. Đây là **bản gốc cho mọi phát triển Mobile tiếp theo**. Mốc lưu: [`stable/mobile-1.10.60`](https://github.com/phuongnm7/iptv-player-android/tree/stable/mobile-1.10.60); source APK `3349081178e99f195b4c347f98e781688b913430`, build #379. Xem [PROGRESS.md](PROGRESS.md).
+> **Trạng thái Mobile hiện tại: 1.10.61 đang chờ CI/test.** Người dùng test dài hơn và ghi nhận mini của 1.10.60 chuyển đen/báo phiên kết thúc. 1.10.61 sửa các đường báo hết video sớm và giữ mini phát lại khi hết thật. Nhánh `stable/mobile-1.10.60` giữ nguyên làm mốc lịch sử; xem [PROGRESS.md](PROGRESS.md).
 
 ## Nhận APK
 
-**1.10.60:** [Tải APK ARM64/ARMv7 và SHA256SUMS — build #379](https://github.com/phuongnm7/iptv-player-android/actions/runs/35545715388/artifacts/10616478461), hết hạn 2026-10-20. Unit tests/build thành công; **người dùng đã test, xác nhận ổn định hiện tại và chọn làm nền phát triển tiếp**. Source commit: `3349081`.
+**1.10.60:** [Tải APK ARM64/ARMv7 và SHA256SUMS — build #379](https://github.com/phuongnm7/iptv-player-android/actions/runs/35545715388/artifacts/10616478461), hết hạn 2026-10-20. Unit tests/build thành công; **đã từng được xác nhận ổn định tạm thời, sau đó test dài hơn tái hiện lỗi mini; giữ làm nền đối chiếu**. Source commit: `3349081`.
 
 **1.10.59:** [Tải APK ARM64/ARMv7 và SHA256SUMS — build #378](https://github.com/phuongnm7/iptv-player-android/actions/runs/35542810501/artifacts/10615413353), hết hạn 2026-10-20. Unit tests/build thành công; **chờ test thiết bị thật, chưa stable**. Commit đã build: `22c0300`.
 
