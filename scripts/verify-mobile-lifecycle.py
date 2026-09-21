@@ -63,8 +63,7 @@ check('stopYoutubeForIptv();' not in inline_text, 'Inline IPTV never destroys pr
 check(inline_text.count('suspendYoutubeForIptv();') >= 2, 'Inline IPTV READY paths suspend YouTube')
 check('sNm7ResumeAfterIptv' in play and 'setPlayWhenReady(true)' in body('public static void attachNm7MiniPlayer(android.view.View previousSurface, android.view.View nextSurface)'), 'Mini resumes only after supported target switch')
 loader = Path('third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java').read_text()
-check('prefetchNm7FormatInfo(item);' in loader, 'YouTube format lookup overlaps engine initialization')
-check('mNm7PrefetchedFormatInfo' in loader, 'Prefetched YouTube format result is reused')
+check('prefetchNm7FormatInfo(item);' not in loader and 'mNm7PrefetchedFormatInfo' not in loader, 'Mobile startup uses upstream format loading without speculative prefetch')
 
 pause_body = body('protected void onPause()')
 back_body = body('public void onBackPressed()')
