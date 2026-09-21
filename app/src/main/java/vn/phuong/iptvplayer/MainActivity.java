@@ -144,7 +144,7 @@ public final class MainActivity extends Activity {
                     lastError=e;
                     if(attempt<maxAttempts){
                         int nextAttempt=attempt+1;
-                        if(!backgroundRefresh)ui(()->{if(requestGeneration==playlistRequestGeneration){TextView summary=findViewById(R.id.txtSummary);if(summary!=null)summary.setText("Kết nối chậm • đang thử lại "+nextAttempt+"/"+maxAttempts+"…");}});
+                        if(!backgroundRefresh)ui(()->{if(requestGeneration==playlistRequestGeneration)toast("Kết nối chậm • đang thử lại "+nextAttempt+"/"+maxAttempts+"…");});
                         try{Thread.sleep(attempt==1?700L:1600L);}catch(InterruptedException interrupted){Thread.currentThread().interrupt();break;}
                     }
                 }finally{if(c!=null)c.disconnect();}
