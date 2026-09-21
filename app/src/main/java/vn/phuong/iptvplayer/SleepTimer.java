@@ -42,7 +42,7 @@ final class SleepTimer {
         String[] labels = {"15 phút", "30 phút", "45 phút", "60 phút", "90 phút", "120 phút", "Tùy chỉnh"};
         int[] values = {15, 30, 45, 60, 90, 120, -1};
         for (int i = 0; i < labels.length; i++) { RadioButton radio = new RadioButton(activity); radio.setText(labels[i]); radio.setTextSize(15); radio.setId(View.generateViewId()); radio.setTag(values[i]); radio.setPadding(dp(activity, 4), dp(activity, 6), dp(activity, 4), dp(activity, 6)); group.addView(radio, new RadioGroup.LayoutParams(-1, -2)); }
-        EditText custom = new EditText(activity); custom.setSingleLine(true); custom.setInputType(InputType.TYPE_CLASS_NUMBER); custom.setHint("Số phút (30 - 480)"); custom.setTextSize(15); custom.setVisibility(View.GONE);
+        EditText custom = new EditText(activity); custom.setSingleLine(true); custom.setInputType(InputType.TYPE_CLASS_NUMBER); custom.setHint("Số phút (1 - 480)"); custom.setTextSize(15); custom.setVisibility(View.GONE);
         LinearLayout.LayoutParams customParams = new LinearLayout.LayoutParams(-1, -2); customParams.setMargins(dp(activity, 44), 0, dp(activity, 4), dp(activity, 4)); root.addView(group, new LinearLayout.LayoutParams(-1, -2)); root.addView(custom, customParams);
         if (enabled) { TextView active = new TextView(activity); active.setText("Đang hẹn: " + formatRemaining(deadline - System.currentTimeMillis())); active.setTextSize(13); active.setPadding(0, dp(activity, 8), 0, 0); root.addView(active, new LinearLayout.LayoutParams(-1, -2)); }
         toggle.setOnCheckedChangeListener((button, checked) -> { group.setEnabled(checked); custom.setEnabled(checked); for (int i = 0; i < group.getChildCount(); i++) group.getChildAt(i).setEnabled(checked); if (!checked) cancel(activity, false); });
@@ -58,7 +58,11 @@ final class SleepTimer {
                 RadioButton selected = group.findViewById(group.getCheckedRadioButtonId());
                 if (selected == null) { Toast.makeText(activity, "Hãy chọn thời gian hẹn giờ", Toast.LENGTH_SHORT).show(); return; }
                 int minutes = (Integer) selected.getTag();
-                if (minutes == -1) { try { minutes = Integer.parseInt(custom.getText().toString().trim()); } catch (NumberFormatException e) { Toast.makeText(activity, "Nhập số phút từ 30 đến 480", Toast.LENGTH_SHORT).show(); return; } if (minutes < 30 || minutes > 480) { Toast.makeText(activity, "Nhập số phút từ 30 đến 480", Toast.LENGTH_SHORT).show(); return; } }
+                if (minutes == -1) {
+                    try { minutes = Integer.parseInt(custom.getText().toString().trim()); }
+                    catch (NumberFormatException e) { Toast.makeText(activity, "Nhập số phút từ 1 đến 480", Toast.LENGTH_SHORT).show(); return; }
+                    if (minutes < 1 || minutes > 480) { Toast.makeText(activity, "Nhập số phút từ 1 đến 480", Toast.LENGTH_SHORT).show(); return; }
+                }
                 setMinutes(activity, minutes); dialog.dismiss();
             });
         });
