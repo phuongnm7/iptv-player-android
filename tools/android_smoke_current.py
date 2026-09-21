@@ -12,6 +12,7 @@ import xml.etree.ElementTree as ET
 
 APK = sys.argv[1]
 PACKAGE = ""
+ACTIVITY = "vn.phuong.iptvplayer.MainActivity"
 
 def resolve_package(apk):
     result = subprocess.run(
@@ -177,7 +178,7 @@ def launch_main():
         "start",
         "-W",
         "-n",
-        PACKAGE + "/.MainActivity",
+        PACKAGE + "/" + ACTIVITY,
         timeout=40,
         check=False,
     )
