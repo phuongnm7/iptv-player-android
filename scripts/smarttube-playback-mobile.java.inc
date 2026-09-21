@@ -70,9 +70,9 @@
         if (active == null || active.mPlayer == null || sNm7SuspendedForIptv) return;
         if (active.mPlayer.getPlaybackState() != Player.STATE_ENDED) return;
         try {
-            android.util.Log.i("NM7Playback", "recover ended player: prepare from start");
+            android.util.Log.i("NM7Playback", "recover ended player: seek to start");
             active.mPlayer.seekTo(0);
-            active.mPlayer.prepare();
+            active.mPlayer.setPlayWhenReady(true);
         } catch (RuntimeException error) {
             android.util.Log.w("NM7Playback", "ended player prepare failed", error);
         }
