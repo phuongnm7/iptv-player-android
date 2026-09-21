@@ -186,7 +186,7 @@ public final class MainActivity extends Activity {
     private void updateSummary(){}
     private void play(Channel c){AppPreferences.recordRecent(this,c);Intent i=new Intent(this,PlayerActivity.class);i.putExtra(PlayerActivity.EXTRA_NAME,c.name());i.putExtra(PlayerActivity.EXTRA_URL,c.url());Bundle h=new Bundle();for(java.util.Map.Entry<String,String> e:c.headers().entrySet())h.putString(e.getKey(),e.getValue());i.putExtra(PlayerActivity.EXTRA_HEADERS,h);i.putExtra(PlayerActivity.EXTRA_MIME,c.mimeHint());i.putStringArrayListExtra(PlayerActivity.EXTRA_OPTIONS,new ArrayList<>(c.options()));startActivity(i);}
     private void selectSection(int s){activeSection=s;updateSectionButtons();filter();}
-    private void updateSectionButtons(){int[] ids={R.id.btnAllChannels,R.id.btnFavorites,R.id.btnRecent};for(int i=0;i<ids.length;i++){View b=findViewById(ids[i]);if(b!=null){b.setAlpha(i==activeSection?1f:.62f);b.setSelected(i==activeSection);}}if(txtEmpty!=null)txtEmpty.setText(activeSection==1?"Chưa có kênh yêu thích":activeSection==2?"Chưa có kênh đã xem":"Không tìm thấy kênh");}
+    private void updateSectionButtons(){if(txtEmpty!=null)txtEmpty.setText(activeSection==1?"Chưa có kênh yêu thích":activeSection==2?"Chưa có kênh đã xem":"Không tìm thấy kênh");}
     private void saveSession(){try{SessionStore.save(getApplicationContext(),SessionStore.snapshot(allChannels),currentSource,epgUrl,duplicateCount,missingUrlCount);}catch(Exception ignored){}}
     private void setLoading(boolean v){loading=v;if(progress!=null)progress.setVisibility(v?View.VISIBLE:View.GONE);}
     private void setImportExpanded(boolean expanded){importExpanded=expanded;View section=findViewById(R.id.importPanel);if(section!=null)section.setVisibility(expanded?View.VISIBLE:View.GONE);}
@@ -309,11 +309,7 @@ public final class MainActivity extends Activity {
                     AppPreferences.setInterfaceMode(this,values[which]);dialog.dismiss();recreate();
                 }).setNegativeButton("Đóng",null).show();
     }
-    private void applyInterfaceMode(ListView list){
-        boolean tv=AppPreferences.isTvInterface(this);
-        list.setDividerHeight(dp(tv?3:5));
-        if(tv){View all=findViewById(R.id.btnAllChannels);if(all!=null)all.post(()->all.requestFocus());}
-    }
+    private void applyInterfaceMode(ListView list){boolean tv=AppPreferences.isTvInterface(this);list.setDividerHeight(dp(tv?3:5));}
     private void chooseWallpaper(){
         new AlertDialog.Builder(this).setTitle("Hình nền")
                 .setItems(new String[]{"Xanh đêm","Biển sâu","Tím","Chọn ảnh trên máy"},(dialog,which)->{
