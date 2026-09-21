@@ -1,4 +1,4 @@
-# MOBILE 1.10.61 / 79 — SOURCE READY, CHỜ CI VÀ TEST THIẾT BỊ — 2026-09-21
+# MOBILE 1.10.61 / 79 — BUILD SUCCESS, CHỜ TEST THIẾT BỊ — 2026-09-21
 
 ## Phản hồi sau khi test dài hơn
 - Người dùng báo lại lỗi sau mốc 1.10.60 đã tạm xác nhận ổn định. Đã xem video_2026-09-21_08-50-40.mp4, dài 108,30 giây: mini phát khi cuộn Browse, khoảng giây 97 chuyển đen và hiện **‘Phiên phát đã kết thúc • ▶ thử lại’** trong khi Browse vẫn hoạt động.
@@ -15,7 +15,15 @@
 ## Kiểm tra
 - Toàn bộ patch chạy trên upstream pin sạch: 94 structural guards PASS, Python syntax PASS.
 - Thêm ba test regression qua controller thật: 100 period transitions/seek không phát event kết thúc hoặc stop engine; STATE_ENDED thật phát event đúng một lần; lỗi archived-live gần cuối không bị coi là hết video.
-- Chờ CI compile/unit tests/APK và người dùng kiểm tra lại mini cùng video ít nhất 10–15 phút, khóa/mở màn hình, hết video/phát lại, đóng mini và chọn IPTV. Chưa stable.
+- CI compile, unit tests (gồm ba regression mới), assemble và kiểm tra chữ ký/ABI thành công. Chờ người dùng kiểm tra lại mini cùng video ít nhất 10–15 phút, khóa/mở màn hình, hết video/phát lại, đóng mini và chọn IPTV. Chưa stable.
+
+## Build/APK đã xác nhận
+- Source commit: `c37977c3905b748005a8c2b1fcbe1ec8f4389b19`.
+- [Build #380 SUCCESS](https://github.com/phuongnm7/iptv-player-android/actions/runs/35558054355), run `35558054355`, job `106205450861`; Gradle 8 phút 7 giây, `:app:testMobileDebugUnitTest` thành công.
+- [APK ARM64/ARMv7 + SHA256SUMS](https://github.com/phuongnm7/iptv-player-android/actions/runs/35558054355/artifacts/10620709984), hết hạn 2026-10-21.
+- ARM64 SHA256: `6afad1ea2a6db4a0f7dbaa44436edf5754601eaaf61d75c35a83e0a9be4f2b32`.
+- ARMv7 SHA256: `b1fd2d1970e45bf0f9eb3ed2f0a108808d859afd1b08d855625d49ae746c6206`.
+- Chưa xác nhận hết lỗi trong clip trên thiết bị thật; không đánh dấu stable từ CI. Nhánh stable/mobile-1.10.60 không thay đổi.
 
 ---
 
