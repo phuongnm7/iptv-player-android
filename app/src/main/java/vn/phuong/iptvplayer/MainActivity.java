@@ -75,7 +75,7 @@ public final class MainActivity extends Activity {
             if(PlaylistSourceStore.isLegacyDefault(savedSource)){loadDefaultPlaylist();return;}
             if(state!=null&&state.result!=null&&!state.result.channels.isEmpty()){
                 showPlaylist(state.result,state.source);
-                if(PlaylistSourceStore.isValid(savedSource))inputUrl.setText(savedSource);
+                if(PlaylistSourceStore.isValid(savedSource)&&!PlaylistSourceStore.isDefault(savedSource))inputUrl.setText(savedSource);else inputUrl.setText("");
                 setLoading(false);
                 if(PlaylistSourceStore.shouldRefreshOnStartup(state.source))refreshPlaylistOnStartup(savedSource);
             }else loadDefaultPlaylist();
