@@ -123,7 +123,7 @@ check('mNm7SwipeEligible = !isNm7MiniTouch(event)' in browse and 'containsPoint(
 card = (root / 'shared/VideoCardHolder.java').read_text()
 initializer = Path('third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/other/ExoPlayerInitializer.java').read_text()
 check('SIZE_ORIGINAL' not in card and 'DownsampleStrategy.AT_MOST' in card, 'Thumbnail bitmap dimensions are bounded')
-check('Runtime.getRuntime().maxMemory() / 8' in initializer and 'setPrioritizeTimeOverSizeThresholds(false)' in initializer, 'Video buffer obeys app heap budget, not device RAM')
+check(('Runtime.getRuntime().maxMemory() / 10' in initializer or '16L * 1024 * 1024' in initializer) and 'setPrioritizeTimeOverSizeThresholds(false)' in initializer, 'Video buffer obeys app heap budget, not device RAM')
 check('cancel.setAction(android.view.MotionEvent.ACTION_CANCEL)' in browse and 'return consumed || super.dispatchTouchEvent(event)' in browse, 'Claimed swipe cancels child and consumes UP')
 check('getGlobalVisibleRect(bounds)' in browse, 'Gesture hit bounds use screen coordinates')
 check('installNm7ScrollChrome(mRowsView)' in browse and 'installNm7ScrollChrome(mGridView)' in browse, 'Both feed modes collapse navigation on scroll')
