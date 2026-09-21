@@ -5,7 +5,7 @@ plugins {
     id("com.android.application")
 }
 
-val nm7IconSource = layout.projectDirectory.file("tools/nm7_app_icon.jpg.b64")
+val nm7IconSource = rootProject.layout.projectDirectory.file("tools/nm7_app_icon.jpg.b64")
 val nm7IconResDir = layout.buildDirectory.dir("generated/res/nm7AppIcon")
 
 val generateNm7AppIcon by tasks.registering {
