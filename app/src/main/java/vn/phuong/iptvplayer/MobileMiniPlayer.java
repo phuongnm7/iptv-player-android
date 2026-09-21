@@ -160,8 +160,8 @@ public final class MobileMiniPlayer {
     }
 
     private static View createPlayerView(Activity activity) throws ReflectiveOperationException {
-        // Texture-backed PlayerView keeps ExoPlayer's supported target handoff while
-        // avoiding separate SurfaceView windows across paused/resumed Activities.
+        // SurfaceView-backed PlayerView keeps decoder-to-surface rendering stable across
+        // mini/fullscreen handoff.
         return android.view.LayoutInflater.from(activity).inflate(R.layout.nm7_mini_player, null, false);
     }
 
