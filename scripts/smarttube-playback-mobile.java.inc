@@ -13,6 +13,102 @@
     private com.google.android.exoplayer2.ui.PlayerView mNm7VideoTarget;
     private boolean mNm7OwnsPlayback;
     private Object mNm7BackCallback;
+    private com.google.android.exoplayer2.Player mNm7ObservedPlayer;
+    private com.google.android.exoplayer2.Player.EventListener mNm7PlaybackObserver;
+    private com.google.android.exoplayer2.video.VideoListener mNm7FrameObserver;
+    private long mNm7LastFirstFrameMs;
+    private long mNm7LastErrorRetryMs;
+    private int mNm7DecoderRecoveryAttempts;
+    private int mNm7RenderRecoveryAttempts;
+
+    private boolean isNm7DecoderError(Throwable error) {
+        Throwable cause = error;
+        for (int i = 0; i < 12 && cause != null; i++, cause = cause.getCause()) {
+            String name = cause.getClass().getName();
+            if (name.contains("MediaCodec")
+                    || name.contains("DecoderInitializationException")
+                    || name.contains("DecoderException")
+                    || name.contains("VideoDecoder")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void recoverNm7DecoderError(com.google.android.exoplayer2.ExoPlaybackException error) {
+        if (mPlayer == null || mNm7Stopped || sNm7SuspendedForIptv || isFinishing()) return;
+        if (!isNm7DecoderError(error)) return;
+        long now = android.os.SystemClock.elapsedRealtime();
+        if (now - mNm7LastErrorRetryMs < 1500L) return;
+        mNm7LastErrorRetryMs = now;
+        mNm7DecoderRecoveryAttempts++;
+        long position = Math.max(0L, mPlayer.getCurrentPosition());
+        try {
+            android.util.Log.w("NM7Playback",
+                    "decoder_recovery attempt=" + mNm7DecoderRecoveryAttempts
+                            + " state=" + mPlayer.getPlaybackState()
+                            + " position=" + position);
+
+            if (mNm7DecoderRecoveryAttempts == 3 && mNm7TrackSelector != null) {
+                try {
+                    mNm7TrackSelector.setParameters(
+                            mNm7TrackSelector.buildUponParameters()
+                                    .setMaxVideoSize(1280, 720)
+                                    .setMaxVideoBitrate(4_000_000)
+                                    .setExceedVideoConstraintsIfNecessary(false));
+                } catch (RuntimeException ignored) { }
+            }
+
+            if (mNm7DecoderRecoveryAttempts <= 3) {
+                mPlayer.retry();
+                mPlayer.seekTo(position);
+                mPlayer.setPlayWhenReady(true);
+                bindNm7PlayerTarget();
+            } else {
+                mNm7DecoderRecoveryAttempts = 0;
+                restartEngine();
+            }
+        } catch (RuntimeException recoveryError) {
+            android.util.Log.w("NM7Playback", "decoder recovery failed", recoveryError);
+        }
+    }
+
+    private void ensureNm7PlaybackObserver() {
+        if (mPlayer == null || mPlayer == mNm7ObservedPlayer) return;
+        if (mNm7ObservedPlayer != null && mNm7PlaybackObserver != null) {
+            try { mNm7ObservedPlayer.removeListener(mNm7PlaybackObserver); } catch (RuntimeException ignored) { }
+        }
+        if (mNm7ObservedPlayer != null && mNm7FrameObserver != null) {
+            try { mNm7ObservedPlayer.removeVideoListener(mNm7FrameObserver); } catch (RuntimeException ignored) { }
+        }
+
+        mNm7ObservedPlayer = mPlayer;
+        mNm7LastFirstFrameMs = 0L;
+        mNm7DecoderRecoveryAttempts = 0;
+        mNm7RenderRecoveryAttempts = 0;
+
+        mNm7PlaybackObserver = new com.google.android.exoplayer2.Player.EventListener() {
+            @Override public void onPlayerError(com.google.android.exoplayer2.ExoPlaybackException error) {
+                recoverNm7DecoderError(error);
+            }
+
+            @Override public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
+                if (playbackState == com.google.android.exoplayer2.Player.STATE_READY) {
+                    mNm7DecoderRecoveryAttempts = 0;
+                    if (playWhenReady) armNm7RenderWatchdog();
+                }
+            }
+        };
+        mNm7FrameObserver = new com.google.android.exoplayer2.video.VideoListener() {
+            @Override public void onRenderedFirstFrame() {
+                mNm7LastFirstFrameMs = android.os.SystemClock.elapsedRealtime();
+                mNm7RenderRecoveryAttempts = 0;
+                mNm7DecoderRecoveryAttempts = 0;
+            }
+        };
+        mPlayer.addListener(mNm7PlaybackObserver);
+        mPlayer.addVideoListener(mNm7FrameObserver);
+    }
 
     private void armNm7RenderWatchdog() {
         if (mPlayer == null || mNm7Stopped) return;
@@ -22,15 +118,23 @@
             if (owner.mPlayer == null || owner.mNm7Stopped || owner.mPlayer != mPlayer) return;
             int state = owner.mPlayer.getPlaybackState();
             boolean wantsPlay = owner.mPlayer.getPlayWhenReady();
-            if (wantsPlay && (state == Player.STATE_READY || state == Player.STATE_BUFFERING)) {
+            if (wantsPlay && (state == Player.STATE_READY || state == Player.STATE_BUFFERING)
+                    && owner.mNm7LastFirstFrameMs < started) {
+                owner.mNm7RenderRecoveryAttempts++;
                 android.util.Log.w("NM7Playback", "render_watchdog_no_first_frame_ms="
-                        + (android.os.SystemClock.elapsedRealtime() - started));
+                        + (android.os.SystemClock.elapsedRealtime() - started)
+                        + " attempt=" + owner.mNm7RenderRecoveryAttempts);
                 try {
+                    long position = Math.max(0L, owner.mPlayer.getCurrentPosition());
                     owner.bindNm7PlayerTarget();
-                    owner.mPlayer.seekTo(owner.mPlayer.getCurrentPosition());
+                    owner.mPlayer.seekTo(position);
                     owner.mPlayer.setPlayWhenReady(true);
+                    if (owner.mNm7RenderRecoveryAttempts >= 3) {
+                        owner.mNm7RenderRecoveryAttempts = 0;
+                        owner.restartEngine();
+                    }
                 } catch (RuntimeException error) {
-                    android.util.Log.w("NM7Playback", "render watchdog rebind failed", error);
+                    android.util.Log.w("NM7Playback", "render watchdog recovery failed", error);
                 }
             }
         }, 1800L);
@@ -56,6 +160,7 @@
                 android.util.Log.e("NM7Playback", "Read target after engine restart", error);
             }
         }
+        ensureNm7PlaybackObserver();
         com.google.android.exoplayer2.ui.PlayerView.switchTargetView(mPlayer, mNm7VideoTarget, target);
         if (target.getPlayer() != mPlayer) target.setPlayer(mPlayer);
         mNm7VideoTarget = target;
@@ -279,6 +384,15 @@
         active.cancelNm7TargetRestore(false);
         active.blockEngine(false);
         active.nm7SetBackground(false);
+        if (active.mPlayer != null && active.mNm7PlaybackObserver != null) {
+            try { active.mPlayer.removeListener(active.mNm7PlaybackObserver); } catch (RuntimeException ignored) { }
+        }
+        if (active.mPlayer != null && active.mNm7FrameObserver != null) {
+            try { active.mPlayer.removeVideoListener(active.mNm7FrameObserver); } catch (RuntimeException ignored) { }
+        }
+        active.mNm7ObservedPlayer = null;
+        active.mNm7PlaybackObserver = null;
+        active.mNm7FrameObserver = null;
         active.stopService(new Intent().setClassName(active, "vn.phuong.iptvplayer.BackgroundPlaybackService"));
         active.finishReally();
         sNm7Active = null;
