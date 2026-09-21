@@ -1,4 +1,4 @@
-plugins {
+// NM7 Mobile 2.0 feature branch build.\nplugins {
     id("com.android.application")
 }
 
