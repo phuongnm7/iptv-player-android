@@ -61,7 +61,7 @@ public final class MainActivity extends Activity {
         ListView list=findViewById(R.id.listChannels);
         adapter=new ChannelAdapter(this,new ChannelAdapter.Listener(){@Override public void onSelectionChanged(){updateSummary();}@Override public void onFavoriteChanged(Channel c,boolean f){toast(f?"Đã thêm vào Yêu thích":"Đã bỏ khỏi Yêu thích");if(activeSection==1)filter();else adapter.notifyDataSetChanged();}});
         list.setAdapter(adapter); list.setItemsCanFocus(false); list.setEmptyView(txtEmpty); list.setOnItemClickListener((p,v,i,id)->play(adapter.getItem(i))); list.setOnItemLongClickListener((p,v,i,id)->{showChannelActions(adapter.getItem(i));return true;});
-        findViewById(R.id.btnLoadUrl).setOnClickListener(v->loadFromUrl()); findViewById(R.id.btnReloadUrl).setOnClickListener(v->reloadPlaylistUrl()); findViewById(R.id.btnOpenFile).setOnClickListener(v->openFilePicker());
+        findViewById(R.id.btnLoadUrl).setOnClickListener(v->loadFromUrl()); findViewById(R.id.btnOpenFile).setOnClickListener(v->openFilePicker());
         findViewById(R.id.btnPlayUrl).setOnClickListener(v->playDirect()); findViewById(R.id.btnWallpaper).setOnClickListener(v->showSettings());
         findViewById(R.id.btnClearFilters).setOnClickListener(v->{inputSearch.setText("");selectedGroup="";updateGroupButtons();filter();});
         inputSearch.addTextChangedListener(new TextWatcher(){@Override public void beforeTextChanged(CharSequence s,int st,int c,int a){}@Override public void onTextChanged(CharSequence s,int st,int b,int c){filter();}@Override public void afterTextChanged(Editable e){}});
