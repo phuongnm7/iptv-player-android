@@ -1,4 +1,5 @@
-// NM7 Mobile 2.0 feature branch build.\nplugins {
+// NM7 Mobile 2.0 feature branch build.
+plugins {
     id("com.android.application")
 }
 
@@ -64,39 +65,4 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
-}
-
-// Inject the sleep-timer entry into the existing Settings screen immediately before
-// Mobile Java compilation. The previous build attached this to a variant task that
-// was not present in the CI task graph, so the feature never reached the APK.
-tasks.register("injectSleepTimerFeature") {
-    doLast {
-        val source = file("src/main/java/vn/phuong/iptvplayer/MainActivity.java")
-        var text = source.readText()
-        if (!text.contains("SleepTimer.showDialog(this)")) {
-            val oldItems = "List<String> items=new ArrayList<>(java.util.Arrays.asList(\"Quản lý nguồn IPTV\",\"Thêm hoặc mở URL/tệp\",\"Tải lại playlist hiện tại\",\"Lịch phát sóng (EPG)\",\"Giao diện: \"+modeLabel,\"Đổi hình nền\",urls,rows,fps,clock,playerSource));"
-            val newItems = "List<String> items=new ArrayList<>(java.util.Arrays.asList(\"Quản lý nguồn IPTV\",\"Thêm hoặc mở URL/tệp\",\"Tải lại playlist hiện tại\",\"Lịch phát sóng (EPG)\",\"Giao diện: \"+modeLabel,\"Đổi hình nền\",urls,rows,fps,clock,playerSource,\"Hẹn giờ đóng app\"));"
-            check(text.contains(oldItems)) { "Cannot inject sleep timer: Settings item block changed" }
-            text = text.replace(oldItems, newItems)
-
-            val oldHandler = "if(which==10)AppPreferences.setShowPlayerSource(this,!AppPreferences.showPlayerSource(this));"
-            val newHandler = oldHandler + "\n                    if(which==11)SleepTimer.showDialog(this);"
-            check(text.contains(oldHandler)) { "Cannot inject sleep timer: Settings handler changed" }
-            text = text.replace(oldHandler, newHandler)
-
-            val oldCreate = "@Override protected void onCreate(Bundle savedInstanceState) { super.onCreate(savedInstanceState); setupViews(); restoreSession(); epgHandler.post(epgTick); }"
-            val newCreate = "@Override protected void onCreate(Bundle savedInstanceState) { super.onCreate(savedInstanceState); setupViews(); SleepTimer.restore(this); restoreSession(); epgHandler.post(epgTick); }"
-            check(text.contains(oldCreate)) { "Cannot inject sleep timer: onCreate changed" }
-            text = text.replace(oldCreate, newCreate)
-        }
-        // Fix Java self-reference in the expiry runnable during CI compilation.
-        text = text.replace("HANDLER.postDelayed(EXPIRY, remaining);", "HANDLER.postDelayed(() -> EXPIRY.run(), remaining);")
-        source.writeText(text)
-    }
-}
-
-tasks.configureEach {
-    if (name == "compileMobileDebugJavaWithJavac" || name == "assembleMobileDebug") {
-        dependsOn("injectSleepTimerFeature")
-    }
 }
