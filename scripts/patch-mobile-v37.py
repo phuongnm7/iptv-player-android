@@ -120,6 +120,7 @@ t = replace(t, '            public void onPlayerStateChanged(boolean playWhenRea
 t = re.sub(r'    @Override\n(    public (?:float getPitch|void setPitch)\()', r'\1', t)
 t = t.replace('showDetailsMessage(getString(R.string.section_is_empty));', 'showDetailsMessage("No comments available");')
 p.write_text(t, encoding='utf-8')
+
 p = phone / 'browse/BrowseActivity.java'
 t = p.read_text(encoding='utf-8')
 t = replace(t, 'private static final int GRID_COLUMNS = 2;', 'private static final int GRID_COLUMNS = 1;')
@@ -130,6 +131,7 @@ t = replace(t, 'private static final String TAG = BrowseActivity.class.getSimple
             Path('scripts/smarttube-browse-mobile.java.inc').read_text(encoding='utf-8'))
 t = replace(t, '        mJustCreated = false;', '        mJustCreated = false;\n        installNm7MiniPlayer();')
 p.write_text(t, encoding='utf-8')
+
 p = phone / 'search/SearchActivity.java'
 t = p.read_text(encoding='utf-8')
 t = replace(t, '    private void initAppBar() {', '''    @Override
@@ -150,7 +152,7 @@ p.write_text(t, encoding='utf-8')
 p = phone / 'channeluploads/ChannelUploadsActivity.java'
 t = p.read_text(encoding='utf-8').replace('new GridLayoutManager(this, GRID_COLUMNS)', 'new GridLayoutManager(this, 1)')
 p.write_text(t, encoding='utf-8')
-# Native touch theme: SmartTube cards/sections, dark surface, orange NM7 accent.
+
 theme = Path('third_party/SmartTube-droid/smarttubedroid/src/main/res/values/themes.xml')
 t = theme.read_text(encoding='utf-8')
 t = t.replace('Theme.MaterialComponents.DayNight.NoActionBar', 'Theme.MaterialComponents.NoActionBar')
@@ -164,37 +166,27 @@ t = replace(t, 'int bufferForPlaybackMs = 2_500;', 'int bufferForPlaybackMs = 50
 t = replace(t, 'int bufferForPlaybackAfterRebufferMs = 5_000;', 'int bufferForPlaybackAfterRebufferMs = 1_500;')
 initializer.write_text(t, encoding='utf-8')
 
-# Keep the upstream VideoLoaderController startup path unchanged.\n# A previous speculative format-info prefetch could race engine initialization and\n# leave PlaybackActivity showing an endless spinner when the result arrived early.\n
+# Keep the upstream VideoLoaderController startup path unchanged.
+# A previous speculative format-info prefetch could race engine initialization and
+# leave PlaybackActivity showing an endless spinner when the result arrived early.
+
 print('NM7 Mobile lifecycle and native UI v39 applied to pinned phone source')
 
 # UI overlay deliberately leaves all v39 playback/lifecycle code above unchanged.
 import runpy
 runpy.run_path("scripts/patch-mobile-ui.py")
 
-
 # Mobile playback uses SurfaceView for stable decoder-to-surface rendering across mini/fullscreen handoff.
-# The pinned SmartTube source is already SurfaceView; keep the patch idempotent so CI
-# does not fail when the source has not been transformed by an earlier patch.
 p = Path('third_party/SmartTube-droid/smarttubedroid/src/main/res/layout/playback_activity.xml')
 t = p.read_text()
 if 'app:surface_type="surface_view"' not in t:
     t = replace(t, 'app:surface_type="texture_view"', 'app:surface_type="surface_view"')
 p.write_text(t)
 runpy.run_path("scripts/patch-mobile-v55-ui.py")
-
-
 runpy.run_path("scripts/patch-mobile-v56.py")
-
 runpy.run_path("scripts/patch-mobile-v57.py")
-
-
 runpy.run_path("scripts/patch-mobile-v58.py")
-
 runpy.run_path("scripts/patch-mobile-v59.py")
-
 runpy.run_path("scripts/patch-mobile-v60.py")
-
-
 runpy.run_path("scripts/patch-mobile-v61.py")
-
 runpy.run_path("scripts/patch-mobile-v62.py")
