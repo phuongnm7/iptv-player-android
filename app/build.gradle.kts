@@ -3,15 +3,30 @@ plugins {
     id("com.android.application")
 }
 
+val nm7IconSource = layout.projectDirectory.file("tools/nm7_app_icon.jpg.b64")
+val nm7IconResDir = layout.buildDirectory.dir("generated/res/nm7AppIcon")
+
+val generateNm7AppIcon by tasks.registering {
+    inputs.file(nm7IconSource)
+    val output = nm7IconResDir.map { it.file("drawable-nodpi/nm7_app_icon_new.jpg") }
+    outputs.file(output)
+    doLast {
+        val out = output.get().asFile
+        out.parentFile.mkdirs()
+        val encoded = nm7IconSource.asFile.readText().filterNot { it.isWhitespace() }
+        out.writeBytes(java.util.Base64.getDecoder().decode(encoded))
+    }
+}
+
 android {
     namespace = "vn.phuong.iptvplayer"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "vn.phuong.iptvplayer"
+        applicationId = "vn.phuong.iptvplayer.mobile2"
         minSdk = 23
         targetSdk = 36
-        versionCode = 45
+        versionCode = 46
         versionName = "2.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -31,6 +46,8 @@ android {
         }
     }
 
+    sourceSets["main"].res.srcDir(nm7IconResDir)
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -46,6 +63,12 @@ android {
 
     lint {
         disable += setOf("HardcodedText", "SetTextI18n", "MissingTranslation", "LockedOrientationActivity")
+    }
+}
+
+tasks.configureEach {
+    if (name.startsWith("pre") && name.endsWith("Build")) {
+        dependsOn(generateNm7AppIcon)
     }
 }
 
@@ -66,5 +89,3 @@ dependencies {
     testImplementation("org.json:json:20240303")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }
-
-// trigger build 2.0.0
