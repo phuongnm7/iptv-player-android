@@ -43,12 +43,28 @@
         return isNm7SessionActive() && sNm7Active.mPlayer.getPlayWhenReady();
     }
 
+    private static void recoverNm7EndedPlayback(PlaybackActivity active) {
+        if (active == null || active.mPlayer == null || sNm7SuspendedForIptv) return;
+        if (active.mPlayer.getPlaybackState() != Player.STATE_ENDED) return;
+        try {
+            android.util.Log.i("NM7Playback", "recover ended player: prepare from start");
+            active.mPlayer.seekTo(0);
+            active.mPlayer.prepare();
+        } catch (RuntimeException error) {
+            android.util.Log.w("NM7Playback", "ended player prepare failed", error);
+        }
+    }
+
     public static void toggleNm7Playback() {
         if (!isNm7SessionActive() || sNm7SuspendedForIptv) return;
-        if (sNm7Active.mPlayer.getPlaybackError() != null) {
-            sNm7Active.mPlayer.retry();
-            sNm7Active.mPlayer.setPlayWhenReady(true);
-        } else sNm7Active.mPlayer.setPlayWhenReady(!sNm7Active.mPlayer.getPlayWhenReady());
+        PlaybackActivity active = sNm7Active;
+        if (active.mPlayer.getPlaybackError() != null) {
+            active.mPlayer.retry();
+            active.mPlayer.setPlayWhenReady(true);
+        } else if (active.mPlayer.getPlaybackState() == Player.STATE_ENDED) {
+            recoverNm7EndedPlayback(active);
+            active.mPlayer.setPlayWhenReady(true);
+        } else active.mPlayer.setPlayWhenReady(!active.mPlayer.getPlayWhenReady());
     }
 
     public static int getNm7PlaybackState() {
@@ -101,6 +117,8 @@
     public static void restoreNm7Player() {
         PlaybackActivity active = sNm7Active;
         if (active == null || active.isDestroyed() || active.isFinishing() || active.mPlayer == null) return;
+        boolean ended = active.mPlayer.getPlaybackState() == Player.STATE_ENDED;
+        if (ended) recoverNm7EndedPlayback(active);
 
         // Do not switch the video target while PlaybackActivity is still stopped.
         // Bring it to foreground first; onResume completes the surface handoff.
@@ -140,6 +158,9 @@
             sNm7ResumeAfterIptv = false;
             if (mNm7TargetRestoreWaiting) mNm7ResumeAfterTarget = true;
             else mPlayer.setPlayWhenReady(true);
+        } else if (mPlayer.getPlaybackState() == Player.STATE_ENDED && !mNm7Stopped) {
+            recoverNm7EndedPlayback(this);
+            mPlayer.setPlayWhenReady(true);
         }
         blockEngine(false);
         try {
