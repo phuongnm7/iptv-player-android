@@ -1,6 +1,16 @@
 # MOBILE 1.10.64 / 82 — XỬ LÝ LỖI VIDEO ĐEN/RENDERER — 2026-09-21
 
+## Cập nhật CI mới nhất
+- CI Mobile-only run #397 / 35570031129 đã chạy đến regression guard nhưng fail vì verifier cũ vẫn yêu cầu TextureView.
+- Đã xác định đây là lỗi của guard, không phải lỗi compile/source patch.
+- Đã sửa verifier để yêu cầu SurfaceView và kiểm tra luôn render watchdog.
+- Đã sửa patch-mobile-v37.py để idempotent với pinned source vốn đã là SurfaceView.
+- Commit mới nhất: fdceb317daaa0c748495ee8de6db9d2059e66c27.
+- CI Mobile-only run #398 / 35570084103 đang build; regression guards đã PASS và build Mobile-only đang chạy.
+- Chưa coi 1.10.64 là APK đã xác nhận cho đến khi build/upload hoàn tất.
+
 ## Phân tích video mới
+
 Video test 62 giây cho thấy lỗi không chỉ nằm ở `STATE_ENDED`: có nhiều thời điểm Browse/metadata vẫn hoạt động nhưng vùng video YouTube chuyển thành **màu đen**, đồng thời mini-player có lúc hiện trạng thái phát lỗi. Điều này cho thấy cần xử lý cả đường **decoder → video surface**, không chỉ lifecycle/state.
 
 ## Sửa 1.10.64
