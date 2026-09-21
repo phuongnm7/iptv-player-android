@@ -9,7 +9,7 @@ import sys
 import time
 import xml.etree.ElementTree as ET
 
-PACKAGE = "vn.phuong.iptvplayer"
+PACKAGE = "vn.phuong.iptvplayer.mobile2"
 APK = sys.argv[1]
 
 
