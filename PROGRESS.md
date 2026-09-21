@@ -1,3 +1,15 @@
+# MOBILE 1.10.67 / 85 — CI BUILD SUCCESS — 2026-09-21
+
+- Mobile Final run **#415**: https://github.com/phuongnm7/iptv-player-android/actions/runs/35589233133
+- Source commit: `727023c4c721c923fbffca4dad657dd483979694`.
+- 95 structural guards passed; `:app:testMobileDebugUnitTest` executed successfully; build succeeded in 7m 54s.
+- Artifact: [NM7-IPTV-Mobile-FINAL](https://github.com/phuongnm7/iptv-player-android/actions/runs/35589233133/artifacts/10634241333), contains signed debug APKs for arm64-v8a and armeabi-v7a.
+- arm64 SHA-256: `d8c8ffafc687afb0a97e634f3e741e7d92ced9b732a27bc42b70098d6af60662`.
+- armv7 SHA-256: `cf7f4f3a0a5838998f99390bebe485fb89e45e3b10e193cfe5fe564da4488960`.
+- **Chưa xác nhận trên thiết bị, chưa stable.** Không coi CI thành công là bằng chứng hết lỗi màn đen/load chậm.
+
+---
+
 # MOBILE 1.10.67 / 85 — FRAME-PROGRESS RECOVERY — 2026-09-21
 
 - Sửa watchdog dùng sai sự kiện first-frame sau mỗi READY: nay đo renderedOutputBufferCount, chỉ khi video thực sự cần hiển thị trên surface hợp lệ. Không tự restart khi pause, buffering, mất audio focus, chạy nền hoặc khóa màn hình.
