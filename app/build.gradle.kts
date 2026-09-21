@@ -1,3 +1,5 @@
+import java.util.Base64
+
 // NM7 Mobile 2.0 feature branch build.
 plugins {
     id("com.android.application")
@@ -14,7 +16,7 @@ val generateNm7AppIcon by tasks.registering {
         val out = output.get().asFile
         out.parentFile.mkdirs()
         val encoded = nm7IconSource.asFile.readText().filterNot { it.isWhitespace() }
-        out.writeBytes(java.util.Base64.getDecoder().decode(encoded))
+        out.writeBytes(Base64.getDecoder().decode(encoded))
     }
 }
 
