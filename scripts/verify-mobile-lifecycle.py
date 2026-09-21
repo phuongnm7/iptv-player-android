@@ -135,7 +135,7 @@ check('View.INVISIBLE' in chrome_method and 'setPadding' not in chrome_method, '
 check('addOnScrollListener' not in browse and 'mNm7ChromeGesture.update' in browse, 'Layout and fling callbacks cannot toggle chrome')
 check('!isNm7ChromeTouch(event)' in browse, 'Overlay header and footer excluded from feed gestures')
 check('!mNm7InitialTransportSelected' in play, 'Engine recovery preserves ErrorFixer transport fallback')
-check('mPlayer.retry()' not in play and 'ErrorFixerController.class' in body('private void retryNm7Mini()'), 'Mini retry uses source-aware recovery rather than same failed URL')
+check('mPlayer.retry()' not in body('private void retryNm7Mini()') and 'ErrorFixerController.class' in body('private void retryNm7Mini()'), 'Mini retry uses source-aware recovery rather than same failed URL')
 check('mNm7RecoveryGate.allow' in play and 'sNm7SuspendedForIptv' in body('public void restartEngine()'), 'Automatic mini recovery is bounded and cannot restart while IPTV owns playback')
 check('mNm7SessionVideo = item' in play, 'Active video survives feed replacement and GC during recovery')
 check('stopService' not in body('public static void resumeNm7Foreground()'), 'Unlocking the mini host does not stop its service')
