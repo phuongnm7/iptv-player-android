@@ -1,14 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/mainRoot" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="12dp" android:background="@color/navy">
-    <ImageView android:layout_width="match_parent" android:layout_height="64dp"
+    <ImageView android:layout_width="match_parent" android:layout_height="50dp"
         android:src="@drawable/nm7_main_logo" android:scaleType="centerInside"
         android:adjustViewBounds="true" android:contentDescription="Logo Phuongnm7 TV" />
-    <LinearLayout android:layout_width="match_parent" android:layout_height="46dp" android:layout_marginBottom="5dp">
-        <Button android:id="@+id/btnAllChannels" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@drawable/button_primary" android:text="Tất cả" android:textSize="12sp" android:textAllCaps="false" android:textColor="@color/navy" />
-        <Button android:id="@+id/btnFavorites" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:layout_marginHorizontal="6dp" android:background="@drawable/button_secondary" android:text="★ Yêu thích" android:textSize="12sp" android:textAllCaps="false" android:textColor="@color/text_primary" />
-        <Button android:id="@+id/btnReloadUrl" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@drawable/button_secondary" android:text="↻ Tải lại" android:textSize="11sp" android:textAllCaps="false" android:textColor="@color/accent" />
-        <Button android:id="@+id/btnRecent" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@drawable/button_secondary" android:text="◷ Gần đây" android:textSize="12sp" android:textAllCaps="false" android:textColor="@color/text_primary" />
-        <Button android:id="@+id/btnWallpaper" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:layout_marginStart="6dp" android:background="@drawable/button_secondary" android:text="⚙ Tùy chọn" android:contentDescription="Tùy chọn ứng dụng" android:textSize="12sp" android:textAllCaps="false" android:textColor="@color/text_primary" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="2dp" android:layout_marginBottom="5dp" android:gravity="center_vertical">
+        <EditText android:id="@+id/inputSearch" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:singleLine="true" android:hint="Tìm kênh, nhóm hoặc URL…" android:textColor="@color/text_primary" android:textColorHint="@color/text_secondary" android:backgroundTint="@color/accent" />
+        <Button android:id="@+id/btnClearFilters" android:layout_width="64dp" android:layout_height="44dp" android:layout_marginStart="5dp" android:background="@drawable/button_secondary" android:text="Bỏ lọc" android:textSize="11sp" android:textAllCaps="false" android:textColor="@color/text_primary" />
+        <Button android:id="@+id/btnWallpaper" android:layout_width="92dp" android:layout_height="44dp" android:layout_marginStart="5dp" android:background="@drawable/button_secondary" android:text="⚙ Tùy chọn" android:contentDescription="Tùy chọn ứng dụng" android:textSize="12sp" android:textAllCaps="false" android:textColor="@color/text_primary" />
     </LinearLayout>
     <ScrollView android:id="@+id/importPanel" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@drawable/panel">
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="10dp" android:orientation="vertical">
@@ -20,10 +18,6 @@
             <Button android:id="@+id/btnPlayUrl" android:layout_width="match_parent" android:layout_height="44dp" android:layout_marginTop="6dp" android:background="@drawable/button_secondary" android:text="▶ Phát URL trực tiếp" android:textAllCaps="false" android:textColor="@color/accent" />
         </LinearLayout>
     </ScrollView>
-    <LinearLayout android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="4dp">
-        <EditText android:id="@+id/inputSearch" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:singleLine="true" android:hint="Tìm kênh, nhóm hoặc URL…" android:textColor="@color/text_primary" android:textColorHint="@color/text_secondary" android:backgroundTint="@color/accent" />
-        <Button android:id="@+id/btnClearFilters" android:layout_width="68dp" android:layout_height="44dp" android:layout_marginStart="6dp" android:background="@drawable/button_secondary" android:text="Bỏ lọc" android:textSize="12sp" android:textAllCaps="false" android:textColor="@color/text_primary" />
-    </LinearLayout>
     <HorizontalScrollView android:layout_width="match_parent" android:layout_height="50dp" android:scrollbars="none"><LinearLayout android:id="@+id/groupRow" android:layout_width="wrap_content" android:layout_height="match_parent" android:gravity="center_vertical" android:orientation="horizontal" /></HorizontalScrollView>
     <ProgressBar android:id="@+id/progress" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="3dp" android:visibility="gone" />
     <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
