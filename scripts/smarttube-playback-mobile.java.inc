@@ -13,7 +13,7 @@
     private com.google.android.exoplayer2.ui.PlayerView mNm7VideoTarget;
     private boolean mNm7OwnsPlayback;
     private Object mNm7BackCallback;
-    private com.google.android.exoplayer2.Player mNm7ObservedPlayer;
+    private com.google.android.exoplayer2.SimpleExoPlayer mNm7ObservedPlayer;
     private com.google.android.exoplayer2.Player.EventListener mNm7PlaybackObserver;
     private com.google.android.exoplayer2.video.VideoListener mNm7FrameObserver;
     private long mNm7LastFirstFrameMs;
