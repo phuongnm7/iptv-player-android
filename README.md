@@ -1,4 +1,18 @@
-# iptv-player-android
+## Trạng thái Mobile mới nhất — 2.0.0 (2026-09-21)
+
+Bản Mobile 2.0.0 đã build và smoke-test thành công trên GitHub Actions, tiếp nối Mobile 1.10.26.
+
+- Application ID: `vn.phuong.iptvplayer.mobile2`.
+- Version: `2.0.0` / `versionCode 46`.
+- Hẹn giờ tắt app: **1–480 phút**.
+- UI Mobile 2.0.0 đã đưa Tất cả/Yêu thích/Gần đây vào Tùy chọn, tìm kiếm cùng hàng Tùy chọn, bật phát nền mặc định, ẩn nguồn mặc định khi cài mới và dùng cảm biến xoay khi phát.
+- Build #606: **SUCCESS**, gồm smoke test.
+- Commit: `536d0139ab196055b21aa3c03f811a61097b892b`.
+- Artifact: `NM7-IPTV-Mobile-2.0.0-APK`.
+
+Chi tiết: [PROGRESS.md](PROGRESS.md).
+
+---
 
 Nm7 IPTV 1.7 — ứng dụng Android tiếng Việt cho mobile và Android TV, không quảng cáo, không phân tích hành vi, không máy chủ trung gian. Màn hình chính có thanh nhóm kênh cuộn ngang; khi đang xem trên TV, phím Trái mở danh sách kênh nhanh phủ lên video mà không dừng phát.
 

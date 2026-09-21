@@ -1,3 +1,32 @@
+# BÀN GIAO MỚI — NM7 IPTV MOBILE 2.0.0 — 2026-09-21
+
+## Trạng thái hiện tại
+
+- Đã hoàn thiện bản Mobile 2.0.0 trên nhánh `feature/mobile-1.10.26-improvements`, tiếp nối bản Mobile 1.10.26 có hẹn giờ tắt app.
+- UI Mobile 2.0.0: Tất cả/Yêu thích/Gần đây chuyển vào Tùy chọn; tìm kiếm cùng hàng Tùy chọn; phát nền mặc định bật; nguồn IPTV mặc định ẩn khi cài mới; logo thu gọn; player dùng cảm biến xoay.
+- Hẹn giờ tắt app: mức nhanh 15/30/45/60/90/120 phút và Tùy chỉnh **1–480 phút**.
+- Application ID mới: `vn.phuong.iptvplayer.mobile2`, cho phép cài song song bản 1.10.26.
+- Launcher icon dùng tài nguyên `nm7_app_icon_new`; cần xác nhận thêm trên thiết bị rằng hình hiển thị đúng logo NM7 Mobile TV đã cung cấp.
+- Version: `versionCode 46`, `versionName 2.0.0`.
+
+## Build bàn giao
+
+- Commit mã: `536d0139ab196055b21aa3c03f811a61097b892b`.
+- GitHub Actions run **35621377680 (#606): SUCCESS**.
+- Compile, unit test, lint, đóng gói/upload APK và smoke test Android emulator đều PASS.
+- Artifact: `NM7-IPTV-Mobile-2.0.0-APK`, ID `10649811787`.
+- Archive SHA-256: `e340b6d210d8479c7a78b8ffc9333d7fb90f26280d33e92906e20fd5d75198d8`.
+- Artifact hết hạn: 2026-10-21.
+- Người dùng đã nhận và xác nhận bản build.
+
+## Cài đặt
+
+- Application ID riêng nên có thể cài đồng thời với Mobile 1.10.26.
+- APK debug-signed để kiểm thử cá nhân, không phải bản Google Play.
+- Hai Application ID có vùng dữ liệu riêng.
+
+---
+
 # GHI NHẬN LỖI MỚI — NM7 IPTV MOBILE 1.10.24: chưa tự tải lại playlist khi mở ứng dụng (2026-09-14)
 
 ## Trạng thái Mobile hiện tại
