@@ -505,17 +505,6 @@ public final class MobileNm7Application extends DroidApplication implements andr
         } catch (ReflectiveOperationException | RuntimeException ignored) { }
     }
 
-    @Override public void onTrimMemory(int level) {
-        super.onTrimMemory(level);
-        // Release UI image caches under real memory pressure without touching the
-        // YouTube playback session itself. The player may continue in the background.
-        if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) {
-            try {
-                com.bumptech.glide.Glide.get(getApplicationContext()).trimMemory(level);
-            } catch (RuntimeException ignored) { }
-        }
-    }
-
     @Override public void onActivitySaveInstanceState(Activity activity, Bundle state) { }
     @Override public void onActivityDestroyed(Activity activity) {
         liveActivities.remove(activity);
