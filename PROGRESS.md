@@ -1,3 +1,34 @@
+# MOBILE 1.10.66 / 84 — FIX DUPLICATE DECODER RECOVERY — 2026-09-21
+
+## Lỗi phát hiện sau 1.10.65
+
+1.10.65 có **hai đường cùng xử lý một decoder error**:
+- observer của ExoPlayer gọi `recoverNm7DecoderError()`;
+- `Nm7EngineErrorOwner` đồng thời chuyển cùng lỗi vào `ErrorFixerController`.
+
+Hai đường retry/restart có thể chạy cạnh nhau, làm player/surface bị reset chồng và gây lỗi phát.
+
+## Đã sửa
+
+- Bỏ retry decoder trực tiếp khỏi observer.
+- Decoder error chỉ đi qua **một owner duy nhất**: `Nm7EngineErrorOwner`.
+- Nếu là MediaCodec/Decoder error, owner gọi `recoverNm7DecoderError()` và kết thúc tại đó.
+- Các lỗi playback khác vẫn đi qua `ErrorFixerController` như trước.
+- Giữ nguyên SurfaceView, render watchdog và các cơ chế phục hồi khác.
+- Tăng version thành **1.10.66 / versionCode 84** để không nhầm với APK 1.10.65.
+
+## Commit sửa
+
+- `0f551b3f6b4ad6bc5f1c25d8bd7dd194ea3e3699` — remove duplicate observer decoder recovery.
+- `4f65613499ec8d9ad737c622c958300f9ea66e5e` — single-owner decoder recovery.
+- Version: **1.10.66 / 84**.
+
+## Trạng thái
+
+Cần chạy lại Mobile-only CI và test đúng kịch bản video đen/decoder failure. Chưa đánh dấu stable.
+
+---
+
 # MOBILE 1.10.65 / 83 — THAM KHẢO YOUTUBE 21.37.42 + HARDEN DECODER/BLACK-FRAME RECOVERY — 2026-09-21
 
 ## Bằng chứng app tham khảo
