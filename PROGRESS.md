@@ -1,3 +1,28 @@
+# MOBILE 1.10.63 / 81 — SỬA NGAY LỖI MINI/PLAYER BLACK — 2026-09-21
+
+## Lỗi tái hiện từ video mới
+Video người dùng gửi ngày 2026-09-21 cho thấy sau khi mini-player lỗi, khi quay lại màn hình phát YouTube thì vùng video vẫn đen trong khi metadata/Browse vẫn hoạt động. Ở mini-player xuất hiện trạng thái **"Phiên phát đã kết thúc • thử lại"**. Điều này xác nhận lỗi runtime không phải lỗi UI Browse bị chết.
+
+## Nguyên nhân xử lý
+Vòng 1.10.62 đã xử lý memory pressure và re-bind target khi player READY, nhưng còn một khe hở: khi ExoPlayer đã rơi vào `STATE_ENDED`, việc chuyển mini → fullscreen chỉ đổi surface/Activity mà không chủ động `prepare()` lại media source. Vì vậy PlaybackActivity có thể trở lại với player đã ENDED và surface đen.
+
+## Sửa 1.10.63
+- Thêm đường phục hồi player khi `STATE_ENDED`: `seekTo(0) → prepare() → setPlayWhenReady(true)`.
+- Khi người dùng bấm phát từ mini-player mà player đang ENDED, phục hồi source trước khi phát.
+- Khi `restoreNm7Player()` được gọi từ mini-player, nếu player đã ENDED thì chuẩn bị lại ngay.
+- Sau khi fullscreen restore hoàn tất, nếu player vẫn ENDED thì tự phục hồi và phát lại thay vì giữ màn hình đen.
+- Giữ nguyên toàn bộ cơ chế 1.10.62 về giới hạn bộ nhớ, OOM recovery và re-bind mini target.
+- Không thêm Android TV; chỉ Mobile.
+
+## Commit
+- `efa92e537c55eb3ccd40476e9b12edce6f61efd6` — fix mini restore/recover ended player.
+- `24fc48820d9679a4bc11586f94a37ff6face50dd` — bump Mobile to 1.10.63 / versionCode 81.
+
+## Trạng thái
+Source đã sửa và tăng version. Cần build Mobile-only CI và cài 1.10.63 để xác nhận runtime. Không dùng APK 1.10.62 để kết luận lỗi này đã hết.
+
+---
+
 # MOBILE 1.10.62 / 80 — BUILD SUCCESS — CHỜ TEST THIẾT BỊ THẬT — 2026-09-21
 
 ## Vòng sửa 1.10.62 — giảm áp lực bộ nhớ + phục hồi mini-player
