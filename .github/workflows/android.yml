@@ -2,7 +2,7 @@ name: Build private Android APK
 
 on:
   push:
-    branches: [main, "fix/mobile-*"]
+    branches: [main, "fix/mobile-*", "feature/mobile-*"]
     paths:
       - "app/**"
       - "*.gradle.kts"
