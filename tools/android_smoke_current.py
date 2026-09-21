@@ -3,14 +3,25 @@
 Checks Mobile startup in both portrait and landscape orientations.
 No public IPTV stream is required.
 """
+import os
 import re
 import subprocess
 import sys
 import time
 import xml.etree.ElementTree as ET
 
-PACKAGE = "vn.phuong.iptvplayer.mobile2"
 APK = sys.argv[1]
+PACKAGE = ""
+
+def resolve_package(apk):
+    result = subprocess.run(
+        [os.environ.get("ANDROID_HOME", "/usr/local/lib/android/sdk") + "/build-tools/36.0.0/aapt", "dump", "badging", apk],
+        check=True, capture_output=True, text=True,
+    )
+    match = re.search(r"package: name='([^']+)'", result.stdout)
+    if not match:
+        raise AssertionError("Cannot determine APK package id")
+    return match.group(1)
 
 
 def run_adb(*args, timeout=40, check=True):
@@ -168,10 +179,14 @@ def launch_main():
         "-n",
         PACKAGE + "/.MainActivity",
         timeout=40,
+        check=False,
     )
     print(launch.stdout)
     if launch.stderr:
         print(launch.stderr, file=sys.stderr)
+    if launch.returncode:
+        print_diagnostics()
+        raise subprocess.CalledProcessError(launch.returncode, launch.args, output=launch.stdout, stderr=launch.stderr)
     return wait_for_main_screen()
 
 
@@ -183,6 +198,8 @@ def assert_consolidated_header(root, label):
         raise AssertionError(label + " still exposes consolidated controls: " + ", ".join(present))
 
 
+PACKAGE = resolve_package(APK)
+print("INFO: APK package id:", PACKAGE)
 adb("install", "-r", APK, timeout=90)
 adb("shell", "input", "keyevent", "KEYCODE_WAKEUP")
 run_adb("shell", "wm", "dismiss-keyguard", check=False)
