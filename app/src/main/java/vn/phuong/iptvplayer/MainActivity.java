@@ -63,7 +63,7 @@ public final class MainActivity extends Activity {
         list.setAdapter(adapter); list.setItemsCanFocus(false); list.setEmptyView(txtEmpty); list.setOnItemClickListener((p,v,i,id)->play(adapter.getItem(i))); list.setOnItemLongClickListener((p,v,i,id)->{showChannelActions(adapter.getItem(i));return true;});
         findViewById(R.id.btnLoadUrl).setOnClickListener(v->loadFromUrl()); findViewById(R.id.btnReloadUrl).setOnClickListener(v->reloadPlaylistUrl()); findViewById(R.id.btnOpenFile).setOnClickListener(v->openFilePicker());
         findViewById(R.id.btnPlayUrl).setOnClickListener(v->playDirect()); findViewById(R.id.btnWallpaper).setOnClickListener(v->showSettings());
-        findViewById(R.id.btnAllChannels).setOnClickListener(v->selectSection(0)); findViewById(R.id.btnFavorites).setOnClickListener(v->selectSection(1)); findViewById(R.id.btnRecent).setOnClickListener(v->selectSection(2)); findViewById(R.id.btnClearFilters).setOnClickListener(v->{inputSearch.setText("");selectedGroup="";updateGroupButtons();filter();});
+        findViewById(R.id.btnClearFilters).setOnClickListener(v->{inputSearch.setText("");selectedGroup="";updateGroupButtons();filter();});
         inputSearch.addTextChangedListener(new TextWatcher(){@Override public void beforeTextChanged(CharSequence s,int st,int c,int a){}@Override public void onTextChanged(CharSequence s,int st,int b,int c){filter();}@Override public void afterTextChanged(Editable e){}});
         rebuildGroups(); setImportExpanded(allChannels.isEmpty()); updateSectionButtons(); applyInterfaceMode(list);
     }
@@ -82,16 +82,16 @@ public final class MainActivity extends Activity {
         });}catch(Exception e){ui(this::loadDefaultPlaylist);}});
     }
 
-    private void loadDefaultPlaylist(){inputUrl.setText(DEFAULT_PLAYLIST);loadFromUrl();}
+    private void loadDefaultPlaylist(){inputUrl.setText("");loadFromUrl(DEFAULT_PLAYLIST,false);}
 
     private void resetToDefaultPlaylist(){
         currentSource=DEFAULT_PLAYLIST;epgUrl="";duplicateCount=0;missingUrlCount=0;
         allChannels.clear();inputSearch.setText("");selectedGroup="";activeSection=0;
         rebuildGroups();updateSectionButtons();filter();adapter.submitGuide(null);
-        inputUrl.setText(DEFAULT_PLAYLIST);setImportExpanded(false);saveSession();loadFromUrl();
+        inputUrl.setText("");setImportExpanded(false);saveSession();loadFromUrl(DEFAULT_PLAYLIST,false);
     }
 
-    private void reloadPlaylistUrl(){String source=currentSource==null?"":currentSource.split("\\n",2)[0].trim();if(!PlaylistSourceStore.isValid(source)){toast("Playlist hiện tại không phải link URL");return;}inputUrl.setText(source);loadFromUrl();}
+    private void reloadPlaylistUrl(){String source=currentSource==null?"":currentSource.split("\\n",2)[0].trim();if(!PlaylistSourceStore.isValid(source)){toast("Playlist hiện tại không phải link URL");return;}if(PlaylistSourceStore.isDefault(source)){inputUrl.setText("");loadFromUrl(source,false);}else{inputUrl.setText(source);loadFromUrl();}}
 
     private void loadFromUrl(){loadFromUrl(inputUrl.getText().toString().trim(),false);}
 
@@ -186,7 +186,7 @@ public final class MainActivity extends Activity {
     private void updateSummary(){}
     private void play(Channel c){AppPreferences.recordRecent(this,c);Intent i=new Intent(this,PlayerActivity.class);i.putExtra(PlayerActivity.EXTRA_NAME,c.name());i.putExtra(PlayerActivity.EXTRA_URL,c.url());Bundle h=new Bundle();for(java.util.Map.Entry<String,String> e:c.headers().entrySet())h.putString(e.getKey(),e.getValue());i.putExtra(PlayerActivity.EXTRA_HEADERS,h);i.putExtra(PlayerActivity.EXTRA_MIME,c.mimeHint());i.putStringArrayListExtra(PlayerActivity.EXTRA_OPTIONS,new ArrayList<>(c.options()));startActivity(i);}
     private void selectSection(int s){activeSection=s;updateSectionButtons();filter();}
-    private void updateSectionButtons(){int[] ids={R.id.btnAllChannels,R.id.btnFavorites,R.id.btnRecent};for(int i=0;i<ids.length;i++){View b=findViewById(ids[i]);b.setAlpha(i==activeSection?1f:.62f);b.setSelected(i==activeSection);}if(txtEmpty!=null)txtEmpty.setText(activeSection==1?"Chưa có kênh yêu thích":activeSection==2?"Chưa có kênh đã xem":"Không tìm thấy kênh");}
+    private void updateSectionButtons(){int[] ids={R.id.btnAllChannels,R.id.btnFavorites,R.id.btnRecent};for(int i=0;i<ids.length;i++){View b=findViewById(ids[i]);if(b!=null){b.setAlpha(i==activeSection?1f:.62f);b.setSelected(i==activeSection);}}if(txtEmpty!=null)txtEmpty.setText(activeSection==1?"Chưa có kênh yêu thích":activeSection==2?"Chưa có kênh đã xem":"Không tìm thấy kênh");}
     private void saveSession(){try{SessionStore.save(getApplicationContext(),SessionStore.snapshot(allChannels),currentSource,epgUrl,duplicateCount,missingUrlCount);}catch(Exception ignored){}}
     private void setLoading(boolean v){loading=v;if(progress!=null)progress.setVisibility(v?View.VISIBLE:View.GONE);}
     private void setImportExpanded(boolean expanded){importExpanded=expanded;View section=findViewById(R.id.importPanel);if(section!=null)section.setVisibility(expanded?View.VISIBLE:View.GONE);}
@@ -262,25 +262,42 @@ public final class MainActivity extends Activity {
         String clock=AppPreferences.showClock(this)?"Ẩn đồng hồ khi xem":"Hiện đồng hồ khi xem";
         String playerSource=AppPreferences.showPlayerSource(this)?"Ẩn nguồn phát khi xem":"Hiện nguồn phát khi xem";
         String background=AppPreferences.backgroundPlayback(this)?"Tắt phát nền khi khóa màn hình/nhấn Home":"Bật phát nền khi khóa màn hình/nhấn Home";
-        List<String> items=new ArrayList<>(java.util.Arrays.asList("Quản lý nguồn IPTV","Thêm hoặc mở URL/tệp","Tải lại playlist hiện tại","Lịch phát sóng (EPG)","Giao diện: "+modeLabel,"Đổi hình nền",urls,rows,fps,clock,playerSource));
+        List<String> items=new ArrayList<>();
+        final int allIndex=items.size();items.add("Tất cả kênh");
+        final int favoriteIndex=items.size();items.add("★ Yêu thích");
+        final int recentSectionIndex=items.size();items.add("◷ Gần đây");
+        final int manageIndex=items.size();items.add("Quản lý nguồn IPTV");
+        final int importIndex=items.size();items.add("Thêm hoặc mở URL/tệp");
+        final int reloadIndex=items.size();items.add("Tải lại playlist hiện tại");
+        final int epgIndex=items.size();items.add("Lịch phát sóng (EPG)");
+        final int interfaceIndex=items.size();items.add("Giao diện: "+modeLabel);
+        final int wallpaperIndex=items.size();items.add("Đổi hình nền");
+        final int urlsIndex=items.size();items.add(urls);
+        final int rowsIndex=items.size();items.add(rows);
+        final int fpsIndex=items.size();items.add(fps);
+        final int clockIndex=items.size();items.add(clock);
+        final int playerSourceIndex=items.size();items.add(playerSource);
         final int backgroundIndex;if(tv)backgroundIndex=-1;else{backgroundIndex=items.size();items.add(background);}
-        final int recentIndex=items.size();items.add("Xóa lịch sử Gần đây");
+        final int clearRecentIndex=items.size();items.add("Xóa lịch sử Gần đây");
         final int aboutIndex=items.size();items.add("Thông tin ứng dụng");
         new AlertDialog.Builder(this).setTitle("Tùy chọn ứng dụng")
                 .setItems(items.toArray(new String[0]),(dialog,which)->{
-                    if(which==0)showPlaylistSources();
-                    if(which==1)showImportTools();
-                    if(which==2)reloadPlaylistUrl();
-                    if(which==3)showEpgEditor();
-                    if(which==4)chooseInterfaceMode();
-                    if(which==5)chooseWallpaper();
-                    if(which==6){AppPreferences.setShowUrls(this,!AppPreferences.showUrls(this));adapter.notifyDataSetChanged();}
-                    if(which==7){AppPreferences.setCompactRows(this,!AppPreferences.compactRows(this));adapter.notifyDataSetChanged();}
-                    if(which==8)AppPreferences.setShowFps(this,!AppPreferences.showFps(this));
-                    if(which==9)AppPreferences.setShowClock(this,!AppPreferences.showClock(this));
-                    if(which==10)AppPreferences.setShowPlayerSource(this,!AppPreferences.showPlayerSource(this));
+                    if(which==allIndex)selectSection(0);
+                    if(which==favoriteIndex)selectSection(1);
+                    if(which==recentSectionIndex)selectSection(2);
+                    if(which==manageIndex)showPlaylistSources();
+                    if(which==importIndex)showImportTools();
+                    if(which==reloadIndex)reloadPlaylistUrl();
+                    if(which==epgIndex)showEpgEditor();
+                    if(which==interfaceIndex)chooseInterfaceMode();
+                    if(which==wallpaperIndex)chooseWallpaper();
+                    if(which==urlsIndex){AppPreferences.setShowUrls(this,!AppPreferences.showUrls(this));adapter.notifyDataSetChanged();}
+                    if(which==rowsIndex){AppPreferences.setCompactRows(this,!AppPreferences.compactRows(this));adapter.notifyDataSetChanged();}
+                    if(which==fpsIndex)AppPreferences.setShowFps(this,!AppPreferences.showFps(this));
+                    if(which==clockIndex)AppPreferences.setShowClock(this,!AppPreferences.showClock(this));
+                    if(which==playerSourceIndex)AppPreferences.setShowPlayerSource(this,!AppPreferences.showPlayerSource(this));
                     if(which==backgroundIndex){boolean enabled=!AppPreferences.backgroundPlayback(this);AppPreferences.setBackgroundPlayback(this,enabled);if(!enabled)stopService(new Intent(this,BackgroundPlaybackService.class));if(enabled&&android.os.Build.VERSION.SDK_INT>=33)requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS},104);toast(enabled?"Đã bật phát nền":"Đã tắt phát nền");}
-                    if(which==recentIndex){AppPreferences.clearRecent(this);if(activeSection==2)filter();toast("Đã xóa lịch sử");}
+                    if(which==clearRecentIndex){AppPreferences.clearRecent(this);if(activeSection==2)filter();toast("Đã xóa lịch sử");}
                     if(which==aboutIndex)showAbout();
                 }).setNegativeButton("Đóng",null).show();
     }
@@ -295,7 +312,7 @@ public final class MainActivity extends Activity {
     private void applyInterfaceMode(ListView list){
         boolean tv=AppPreferences.isTvInterface(this);
         list.setDividerHeight(dp(tv?3:5));
-        if(tv)findViewById(R.id.btnAllChannels).post(()->findViewById(R.id.btnAllChannels).requestFocus());
+        if(tv){View all=findViewById(R.id.btnAllChannels);if(all!=null)all.post(()->all.requestFocus());}
     }
     private void chooseWallpaper(){
         new AlertDialog.Builder(this).setTitle("Hình nền")
