@@ -1,3 +1,25 @@
+# MOBILE 1.10.64 / 82 — XỬ LÝ LỖI VIDEO ĐEN/RENDERER — 2026-09-21
+
+## Phân tích video mới
+Video test 62 giây cho thấy lỗi không chỉ nằm ở `STATE_ENDED`: có nhiều thời điểm Browse/metadata vẫn hoạt động nhưng vùng video YouTube chuyển thành **màu đen**, đồng thời mini-player có lúc hiện trạng thái phát lỗi. Điều này cho thấy cần xử lý cả đường **decoder → video surface**, không chỉ lifecycle/state.
+
+## Sửa 1.10.64
+- Thêm render watchdog: nếu player đang READY/BUFFERING + muốn phát nhưng sau 1,8 giây không có frame, thực hiện rebind target và seek về vị trí hiện tại để kích hoạt lại render path.
+- Đổi PlayerView video surface của Mobile YouTube từ `TextureView` về `SurfaceView` để giảm lỗi black-frame khi chuyển mini/fullscreen và khi decoder được tái tạo.
+- Giữ phục hồi `STATE_ENDED` của 1.10.63.
+- Giữ OOM/memory recovery và explicit mini target rebind của 1.10.62.
+- Chỉ Mobile, không TV.
+
+## Commit
+- `c0b0a048ef3c1e9bb36bf634f4c13b34af380544` — render watchdog.
+- `7d1079f5904e0b96175147f4ae4a142b910f1a10` — SurfaceView renderer.
+- `f00b5df4d7da0f2ff63e4c192ab70e4fd837edf5` — Mobile 1.10.64 / versionCode 82.
+
+## Trạng thái
+Đã sửa source và tăng version. Cần CI build Mobile-only trước khi cài test. Không coi bản 1.10.63 là bản xác nhận cuối cùng.
+
+---
+
 # MOBILE 1.10.63 / 81 — SỬA NGAY LỖI MINI/PLAYER BLACK — 2026-09-21
 
 ## Lỗi tái hiện từ video mới
