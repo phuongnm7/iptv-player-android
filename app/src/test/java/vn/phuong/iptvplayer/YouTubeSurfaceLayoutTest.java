@@ -33,7 +33,7 @@ public class YouTubeSurfaceLayoutTest {
 
     @Test public void miniUsesSurfaceAfterAllResourceMerges() throws Exception {
         View mini = LayoutInflater.from(themedContext()).inflate(R.layout.nm7_mini_player, null, false);
-        assertTextureTarget(mini);
+        assertSurfaceTarget(mini);
     }
 
     @Test public void fullscreenUsesMatchingSurfaceTarget() throws Exception {
@@ -42,6 +42,6 @@ public class YouTubeSurfaceLayoutTest {
         int playerId = context.getResources().getIdentifier("playback_player_view", "id", context.getPackageName());
         assertTrue(layout != 0 && playerId != 0);
         View root = LayoutInflater.from(context).inflate(layout, null, false);
-        assertTextureTarget(root.findViewById(playerId));
+        assertSurfaceTarget(root.findViewById(playerId));
     }
 }
