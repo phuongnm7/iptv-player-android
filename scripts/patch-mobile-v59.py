@@ -46,6 +46,12 @@ s=once(s,'    private String mNm7ErrorLabel;', '''    private String mNm7ErrorLa
         mNm7LastEngineError = error;
         mNm7ErrorLabel = com.liskovsoft.smartyoutubetv2.droid.ui.shared.Nm7PlaybackError.describe(error, error.type);
         if (mNm7Stopped || isFinishing() || isDestroyed() || sNm7SuspendedForIptv) return;
+        // Decoder recovery is owned here. Do not also send the same decoder error into
+        // ErrorFixerController, otherwise retry/restart paths can race and break playback.
+        if (isNm7DecoderError(error)) {
+            recoverNm7DecoderError(error);
+            return;
+        }
         mPlaybackPresenter.setView(this);
         mPlaybackPresenter.onEngineError(error.type, error.rendererIndex,
                 error.getCause() == null ? error : error.getCause());
