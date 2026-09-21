@@ -513,7 +513,6 @@ public final class MobileNm7Application extends DroidApplication implements andr
             try {
                 com.bumptech.glide.Glide.get(getApplicationContext()).trimMemory(level);
             } catch (RuntimeException ignored) { }
-            System.gc();
         }
     }
 
