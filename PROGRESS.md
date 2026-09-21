@@ -1,3 +1,34 @@
+# MOBILE 1.10.62 / 80 — BUILD SUCCESS — CHỜ TEST THIẾT BỊ THẬT — 2026-09-21
+
+## Vòng sửa 1.10.62 — giảm áp lực bộ nhớ + phục hồi mini-player
+- Nền: Mobile 1.10.60/78 đã được người dùng xác nhận ổn định, sau đó 1.10.61/79 phát hiện mini-player đen/kết thúc bất thường trong video test.
+- Không kết luận clip là OOM nếu thiếu logcat; 1.10.62 xử lý cả hai hướng: giảm memory pressure và re-bind mini target sau khi player/decoder READY trở lại.
+- Hạ shared ExoPlayer buffer ceiling từ 32 MiB (/8 heap) xuống tối đa 16 MiB (/10 heap).
+- Giảm RecyclerView holder retention trong Browse/Playback.
+- Khi phát hiện OutOfMemoryError thật: giới hạn recovery, trim tài nguyên hình ảnh nếu có, giảm video kế tiếp tối đa 1280x720 / 4 Mbps và không vượt video constraints.
+- Ghi memory diagnostics an toàn (PSS/heap) không ghi URL/token.
+- Khi engine/player READY trở lại, re-bind target mini nếu phiên mini còn active; đây là sửa trực tiếp cho hiện tượng mini đen sau recreation.
+- Có onTrimMemory ở Application nhưng không thêm dependency Glide vào module Mobile; bản cuối giữ implementation không phụ thuộc Glide.
+- Version: **1.10.62 / versionCode 80**.
+- Source commit build: `e2b07a42b11ac9b41942a3de864788ecb95e8db9`.
+
+## CI / Build
+- **NM7 Mobile Final Build #391 — SUCCESS**.
+- Run: `35563683977`; job: `106221213672`.
+- Lifecycle regression guards: PASS.
+- SmartTube patch/compatibility/resource isolation: PASS.
+- `Build Mobile only (current NM7 IPTV Mobile)`: SUCCESS.
+- APK artifact: `NM7-IPTV-Mobile-FINAL`, ID `10623695224`, SHA256 `0fdc7f8a63cd767387deea8dd70817466f0e910170ed5b018c7eccf51cace3df`, hết hạn 2026-10-21.
+- Artifact chỉ thuộc workflow Mobile; không build Android TV trong run này.
+- Bản APK đã build thành công, nhưng **chưa có xác nhận runtime trên điện thoại thật** cho 1.10.62.
+
+## Kiểm thử tiếp theo trên thiết bị thật
+1. Phát YouTube fullscreen → thu nhỏ mini → cuộn Browse 15–20 phút.
+2. Chuyển video YouTube nhiều lần, đặc biệt khi Browse đang tải nhiều thumbnail.
+3. Home/khóa màn hình rồi quay lại, kiểm tra mini không đen và không tự dừng.
+4. IPTV ↔ YouTube nhiều lần; IPTV chỉ release khi YouTube thực sự bắt đầu playback.
+5. Nếu mini lại đen/lỗi, lấy logcat tại lần lỗi đầu tiên để phân biệt OOM với ExoPlaybackException/MediaCodec/decoder/source.
+
 # MOBILE 1.10.61 / 79 — BUILD SUCCESS, CHỜ TEST THIẾT BỊ — 2026-09-21
 
 ## Phản hồi sau khi test dài hơn
