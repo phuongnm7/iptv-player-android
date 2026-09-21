@@ -66,3 +66,5 @@ dependencies {
     testImplementation("org.json:json:20240303")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }
+
+// trigger build 2.0.0
