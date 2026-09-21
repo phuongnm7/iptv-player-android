@@ -14,6 +14,28 @@
     private boolean mNm7OwnsPlayback;
     private Object mNm7BackCallback;
 
+    private void armNm7RenderWatchdog() {
+        if (mPlayer == null || mNm7Stopped) return;
+        final PlaybackActivity owner = this;
+        final long started = android.os.SystemClock.elapsedRealtime();
+        mHandler.postDelayed(() -> {
+            if (owner.mPlayer == null || owner.mNm7Stopped || owner.mPlayer != mPlayer) return;
+            int state = owner.mPlayer.getPlaybackState();
+            boolean wantsPlay = owner.mPlayer.getPlayWhenReady();
+            if (wantsPlay && (state == Player.STATE_READY || state == Player.STATE_BUFFERING)) {
+                android.util.Log.w("NM7Playback", "render_watchdog_no_first_frame_ms="
+                        + (android.os.SystemClock.elapsedRealtime() - started));
+                try {
+                    owner.bindNm7PlayerTarget();
+                    owner.mPlayer.seekTo(owner.mPlayer.getCurrentPosition());
+                    owner.mPlayer.setPlayWhenReady(true);
+                } catch (RuntimeException error) {
+                    android.util.Log.w("NM7Playback", "render watchdog rebind failed", error);
+                }
+            }
+        }, 1800L);
+    }
+
     private void bindNm7PlayerTarget() {
         // ErrorFixerController may rebuild the engine while PlaybackActivity is stopped.
         // Binding the new player to its hidden full view leaves the visible mini black.
@@ -37,6 +59,7 @@
         com.google.android.exoplayer2.ui.PlayerView.switchTargetView(mPlayer, mNm7VideoTarget, target);
         if (target.getPlayer() != mPlayer) target.setPlayer(mPlayer);
         mNm7VideoTarget = target;
+        armNm7RenderWatchdog();
     }
 
     public static boolean isNm7Playing() {
