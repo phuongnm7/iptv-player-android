@@ -73,7 +73,6 @@ def alert_title(root):
 
 
 def dismiss_pixel_launcher_anr(root):
-    """Ignore only the emulator launcher's own ANR; never mask an Nm7 ANR/crash."""
     title = alert_title(root)
     if title != "Pixel Launcher isn't responding":
         return False
@@ -87,7 +86,6 @@ def dismiss_pixel_launcher_anr(root):
 
 
 def dismiss_expected_playlist_error(root):
-    """Dismiss only the handled network error shown when CI cannot resolve the default playlist."""
     title = alert_title(root)
     message = next(
         (
@@ -195,7 +193,7 @@ run_adb("shell", "settings", "put", "system", "accelerometer_rotation", "0", che
 run_adb("shell", "settings", "put", "system", "user_rotation", "0", check=False)
 time.sleep(.8)
 root = launch_main()
-required = ["btnWallpaper", "inputSearch", "listChannels"]
+required = ["btnWallpaper", "inputSearch", "groupRow"]
 missing = [name for name in required if not has_id(root, name)]
 if missing:
     print_diagnostics()
