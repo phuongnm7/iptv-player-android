@@ -1,3 +1,16 @@
+# MOBILE 1.10.67 / 85 — FRAME-PROGRESS RECOVERY — 2026-09-21
+
+- Sửa watchdog dùng sai sự kiện first-frame sau mỗi READY: nay đo renderedOutputBufferCount, chỉ khi video thực sự cần hiển thị trên surface hợp lệ. Không tự restart khi pause, buffering, mất audio focus, chạy nền hoặc khóa màn hình.
+- Chỉ giữ một tác vụ watchdog; hủy khi release/đổi player/chuyển IPTV/đóng mini. Callback kiểm tra đúng instance và generation thay vì so sánh cùng một field với chính nó.
+- Dùng chung ngân sách phục hồi decoder/render theo video: rebind hoặc decoder retry, rebuild, rebuild với giới hạn 720p/4Mbps, rồi báo lỗi để người dùng thử lại. READY và tạo lại engine không xóa ngân sách; 30 giây có frame liên tục mới phục hồi ngân sách.
+- Decoder error trong thời gian chờ được xử lý sau 1,5 giây, không bị bỏ qua bởi cooldown. Giữ pause do người dùng; giữ giới hạn video khi tạo lại selector.
+- APK YouTube tham khảo có chuỗi Media3 và kiểm tra surface không hợp lệ. Đây chỉ là quan sát thành phần, không phải bằng chứng về thuật toán nội bộ hay mã nguồn YouTube.
+- Kiểm tra local: 95 structural guards và 6 kịch bản chạy trực tiếp trên policy Java đã pass. Thêm kiểm thử Robolectric hủy hai tác vụ thật trên Handler; kết quả Android build/test cần đối chiếu CI.
+- Chưa xác nhận hết lỗi trên thiết bị; không đánh dấu stable. Cần thử mini/fullscreen nhiều lần, khóa/mở màn hình, đổi IPTV/YouTube, pause và phát liên tục ít nhất 15 phút.
+- Giữ nguyên phạm vi Mobile; chưa thay UI hay engine toàn bộ. Lỗi load nguồn/mạng không được kết luận đã hết bởi thay đổi watchdog.
+
+---
+
 # MOBILE 1.10.66 / 84 — CI BUILD SUCCESS — 2026-09-21
 
 ## Kiểm tra lỗi GitHub và kết quả
