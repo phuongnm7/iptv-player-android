@@ -88,10 +88,8 @@
         mNm7RenderRecoveryAttempts = 0;
 
         mNm7PlaybackObserver = new com.google.android.exoplayer2.Player.EventListener() {
-            @Override public void onPlayerError(com.google.android.exoplayer2.ExoPlaybackException error) {
-                recoverNm7DecoderError(error);
-            }
-
+            // Decoder errors are routed through Nm7EngineErrorOwner so the presenter and
+            // decoder recovery never race each other.
             @Override public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
                 if (playbackState == com.google.android.exoplayer2.Player.STATE_READY) {
                     mNm7DecoderRecoveryAttempts = 0;
