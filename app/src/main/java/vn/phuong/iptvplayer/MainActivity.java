@@ -51,7 +51,7 @@ public final class MainActivity extends Activity {
     private final android.os.Handler epgHandler=new android.os.Handler(android.os.Looper.getMainLooper());
     private final Runnable epgTick=new Runnable(){@Override public void run(){if(adapter!=null)adapter.notifyDataSetChanged();epgHandler.postDelayed(this,60_000);}};
 
-    @Override protected void onCreate(Bundle savedInstanceState) { super.onCreate(savedInstanceState); setupViews(); restoreSession(); epgHandler.post(epgTick); }
+    @Override protected void onCreate(Bundle savedInstanceState) { super.onCreate(savedInstanceState); setupViews(); SleepTimer.restore(this); restoreSession(); epgHandler.post(epgTick); }
     @Override protected void onDestroy(){epgHandler.removeCallbacksAndMessages(null);super.onDestroy();}
 
     private void setupViews() {
@@ -277,6 +277,7 @@ public final class MainActivity extends Activity {
         final int fpsIndex=items.size();items.add(fps);
         final int clockIndex=items.size();items.add(clock);
         final int playerSourceIndex=items.size();items.add(playerSource);
+        final int sleepTimerIndex=items.size();items.add("Hẹn giờ đóng app");
         final int backgroundIndex;if(tv)backgroundIndex=-1;else{backgroundIndex=items.size();items.add(background);}
         final int clearRecentIndex=items.size();items.add("Xóa lịch sử Gần đây");
         final int aboutIndex=items.size();items.add("Thông tin ứng dụng");
@@ -296,6 +297,8 @@ public final class MainActivity extends Activity {
                     if(which==fpsIndex)AppPreferences.setShowFps(this,!AppPreferences.showFps(this));
                     if(which==clockIndex)AppPreferences.setShowClock(this,!AppPreferences.showClock(this));
                     if(which==playerSourceIndex)AppPreferences.setShowPlayerSource(this,!AppPreferences.showPlayerSource(this));
+                    if(which==playerSourceIndex+1)SleepTimer.showDialog(this);
+                    if(which==sleepTimerIndex)SleepTimer.showDialog(this);
                     if(which==backgroundIndex){boolean enabled=!AppPreferences.backgroundPlayback(this);AppPreferences.setBackgroundPlayback(this,enabled);if(!enabled)stopService(new Intent(this,BackgroundPlaybackService.class));if(enabled&&android.os.Build.VERSION.SDK_INT>=33)requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS},104);toast(enabled?"Đã bật phát nền":"Đã tắt phát nền");}
                     if(which==clearRecentIndex){AppPreferences.clearRecent(this);if(activeSection==2)filter();toast("Đã xóa lịch sử");}
                     if(which==aboutIndex)showAbout();
