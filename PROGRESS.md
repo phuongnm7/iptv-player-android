@@ -1,4 +1,15 @@
-# BUILD SUCCESS — MOBILE 1.10.60 / 78 — PHÁT NỀN / KHÓA MÀN HÌNH — CHỜ TEST THIẾT BỊ — 2026-09-21
+# STABLE BASELINE — MOBILE 1.10.60 / 78 — NGƯỜI DÙNG ĐÃ TEST — 2026-09-21
+
+
+## Mốc ổn định hiện tại và bàn giao phát triển
+- Ngày 2026-09-21, người dùng xác nhận: “bản này đã tét, tạm thời các lỗi đã được khắc phục”, yêu cầu đánh dấu ổn định và dùng làm gốc cho phát triển tiếp theo.
+- **Mobile 1.10.60 / versionCode 78 là bản ổn định hiện tại**, theo kết quả sử dụng thực tế do người dùng xác nhận. Không suy diễn rằng mọi thiết bị hoặc mọi ca kiểm thử riêng lẻ đều đã được kiểm tra.
+- Mã nguồn APK chuẩn: `3349081178e99f195b4c347f98e781688b913430`; build **#379**, run `35545715388`.
+- Nhánh lưu mốc: `stable/mobile-1.10.60`. Giữ nhánh này làm mốc đối chiếu/khôi phục; các thay đổi tiếp theo phát triển trên nhánh công việc dựa trên mốc này, không ghi đè mốc bằng tính năng thử nghiệm.
+- Các phiên làm việc tiếp theo phải đọc mục này và lấy 1.10.60 làm nền, không tiếp tục từ các snapshot cũ 1.10.55–1.10.59.
+- Giữ các hành vi đã sửa: Back/mini/khôi phục player; phát nền và khóa/mở màn hình; quyền phát giữa YouTube và IPTV; vuốt thẻ không chọn nhầm video; cuộn không nháy; xoay ngang/fullscreen; hẹn giờ tắt.
+- Khi sửa phần liên quan, kiểm tra hồi quy các hành vi trên. Các bản mới chỉ được đánh dấu ổn định khi có xác nhận, không tự kế thừa trạng thái stable.
+- Đợt cập nhật này chỉ ghi nhận tiến độ và lưu mốc, không thay mã chạy, version hoặc APK. Phạm vi Mobile; không tác động kho phát triển TV.
 
 ## Phản hồi và bằng chứng
 - Người dùng xác nhận 1.10.59 lỗi nghiêm trọng: mini phát nền sau khi tắt màn hình chỉ được một lúc rồi tự đóng.
@@ -16,8 +27,8 @@
 ## Xác minh / giới hạn
 - Áp dụng toàn bộ patch 1.10.60 lên source pin sạch, gồm MediaServiceCore đúng SHA; 94 structural checks PASS, Python syntax PASS.
 - Thêm 6 Robolectric tests: mini lock/unlock; full foreground/background; close/IPTV; wake policy khi pause/recovery; service thật giữ notification và nhả/giữ lock qua pause/resume; predicate mini thật vẫn active khi decoder=null nhưng session còn.
-- CI compile, `:app:testMobileDebugUnitTest` (gồm 6 test mới) và assembleMobileDebug SUCCESS. Chưa có kiểm tra trên điện thoại, không khẳng định hết lỗi khóa màn hình hoặc mini đen chỉ từ source/unit tests.
-- Cần test bản mới: phát mini rồi khóa màn hình 15–30 phút; mở khóa phải giữ video/vị trí; Home 15 phút; pause rồi khóa không tự phát; full→mini→full 10 vòng; mini khi đổi tab; chọn IPTV/đóng mini/hẹn giờ phải nhả phiên nền.
+- CI compile, `:app:testMobileDebugUnitTest` (gồm 6 test mới) và assembleMobileDebug SUCCESS. Người dùng đã test và xác nhận tạm thời các lỗi đã được khắc phục ngày 2026-09-21; trạng thái stable dựa trên xác nhận đó kết hợp kết quả CI.
+- Danh sách kiểm tra hồi quy cho các bản tiếp theo (không khẳng định người dùng đã thực hiện từng ca): phát mini rồi khóa màn hình 15–30 phút; mở khóa phải giữ video/vị trí; Home 15 phút; pause rồi khóa không tự phát; full→mini→full 10 vòng; mini khi đổi tab; chọn IPTV/đóng mini/hẹn giờ phải nhả phiên nền.
 - Kiến trúc player hiện vẫn thuộc PlaybackActivity; bản sửa giữ foreground service và tránh dừng nhầm, chưa chuyển toàn bộ engine sang service owner độc lập. Không cam kết tiếp tục phát sau force-stop hoặc khi hệ thống thực sự hủy process/Activity.
 
 ## Build / APK 1.10.60 đã xác nhận
@@ -29,7 +40,7 @@
 - Artifact SHA256: `ac166d196eed0d34af1fe438b738fc2699f4031ae017ba6aa21783fc24f6fdbd`.
 - ARM64 APK SHA256: `95b2c01c3b02fbd06d3f1ff04423dec53cbfb647304262836bb53f782cef3a82`.
 - ARMv7 APK SHA256: `6d2b3d0cac2fa8ffd71fbf5bdf1a07d358f509b1f24f0d9f8311200190e4fe69`.
-- Chưa stable; cần người dùng xác nhận phát mini khi khóa màn hình 15–30 phút và mở khóa/đổi target/chuyển IPTV.
+- Đã được người dùng xác nhận ổn định hiện tại ngày 2026-09-21; lấy bản này làm nền phát triển tiếp.
 
 ---
 
