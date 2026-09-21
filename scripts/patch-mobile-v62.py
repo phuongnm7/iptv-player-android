@@ -3,7 +3,7 @@ from pathlib import Path
 
 root = Path("third_party/SmartTube-droid")
 ui = root / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui"
-common = root / "common/src/main/java/com/liskovsoft/smartyoutubetv2/common")
+common = root / "common/src/main/java/com/liskovsoft/smartyoutubetv2/common"
 
 def once(s, old, new):
     assert s.count(old) == 1, old[:160]
