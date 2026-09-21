@@ -18,13 +18,13 @@ import static org.junit.Assert.*;
 @Config(sdk = 28, application = Application.class)
 @LooperMode(LooperMode.Mode.PAUSED)
 public class YouTubeRecoveryCancellationTest {
-    @Test public void detachCancelsBothQueuedTasksAndKeepsBudget() throws Exception {
+    @Test public void detachCancelsAllQueuedTasksAndKeepsBudget() throws Exception {
         Class<?> type = Class.forName("com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity");
         Object owner = type.getConstructor().newInstance();
         Field handlerField = type.getDeclaredField("mHandler"); handlerField.setAccessible(true);
         Handler handler = (Handler) handlerField.get(owner);
         int[] calls = {0};
-        for (String name : new String[]{"mNm7RenderTick", "mNm7DecoderRetry"}) {
+        for (String name : new String[]{"mNm7RenderTick", "mNm7DecoderRetry", "mNm7VisibilityTask"}) {
             Field field = type.getDeclaredField(name); field.setAccessible(true);
             Runnable task = () -> calls[0]++;
             field.set(owner, task); handler.postDelayed(task, 1500);
@@ -38,7 +38,7 @@ public class YouTubeRecoveryCancellationTest {
         Shadows.shadowOf(Looper.getMainLooper()).idleFor(2, TimeUnit.SECONDS);
         assertEquals(0, calls[0]);
         assertEquals(2, failure.invoke(policy));
-        for (String name : new String[]{"mNm7RenderTick", "mNm7DecoderRetry"}) {
+        for (String name : new String[]{"mNm7RenderTick", "mNm7DecoderRetry", "mNm7VisibilityTask"}) {
             Field field = type.getDeclaredField(name); field.setAccessible(true);
             assertNull(field.get(owner));
         }

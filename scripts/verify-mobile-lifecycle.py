@@ -143,6 +143,14 @@ check('(!playWhenReady || playbackState == Player.STATE_ENDED)' not in play and 
 check('setRendererDisabled(i, true)' in play and 'mNm7SavedVideoRenderers.get(i)' in play, 'Background audio temporarily disables and restores only video renderers')
 check('mNm7SessionVideo != null' in body('public static boolean isNm7MiniPlayerActive()'), 'Mini presence survives a null decoder during rebuild')
 check('youtube_active' in Path('app/src/main/java/vn/phuong/iptvplayer/BackgroundPlaybackService.java').read_text(), 'Service separates session notification from wake-lock playing intent')
+view_manager = Path('third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/views/ViewManager.java').read_text()
+loader = Path('third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java').read_text()
+check('createNm7LaunchIntent(activityClass)' in view_manager and 'Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP' in view_manager, 'Browse selection reuses the existing Mobile playback Activity below it')
+check('if (mPlaybackPresenter.getPlayer() == this) mPlaybackPresenter.onEngineReleased();' in play, 'An obsolete Activity release cannot cancel the current owner source request')
+check('startNm7SelectedFormat(item, null)' in loader and 'mNm7SelectedRequest.attach(video.videoId, owner)' in loader, 'Cold screen creation shares one selected-video lookup')
+check('mNm7SelectedRequest.complete(token' in loader and 'mNm7SelectedRequest.cancel()' in loader, 'Obsolete format success/error callbacks are generation guarded')
+check('if (!mNm7StartupFrame) return;' in play and 'video_bind_to_frame_ms=' in play and 'format_ready_ms=' in loader, 'First frame has priority over comments and startup stages are timed')
+check('mHandler.postDelayed(mNm7VisibilityTask, 300L)' in play and 'mHandler.removeCallbacks(mNm7VisibilityTask)' in play, 'Internal Activity transitions cancel pending renderer background shutdown')
 out.mkdir(parents=True, exist_ok=True)
 (out/'lifecycle-source-proof.json').write_text(json.dumps({
     'structural_checks': checks,
@@ -152,4 +160,3 @@ out.mkdir(parents=True, exist_ok=True)
     'browse_sha256': hashlib.sha256(browse.encode()).hexdigest(),
 }, indent=2))
 print(f'{checks} structural checks passed; device runtime not verified')
-

@@ -219,6 +219,14 @@ jobs:
           verify_abi "$arm64" "arm64-v8a"; verify_abi "$armv7" "armeabi-v7a"
           cp "$arm64" "dist/mobile/NM7-IPTV-Mobile-${version}-arm64-v8a.apk"; cp "$armv7" "dist/mobile/NM7-IPTV-Mobile-${version}-armeabi-v7a.apk"; sha256sum dist/mobile/*.apk | tee dist/mobile/SHA256SUMS.txt
 
+      - name: Upload Mobile unit test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a0
+        with:
+          name: Mobile-unit-test-results
+          path: app/build/test-results/testMobileDebugUnitTest/*.xml
+          if-no-files-found: warn
+
       - name: Upload Mobile APK
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a0
         with:

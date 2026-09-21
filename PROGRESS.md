@@ -1,3 +1,18 @@
+# MOBILE 1.10.68 / 86 — SINGLE PLAYBACK OWNER + SELECTED SOURCE PIPELINE — 2026-09-21
+
+- Người dùng xác nhận 1.10.67 vẫn lỗi qua video `218073.mp4`: mini/player đen và mini báo phiên phát kết thúc. 1.10.67 KHÔNG ổn định; không coi watchdog là giải pháp đầy đủ.
+- Phát hiện đường mở video của ViewManager chỉ dùng NEW_TASK trong khi PlaybackActivity là singleTop. Khi Browse/Search nằm trên mini's Activity, chọn video có thể tạo thêm Activity/player, trong khi presenter đã gửi video mới vào player cũ. Hai engine cùng dùng presenter là xung đột lifecycle cụ thể trong mã, cần kiểm chứng lại trên máy sau sửa.
+- 1.10.68 thêm REORDER_TO_FRONT + SINGLE_TOP riêng cho Mobile PlaybackActivity, không CLEAR_TOP/CLEAR_TASK. Giữ engine hiện có khi chọn video từ mini.
+- Engine cũ không được gửi READY/ENDED/error/seek/track events hoặc onEngineReleased/onFinish vào presenter của owner mới.
+- Tăng tốc đường mở lạnh: bắt đầu lấy format cho đúng video vừa chọn trong lúc tạo Activity/engine; gắn kết quả vào owner khi sẵn sàng, tiêu thụ một lần. Chỉ một kết quả tạm trong RAM, không thêm cache URL ký và không tải trước cả feed. Kết quả/lỗi cũ bị loại theo generation, video và owner; đóng/chọn video khác hủy subscription.
+- Debounce 300ms việc tắt renderer khi app rời foreground, hủy nếu Activity kế tiếp resume. Keep-alive vẫn bắt đầu ngay; tránh bật/tắt decoder cho chuyển màn hình nội bộ ngắn.
+- Dời tải comment preview đến sau frame đầu tiên. Log thời gian format_ready_ms và video_bind_to_frame_ms không chứa URL/token; chưa đo được phần trăm tăng tốc trên điện thoại/mạng thực tế.
+- APK YouTube tham khảo có dấu vết AndroidXMedia3/1.11.1 và kiểm tra surface invalid. Chỉ xác nhận thành phần từ APK; không tuyên bố đã khôi phục thuật toán tải/phục hồi độc quyền của YouTube.
+- Kiểm thử: thêm các trường hợp phản hồi mạng trước/sau khởi tạo màn hình, callback lỗi/video cũ, owner cũ, hủy rồi thử lại cùng video; kiểm tra Intent và sự kiện ExoController cũ không tác động presenter. CI sẽ xuất XML kết quả test cùng APK.
+- Mobile-only; chưa đánh dấu stable và chưa xác nhận đã hết lỗi trên thiết bị.
+
+---
+
 # MOBILE 1.10.67 / 85 — CI BUILD SUCCESS — 2026-09-21
 
 - Mobile Final run **#415**: https://github.com/phuongnm7/iptv-player-android/actions/runs/35589233133
