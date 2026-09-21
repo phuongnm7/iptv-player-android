@@ -99,7 +99,7 @@ check('if (sNm7Mini && !sNm7RestorePending) return' not in back_body, 'Stale min
 check('mNm7VideoTarget' in play, 'Player owner tracks actual video target across Activities')
 check('sNm7Mini = false;' in body('private void completeNm7RestoreOnResume()'), 'Foreground normalization always clears mini state')
 check('installSmartTubeBackHandling(activity);' in application, 'Android 13 Browse/Search Back callback installed')
-check('texture_view' in Path('app/src/main/res/layout/nm7_mini_player.xml').read_text(), 'Mini inflates texture-backed legacy PlayerView')
+check('app:surface_type=\"surface_view\"' in Path('app/src/main/res/layout/nm7_mini_player.xml').read_text(), 'Mini inflates SurfaceView-backed PlayerView for stable decoder rendering')
 check('app:surface_type="surface_view"' in Path('third_party/SmartTube-droid/smarttubedroid/src/main/res/layout/playback_activity.xml').read_text(), 'Fullscreen target uses SurfaceView for stable decoder rendering')
 check('armNm7RenderWatchdog();' in play and 'render_watchdog_no_first_frame_ms=' in play, 'Render watchdog rebinds a READY/BUFFERING target with no visible frame')
 check('SCREEN_ORIENTATION_SENSOR' in application.split('public void onActivityCreated')[1].split('public void onActivityPaused')[0], 'YouTube playback allows sensor rotation')
