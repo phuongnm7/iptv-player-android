@@ -4,7 +4,7 @@ import android.app.Application;
 import android.content.Context;
 import android.view.ContextThemeWrapper;
 import android.view.LayoutInflater;
-import android.view.TextureView;
+import android.view.SurfaceView;
 import android.view.View;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -24,19 +24,19 @@ public class YouTubeSurfaceLayoutTest {
         return new ContextThemeWrapper(app, style);
     }
 
-    private void assertTextureTarget(View player) throws Exception {
+    private void assertSurfaceTarget(View player) throws Exception {
         assertNotNull(player);
         Object surface = player.getClass().getMethod("getVideoSurfaceView").invoke(player);
-        assertTrue("Legacy PlayerView must create TextureView, not SurfaceView", surface instanceof TextureView);
+        assertTrue("Mobile PlayerView must create SurfaceView, not TextureView", surface instanceof SurfaceView);
         assertEquals(Boolean.FALSE, player.getClass().getMethod("getUseController").invoke(player));
     }
 
-    @Test public void miniUsesTextureAfterAllResourceMerges() throws Exception {
+    @Test public void miniUsesSurfaceAfterAllResourceMerges() throws Exception {
         View mini = LayoutInflater.from(themedContext()).inflate(R.layout.nm7_mini_player, null, false);
         assertTextureTarget(mini);
     }
 
-    @Test public void fullscreenUsesMatchingTextureTarget() throws Exception {
+    @Test public void fullscreenUsesMatchingSurfaceTarget() throws Exception {
         Context context = themedContext();
         int layout = context.getResources().getIdentifier("playback_activity", "layout", context.getPackageName());
         int playerId = context.getResources().getIdentifier("playback_player_view", "id", context.getPackageName());
