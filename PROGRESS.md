@@ -1,3 +1,18 @@
+# MOBILE 1.10.66 / 84 — CI BUILD SUCCESS — 2026-09-21
+
+## Kiểm tra lỗi GitHub và kết quả
+
+- CI run **#410** đã BUILD SUCCESS cho Mobile-only.
+- Lỗi run #408/#409 đã được xác định và xử lý:
+  - Run #408: lifecycle verifier không phân biệt `mPlayer.retry()` dùng riêng cho decoder recovery với retry mini.
+  - Run #409: sau khi sửa verifier, compiler báo `Player` không có `removeVideoListener()`; đổi observer player sang `SimpleExoPlayer`.
+- Run #410 sau hai sửa trên: **Build Mobile only = success**, **Upload Mobile APK = success**.
+- Artifact: `NM7-IPTV-Mobile-FINAL`.
+- Commit build: `455ae7d1f97ec7b04fffdc5b771e30145f6181d7`.
+- Chưa đánh dấu stable cho đến khi test APK thực tế trên máy.
+
+---
+
 # MOBILE 1.10.66 / 84 — FIX DUPLICATE DECODER RECOVERY — 2026-09-21
 
 ## Lỗi phát hiện sau 1.10.65
