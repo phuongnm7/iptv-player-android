@@ -228,4 +228,5 @@ jobs:
           if-no-files-found: error
 
 # NM7 Mobile-only lifecycle fix: release IPTV only on real YouTube playback start; preserve YouTube on HOME/Back.
+# CI retrigger: validate YouTube startup fix on Mobile.
 # Budget restored; run Mobile Final CI.
