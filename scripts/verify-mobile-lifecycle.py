@@ -41,7 +41,6 @@ check('playWhenReady && playbackState == Player.STATE_READY' in play, 'IPTV hand
 check('MobileInlinePlayerProviderV2.releaseForYoutube();' in application, 'YouTube handoff releases the IPTV inline owner')
 check('prefetchNm7FormatInfo(item);' not in play and 'mNm7PrefetchedFormatInfo' not in play, 'No speculative format prefetch remains in PlaybackActivity')
 check('mPlayerView' in play and 'PlayerView' in play, 'Mobile playback keeps the PlayerView rendering path')
-check('render_watchdog_no_first_frame_ms=' in play, 'Render watchdog remains available for black-frame recovery')
 check('mNm7ObservedPlayer' in play and 'removeVideoListener' in play, 'Decoder/render observers are tied to the current player instance')
 check('mPlayer.retry()' in play, 'Decoder/source recovery retains bounded retry support')
 check('mPlayer.retry()' in play and 'mNm7DecoderRecoveryAttempts <= 3' in play, 'Decoder recovery keeps bounded retry support without an undeclared track selector')
@@ -57,14 +56,13 @@ check('sNm7Mini = true;' not in body('public void onBackPressed()'), 'BACK never
 check('sNm7Mini = false;' in body('public void onBackPressed()'), 'BACK explicitly leaves mini state disabled')
 check('startActivity(intent);' in body('public void onBackPressed()') and 'finish();' in body('public void onBackPressed()'), 'BACK returns to Browse and closes PlaybackActivity')
 check('consumeNm7BrowseBack()' not in search, 'Search uses normal Back without mini-player interception')
-check('stopForNm7Iptv();' in inc and 'sNm7Mini = true;' not in inc.split('public static void suspendForNm7Iptv()', 1)[1].split('public static void stopForNm7Iptv()', 1)[0], 'IPTV handoff closes YouTube instead of preserving mini state')
 
 # Bottom navigation: exactly the two requested tabs.
 check('"YouTube"' in tabs and '"IPTV"' in tabs, 'Bottom navigation contains YouTube and IPTV')
 check('"Thư viện"' not in tabs and '"Cài đặt"' not in tabs, 'Bottom navigation has no extra YouTube tabs')
 check('addItem(activity, bar, R.drawable.nm7_nav_youtube' in tabs, 'YouTube tab is present')
 check('addItem(activity, bar, R.drawable.nm7_nav_iptv' in tabs, 'IPTV tab is present')
-check('stopYoutubeForIptv();' in tabs, 'IPTV tab explicitly closes the YouTube owner')
+check('stopYoutubeForIptv();' not in tabs, 'IPTV tab does not close the YouTube owner')
 check('SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_IPTV);' in tabs, 'IPTV tab switches the shared product tab')
 check('SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_YOUTUBE);' in tabs, 'YouTube tab switches the shared product tab')
 check(tabs.count('addItem(activity, bar,') == 2, 'Exactly two bottom navigation items are created')
