@@ -5,7 +5,11 @@ import re
 # 1) Preserve an in-flight selected-video format lookup across controller/owner
 # transitions. The previous cleanup path could dispose the very request that
 # was already started on the user's click, forcing a second network round-trip.
-p = Path("third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java")
+root = Path("third_party/SmartTube-droid")
+matches = list(root.rglob("VideoLoaderController.java"))
+if len(matches) != 1:
+    raise SystemExit(f"v74: expected exactly one VideoLoaderController.java, found {len(matches)}")
+p = matches[0]
 s = p.read_text(encoding="utf-8")
 
 old = '''    private void disposeActions() {
