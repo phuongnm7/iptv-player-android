@@ -3314,3 +3314,34 @@ Build/test bắt buộc:
 3. Mở video YouTube → IPTV mới release.
 4. YouTube đang phát → Back 1 lần → Browse/Home + mini-player, video vẫn phát.
 5. Back lần 2 mới thực hiện hành vi rời Browse theo thiết kế.
+
+
+# VÒNG TỐI ƯU 1.10.74 — 2026-09-22
+
+## Phân tích video máy thật người dùng gửi
+
+Video cho thấy sau khi chọn YouTube video, vùng player vẫn đen và spinner kéo dài khoảng 10+ giây trong khi nội dung chưa xuất hiện; hai tab YouTube/IPTV vẫn nằm ở đáy màn hình trong trạng thái player toàn màn hình.
+
+## Sửa 1.10.74
+
+- **Tối ưu đường load video:** giữ request `getFormatInfoObserve(videoId)` đang chạy thay vì để cleanup của controller hủy request rồi tạo lại một vòng network thứ hai khi PlaybackView/Activity được rebind. Đây là điểm có thể tạo spinner dài ngay sau khi người dùng bấm video.
+- **Giữ nguyên thumbnail:** vẫn dùng `maxresdefault.jpg`, không hạ xuống `mqdefault.jpg`.
+- **Ẩn tab khi player fullscreen:** khi SmartTube PlaybackActivity chuyển sang landscape/fullscreen, HomeTabBar YouTube + IPTV được ẩn; khi trở lại portrait, hai tab được hiện lại.
+- Không thay đổi chức năng/UI YouTube ngoài hành vi fullscreen nêu trên.
+- Không thêm Android TV vào Mobile.
+
+## Version
+
+- versionName: **1.10.74**
+- versionCode: **92**
+
+## Commit chính
+
+- `ff11b17e51f77a0bd3ab50a45f7e1f5fcc203310` — thêm patch v74.
+- `65ac7b43e9b2bd258fd2d082de790babe997fadc` — đưa v74 vào Mobile build chain.
+- `59063c205b275fa3062e3a1463bc24e77526afff` — bump version 1.10.74.
+- `34cd17d29e5415f29dc432fd53ec34a95a14ca1f` — verifier cho v74.
+
+## Trạng thái
+
+Đã sửa source và đẩy lên branch Mobile. **Chưa coi tốc độ đã được xác nhận cho đến khi CI build thành công và người dùng test APK 1.10.74 trên máy thật.**
