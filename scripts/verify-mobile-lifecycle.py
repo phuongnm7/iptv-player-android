@@ -74,13 +74,18 @@ check('HomeTabBar.attach(activity, false);' in application, 'IPTV MainActivity r
 check('GRID_COLUMNS = 1' in browse, 'YouTube recommendations remain single-column')
 check('getCardImageUrl()' in Path('scripts/patch-mobile-ui.py').read_text(), 'YouTube thumbnail card image loading remains enabled')
 check('patch-mobile-v73.py' in patch and 'runpy.run_path("scripts/patch-mobile-v73.py")' in patch, 'YouTube loading optimization patch is part of the Mobile build chain')
+check('patch-mobile-v74.py' in patch and 'runpy.run_path("scripts/patch-mobile-v74.py")' in patch, 'v74 playback/fullscreen optimization patch is part of the Mobile build chain')
 check('setPlayerDataSource' not in play, 'Mobile playback does not force the YouTube transport to OkHttp')
 check('maxresdefault.jpg' in Path('scripts/patch-mobile-v73.py').read_text(), 'YouTube Browse cards preserve 1.10.72 max-resolution thumbnail target')
 check('mqdefault.jpg' not in Path('scripts/patch-mobile-v73.py').read_text(), 'YouTube Browse optimization does not downgrade thumbnail quality')
 
 # Version must advance for this application-level behavior change.
-check('versionCode = 91' in gradle, 'Mobile versionCode bumped for Mobile 1.10.73 build')
-check('versionName = "1.10.73"' in gradle, 'Mobile versionName is 1.10.73')
+check('versionCode = 92' in gradle, 'Mobile versionCode bumped for Mobile 1.10.74 build')
+check('versionName = "1.10.74"' in gradle, 'Mobile versionName is 1.10.74')
+check('mNm7SelectedRequest.pendingFor(mPendingVideo.videoId)' in Path('scripts/patch-mobile-v74.py').read_text(), 'v74 keeps selected-video format lookup alive across owner cleanup')
+check('HomeTabBar.setVisible(activity, !fullscreen)' in Path('scripts/patch-mobile-v74.py').read_text(), 'v74 hides the two bottom tabs in landscape/fullscreen playback')
+check('maxresdefault.jpg' in Path('scripts/patch-mobile-v74.py').read_text(), 'v74 preserves 1.10.72 max-resolution thumbnail target')
+check('mqdefault.jpg' not in Path('scripts/patch-mobile-v74.py').read_text(), 'v74 does not downgrade thumbnail quality')
 
 Path('dist/mobile-diagnostics').mkdir(parents=True, exist_ok=True)
 Path('dist/mobile-diagnostics/lifecycle-source-proof.json').write_text(json.dumps({
