@@ -255,13 +255,18 @@ if media_item.exists():
     ms = media_item.read_text()
     if 'private String mChannelThumbnailUrl;' not in ms:
         ms = ms.replace('    private String mChannelId;\n', '    private String mChannelId;\n    private String mChannelThumbnailUrl;\n', 1)
-    ms = ms.replace('        video.mChannelId = item.getChannelId();\n', '        video.mChannelId = item.getChannelId();\n        try {
+    ms = ms.replace(
+        '        video.mChannelId = item.getChannelId();\\n',
+        '''        video.mChannelId = item.getChannelId();
+        try {
             java.lang.reflect.Method thumbMethod = item.getClass().getMethod("getChannelThumbnail");
             Object thumb = thumbMethod.invoke(item);
             if (thumb instanceof String) {
-                video.mChannelThumbnailUrl = (String) thumb
+                video.mChannelThumbnailUrl = (String) thumb;
             }
-        } catch (ReflectiveOperationException | RuntimeException ignored) {}\n', 1)
+        } catch (ReflectiveOperationException | RuntimeException ignored) {}
+\\n''',
+        1)
     anchor = '    public String getChannelId() {'
     getter = '''    public String getChannelThumbnailUrl() {
         return mChannelThumbnailUrl;
