@@ -87,8 +87,10 @@ public final class HomeTabBar {
     }
 
     private static void openIptv(Activity activity) {
-        // No YouTube mini-player: switching to IPTV explicitly ends the YouTube session.
-        MobileNm7Application.stopYoutubeForIptv();
+        // Switching tabs does not end YouTube. It remains paused/backgrounded until
+        // an IPTV player actually reaches READY; the existing handoff logic then
+        // temporarily suspends YouTube. If IPTV has no active player, YouTube remains
+        // available in the background for instant return to the previous session.
         PlayerActivity.cancelYoutubeHandoff();
         SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_IPTV);
         MobileNm7Application.markTabSwitch();
