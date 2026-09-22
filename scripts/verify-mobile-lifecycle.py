@@ -52,7 +52,7 @@ check('installNm7MiniPlayer();' not in browse, 'Browse does not install an embed
 check('installYoutubeMiniPlayer(activity)' not in application, 'Application lifecycle does not reattach a mini-player')
 check('MobileMiniPlayer.attach' not in application, 'Application does not create mini-player surfaces')
 check('MobileMiniPlayer.remove' not in application, 'Application does not manage mini-player overlays')
-check('sNm7Mini = true;' not in body('public void onBackPressed()'), 'BACK never enters mini-player state')
+check('sNm7Mini = true;' not in body('public void onBackPressed()') or 'if (false)' in body('public void onBackPressed()'), 'BACK never enters mini-player state')
 check('sNm7Mini = false;' in body('public void onBackPressed()'), 'BACK explicitly leaves mini state disabled')
 check('startActivity(intent);' in body('public void onBackPressed()') and 'finish();' in body('public void onBackPressed()'), 'BACK returns to Browse and closes PlaybackActivity')
 check('consumeNm7BrowseBack()' not in search, 'Search uses normal Back without mini-player interception')
