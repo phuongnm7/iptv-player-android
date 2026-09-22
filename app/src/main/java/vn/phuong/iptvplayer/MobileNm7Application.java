@@ -163,6 +163,7 @@ public final class MobileNm7Application extends DroidApplication implements andr
                 installSmartTubeBrowseFixes(activity);
             });
         } else if (SMARTTUBE_PLAYBACK.equals(name)) {
+            activity.getWindow().getDecorView().post(() -> HomeTabBar.attach(activity, true));
             // Use SmartTube's native Android Back dispatch. The custom callback previously
             // called onBackPressed() from onBackInvoked(), which could bypass the patched
             // parent-view/PIP path and close PlaybackActivity immediately.
@@ -214,28 +215,14 @@ public final class MobileNm7Application extends DroidApplication implements andr
         if (activity instanceof PlayerActivity) {
             clearTabSwitch();
         } else if (SMARTTUBE_BROWSE.equals(name)) {
-            // BrowseActivity is normally REORDER_TO_FRONT rather than recreated. Re-attach
-            // the preserved YouTube mini session every time Browse becomes visible again.
-            activity.getWindow().getDecorView().post(() -> installYoutubeMiniPlayer(activity));
-        } else if (activity instanceof MainActivity
-                && SharedPlaybackSession.TAB_IPTV.equals(SharedPlaybackSession.tab(activity))) {
-            // The IPTV tab is only a list until a channel is selected. Keep the live
-            // YouTube mini-player visible and attached while that list is in front.
-            activity.getWindow().getDecorView().post(() -> installYoutubeMiniPlayer(activity));
+            // Normal YouTube Browse screen. The 1.10.68 YouTube UI remains untouched;
+            // only the separate mini-player surface is disabled.
         }
     }
 
     public static boolean hasIptvPlayer() {
         return instance != null && instance.iptvPlayerActivity instanceof PlayerActivity
                 && !instance.iptvPlayerActivity.isFinishing();
-    }
-
-    /**
-     * SmartTube owns the actual YouTube player. Attach that one player to a compact
-     * TextureView in MainActivity while the user only browses the IPTV tab.
-     */
-    private static void installYoutubeMiniPlayer(Activity activity) {
-        MobileMiniPlayer.attach(activity);
     }
 
     /** Bring the actual YouTube playback/browse Activity back after HOME/process recreation. */
@@ -307,11 +294,8 @@ public final class MobileNm7Application extends DroidApplication implements andr
         } catch (ReflectiveOperationException | RuntimeException error) {
             android.util.Log.e("NM7Playback", "Suspend YouTube for IPTV failed", error);
         }
-        // Hide the old overlay on the IPTV screen. The SmartTube session remains marked mini
-        // and BrowseActivity will attach a fresh surface when the YouTube tab returns.
-        MobileMiniPlayer.remove();
-        SharedPlaybackSession.setYoutubeBackground(instance, false);
-        System.setProperty("nm7.youtube.background", "0");
+        // No mini-player: IPTV ownership ends the YouTube playback session.
+        stopYoutubeForIptv();
     }
 
     public static void stopYoutubeForIptv() {
@@ -320,7 +304,6 @@ public final class MobileNm7Application extends DroidApplication implements andr
         } catch (ReflectiveOperationException | RuntimeException error) {
             android.util.Log.e("NM7Playback", "YouTube handoff failed", error);
         }
-        MobileMiniPlayer.remove();
     }
 
     public static boolean isYoutubeSessionActive() {
