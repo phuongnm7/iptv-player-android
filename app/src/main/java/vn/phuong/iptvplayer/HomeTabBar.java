@@ -47,11 +47,6 @@ public final class HomeTabBar {
             if (youtubeSelected) openIptv(activity);
         });
 
-        if (youtubeSelected) {
-            addItem(activity, bar, R.drawable.nm7_nav_library, false, () -> openBrowseSection(activity, "nm7OpenLibrary"));
-            addItem(activity, bar, R.drawable.nm7_nav_settings, false, () -> openBrowseSection(activity, "nm7OpenSettings"));
-        }
-
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(activity, 64), Gravity.BOTTOM);
         host.addView(bar, lp);
@@ -92,21 +87,12 @@ public final class HomeTabBar {
     }
 
     private static void openIptv(Activity activity) {
-        // Changing tabs is not the same as selecting an IPTV channel. Restore IPTV only
-        // when the user had a channel playing before YouTube took ownership. Otherwise
-        // keep the YouTube mini-player alive above the IPTV channel list.
-        boolean resumeIptv = MobileInlinePlayerProviderV2.shouldResumeIptvAfterYoutube();
-        // Leave YouTube alive while the returning IPTV channel buffers.
+        // No YouTube mini-player: switching to IPTV explicitly ends the YouTube session.
+        MobileNm7Application.stopYoutubeForIptv();
         PlayerActivity.cancelYoutubeHandoff();
         SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_IPTV);
         MobileNm7Application.markTabSwitch();
-        Intent intent;
-        if (resumeIptv && !MobileInlinePlayerProviderV2.hasSession()
-                && (MobileNm7Application.hasIptvPlayer() || SharedPlaybackSession.loadIptv(activity) != null)) {
-            intent = new Intent(activity, PlayerActivity.class);
-        } else {
-            intent = new Intent(activity, MainActivity.class);
-        }
+        Intent intent = new Intent(activity, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
         startWithoutAnimation(activity, intent);
     }
@@ -148,9 +134,7 @@ public final class HomeTabBar {
         item.addView(icon, new LinearLayout.LayoutParams(size, size));
 
         TextView label = new TextView(activity);
-        String title = iconRes == R.drawable.nm7_nav_youtube ? "YouTube"
-                : iconRes == R.drawable.nm7_nav_iptv ? "IPTV"
-                : iconRes == R.drawable.nm7_nav_library ? "Thư viện" : "Cài đặt";
+        String title = iconRes == R.drawable.nm7_nav_youtube ? "YouTube" : "IPTV";
         label.setText(title);
         item.setContentDescription(title);
         label.setTextSize(11);
