@@ -11,6 +11,11 @@ def replace(text, old, new):
         raise SystemExit('UI anchor missing/ambiguous: ' + old[:100])
     return text.replace(old, new, 1)
 
+def replace_first(text, old, new):
+    if old not in text:
+        raise SystemExit('UI anchor missing: ' + old[:100])
+    return text.replace(old, new, 1)
+
 for source in Path('scripts/mobile-ui/res').rglob('*.xml'):
     dest = root / 'res' / source.relative_to('scripts/mobile-ui/res')
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -123,7 +128,7 @@ s = replace(s, '        mVideo = null;', '''        mVideo = null;
         if (menu != null) menu.setOnClickListener(null);
         View avatar = itemView.findViewById(R.id.shared_card_avatar);
         if (avatar instanceof android.widget.ImageView) ((android.widget.ImageView) avatar).setImageResource(R.drawable.browse_ic_account);''')
-s = replace(s, '''        Glide.with(context)\n                .load(video.getCardImageUrl())\n                .apply(glideOptions())\n                .placeholder(R.drawable.shared_card_placeholder)\n                .error(\n                        Glide.with(context)\n                                .load(video.cardImageUrl)\n                                .apply(glideOptions())\n                                .error(R.drawable.shared_card_placeholder)\n                )\n                .into(mThumbnail);''', '''        // NM7 channel avatar: use the YouTube channel thumbnail propagated from
+s = replace_first(s, '''        Glide.with(context)\n                .load(video.getCardImageUrl())\n                .apply(glideOptions())\n                .placeholder(R.drawable.shared_card_placeholder)\n                .error(\n                        Glide.with(context)\n                                .load(video.cardImageUrl)\n                                .apply(glideOptions())\n                                .error(R.drawable.shared_card_placeholder)\n                )\n                .into(mThumbnail);''', '''        // NM7 channel avatar: use the YouTube channel thumbnail propagated from
         // VideoItem/YouTubeMediaItem first; only then inspect nested model fields.
         android.widget.ImageView avatar = itemView.findViewById(R.id.shared_card_avatar);
         if (avatar != null) {
