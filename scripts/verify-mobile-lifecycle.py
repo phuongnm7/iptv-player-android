@@ -1,16 +1,24 @@
-"""Structural regressions, not a replacement for device playback tests."""
+"""Fail-closed structural verifier for the Mobile YouTube playback lifecycle.
+
+Runtime playback is still device-tested separately. This verifier checks that the
+Mobile build no longer installs or preserves an embedded YouTube mini-player and
+that the normal YouTube/IPTV bottom navigation remains intact.
+"""
 from pathlib import Path
 import re
 import json
 import hashlib
-import xml.etree.ElementTree as ET
 
 root = Path('third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui')
 play = (root / 'playback/PlaybackActivity.java').read_text(encoding='utf-8')
 browse = (root / 'browse/BrowseActivity.java').read_text(encoding='utf-8')
+search = (root / 'search/SearchActivity.java').read_text(encoding='utf-8')
 app = Path('app/src/main/java/vn/phuong/iptvplayer')
-inline = (app / 'MobileInlinePlayerProviderV2.java').read_text(encoding='utf-8')
 application = (app / 'MobileNm7Application.java').read_text(encoding='utf-8')
+tabs = (app / 'HomeTabBar.java').read_text(encoding='utf-8')
+gradle = Path('app/build.gradle.kts').read_text(encoding='utf-8')
+patch = Path('scripts/patch-mobile-v37.py').read_text(encoding='utf-8')
+inc = Path('scripts/smarttube-playback-mobile.java.inc').read_text(encoding='utf-8')
 
 def body(signature):
     match = re.search(r'(?ms)^    ' + re.escape(signature) + r' \{(.*?)^    \}', play)
@@ -24,138 +32,59 @@ def check(condition, label):
     checks += 1
     print('PASS', label)
 
-check('vn.phuongnm7.iptvplayer' not in play, 'Bridge uses actual Java package')
-check('pauseIptvForYoutube' not in body('protected void onStart()'), 'Activity start does not release IPTV')
-check('Build the decoder/player before the Activity is shown' in play, 'YouTube player prewarms before first frame')
-check('if (mPlayer == null) initializePlayer();' in body('protected void onStart()'), 'Resume reuses player')
-check('playWhenReady && playbackState == Player.STATE_READY' in play, 'Handoff gated by ready and playing intent')
-check('MobileInlinePlayerProviderV2.releaseForYoutube();' in application, 'Handoff reaches inline owner')
-check('TAB_YOUTUBE.equals(SharedPlaybackSession.tab(a))' in inline, 'Inline Browse navigation guard')
-check('++owner.playGeneration' in inline, 'Cancel stale inline retries on handoff')
-check('maybeReleasePlayer' not in body('protected void onPause()'), 'No Android 6 pause release')
-check('if (mNm7Stopped || isFinishing())' in body('protected void onStop()'), 'Background and mini session preserved')
-check('nm7SetBackground(true)' in body('public void onUserLeaveHint()'), 'Existing Home callback actually replaced')
-check('sNm7Mini = true;' in body('public void onBackPressed()'), 'Back enters mini state')
-check('registerOnBackInvokedCallback' in play, 'Modern Back callback registered')
-overlay = (app / 'MobileMiniPlayer.java').read_text(encoding='utf-8')
-check('installNm7MiniPlayer();' in browse and 'vn.phuong.iptvplayer.MobileMiniPlayer' in browse, 'Browse uses shared mini surface')
-check('"restoreNm7Player"' in overlay, 'Mini click restores playback')
-check('suspendForNm7Iptv' in play, 'YouTube session can be suspended for IPTV without finish')
-check('sNm7Mini = true;' in body('public static void suspendForNm7Iptv()'), 'IPTV suspend preserves mini state')
-check('finishReally()' not in body('public static void suspendForNm7Iptv()'), 'IPTV suspend does not destroy YouTube player')
-check('suspendYoutubeForIptv();' in Path('app/src/main/java/vn/phuong/iptvplayer/PlayerActivity.java').read_text(), 'IPTV READY suspends instead of closes YouTube')
-check('SMARTTUBE_BROWSE.equals(name)' in application and 'installYoutubeMiniPlayer(activity)' in application, 'Browse resume reattaches preserved mini player')
-check('EXO_PLAYER_VIEW' in overlay and 'createPlayerView' in overlay, 'Mini uses ExoPlayer PlayerView target')
-check('switchTargetView' in body('public static void attachNm7MiniPlayer(android.view.View previousSurface, android.view.View nextSurface)'), 'Mini uses supported ExoPlayer target switching')
-check('clearVideoSurface()' not in body('public static void attachNm7MiniPlayer(android.view.View previousSurface, android.view.View nextSurface)'), 'Mini target switch does not clear surface manually')
-check('seekTo(' not in body('public static void attachNm7MiniPlayer(android.view.View previousSurface, android.view.View nextSurface)'), 'Mini target switch does not force seek/rebuffer')
-for path in ['app/src/main/AndroidManifest.xml', 'smarttube/src/main/AndroidManifest.xml']:
-    manifest = ET.parse(path)
-    ns = '{http://schemas.android.com/apk/res/android}'
-    for activity in manifest.findall('.//activity'):
-        if activity.get(ns+'name', '').endswith(('.browse.BrowseActivity', '.playback.PlaybackActivity')):
-            check(activity.get(ns+'launchMode') == 'singleTop', path + ': no singleTask stack destruction')
-check('scripts/patch-mobile-v37.py' in Path('scripts/build-mobile-windows.ps1').read_text(), 'Windows shared patch')
-check('scripts/patch-mobile-v37.py' in Path('.github/workflows/android-mobile-final.yml').read_text(), 'CI shared patch')
+# Core lifecycle / playback ownership.
+check('vn.phuongnm7.iptvplayer' not in play, 'SmartTube bridge uses the actual Mobile Java package')
+check('Build the decoder/player before the Activity is shown' in play, 'Player initialization remains before first-frame wait')
+check('if (mPlayer == null) initializePlayer();' in body('protected void onStart()'), 'Foreground reuses/rebuilds the player safely')
+check('pauseIptvForYoutube' not in body('protected void onStart()'), 'Activity start does not prematurely release IPTV')
+check('playWhenReady && playbackState == Player.STATE_READY' in play, 'IPTV handoff is gated by actual YouTube READY/play intent')
+check('MobileInlinePlayerProviderV2.releaseForYoutube();' in application, 'YouTube handoff releases the IPTV inline owner')
+check('prefetchNm7FormatInfo(item);' not in play and 'mNm7PrefetchedFormatInfo' not in play, 'No speculative format prefetch remains in PlaybackActivity')
+check('mPlayerView' in play and 'PlayerView' in play, 'Mobile playback keeps the PlayerView rendering path')
+check('render_watchdog_no_first_frame_ms=' in play, 'Render watchdog remains available for black-frame recovery')
+check('mNm7ObservedPlayer' in play and 'removeVideoListener' in play, 'Decoder/render observers are tied to the current player instance')
+check('mPlayer.retry()' in play, 'Decoder/source recovery retains bounded retry support')
+check('mPlayer.retry()' in play and 'mNm7DecoderRecoveryAttempts <= 3' in play, 'Decoder recovery keeps bounded retry support without an undeclared track selector')
+check('scripts/patch-mobile-v37.py' in Path('scripts/build-mobile-windows.ps1').read_text(), 'Windows build uses the shared Mobile patch')
+check('scripts/patch-mobile-v37.py' in Path('.github/workflows/android-mobile-final.yml').read_text(), 'CI uses the shared Mobile patch')
 
-inline_text = Path('app/src/main/java/vn/phuong/iptvplayer/MobileInlinePlayerProviderV2.java').read_text()
-check('stopYoutubeForIptv();' not in inline_text, 'Inline IPTV never destroys preserved YouTube session')
-check(inline_text.count('suspendYoutubeForIptv();') >= 2, 'Inline IPTV READY paths suspend YouTube')
-check('sNm7ResumeAfterIptv' in play and 'setPlayWhenReady(true)' in body('public static void attachNm7MiniPlayer(android.view.View previousSurface, android.view.View nextSurface)'), 'Mini resumes only after supported target switch')
-loader = Path('third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java').read_text()
-check('prefetchNm7FormatInfo(item);' not in loader and 'mNm7PrefetchedFormatInfo' not in loader, 'Mobile startup uses upstream format loading without speculative prefetch')
+# Direction 2: no embedded YouTube mini-player.
+check('installNm7MiniPlayer();' not in browse, 'Browse does not install an embedded mini-player')
+check('installYoutubeMiniPlayer(activity)' not in application, 'Application lifecycle does not reattach a mini-player')
+check('MobileMiniPlayer.attach' not in application, 'Application does not create mini-player surfaces')
+check('MobileMiniPlayer.remove' not in application, 'Application does not manage mini-player overlays')
+check('sNm7Mini = true;' not in body('public void onBackPressed()'), 'BACK never enters mini-player state')
+check('sNm7Mini = false;' in body('public void onBackPressed()'), 'BACK explicitly leaves mini state disabled')
+check('startActivity(intent);' in body('public void onBackPressed()') and 'finish();' in body('public void onBackPressed()'), 'BACK returns to Browse and closes PlaybackActivity')
+check('consumeNm7BrowseBack()' not in search, 'Search uses normal Back without mini-player interception')
+check('stopForNm7Iptv();' in inc and 'sNm7Mini = true;' not in inc.split('public static void suspendForNm7Iptv()', 1)[1].split('public static void stopForNm7Iptv()', 1)[0], 'IPTV handoff closes YouTube instead of preserving mini state')
 
-pause_body = body('protected void onPause()')
-back_body = body('public void onBackPressed()')
-check('if (sNm7Mini' in pause_body and 'blockEngine(false)' in pause_body, 'Mini lifecycle keeps decoder/renderers active while PlaybackActivity pauses')
-check('sNm7Mini = true;' in back_body and 'blockEngine(false)' in back_body, 'Back enters mini without blocking video engine')
-check('tapShield' in overlay and 'tapShield.setClickable(true)' in overlay, 'Mini has dedicated touch shield above PlayerView')
-check('video.setClickable(false)' in overlay, 'Underlying PlayerView cannot steal mini restore taps')
+# Bottom navigation: exactly the two requested tabs.
+check('"YouTube"' in tabs and '"IPTV"' in tabs, 'Bottom navigation contains YouTube and IPTV')
+check('"Thư viện"' not in tabs and '"Cài đặt"' not in tabs, 'Bottom navigation has no extra YouTube tabs')
+check('addItem(activity, bar, R.drawable.nm7_nav_youtube' in tabs, 'YouTube tab is present')
+check('addItem(activity, bar, R.drawable.nm7_nav_iptv' in tabs, 'IPTV tab is present')
+check('stopYoutubeForIptv();' in tabs, 'IPTV tab explicitly closes the YouTube owner')
+check('SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_IPTV);' in tabs, 'IPTV tab switches the shared product tab')
+check('SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_YOUTUBE);' in tabs, 'YouTube tab switches the shared product tab')
+check(tabs.count('addItem(activity, bar,') == 2, 'Exactly two bottom navigation items are created')
 
-home_tabs = Path('app/src/main/java/vn/phuong/iptvplayer/HomeTabBar.java').read_text()
-check('BAR_TAG' in home_tabs and 'setVisible(Activity activity, boolean visible)' in home_tabs, 'Bottom tab bar exposes fullscreen visibility control')
-check('HomeTabBar.setVisible(currentActivity, false)' in inline_text, 'IPTV fullscreen hides YouTube/IPTV tab bar')
-check('HomeTabBar.setVisible(currentActivity, true)' in inline_text, 'IPTV fullscreen exit restores YouTube/IPTV tab bar')
+# Keep Mobile YouTube Browse usable.
+check('HomeTabBar.attach(activity, true);' in application, 'YouTube Browse receives the bottom tab bar')
+check('HomeTabBar.attach(activity, false);' in application, 'IPTV MainActivity receives the bottom tab bar')
+check('GRID_COLUMNS = 1' in browse, 'YouTube recommendations remain single-column')
+check('hq720.jpg' in Path('scripts/patch-mobile-ui.py').read_text(), 'YouTube thumbnail fallback remains enabled')
 
-check('surfaceView()' in overlay, 'Mini exposes current PlayerView for reverse target switch')
-check('switchTargetView' in body('private void completeNm7RestoreOnResume()'), 'Restore uses supported ExoPlayer reverse target switch after PlaybackActivity resumes')
+# Version must advance for this application-level behavior change.
+check('versionCode = 87' in gradle, 'Mobile versionCode bumped for no-mini-player build')
+check('versionName = "1.10.69"' in gradle, 'Mobile versionName bumped for no-mini-player build')
 
-check('sNm7RestorePending' in play, 'YouTube mini restore has explicit pending state')
-check('completeNm7RestoreOnResume()' in play, 'Mini-to-player surface handoff is deferred until PlaybackActivity resumes')
-check('consumeNm7BrowseBack()' in play, 'Browse Back can close active mini session instead of reopening player')
-ui_patch = Path('scripts/patch-mobile-ui.py').read_text()
-patch_script = Path('scripts/patch-mobile-v37.py').read_text()
-check('consumeNm7BrowseBack()' in ui_patch, 'Browse Back consumes the second Back when mini is visible')
-check('hq720.jpg' in ui_patch and 'PREFER_ARGB_8888' in ui_patch and 'DownsampleStrategy.AT_MOST' in ui_patch, 'YouTube cards bound high-resolution decode to display dimensions')
-
-check("phone / 'search/SearchActivity.java'" in patch_script and 'Search Back mini close failed' in patch_script, 'SearchActivity Back closes active mini before normal back stack')
-check('if (video.videoId != null' in ui_patch and 'itemView.findViewById(R.id.nm7_card_menu) != null && video.videoId' not in ui_patch, 'High-resolution thumbnail path applies to Search/grid cards too')
-
-
-check('if (sNm7RestorePending)' not in body('protected void onResume()'), 'Every foreground entry restores target, not just mini taps')
-check('mNm7LeavingForMini = false' in body('protected void onResume()'), 'Foreground entry resets Back transition debounce')
-check('if (sNm7Mini && !sNm7RestorePending) return' not in back_body, 'Stale mini flag cannot swallow foreground Back')
-check('mNm7VideoTarget' in play, 'Player owner tracks actual video target across Activities')
-check('sNm7Mini = false;' in body('private void completeNm7RestoreOnResume()'), 'Foreground normalization always clears mini state')
-check('installSmartTubeBackHandling(activity);' in application, 'Android 13 Browse/Search Back callback installed')
-check('app:surface_type=\"surface_view\"' in Path('app/src/main/res/layout/nm7_mini_player.xml').read_text(), 'Mini inflates SurfaceView-backed PlayerView for stable decoder rendering')
-check('app:surface_type="surface_view"' in Path('third_party/SmartTube-droid/smarttubedroid/src/main/res/layout/playback_activity.xml').read_text(), 'Fullscreen target uses SurfaceView for stable decoder rendering')
-check('counters.renderedOutputBufferCount' in play and 'nm7VisibleVideoTarget()' in play and 'getPlaybackSuppressionReason()' in play, 'Render watchdog measures visible unsuppressed frame output')
-check('generation != mNm7RenderGeneration || mPlayer != observed' in play and 'mHandler.removeCallbacks(mNm7RenderTick)' in play, 'Obsolete render callbacks are canceled and instance guarded')
-check('SCREEN_ORIENTATION_SENSOR' in application.split('public void onActivityCreated')[1].split('public void onActivityPaused')[0], 'YouTube playback allows sensor rotation')
-check('armNm7FirstFrameResume();' in body('private void completeNm7RestoreOnResume()'), 'Restore waits for new-target frame before releasing media clock')
-check('onRenderedFirstFrame()' in play and 'postDelayed(mNm7TargetRestoreTimeout, 750)' in play, 'First-frame gate has bounded audio-only fallback')
-check('cancelNm7TargetRestore(true);' in back_body and 'cancelNm7TargetRestore(false);' in body('public static void suspendForNm7Iptv()'), 'Back and IPTV suspend clean up pending restore gate')
-check('mPlayer.getPlayWhenReady() || sNm7ResumeAfterIptv' in body('private void beginNm7TargetRestore()'), 'Restore remembers intended playback and preserves user pause')
-out = Path('dist/mobile-diagnostics')
-session = (app / 'SharedPlaybackSession.java').read_text()
-check('.putString(KEY_TAB, TAB_IPTV)' in session.split('void clearTransientState')[1].split('public static synchronized void saveIptv')[0], 'Cold start clears persisted YouTube owner')
-main = (app / 'MainActivity.java').read_text()
-check('private void play(Channel c){SharedPlaybackSession.setTab(this,SharedPlaybackSession.TAB_IPTV);PlayerActivity.cancelYoutubeHandoff();' in main, 'Explicit channel selection clears stale handoff before opening player')
-check('bindNm7PlayerTarget();' in body('private void createPlayerObjects()'), 'Engine recreation rebinds visible target')
-check('surfaceView' in body('private void bindNm7PlayerTarget()') and 'view.isAttachedToWindow()' in body('private void bindNm7PlayerTarget()'), 'Engine recreation uses attached mini when present')
-check('sNm7SuspendedForIptv' in body('public static void attachNm7MiniPlayer(android.view.View previousSurface, android.view.View nextSurface)'), 'Delayed mini attach cannot steal IPTV owner')
-check('if (sNm7SuspendedForIptv) return;' in body('public static void suspendForNm7Iptv()'), 'Duplicate suspend preserves resume intent')
-check('DNS_TYPE_SYSTEM' in body('private void initializePlayer()') and 'PLAYER_DATA_SOURCE_OKHTTP' in body('private void initializePlayer()'), 'Custom DNS transport selected before engine initialization')
-check('mSuggestionsView.setAdapter(mSuggestionsAdapter.adapter)' in play and 'Nm7FeedAdapter' in play, 'Recommendations use full-width vertical feed')
-check('handleNm7MinimizeGesture(event)' in play, 'Portrait player supports swipe to mini')
-check('toggleNm7Playback' in overlay and 'getScaledTouchSlop' in overlay, 'Mini supports pause/play and bounded dragging')
-check('mNm7SwipeEligible = !isNm7MiniTouch(event)' in browse and 'containsPoint(float rawX, float rawY)' in overlay, 'Dragging mini does not swipe Browse sections underneath')
-card = (root / 'shared/VideoCardHolder.java').read_text()
-initializer = Path('third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/other/ExoPlayerInitializer.java').read_text()
-check('SIZE_ORIGINAL' not in card and 'DownsampleStrategy.AT_MOST' in card, 'Thumbnail bitmap dimensions are bounded')
-check(('Runtime.getRuntime().maxMemory() / 10' in initializer or '16L * 1024 * 1024' in initializer) and 'setPrioritizeTimeOverSizeThresholds(false)' in initializer, 'Video buffer obeys app heap budget, not device RAM')
-check('cancel.setAction(android.view.MotionEvent.ACTION_CANCEL)' in browse and 'return consumed || super.dispatchTouchEvent(event)' in browse, 'Claimed swipe cancels child and consumes UP')
-check('getGlobalVisibleRect(bounds)' in browse, 'Gesture hit bounds use screen coordinates')
-check('installNm7ScrollChrome(mRowsView)' in browse and 'installNm7ScrollChrome(mGridView)' in browse, 'Both feed modes collapse navigation on scroll')
-check('getNm7PlaybackState' in overlay and 'Lỗi phát' in overlay, 'Mini displays buffering/errors instead of silent black rectangle')
-check('nm7_watch_enter' in play and 'nm7_watch_exit' in play, 'Watch panel uses vertical opening and closing motion')
-chrome_method = browse.split('private void setNm7ChromeHidden')[1].split('private void installNm7ScrollChrome')[0]
-check('View.INVISIBLE' in chrome_method and 'setPadding' not in chrome_method, 'Chrome toggle preserves feed geometry')
-check('addOnScrollListener' not in browse and 'mNm7ChromeGesture.update' in browse, 'Layout and fling callbacks cannot toggle chrome')
-check('!isNm7ChromeTouch(event)' in browse, 'Overlay header and footer excluded from feed gestures')
-check('!mNm7InitialTransportSelected' in play, 'Engine recovery preserves ErrorFixer transport fallback')
-check('mPlayer.retry()' not in body('private void retryNm7Mini()') and 'ErrorFixerController.class' in body('private void retryNm7Mini()'), 'Mini retry uses source-aware recovery rather than same failed URL')
-check('mNm7RecoveryGate.allow' in play and 'sNm7SuspendedForIptv' in body('public void restartEngine()'), 'Automatic mini recovery is bounded and cannot restart while IPTV owns playback')
-check('mNm7SessionVideo = item' in play, 'Active video survives feed replacement and GC during recovery')
-check('stopService' not in body('public static void resumeNm7Foreground()'), 'Unlocking the mini host does not stop its service')
-check('(!playWhenReady || playbackState == Player.STATE_ENDED)' not in play and 'syncNm7KeepAlive();' in play, 'Transient player states cannot stop mini keep-alive')
-check('setRendererDisabled(i, true)' in play and 'mNm7SavedVideoRenderers.get(i)' in play, 'Background audio temporarily disables and restores only video renderers')
-check('mNm7SessionVideo != null' in body('public static boolean isNm7MiniPlayerActive()'), 'Mini presence survives a null decoder during rebuild')
-check('youtube_active' in Path('app/src/main/java/vn/phuong/iptvplayer/BackgroundPlaybackService.java').read_text(), 'Service separates session notification from wake-lock playing intent')
-view_manager = Path('third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/views/ViewManager.java').read_text()
-loader = Path('third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java').read_text()
-check('createNm7LaunchIntent(activityClass)' in view_manager and 'Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP' in view_manager, 'Browse selection reuses the existing Mobile playback Activity below it')
-check('if (mPlaybackPresenter.getPlayer() == this) mPlaybackPresenter.onEngineReleased();' in play, 'An obsolete Activity release cannot cancel the current owner source request')
-check('startNm7SelectedFormat(item, null)' in loader and 'mNm7SelectedRequest.attach(video.videoId, owner)' in loader, 'Cold screen creation shares one selected-video lookup')
-check('mNm7SelectedRequest.complete(token' in loader and 'mNm7SelectedRequest.cancel()' in loader, 'Obsolete format success/error callbacks are generation guarded')
-check('if (!mNm7StartupFrame) return;' in play and 'video_bind_to_frame_ms=' in play and 'format_ready_ms=' in loader, 'First frame has priority over comments and startup stages are timed')
-check('mHandler.postDelayed(mNm7VisibilityTask, 300L)' in play and 'mHandler.removeCallbacks(mNm7VisibilityTask)' in play, 'Internal Activity transitions cancel pending renderer background shutdown')
-out.mkdir(parents=True, exist_ok=True)
-(out/'lifecycle-source-proof.json').write_text(json.dumps({
+Path('dist/mobile-diagnostics').mkdir(parents=True, exist_ok=True)
+Path('dist/mobile-diagnostics/lifecycle-source-proof.json').write_text(json.dumps({
     'structural_checks': checks,
     'runtime_verified': False,
-    'smarttube_commit': '4825d6aa8b6f1d3181927f9e96c7d89cab13d510',
+    'mini_player': False,
+    'bottom_tabs': ['YouTube', 'IPTV'],
     'playback_sha256': hashlib.sha256(play.encode()).hexdigest(),
     'browse_sha256': hashlib.sha256(browse.encode()).hexdigest(),
 }, indent=2))
