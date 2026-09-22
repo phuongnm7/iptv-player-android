@@ -1,3 +1,27 @@
+# Trạng thái Mobile — 1.10.72 / versionCode 90 — STABLE BASELINE
+
+**1.10.72 được chốt làm bản ổn định tạm thời để các bản Mobile tiếp theo phát triển từ đây.**
+
+- Mobile Final Build **#502: SUCCESS** — run 35699011527.
+- Commit: 771d599fe6be23ebfeb1ac6a319f50c05279501b.
+- APK artifact: https://github.com/phuongnm7/iptv-player-android/actions/runs/35699011527/artifacts/10682325671
+- Artifact `NM7-IPTV-Mobile-FINAL`, khoảng 62.13 MB.
+- Artifact SHA-256: `e3407a549dd46dc0f4151de12693ee13ad249de169bb06e3550249375003e7f7`.
+- Bottom navigation: đúng **2 tab YouTube + IPTV**.
+- Đây là **Mobile-only**; không thay đổi Android TV.
+
+### Lỗi đã biết, tạm hoãn
+
+**Avatar kênh YouTube trên thẻ video chưa hiển thị.** Người dùng đã kiểm tra APK thực tế và xác nhận lỗi này. Lỗi được ghi nhận để sửa ở bản sau, không coi 1.10.72 đã hết lỗi avatar.
+
+### Quy tắc phiên bản từ 1.10.72
+
+Bản 1.10.72 là baseline. Bản kế tiếp phải là **1.10.73 / versionCode 91**, sau đó tăng tuần tự cho mọi build mới. Không giữ nguyên version cũ khi build.
+
+Chi tiết lịch sử, lỗi, commit, CI và kế hoạch sửa tiếp theo: [PROGRESS.md](PROGRESS.md).
+
+---
+
 # iptv-player-android
 
 Nm7 IPTV 1.7 — ứng dụng Android tiếng Việt cho mobile và Android TV, không quảng cáo, không phân tích hành vi, không máy chủ trung gian. Màn hình chính có thanh nhóm kênh cuộn ngang; khi đang xem trên TV, phím Trái mở danh sách kênh nhanh phủ lên video mà không dừng phát.
