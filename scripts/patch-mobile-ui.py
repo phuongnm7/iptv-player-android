@@ -228,7 +228,10 @@ p.write_text(s)
 
 # Avatar-only fix: preserve YouTube's channelThumbnail from VideoItem through
 # YouTubeMediaItem -> common Video, then bind that exact URL on the card.
-video_model = root / 'java/com/liskovsoft/smartyoutubetv2/common/app/models/data/Video.java'
+video_candidates = list(root.rglob('Video.java'))
+if not video_candidates:
+    raise SystemExit('Avatar patch: Video.java not found')
+video_model = video_candidates[0]
 vs = video_model.read_text()
 if 'public String channelThumbnailUrl;' not in vs:
     vs = vs.replace('    public String author;\n', '    public String author;\n    public String channelThumbnailUrl;\n', 1)
