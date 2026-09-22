@@ -75,8 +75,8 @@ check('GRID_COLUMNS = 1' in browse, 'YouTube recommendations remain single-colum
 check('getCardImageUrl()' in Path('scripts/patch-mobile-ui.py').read_text(), 'YouTube thumbnail card image loading remains enabled')
 
 # Version must advance for this application-level behavior change.
-check('versionCode = 89' in gradle, 'Mobile versionCode bumped for no-mini-player build')
-check('versionName = "1.10.71"' in gradle, 'Mobile versionName bumped for no-mini-player build')
+check('versionCode = 90' in gradle, 'Mobile versionCode bumped for Mobile 1.10.72 build')
+check('versionName = "1.10.72"' in gradle, 'Mobile versionName is 1.10.72')
 
 Path('dist/mobile-diagnostics').mkdir(parents=True, exist_ok=True)
 Path('dist/mobile-diagnostics/lifecycle-source-proof.json').write_text(json.dumps({
