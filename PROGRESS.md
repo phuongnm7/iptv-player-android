@@ -1,3 +1,34 @@
+# MOBILE 1.10.75 / 93 — STABLE BASELINE — USER TEST CONFIRMED IMPROVED YOUTUBE LOAD — 2026-09-23
+
+## Trạng thái hiện tại
+
+**1.10.75 / versionCode 93 được người dùng test thực tế và xác nhận tốc độ tải/phát video YouTube đã được cải thiện.** Người dùng cần thêm thời gian để test dài hơn trước khi kết luận mọi trường hợp đã tối ưu hoàn toàn.
+
+Từ thời điểm này:
+- **1.10.75 là bản ổn định nhất hiện tại của Mobile.**
+- Các bản Mobile tiếp theo phải **phát triển trực tiếp dựa trên 1.10.75**, không quay lại 1.10.72 hoặc các baseline cũ.
+- Không thay đổi các phần đã hoạt động ổn định của 1.10.75 nếu không có yêu cầu hoặc bằng chứng regression.
+- Tiếp tục giữ phạm vi **Mobile-only**, không đưa Android TV vào vòng phát triển này.
+
+## Kết quả kiểm thử người dùng
+
+- CI Mobile Final **#531 — SUCCESS**.
+- Run: 35761975466.
+- Commit build: `a383d67c9a5bfb5621afe149b3cfd4cf03f0e96e`.
+- Artifact: `NM7-IPTV-Mobile-FINAL`.
+- Người dùng xác nhận: **đã cải thiện tốc độ tải video YouTube**.
+- Chưa đánh dấu “đã giải quyết hoàn toàn” vì người dùng cần thêm thời gian test thực tế.
+
+## Quy tắc baseline mới
+
+1. 1.10.75 là **stable baseline mới nhất**.
+2. Bản kế tiếp phải tăng versionCode/versionName từ 93/1.10.75.
+3. Mọi thay đổi mới phải bảo toàn các chức năng, UI, lifecycle và tốc độ đã đạt được ở 1.10.75.
+4. Khi sửa lỗi mới, phải xác định nguyên nhân và kiểm chứng CI trước khi bàn giao.
+5. Không tuyên bố tốc độ mới đã hoàn toàn ngang IPTV nếu chưa có phép đo/test thực tế tương ứng.
+
+---
+
 # UPDATE 1.10.73 — THUMBNAIL QUALITY CORRECTION — 2026-09-22
 
 - Đã sửa ngay yêu cầu mới: **không hạ chất lượng/kích thước thumbnail** so với 1.10.72.
