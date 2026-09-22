@@ -212,6 +212,7 @@ s = replace(s, '        Glide.with(context)\n                .load(video.getCard
                     .load(cardImageUrl)
                     .into((android.widget.ImageView) itemView.findViewById(R.id.shared_card_thumbnail));
         }
+''')
 p.write_text(s)
 
 # Avatar data path: VideoItem -> YouTubeMediaItem -> Video -> VideoCardHolder.
@@ -256,7 +257,8 @@ if media_item.exists():
 '''
         ms = ms.replace(marker, block, 1)
 
-    # Remove only the stale override attached to the NM7-only getter.\n    ms = re.sub(r'(?m)^[ \\t]*@Override[ \\t]*\\n(?=[ \\t]*public String getChannelThumbnailUrl\\(\\))', '', ms, count=1)\n    if 'public String getChannelThumbnailUrl()' not in ms:
+    # Remove only the stale override attached to the NM7-only getter.\n    ms = re.sub(r'(?m)^[ \\t]*@Override[ \\t]*\\n(?=[ \\t]*public String getChannelThumbnailUrl\\(\\))', '', ms, count=1)
+    if 'public String getChannelThumbnailUrl()' not in ms:
         anchor = '    public String getChannelId() {'
         getter = '''    public String getChannelThumbnailUrl() {
         return mChannelThumbnailUrl;
