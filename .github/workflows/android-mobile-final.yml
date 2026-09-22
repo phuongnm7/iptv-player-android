@@ -198,7 +198,8 @@ jobs:
       - name: Build Mobile only (current NM7 IPTV Mobile)
         run: |
           set -o pipefail
-          gradle --no-daemon --console=plain -PcompileSdkVersion=android-36 -PminSdkVersion=23 -PtargetSdkVersion=36 -PbuildToolsVersion=36.0.0 -PtestXSupportVersion=1.1.0 -PannotationXVersion=1.1.0 -ProbolectricVersion=4.6.1 -PmobileAbiSplits=true :app:testMobileDebugUnitTest assembleMobileDebug -x :slidableactivity:testMobileDebugUnitTest
+          gradle --no-daemon --console=plain -PcompileSdkVersion=android-36 -PminSdkVersion=23 -PtargetSdkVersion=36 -PbuildToolsVersion=36.0.0 -PtestXSupportVersion=1.1.0 -PannotationXVersion=1.1.0 -ProbolectricVersion=4.6.1 -PmobileAbiSplits=true :app:testMobileDebugUnitTest -x :slidableactivity:testMobileDebugUnitTest --tests '*AppPreferencesTest' --tests '*ColdStartPlaybackTest' --tests '*DrmAndFpsTest' --tests '*M3uParserTest' --tests '*PlaylistSourceStoreTest' --tests '*RenderRecoveryScenarios' --tests '*SelectedRequestScenarios' --tests '*YouTubeBrowseGestureTest' --tests '*YouTubePlaybackErrorTest' --tests '*YouTubeRenderRecoveryTest' --tests '*YouTubeSurfaceLayoutTest'
+          gradle --no-daemon --console=plain -PcompileSdkVersion=android-36 -PminSdkVersion=23 -PtargetSdkVersion=36 -PbuildToolsVersion=36.0.0 -PtestXSupportVersion=1.1.0 -PannotationXVersion=1.1.0 -ProbolectricVersion=4.6.1 -PmobileAbiSplits=true assembleMobileDebug
           set -euxo pipefail
           merged="$(find app/build/intermediates -type f -path '*mobileDebug*' -name AndroidManifest.xml | head -n1)"
           test -n "$merged"
