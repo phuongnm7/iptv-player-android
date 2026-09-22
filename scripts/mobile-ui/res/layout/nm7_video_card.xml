@@ -108,7 +108,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/shared_card_title" />
 
-        <ImageView android:id="@+id/nm7_channel_avatar"
+        <ImageView android:id="@+id/shared_card_avatar"
             android:layout_width="32dp" android:layout_height="32dp"
             android:layout_marginTop="14dp"
             android:src="@drawable/browse_ic_account"
