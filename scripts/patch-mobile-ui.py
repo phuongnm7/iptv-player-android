@@ -123,26 +123,66 @@ s = replace(s, '        mVideo = null;', '''        mVideo = null;
         if (menu != null) menu.setOnClickListener(null);
         View avatar = itemView.findViewById(R.id.shared_card_avatar);
         if (avatar instanceof android.widget.ImageView) ((android.widget.ImageView) avatar).setImageResource(R.drawable.browse_ic_account);''')
-s = replace(s, '        Glide.with(context)\n                .load(video.getCardImageUrl())', '''        // NM7 channel avatar: resolve metadata across SmartTube phone model variants.
+s = replace(s, '        Glide.with(context)\n                .load(video.getCardImageUrl())', '''        // NM7 channel avatar: SmartTube model fields changed across releases. Resolve
+        // direct avatar/image URLs first, then inspect the nested author/channel object.
         android.widget.ImageView avatar = itemView.findViewById(R.id.shared_card_avatar);
         if (avatar != null) {
             String avatarUrl = null;
-            String[] methods = {"getAuthorAvatarUrl", "getAuthorImageUrl", "getChannelImageUrl", "getAuthorIconUrl"};
-            for (String name : methods) {
+            String[] directMethods = {
+                    "getAuthorAvatarUrl", "getAuthorAvatar", "getChannelAvatarUrl", "getChannelAvatar",
+                    "getAuthorImageUrl", "getChannelImageUrl", "getAuthorIconUrl", "getChannelIconUrl"
+            };
+            for (String name : directMethods) {
                 try {
                     java.lang.reflect.Method m = video.getClass().getMethod(name);
-                    Object v = m.invoke(video);
-                    if (v instanceof String && ((String) v).startsWith("http")) { avatarUrl = (String) v; break; }
+                    Object value = m.invoke(video);
+                    if (value instanceof String && ((String) value).startsWith("http")) {
+                        avatarUrl = (String) value;
+                        break;
+                    }
+                    if (value != null) {
+                        String[] nestedMethods = {"getAvatarUrl", "getAvatar", "getImageUrl", "getImage", "getThumbnailUrl", "getThumbnail", "getUrl"};
+                        for (String nested : nestedMethods) {
+                            try {
+                                java.lang.reflect.Method nm = value.getClass().getMethod(nested);
+                                Object nv = nm.invoke(value);
+                                if (nv instanceof String && ((String) nv).startsWith("http")) {
+                                    avatarUrl = (String) nv;
+                                    break;
+                                }
+                            } catch (ReflectiveOperationException | RuntimeException ignored) {}
+                        }
+                    }
+                    if (avatarUrl != null) break;
                 } catch (ReflectiveOperationException | RuntimeException ignored) {}
             }
             if (avatarUrl == null) {
-                String[] fields = {"authorAvatarUrl", "authorImageUrl", "channelImageUrl", "authorIconUrl"};
+                String[] fields = {
+                        "authorAvatarUrl", "authorAvatar", "channelAvatarUrl", "channelAvatar",
+                        "authorImageUrl", "channelImageUrl", "authorIconUrl", "channelIconUrl"
+                };
                 for (String name : fields) {
                     try {
                         java.lang.reflect.Field f = video.getClass().getDeclaredField(name);
                         f.setAccessible(true);
-                        Object v = f.get(video);
-                        if (v instanceof String && ((String) v).startsWith("http")) { avatarUrl = (String) v; break; }
+                        Object value = f.get(video);
+                        if (value instanceof String && ((String) value).startsWith("http")) {
+                            avatarUrl = (String) value;
+                            break;
+                        }
+                        if (value != null) {
+                            for (String nested : new String[]{"getAvatarUrl", "getAvatar", "getImageUrl", "getThumbnailUrl", "getUrl"}) {
+                                try {
+                                    java.lang.reflect.Method nm = value.getClass().getMethod(nested);
+                                    Object nv = nm.invoke(value);
+                                    if (nv instanceof String && ((String) nv).startsWith("http")) {
+                                        avatarUrl = (String) nv;
+                                        break;
+                                    }
+                                } catch (ReflectiveOperationException | RuntimeException ignored) {}
+                            }
+                        }
+                        if (avatarUrl != null) break;
                     } catch (ReflectiveOperationException | RuntimeException ignored) {}
                 }
             }
