@@ -123,7 +123,7 @@ s = replace(s, '        mVideo = null;', '''        mVideo = null;
         if (menu != null) menu.setOnClickListener(null);
         View avatar = itemView.findViewById(R.id.shared_card_avatar);
         if (avatar instanceof android.widget.ImageView) ((android.widget.ImageView) avatar).setImageResource(R.drawable.browse_ic_account);''')
-s = replace(s, '        Glide.with(context)\n                .load(video.getCardImageUrl())', '''        // NM7 channel avatar: use the YouTube channel thumbnail propagated from
+s = replace(s, '''        Glide.with(context)\n                .load(video.getCardImageUrl())\n                .apply(glideOptions())\n                .placeholder(R.drawable.shared_card_placeholder)\n                .error(\n                        Glide.with(context)\n                                .load(video.cardImageUrl)\n                                .apply(glideOptions())\n                                .error(R.drawable.shared_card_placeholder)\n                )\n                .into(mThumbnail);''', '''        // NM7 channel avatar: use the YouTube channel thumbnail propagated from
         // VideoItem/YouTubeMediaItem first; only then inspect nested model fields.
         android.widget.ImageView avatar = itemView.findViewById(R.id.shared_card_avatar);
         if (avatar != null) {
