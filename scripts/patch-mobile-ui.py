@@ -212,7 +212,7 @@ if media_item.exists():
 '''
         ms = ms.replace(marker, block, 1)
 
-    # Remove any stale @Override annotation immediately attached to this NM7 helper.\n    # The pinned SmartTube source does not declare this getter on the implemented interface.\n    ms = re.sub(r'@Override\\s+(?=public String getChannelThumbnailUrl\\(\\))', '', ms)
+    # The pinned SmartTube interface does not declare the NM7 avatar getter. Remove override annotations\n    # from this generated data class; annotations are compile-time metadata only and are not needed here.\n    ms = re.sub(r'(?m)^[ \\t]*@Override[ \\t]*\\r?\\n', '', ms)
     if 'public String getChannelThumbnailUrl()' not in ms:
         anchor = '    public String getChannelId() {'
         getter = '''    public String getChannelThumbnailUrl() {
