@@ -279,6 +279,9 @@ if media_item.exists():
 
     if 'getChannelThumbnailUrl()' not in ms:
         ms = ms.replace(anchor, getter + anchor, 1)
+    # MediaServiceCore's MediaItem interface does not declare this NM7 helper.
+    # Always remove a stale @Override, including when the field already exists.
+    ms = ms.replace('    @Override\\n    public String getChannelThumbnailUrl()', '    public String getChannelThumbnailUrl()')
     media_item.write_text(ms)
 
 p = ui / 'shared/VideoCardHolder.java'
