@@ -228,7 +228,7 @@ p.write_text(s)
 
 # Avatar-only fix: preserve YouTube's channelThumbnail from VideoItem through
 # YouTubeMediaItem -> common Video, then bind that exact URL on the card.
-video_candidates = list(root.rglob('Video.java'))
+video_candidates = list(Path('third_party/SmartTube-droid').rglob('Video.java'))
 if not video_candidates:
     raise SystemExit('Avatar patch: Video.java not found')
 video_model = video_candidates[0]
