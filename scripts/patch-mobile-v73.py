@@ -10,23 +10,32 @@ phone = Path("third_party/SmartTube-droid/smarttubedroid/src/main/java/com/lisko
 # remain intact; only the transport override is removed.
 p = phone / "playback/PlaybackActivity.java"
 t = p.read_text(encoding="utf-8")
-old = """        // The upstream fallback switches to OkHttp only after long buffering.
-        // Respect an existing custom DNS setting from the first request instead.
-        if (getPlayerTweaksData().getPreferredDnsType()
-                != com.liskovsoft.smartyoutubetv2.common.prefs.PlayerTweaksData.DNS_TYPE_SYSTEM
-                && !getPlayerTweaksData().isNetworkErrorFixingDisabled()) {
-            getPlayerTweaksData().setPlayerDataSource(
-                    com.liskovsoft.smartyoutubetv2.common.prefs.PlayerTweaksData.PLAYER_DATA_SOURCE_OKHTTP);
-        }
-        createPlayerObjects();"""
-new = """        // NM7 1.10.73: keep the user's DNS preference but do not force
+# Remove the optional DNS-triggered OkHttp transport override if v37 injected it.
+# Some pinned-source revisions already omit that override, so this must be idempotent.
+pattern = re.compile(
+    r'(?ms)^        // The upstream fallback switches to OkHttp only after long buffering\\.\\n'
+    r'        // Respect an existing custom DNS setting from the first request instead\\.\\n'
+    r'        if \\(getPlayerTweaksData\\(\\)\\.getPreferredDnsType\\(\\)\\n'
+    r'                != com\\.liskovsoft\\.smartyoutubetv2\\.common\\.prefs\\.PlayerTweaksData\\.DNS_TYPE_SYSTEM\\n'
+    r'                && !getPlayerTweaksData\\(\\)\\.isNetworkErrorFixingDisabled\\(\\)\\) \\{\\n'
+    r'            getPlayerTweaksData\\(\\)\\.setPlayerDataSource\\(\\n'
+    r'                    com\\.liskovsoft\\.smartyoutubetv2\\.common\\.prefs\\.PlayerTweaksData\\.PLAYER_DATA_SOURCE_OKHTTP\\);\\n'
+    r'        \\}\\n'
+    r'        createPlayerObjects\\(\\);'
+)
+t, removed = pattern.subn(
+    """        // NM7 1.10.73: keep the user's DNS preference but do not force
         // playback onto OkHttp. The pinned SmartTube transport can use its
-        // native/Cronet-capable path when available instead of downgrading
-        // HTTP/3/QUIC-capable connections to an HTTP/2-only client.
-        createPlayerObjects();"""
-if t.count(old) != 1:
-    raise SystemExit("Network transport override anchor missing/ambiguous")
-t = t.replace(old, new, 1)
+        // native/Cronet-capable path when available.
+        createPlayerObjects();""",
+    t,
+    count=1,
+)
+if removed == 0:
+    # Idempotent: the pinned source may already have no override.
+    if 'PLAYER_DATA_SOURCE_OKHTTP' in t:
+        raise SystemExit("OkHttp transport override remains in generated playback source")
+p.write_text(t, encoding="utf-8")
 p.write_text(t, encoding="utf-8")
 
 # 2) The feed is a one-column mobile list. Keep the exact YouTube thumbnail quality/resolution used by 1.10.72.
