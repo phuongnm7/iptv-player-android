@@ -72,7 +72,7 @@ check(tabs.count('addItem(activity, bar,') == 2, 'Exactly two bottom navigation 
 check('HomeTabBar.attach(activity, true);' in application, 'YouTube Browse receives the bottom tab bar')
 check('HomeTabBar.attach(activity, false);' in application, 'IPTV MainActivity receives the bottom tab bar')
 check('GRID_COLUMNS = 1' in browse, 'YouTube recommendations remain single-column')
-check(('maxresdefault.jpg' in Path('scripts/patch-mobile-ui.py').read_text() or 'hq720.jpg' in Path('scripts/patch-mobile-ui.py').read_text()), 'YouTube thumbnail fallback remains enabled')
+check('getCardImageUrl()' in Path('scripts/patch-mobile-ui.py').read_text(), 'YouTube thumbnail card image loading remains enabled')
 
 # Version must advance for this application-level behavior change.
 check('versionCode = 89' in gradle, 'Mobile versionCode bumped for no-mini-player build')
