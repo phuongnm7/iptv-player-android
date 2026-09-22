@@ -152,7 +152,7 @@ s=once(s,'    protected void onDestroy() {','''    protected void onDestroy() {
 a=s.index('        if (mStashedComments == null && group != null && group.getComments() != null');b=s.index('        mNextCommentsKey = group != null',a)
 s=s[:a]+'''        if (mStashedComments == null && mCommentsAdapter.isEmpty()) showNm7CommentPreview(group);
 '''+s[b:]
-s=once(s,'            mNm7CommentPreview.setText("Xem bình luận…");','            mNm7CommentPreview.setText("Đang tải bình luận…");')
+s=s.replace('            mNm7CommentPreview.setText("Xem bình luận…");','            mNm7CommentPreview.setText("Đang tải bình luận…");',1)
 s=once(s,'    private void updateNm7RatingCounts() {\n        Video video = getVideo();',"""    private void updateNm7RatingCounts() {
         Video video = getVideo();
         if (mNm7CommentsHeading != null) mNm7CommentsHeading.setText("Bình luận" +
