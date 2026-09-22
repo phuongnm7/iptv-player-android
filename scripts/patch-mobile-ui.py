@@ -256,8 +256,8 @@ if media_item.exists():
     if 'private String mChannelThumbnailUrl;' not in ms:
         ms = ms.replace('    private String mChannelId;\n', '    private String mChannelId;\n    private String mChannelThumbnailUrl;\n', 1)
     ms = ms.replace('        video.mChannelId = item.getChannelId();\n', '        video.mChannelId = item.getChannelId();\n        try {
-            thumbMethod = item.getClass().getMethod("getChannelThumbnail")
-            thumb = thumbMethod.invoke(item)
+            java.lang.reflect.Method thumbMethod = item.getClass().getMethod("getChannelThumbnail");
+            Object thumb = thumbMethod.invoke(item);
             if (thumb instanceof String) {
                 video.mChannelThumbnailUrl = (String) thumb
             }
