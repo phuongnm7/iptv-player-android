@@ -191,28 +191,28 @@ s = replace(s, '        Glide.with(context)\n                .load(video.getCard
         }
 
         String cardImageUrl = video.getCardImageUrl();
-        // Keep the native high-resolution URL when the API already supplied one.
-        // For standard YouTube thumbnails, try maxres first and let Glide fall back
-        // to the original URL if maxres is unavailable. Never downgrade hq/mq to sd.
+        // Ask YouTube for the highest useful card resolution without downgrading
+        // an already high-resolution URL.
         if (cardImageUrl != null && cardImageUrl.contains("ytimg.com")) {
             String originalCardImageUrl = cardImageUrl;
+            String highResCardImageUrl = cardImageUrl;
             if (cardImageUrl.contains("/default.jpg")) {
-                cardImageUrl = cardImageUrl.replace("/default.jpg", "/maxresdefault.jpg");
+                highResCardImageUrl = cardImageUrl.replace("/default.jpg", "/maxresdefault.jpg");
             } else if (cardImageUrl.contains("/mqdefault.jpg")) {
-                cardImageUrl = cardImageUrl.replace("/mqdefault.jpg", "/maxresdefault.jpg");
+                highResCardImageUrl = cardImageUrl.replace("/mqdefault.jpg", "/maxresdefault.jpg");
             } else if (cardImageUrl.contains("/hqdefault.jpg")) {
-                cardImageUrl = cardImageUrl.replace("/hqdefault.jpg", "/maxresdefault.jpg");
+                highResCardImageUrl = cardImageUrl.replace("/hqdefault.jpg", "/maxresdefault.jpg");
             }
-            // Glide error fallback below will retry the original URL.
-            final String fallbackCardImageUrl = originalCardImageUrl;
+            Glide.with(context)
+                    .load(highResCardImageUrl)
+                    .error(Glide.with(context).load(originalCardImageUrl))
+                    .into((android.widget.ImageView) itemView.findViewById(R.id.shared_card_thumbnail));
+        } else {
             Glide.with(context)
                     .load(cardImageUrl)
-                    .error(Glide.with(context).load(fallbackCardImageUrl))
                     .into((android.widget.ImageView) itemView.findViewById(R.id.shared_card_thumbnail));
         }
-        Glide.with(context)
-                .load(cardImageUrl)''')
-p.write_text(s)
+''p.write_text(s)
 
 # Avatar data path: VideoItem -> YouTubeMediaItem -> Video -> VideoCardHolder.
 video_candidates = list(Path('third_party/SmartTube-droid').rglob('Video.java'))
