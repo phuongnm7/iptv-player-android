@@ -193,3 +193,5 @@ runpy.run_path("scripts/patch-mobile-v62.py")
 runpy.run_path("scripts/patch-mobile-v67.py")
 runpy.run_path("scripts/patch-mobile-v68.py")
 runpy.run_path("scripts/patch-mobile-v69-no-miniplayer.py")
+
+runpy.run_path("scripts/patch-mobile-v73.py")
