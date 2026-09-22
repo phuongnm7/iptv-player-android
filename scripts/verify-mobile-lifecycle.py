@@ -73,10 +73,13 @@ check('HomeTabBar.attach(activity, true);' in application, 'YouTube Browse recei
 check('HomeTabBar.attach(activity, false);' in application, 'IPTV MainActivity receives the bottom tab bar')
 check('GRID_COLUMNS = 1' in browse, 'YouTube recommendations remain single-column')
 check('getCardImageUrl()' in Path('scripts/patch-mobile-ui.py').read_text(), 'YouTube thumbnail card image loading remains enabled')
+check('patch-mobile-v73.py' in patch and 'runpy.run_path("scripts/patch-mobile-v73.py")' in patch, 'YouTube loading optimization patch is part of the Mobile build chain')
+check('setPlayerDataSource' not in play, 'Mobile playback does not force the YouTube transport to OkHttp')
+check('mqdefault.jpg' in Path('scripts/patch-mobile-v73.py').read_text(), 'YouTube Browse cards use a lightweight 16:9 thumbnail target')
 
 # Version must advance for this application-level behavior change.
-check('versionCode = 90' in gradle, 'Mobile versionCode bumped for Mobile 1.10.72 build')
-check('versionName = "1.10.72"' in gradle, 'Mobile versionName is 1.10.72')
+check('versionCode = 91' in gradle, 'Mobile versionCode bumped for Mobile 1.10.73 build')
+check('versionName = "1.10.73"' in gradle, 'Mobile versionName is 1.10.73')
 
 Path('dist/mobile-diagnostics').mkdir(parents=True, exist_ok=True)
 Path('dist/mobile-diagnostics/lifecycle-source-proof.json').write_text(json.dumps({
