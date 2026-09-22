@@ -273,6 +273,10 @@ if media_item.exists():
     }
 
 '''
+    # MediaServiceCore's MediaItem interface does not declare this NM7 helper.
+    # Strip a stale @Override that may exist in the pinned source before build.
+    ms = ms.replace('    @Override\n    public String getChannelThumbnailUrl()', '    public String getChannelThumbnailUrl()')
+
     if 'getChannelThumbnailUrl()' not in ms:
         ms = ms.replace(anchor, getter + anchor, 1)
     media_item.write_text(ms)
