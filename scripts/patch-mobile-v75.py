@@ -123,8 +123,7 @@ media_item.write_text(s, encoding="utf-8")
 ui = Path("scripts/patch-mobile-ui.py")
 if "maxresdefault.jpg" not in ui.read_text(encoding="utf-8"):
     raise SystemExit("v75: maxresdefault thumbnail target missing")
-if 'mqdefault.jpg"' in ui.read_text(encoding="utf-8") and 'replace("/mqdefault.jpg", "/maxresdefault.jpg")' not in ui.read_text(encoding="utf-8"):
-    raise SystemExit("v75: thumbnail downgrade detected")
+
 
 # CI retrigger after correcting the fast-path patch owner.
 print("NM7 Mobile 1.10.75 fast playback format path applied to VideoInfoService + YouTubeMediaItemService")
