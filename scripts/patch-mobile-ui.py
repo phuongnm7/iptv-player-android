@@ -121,10 +121,10 @@ s = replace(s, '        if (listener != null) {', '''        View menu = itemVie
 s = replace(s, '        mVideo = null;', '''        mVideo = null;
         View menu = itemView.findViewById(R.id.nm7_card_menu);
         if (menu != null) menu.setOnClickListener(null);
-        View avatar = itemView.findViewById(R.id.nm7_channel_avatar);
+        View avatar = itemView.findViewById(R.id.shared_card_avatar);
         if (avatar instanceof android.widget.ImageView) ((android.widget.ImageView) avatar).setImageResource(R.drawable.browse_ic_account);''')
 s = replace(s, '        Glide.with(context)\n                .load(video.getCardImageUrl())', '''        // NM7 channel avatar: resolve metadata across SmartTube phone model variants.
-        android.widget.ImageView avatar = itemView.findViewById(R.id.nm7_channel_avatar);
+        android.widget.ImageView avatar = itemView.findViewById(R.id.shared_card_avatar);
         if (avatar != null) {
             String avatarUrl = null;
             String[] methods = {"getAuthorAvatarUrl", "getAuthorImageUrl", "getChannelImageUrl", "getAuthorIconUrl"};
