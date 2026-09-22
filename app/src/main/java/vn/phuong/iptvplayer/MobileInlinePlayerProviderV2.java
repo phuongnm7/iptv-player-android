@@ -441,16 +441,16 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
     private void playInline(Channel channel, long resumePositionMs, boolean resumePlaying) {
         if (currentActivity == null || playerView == null) return;
         SharedPlaybackSession.setTab(currentActivity, SharedPlaybackSession.TAB_IPTV);
+        final long requestedResumePositionMs = Math.max(0L, resumePositionMs);
+        final boolean requestedResumePlaying = resumePlaying;
         java.util.ArrayList<String> savedOptions = new java.util.ArrayList<>(channel.options());
         android.os.Bundle savedHeaders = new android.os.Bundle();
         for (java.util.Map.Entry<String,String> entry : channel.headers().entrySet()) {
             if (entry.getValue() != null) savedHeaders.putString(entry.getKey(), entry.getValue());
         }
         SharedPlaybackSession.saveIptv(currentActivity, channel.name(), channel.url(),
-                channel.mimeHint(), savedHeaders, savedOptions, 0L, true);
+                channel.mimeHint(), savedHeaders, savedOptions, requestedResumePositionMs, requestedResumePlaying);
         int generation = ++playGeneration;
-        final long requestedResumePositionMs = Math.max(0L, resumePositionMs);
-        final boolean requestedResumePlaying = resumePlaying;
         recoveryAttempts = 0;
         resumeAfterLifecyclePause = false;
         userPaused = false;
@@ -613,7 +613,8 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
                 next.setMediaItem(item);
             }
             next.prepare();
-            next.play();
+            if (requestedResumePositionMs > 0L) next.seekTo(requestedResumePositionMs);
+            next.setPlayWhenReady(requestedResumePlaying);
             mainHandler.removeCallbacks(statsTick);
             mainHandler.post(statsTick);
             playerView.hideController();
@@ -1151,6 +1152,8 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
             attach(main);
         }
         if (currentActivity != main || SharedPlaybackSession.TAB_IPTV.equals(SharedPlaybackSession.tab(main)) == false) return;
+        long restoredPosition = pendingResumePositionMs;
+        boolean restoredPlaying = pendingResumePlaying;
         if (currentChannel == null) {
             SharedPlaybackSession.State saved = SharedPlaybackSession.loadIptv(main);
             if (saved != null) {
@@ -1162,11 +1165,13 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
                 Channel restored = new Channel(saved.name, "Khôi phục", saved.url, "", "", headers);
                 restored.options().addAll(saved.options);
                 currentChannel = restored;
+                restoredPosition = saved.position;
+                restoredPlaying = saved.playing;
             }
         }
         if (currentChannel != null) {
-            pendingResumePositionMs = saved.position;
-            pendingResumePlaying = saved.playing;
+            pendingResumePositionMs = restoredPosition;
+            pendingResumePlaying = restoredPlaying;
             resumeAfterYoutube = false;
             mainHandler.postDelayed(() -> {
                 if (currentActivity == main
