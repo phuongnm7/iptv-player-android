@@ -225,5 +225,51 @@ s = replace(s, '        Glide.with(context)\n                .load(video.getCard
         Glide.with(context)
                 .load(video.getCardImageUrl())''')
 p.write_text(s)
-print('NM7 Mobile v43 Super-style browse presentation applied')
+
+# Avatar-only fix: preserve YouTube's channelThumbnail from VideoItem through
+# YouTubeMediaItem -> common Video, then bind that exact URL on the card.
+video_model = root / 'java/com/liskovsoft/smartyoutubetv2/common/app/models/data/Video.java'
+vs = video_model.read_text()
+if 'public String channelThumbnailUrl;' not in vs:
+    vs = vs.replace('    public String author;\n', '    public String author;\n    public String channelThumbnailUrl;\n', 1)
+vs = vs.replace(
+    '        video.mediaItem = item;\n\n        return video;',
+    '''        video.mediaItem = item;
+        try {
+            java.lang.reflect.Method avatarMethod = item.getClass().getMethod("getChannelThumbnailUrl");
+            Object avatar = avatarMethod.invoke(item);
+            if (avatar instanceof String && ((String) avatar).startsWith("http")) {
+                video.channelThumbnailUrl = (String) avatar;
+            }
+        } catch (ReflectiveOperationException | RuntimeException ignored) {}
+
+        return video;''', 1)
+vs = vs.replace('        video.author = item.author;\n', '        video.author = item.author;\n        video.channelThumbnailUrl = item.channelThumbnailUrl;\n', 1)
+video_model.write_text(vs)
+
+media_item = root.parent.parent.parent / 'MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/data/YouTubeMediaItem.java'
+if media_item.exists():
+    ms = media_item.read_text()
+    if 'private String mChannelThumbnailUrl;' not in ms:
+        ms = ms.replace('    private String mChannelId;\n', '    private String mChannelId;\n    private String mChannelThumbnailUrl;\n', 1)
+    ms = ms.replace('        video.mChannelId = item.getChannelId();\n', '        video.mChannelId = item.getChannelId();\n        video.mChannelThumbnailUrl = item.getChannelThumbnail();\n', 1)
+    anchor = '    public String getChannelId() {'
+    getter = '''    public String getChannelThumbnailUrl() {
+        return mChannelThumbnailUrl;
+    }
+
+'''
+    if 'getChannelThumbnailUrl()' not in ms:
+        ms = ms.replace(anchor, getter + anchor, 1)
+    media_item.write_text(ms)
+
+p = ui / 'shared/VideoCardHolder.java'
+s = p.read_text()
+avatar_anchor = '            String avatarUrl = null;\n'
+if avatar_anchor in s and 'video.channelThumbnailUrl' not in s:
+    s = s.replace(avatar_anchor, '''            String avatarUrl = video.channelThumbnailUrl;
+            if (avatarUrl != null && !avatarUrl.startsWith("http")) avatarUrl = null;
+''', 1)
+p.write_text(s)
+print('NM7 Mobile avatar-only channelThumbnail fix applied')
 
