@@ -129,6 +129,29 @@ s = replace(s, '        Glide.with(context)\n                .load(video.getCard
         if (avatar != null) {
             String avatarUrl = video.channelThumbnailUrl;
             if (avatarUrl != null && !avatarUrl.startsWith("http")) avatarUrl = null;
+
+            // The common Video model can keep the original media item. Resolve the
+            // avatar directly from it as a fallback when the copied field is empty.
+            if (avatarUrl == null) {
+                try {
+                    java.lang.reflect.Field mediaField = video.getClass().getField("mediaItem");
+                    Object mediaItem = mediaField.get(video);
+                    String[] mediaMethods = {
+                            "getChannelThumbnailUrl", "getChannelThumbnail",
+                            "getAuthorAvatarUrl", "getAuthorAvatar"
+                    };
+                    for (String name : mediaMethods) {
+                        try {
+                            java.lang.reflect.Method mm = mediaItem.getClass().getMethod(name);
+                            Object value = mm.invoke(mediaItem);
+                            if (value instanceof String && ((String) value).startsWith("http")) {
+                                avatarUrl = (String) value;
+                                break;
+                            }
+                        } catch (ReflectiveOperationException | RuntimeException ignored) {}
+                    }
+                } catch (ReflectiveOperationException | RuntimeException ignored) {}
+            }
             String[] directMethods = {
                     "getAuthorAvatarUrl", "getAuthorAvatar", "getChannelAvatarUrl", "getChannelAvatar",
                     "getAuthorImageUrl", "getChannelImageUrl", "getAuthorIconUrl", "getChannelIconUrl"
@@ -166,8 +189,16 @@ s = replace(s, '        Glide.with(context)\n                .load(video.getCard
             }
         }
 
+        String cardImageUrl = video.getCardImageUrl();
+        // Prefer a higher-resolution YouTube thumbnail for the large mobile card.
+        if (cardImageUrl != null && cardImageUrl.contains("ytimg.com")) {
+            cardImageUrl = cardImageUrl
+                    .replace("/default.jpg", "/hqdefault.jpg")
+                    .replace("/mqdefault.jpg", "/sddefault.jpg")
+                    .replace("/hq720.jpg", "/sddefault.jpg");
+        }
         Glide.with(context)
-                .load(video.getCardImageUrl())''')
+                .load(cardImageUrl)''')
 p.write_text(s)
 
 # Avatar data path: VideoItem -> YouTubeMediaItem -> Video -> VideoCardHolder.
