@@ -97,6 +97,10 @@ public final class HomeTabBar {
         Intent intent = new Intent(activity, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
         startWithoutAnimation(activity, intent);
+        // Explicitly request IPTV restoration after the Activity transition. This also
+        // covers the case where MainActivity is already alive and only reordered to front.
+        activity.getWindow().getDecorView().postDelayed(
+                () -> MobileInlinePlayerProviderV2.resumeForIptvTab(activity), 180L);
     }
 
     private static void openBrowse(Activity activity) {
