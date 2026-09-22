@@ -3352,3 +3352,29 @@ Video cho thấy sau khi chọn YouTube video, vùng player vẫn đen và spinn
 - Run #520 failed during the v74 patch step because the first v74 script pointed at the wrong generated SmartTube path for `VideoLoaderController.java`.
 - Corrected the path to `third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java`.
 - No APK was produced from the failed run. The correction is committed and must be rebuilt before testing.
+
+
+## 1.10.75 — phân tích video thực tế và tối ưu đường phát
+
+### Phân tích video 218815.mp4
+- Video test dài ~26.2 giây; ở các mốc ~2.4s, 4.8s và 7.2s player vẫn đen với spinner. Hình video chỉ xuất hiện rõ khoảng ~9.5s sau thao tác chọn.
+- Điều này cho thấy độ trễ nằm trước first frame, không phải chỉ do giao diện/tab fullscreen.
+
+### Root cause đã xác định trong MediaServiceCore
+- `getFormatInfoObserve(videoId)` đi vào `YouTubeMediaItemService.getFormatInfo()`.
+- Đường mặc định gọi `WEB_EMBED` trước. Client này thuộc nhóm cần Web PoToken.
+- `VideoInfoService.getVideoInfo()` còn có thể chạy thêm các bước bổ sung trước khi trả format: extended-HLS và lấy thêm translation languages.
+- Vì player chỉ có thể `openDash/openHls` sau khi format info trả về, toàn bộ thời gian này trở thành spinner trước first frame.
+
+### 1.10.75
+- Thêm fast playback resolver: với playback thông thường, thử `TV_DOWNGRADED` trước vì không đi qua Web PoToken path.
+- Nếu client nhanh không trả được video playable, tự động quay về toàn bộ multi-client fallback của SmartTube.
+- Nếu người dùng bật Extended HLS, giữ nguyên đường cũ để không làm mất chức năng đó.
+- Giữ v74: request đang chạy không bị hủy khi owner/player rebind.
+- Giữ thumbnail `maxresdefault.jpg`, không hạ chất lượng.
+
+### Version
+- versionName: **1.10.75**
+- versionCode: **93**
+
+**Chưa kết luận tốc độ đã đạt mức IPTV cho tới khi APK 1.10.75 được build và người dùng test trên cùng thiết bị/mạng.**
