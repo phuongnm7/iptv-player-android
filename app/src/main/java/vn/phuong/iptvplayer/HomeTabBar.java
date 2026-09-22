@@ -102,10 +102,25 @@ public final class HomeTabBar {
     private static void openBrowse(Activity activity) {
         SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_YOUTUBE);
         MobileNm7Application.markTabSwitch();
+        // If a YouTube playback session already exists, return directly to its real
+        // PlaybackActivity. This keeps the actual video surface visible; do not send the
+        // user to Browse while the decoder is still playing invisibly in the background.
+        // If no YouTube session exists, open Browse and leave IPTV untouched until a
+        // YouTube video actually reaches READY.
+        try {
+            Class<?> playback = Class.forName(
+                    "com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity");
+            boolean active = (Boolean) playback.getMethod("isNm7SessionActive").invoke(null);
+            if (active) {
+                SmartTubeRuntime.initialize(activity.getApplicationContext());
+                playback.getMethod("restoreNm7Player").invoke(null);
+                return;
+            }
+        } catch (ReflectiveOperationException | RuntimeException error) {
+            android.util.Log.w("NM7Navigation", "Existing YouTube session restore failed", error);
+        }
+
         PlayerActivity.prepareForYoutubeHandoff(activity);
-        // Do NOT finish PlayerActivity here. Selecting the YouTube tab is only navigation;
-        // IPTV must continue playing until SmartTube PlaybackActivity actually starts a video.
-        // MobileNm7Application pauses/releases IPTV at that exact playback-start event.
         SmartTubeRuntime.initialize(activity.getApplicationContext());
         try {
             Class<?> browse = Class.forName(BROWSE);
