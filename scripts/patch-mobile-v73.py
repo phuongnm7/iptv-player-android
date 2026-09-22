@@ -10,31 +10,35 @@ phone = Path("third_party/SmartTube-droid/smarttubedroid/src/main/java/com/lisko
 # remain intact; only the transport override is removed.
 p = phone / "playback/PlaybackActivity.java"
 t = p.read_text(encoding="utf-8")
-# Remove the optional DNS-triggered OkHttp transport override if v37 injected it.
-# Some pinned-source revisions already omit that override, so this must be idempotent.
+# Remove the optional DNS-triggered OkHttp transport override injected by v37.
+# Match the semantic block rather than whitespace-sensitive source text.
 pattern = re.compile(
-    r'(?ms)^        // The upstream fallback switches to OkHttp only after long buffering\\.\\n'
-    r'        // Respect an existing custom DNS setting from the first request instead\\.\\n'
-    r'        if \\(getPlayerTweaksData\\(\\)\\.getPreferredDnsType\\(\\)\\n'
-    r'                != com\\.liskovsoft\\.smartyoutubetv2\\.common\\.prefs\\.PlayerTweaksData\\.DNS_TYPE_SYSTEM\\n'
-    r'                && !getPlayerTweaksData\\(\\)\\.isNetworkErrorFixingDisabled\\(\\)\\) \\{\\n'
-    r'            getPlayerTweaksData\\(\\)\\.setPlayerDataSource\\(\\n'
-    r'                    com\\.liskovsoft\\.smartyoutubetv2\\.common\\.prefs\\.PlayerTweaksData\\.PLAYER_DATA_SOURCE_OKHTTP\\);\\n'
-    r'        \\}\\n'
-    r'        createPlayerObjects\\(\\);'
+    r'(?ms)^        // The upstream fallback switches to OkHttp.*?'
+    r'^        createPlayerObjects\\(\\);'
 )
 t, removed = pattern.subn(
     """        // NM7 1.10.73: keep the user's DNS preference but do not force
-        // playback onto OkHttp. The pinned SmartTube transport can use its
-        // native/Cronet-capable path when available.
+        // playback onto OkHttp.
         createPlayerObjects();""",
     t,
     count=1,
 )
-if removed == 0:
-    # Idempotent: the pinned source may already have no override.
-    if 'PLAYER_DATA_SOURCE_OKHTTP' in t:
-        raise SystemExit("OkHttp transport override remains in generated playback source")
+if removed == 0 and 'PLAYER_DATA_SOURCE_OKHTTP' in t:
+    # Fallback: remove only the injected conditional block up to createPlayerObjects().
+    pattern2 = re.compile(
+        r'(?ms)^        if \\(getPlayerTweaksData\\(\\)\\.getPreferredDnsType\\(\\).*?'
+        r'^        \\}\\n        createPlayerObjects\\(\\);'
+    )
+    t, removed2 = pattern2.subn(
+        """        // NM7 1.10.73: keep the user's DNS preference but do not force
+        // playback onto OkHttp.
+        createPlayerObjects();""",
+        t,
+        count=1,
+    )
+    if removed2 == 0 and 'PLAYER_DATA_SOURCE_OKHTTP' in t:
+        raise SystemExit("Unable to remove OkHttp transport override")
+p.write_text(t, encoding="utf-8")
 p.write_text(t, encoding="utf-8")
 p.write_text(t, encoding="utf-8")
 
