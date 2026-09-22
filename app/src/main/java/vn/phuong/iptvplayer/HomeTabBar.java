@@ -99,6 +99,8 @@ public final class HomeTabBar {
         startWithoutAnimation(activity, intent);
         // Explicitly request IPTV restoration after the Activity transition. This also
         // covers the case where MainActivity is already alive and only reordered to front.
+        // The click originates from SmartTube Browse/Playback, not MainActivity.
+        // Resolve the already-running MainActivity inside the IPTV provider.
         activity.getWindow().getDecorView().postDelayed(
                 () -> MobileInlinePlayerProviderV2.resumeForIptvTab(activity), 180L);
     }
