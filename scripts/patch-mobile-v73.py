@@ -45,7 +45,11 @@ if "PLAYER_DATA_SOURCE_OKHTTP" in t:
 p.write_text(t, encoding="utf-8")
 
 # 2) Keep the exact YouTube thumbnail quality/resolution used by 1.10.72.
-# The pinned source and shared UI patch already target max-resolution artwork.
+# The shared UI patch is the actual owner of the card URL. Verify that it still
+# uses the same max-resolution endpoint before allowing the v73 optimization.
+ui_patch = Path("scripts/patch-mobile-ui.py")
+if not ui_patch.is_file() or "maxresdefault.jpg" not in ui_patch.read_text(encoding="utf-8"):
+    raise SystemExit("YouTube thumbnail target must remain maxresdefault.jpg")
 # Do not modify the thumbnail URL or substitute a lower-resolution target.
 
 
