@@ -1,3 +1,11 @@
+# UPDATE 1.10.73 — THUMBNAIL QUALITY CORRECTION — 2026-09-22
+
+- Đã sửa ngay yêu cầu mới: **không hạ chất lượng/kích thước thumbnail** so với 1.10.72.
+- YouTube Browse tiếp tục dùng `maxresdefault.jpg` như 1.10.72.
+- Đã thêm regression guard: không cho phép `mqdefault.jpg` xuất hiện trong patch tối ưu.
+- Các tối ưu tốc độ khác của 1.10.73 vẫn giữ nguyên: không ép transport sang OkHttp và đo riêng thời gian format request/frame.
+- Không thay đổi giao diện, chức năng hoặc chất lượng thumbnail.
+
 # MOBILE 1.10.73 / 91 — YOUTUBE LOAD PERFORMANCE OPTIMIZATION — 2026-09-22
 
 ## Scope
