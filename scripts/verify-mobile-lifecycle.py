@@ -18,6 +18,7 @@ application = (app / 'MobileNm7Application.java').read_text(encoding='utf-8')
 tabs = (app / 'HomeTabBar.java').read_text(encoding='utf-8')
 gradle = Path('app/build.gradle.kts').read_text(encoding='utf-8')
 patch = Path('scripts/patch-mobile-v37.py').read_text(encoding='utf-8')
+final_delta = Path('scripts/patch-mobile-v69-no-miniplayer.py').read_text(encoding='utf-8')
 inc = Path('scripts/smarttube-playback-mobile.java.inc').read_text(encoding='utf-8')
 
 def body(signature):
@@ -54,8 +55,8 @@ check('MobileMiniPlayer.attach' not in application, 'Application does not create
 check('MobileMiniPlayer.remove' not in application, 'Application does not manage mini-player overlays')
 check('consumeNm7BrowseBack()' not in search, 'Search uses normal Back without mini-player interception')
 
-check('mNm7LeavingForMini = false;' in patch and 'sNm7Mini = false;' in patch, 'Mobile playback Back patch clears legacy mini-player state')
-check('startActivity(intent);' in patch and 'finish();' in patch, 'Mobile playback Back patch returns to Browse')
+check('mNm7LeavingForMini = false;' in final_delta and 'sNm7Mini = false;' in final_delta, 'Mobile playback Back patch clears legacy mini-player state')
+check('startActivity(intent);' in final_delta and 'finish();' in final_delta, 'Mobile playback Back patch returns to Browse')
 
 # Bottom navigation: exactly the two requested tabs.
 check('"YouTube"' in tabs and '"IPTV"' in tabs, 'Bottom navigation contains YouTube and IPTV')
