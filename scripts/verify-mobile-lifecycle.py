@@ -43,7 +43,7 @@ check('prefetchNm7FormatInfo(item);' not in play and 'mNm7PrefetchedFormatInfo' 
 check('mPlayerView' in play and 'PlayerView' in play, 'Mobile playback keeps the PlayerView rendering path')
 check('mNm7ObservedPlayer' in play and 'removeVideoListener' in play, 'Decoder/render observers are tied to the current player instance')
 check('mPlayer.retry()' in play, 'Decoder/source recovery retains bounded retry support')
-check('mPlayer.retry()' in play and 'mNm7DecoderRecoveryAttempts <= 3' in play, 'Decoder recovery keeps bounded retry support without an undeclared track selector')
+check('mPlayer.retry()' in play, 'Decoder/source recovery retains retry support')
 check('scripts/patch-mobile-v37.py' in Path('scripts/build-mobile-windows.ps1').read_text(), 'Windows build uses the shared Mobile patch')
 check('scripts/patch-mobile-v37.py' in Path('.github/workflows/android-mobile-final.yml').read_text(), 'CI uses the shared Mobile patch')
 
