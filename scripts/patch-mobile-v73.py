@@ -45,30 +45,9 @@ if "PLAYER_DATA_SOURCE_OKHTTP" in t:
 p.write_text(t, encoding="utf-8")
 
 # 2) Keep the exact YouTube thumbnail quality/resolution used by 1.10.72.
-# Do not downgrade card artwork; loading performance is optimized elsewhere.
-holders = list(phone.parent.parent.parent.rglob("VideoCardHolder.java"))
-if not holders:
-    raise SystemExit("VideoCardHolder.java not found after UI patch")
-changed = 0
-for p in holders:
-    s = p.read_text(encoding="utf-8")
-    s2 = s.replace(
-        'highResCardImageUrl = cardImageUrl.replace("/mqdefault.jpg", "/maxresdefault.jpg");',
-        'highResCardImageUrl = cardImageUrl.replace("/mqdefault.jpg", "/maxresdefault.jpg");'
-    )
-    s2 = s2.replace(
-        'highResCardImageUrl = cardImageUrl.replace("/hqdefault.jpg", "/maxresdefault.jpg");',
-        'highResCardImageUrl = cardImageUrl.replace("/hqdefault.jpg", "/maxresdefault.jpg");'
-    )
-    if s2 != s:
-        p.write_text(s2, encoding="utf-8")
-        changed += 1
+# The pinned source and shared UI patch already target max-resolution artwork.
+# Do not modify the thumbnail URL or substitute a lower-resolution target.
 
-# The pinned source may already contain the required maxresdefault path. That
-# is valid and must not be treated as a failure; this patch must never introduce
-# mqdefault as a replacement for maxresdefault.
-if changed > 1:
-    raise SystemExit(f"Unexpected number of VideoCardHolder changes: {changed}")
 
 # 3) Keep the selected-video format request on the background I/O scheduler.
 # Add an explicit diagnostic marker so device tests can distinguish format
