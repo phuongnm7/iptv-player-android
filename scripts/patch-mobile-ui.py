@@ -212,7 +212,7 @@ s = replace(s, '        Glide.with(context)\n                .load(video.getCard
                     .load(cardImageUrl)
                     .into((android.widget.ImageView) itemView.findViewById(R.id.shared_card_thumbnail));
         }
-''p.write_text(s)
+p.write_text(s)
 
 # Avatar data path: VideoItem -> YouTubeMediaItem -> Video -> VideoCardHolder.
 video_candidates = list(Path('third_party/SmartTube-droid').rglob('Video.java'))
