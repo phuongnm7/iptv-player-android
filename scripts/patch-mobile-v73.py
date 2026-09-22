@@ -29,11 +29,8 @@ if t.count(old) != 1:
 t = t.replace(old, new, 1)
 p.write_text(t, encoding="utf-8")
 
-# 2) The feed is a one-column mobile list. Requesting 1280x720 maxres
-# thumbnails for every card adds avoidable CDN traffic before the user
-# selects a video. Keep the exact same card/UI, but use YouTube's small,
-# 16:9 MQ thumbnail for list cards. This does not change the playback
-# stream or the visual layout.
+# 2) The feed is a one-column mobile list. Keep the exact YouTube thumbnail quality/resolution used by 1.10.72.
+# Do not downgrade card artwork; loading performance is optimized elsewhere.
 holders = list(phone.parent.parent.parent.rglob("VideoCardHolder.java"))
 if not holders:
     raise SystemExit("VideoCardHolder.java not found after UI patch")
@@ -43,15 +40,15 @@ for p in holders:
     if 'highResCardImageUrl = cardImageUrl.replace("/default.jpg", "/maxresdefault.jpg");' in s:
         s2 = s.replace(
             'highResCardImageUrl = cardImageUrl.replace("/default.jpg", "/maxresdefault.jpg");',
-            'highResCardImageUrl = cardImageUrl.replace("/default.jpg", "/mqdefault.jpg");'
+            'highResCardImageUrl = cardImageUrl.replace("/default.jpg", "/maxresdefault.jpg");'
         )
         s2 = s2.replace(
             'highResCardImageUrl = cardImageUrl.replace("/mqdefault.jpg", "/maxresdefault.jpg");',
-            'highResCardImageUrl = cardImageUrl.replace("/mqdefault.jpg", "/mqdefault.jpg");'
+            'highResCardImageUrl = cardImageUrl.replace("/mqdefault.jpg", "/maxresdefault.jpg");'
         )
         s2 = s2.replace(
             'highResCardImageUrl = cardImageUrl.replace("/hqdefault.jpg", "/maxresdefault.jpg");',
-            'highResCardImageUrl = cardImageUrl.replace("/hqdefault.jpg", "/mqdefault.jpg");'
+            'highResCardImageUrl = cardImageUrl.replace("/hqdefault.jpg", "/maxresdefault.jpg");'
         )
         if s2 != s:
             p.write_text(s2, encoding="utf-8")
