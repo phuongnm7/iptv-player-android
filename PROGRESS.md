@@ -1,3 +1,38 @@
+# MOBILE 1.10.73 / 91 — YOUTUBE LOAD PERFORMANCE OPTIMIZATION — 2026-09-22
+
+## Scope
+Tiếp tục trực tiếp từ stable baseline **1.10.72 / versionCode 90**. Mục tiêu của vòng này chỉ là giảm thời gian tải danh sách YouTube và thời gian chờ bắt đầu video. **Không thay đổi chức năng, hành vi, bottom navigation 2 tab YouTube/IPTV hoặc giao diện YouTube của 1.10.72.**
+
+## Source changes
+- Bỏ cơ chế ép SmartTube Mobile sang **OkHttp** khi người dùng có cấu hình DNS tùy chỉnh. Cấu hình DNS vẫn được giữ; chỉ bỏ transport override để upstream network stack có thể dùng đường HTTP/2/HTTP/3/QUIC phù hợp khi khả dụng.
+- Giữ đường **selected-video format request** của 1.10.68 chạy song song với quá trình khởi tạo PlaybackActivity/decoder; thêm mốc log an toàn `selected_video_start` và `format_ready_ms` để tách thời gian lấy format khỏi thời gian decoder/frame.
+- Tối ưu tải danh sách YouTube: card list không còn tự nâng mọi thumbnail lên `maxresdefault.jpg` 1280×720. Mobile one-column feed dùng mục tiêu `mqdefault.jpg` 320×180, vẫn giữ nguyên layout/card/UI.
+- Không thêm preload video hàng loạt, không cache URL ký, không tải trước video người dùng chưa chọn để tránh tăng lưu lượng và bộ nhớ.
+- Không thay đổi decoder recovery, SurfaceView, lifecycle/ownership, IPTV, Android TV hoặc UI navigation.
+
+## Cơ sở kỹ thuật
+Media3 xác nhận lựa chọn network stack ảnh hưởng đáng kể tới streaming performance; Cronet/HttpEngine hỗ trợ HTTP/2 và HTTP/3 over QUIC, trong khi OkHttp hiện hỗ trợ HTTP/2 nhưng không HTTP/3. citeturn6search0turn6search2
+Media3 cũng hỗ trợ preload có kiểm soát, nhưng preload quá mạnh sẽ lãng phí băng thông; vòng này chủ động không preload video chưa được chọn. citeturn0search3turn0search5
+
+## Version
+- versionCode: **91**
+- versionName: **1.10.73**
+- Bắt buộc build Mobile-only trước khi coi là hoàn tất.
+- Chưa có kết luận runtime cho đến khi CI PASS và người dùng test APK trên thiết bị thật.
+
+## Kịch bản test bắt buộc
+1. Mở tab YouTube → đo thời gian danh sách xuất hiện.
+2. Cuộn nhanh qua nhiều nhóm video → kiểm tra danh sách không bị spinner kéo dài và thumbnail tải dần ổn định.
+3. Chọn video ngay khi thumbnail/list vừa xuất hiện → đo thời gian từ tap đến frame đầu tiên.
+4. Mở 5–10 video liên tiếp → so sánh tốc độ với 1.10.72.
+5. Mạng Wi-Fi tốt nhưng có độ trễ DNS/CDN → kiểm tra thời gian `format_ready_ms`.
+6. Xác nhận UI YouTube, bố cục một cột, search, account, Back, IPTV và toàn bộ lifecycle vẫn giống 1.10.72.
+7. Xác nhận avatar channel vẫn là lỗi riêng đã ghi nhận, không đưa vào scope vòng này.
+
+**Trạng thái:** Source đã được đưa lên branch phát triển; đang chờ Mobile Final CI. Không coi build pass là bằng chứng tốc độ đã được cải thiện trên thiết bị thật.
+
+---
+
 # MOBILE 1.10.72 / 90 — STABLE BASELINE — 2026-09-22
 
 ## Trạng thái hiện tại
