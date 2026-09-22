@@ -1118,8 +1118,15 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
     /** Explicit tab-return hook. MainActivity may already be at the top when the tab is tapped. */
     public static void resumeForIptvTab(Activity activity) {
         MobileInlinePlayerProviderV2 owner = instance;
-        if (owner == null || !(activity instanceof MainActivity)) return;
-        MainActivity main = (MainActivity) activity;
+        if (owner == null) return;
+        // The tab click is normally received by SmartTube Browse/Playback. MainActivity
+        // is already alive in the task and must be resolved from the provider itself.
+        MainActivity main = activity instanceof MainActivity
+                ? (MainActivity) activity : owner.currentActivity;
+        if (main == null || main.isFinishing() || main.isDestroyed()) {
+            android.util.Log.w("NM7Playback", "IPTV tab return: MainActivity unavailable");
+            return;
+        }
         owner.postResumeIptvForNm7(main);
     }
 
