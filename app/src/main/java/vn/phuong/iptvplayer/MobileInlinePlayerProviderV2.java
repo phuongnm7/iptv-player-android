@@ -112,6 +112,8 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
     private long lastNetworkProgressMs;
     private long stablePlaybackSinceMs;
     private boolean fullscreen;
+    private long requestedResumePositionMs;
+    private boolean requestedResumePlaying = true;
     private View.OnLayoutChangeListener rootLayoutListener;
 
     private static final OkHttpClient STREAM_HTTP = new OkHttpClient.Builder()
@@ -441,8 +443,8 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
     private void playInline(Channel channel, long resumePositionMs, boolean resumePlaying) {
         if (currentActivity == null || playerView == null) return;
         SharedPlaybackSession.setTab(currentActivity, SharedPlaybackSession.TAB_IPTV);
-        final long requestedResumePositionMs = Math.max(0L, resumePositionMs);
-        final boolean requestedResumePlaying = resumePlaying;
+        requestedResumePositionMs = Math.max(0L, resumePositionMs);
+        requestedResumePlaying = resumePlaying;
         java.util.ArrayList<String> savedOptions = new java.util.ArrayList<>(channel.options());
         android.os.Bundle savedHeaders = new android.os.Bundle();
         for (java.util.Map.Entry<String,String> entry : channel.headers().entrySet()) {
