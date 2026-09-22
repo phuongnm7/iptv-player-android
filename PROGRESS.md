@@ -1,3 +1,54 @@
+# MOBILE 1.10.72 / 90 — STABLE BASELINE — 2026-09-22
+
+## Trạng thái hiện tại
+
+**1.10.72 / versionCode 90 được chốt làm bản ổn định tạm thời (stable baseline) để phát triển các bản Mobile tiếp theo.**
+
+- Mobile Final Build **#502 — SUCCESS**.
+- Run: 35699011527.
+- Source commit: 771d599fe6be23ebfeb1ac6a319f50c05279501b.
+- Artifact: https://github.com/phuongnm7/iptv-player-android/actions/runs/35699011527/artifacts/10682325671
+- Artifact ID: 10682325671, dung lượng khoảng 62.13 MB.
+- Artifact SHA-256: e3407a549dd46dc0f4151de12693ee13ad249de169bb06e3550249375003e7f7.
+- Unit-test artifact: Mobile-unit-test-results, ID 10682720058.
+- Lifecycle/source-proof artifact: Mobile-lifecycle-source-proof, ID 10681223908.
+- CI đã vượt qua patch SmartTube, lifecycle guards, resource compatibility, build Mobile-only và upload APK.
+- Không build Android TV trong run #502. Phạm vi là Mobile.
+
+## Những gì được giữ làm nền
+
+- Bottom navigation đúng **2 tab: YouTube + IPTV**.
+- Không có mini-player nhúng trong Mobile build hiện tại.
+- Các thay đổi Mobile 1.10.68–1.10.72 và cơ chế lifecycle/ownership hiện tại được giữ nguyên.
+- versionCode 90 / versionName 1.10.72 là mốc phiên bản nền.
+- Bản tiếp theo bắt buộc tăng lên **versionCode 91 / versionName 1.10.73** trước khi build; các bản sau tiếp tục tăng tuần tự.
+- Các bản sửa tiếp theo phải bắt đầu từ baseline 1.10.72 này, không quay về các commit cũ.
+
+## Lỗi còn tồn tại — ghi nhận để xử lý sau
+
+### Avatar kênh YouTube chưa hiển thị
+
+Người dùng đã kiểm tra APK 1.10.72 thực tế và xác nhận **avatar kênh trên các thẻ video YouTube vẫn chưa hiển thị**.
+
+Đây là lỗi đã biết và **không xử lý trong vòng 1.10.72**. Không coi CI PASS là bằng chứng avatar đã hoạt động.
+
+Khi xử lý ở bản sau cần:
+1. Giữ nguyên toàn bộ hành vi/UI đang ổn định của 1.10.72.
+2. Chỉ truy vết lại đường dữ liệu channelThumbnail → YouTubeMediaItem → Video.channelThumbnailUrl → VideoCardHolder.
+3. Không thay đổi thanh dưới 2 tab YouTube/IPTV.
+4. Sau khi sửa phải tăng version trước khi build.
+
+## Quy tắc phát triển từ baseline này
+
+- Mỗi APK mới phải tăng **versionCode** và **versionName**.
+- Không sửa verifier để chấp nhận lại version cũ.
+- Trước mỗi build: kiểm tra version hiện tại, tăng version, đồng bộ verifier nếu verifier có kiểm tra số phiên bản.
+- Build phải SUCCESS và artifact APK phải tồn tại mới được coi là build hoàn tất.
+- Lỗi avatar hiện được ghi nhận riêng, chưa đưa vào scope sửa của 1.10.72.
+- Không thay đổi Android TV khi đang xử lý Mobile.
+
+---
+
 # MOBILE 1.10.68 / 86 — SINGLE PLAYBACK OWNER + SELECTED SOURCE PIPELINE — 2026-09-21
 
 - Người dùng xác nhận 1.10.67 vẫn lỗi qua video `218073.mp4`: mini/player đen và mini báo phiên phát kết thúc. 1.10.67 KHÔNG ổn định; không coi watchdog là giải pháp đầy đủ.
