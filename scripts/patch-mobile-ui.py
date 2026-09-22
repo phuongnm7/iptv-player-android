@@ -18,10 +18,10 @@ def replace_first(text, old, new):
     # bindThumbnail(). Replace that whole method when the exact Glide anchor
     # is not present, instead of failing the entire mobile build.
     if 'video.getCardImageUrl()' in old:
-        pattern = r'    private void bindThumbnail\\(Context context, Video video\\) \\{.*?\\n    \\}\\n'
+        pattern = r'    private void bindThumbnail\(Context context, Video video\) \{.*?\n    \}\n'
         match = re.search(pattern, text, re.S)
         if match:
-            return text[:match.start()] + '    private void bindThumbnail(Context context, Video video) {\\n' + new.lstrip() + '\\n    }\\n' + text[match.end():]
+            return text[:match.start()] + '    private void bindThumbnail(Context context, Video video) {\n' + new.lstrip() + '\n    }\n' + text[match.end():]
     raise SystemExit('UI anchor missing: ' + old[:100])
 
 for source in Path('scripts/mobile-ui/res').rglob('*.xml'):
