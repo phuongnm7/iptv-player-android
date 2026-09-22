@@ -54,8 +54,8 @@ check('MobileMiniPlayer.attach' not in application, 'Application does not create
 check('MobileMiniPlayer.remove' not in application, 'Application does not manage mini-player overlays')
 check('consumeNm7BrowseBack()' not in search, 'Search uses normal Back without mini-player interception')
 
-check('mNm7LeavingForMini = false;' in inc and 'sNm7Mini = false;' in inc, 'Mobile playback Back path clears legacy mini-player state')
-check('startActivity(intent);' in inc and 'finish();' in inc, 'Mobile playback Back path returns to Browse')
+check('mNm7LeavingForMini = false;' in patch and 'sNm7Mini = false;' in patch, 'Mobile playback Back patch clears legacy mini-player state')
+check('startActivity(intent);' in patch and 'finish();' in patch, 'Mobile playback Back patch returns to Browse')
 
 # Bottom navigation: exactly the two requested tabs.
 check('"YouTube"' in tabs and '"IPTV"' in tabs, 'Bottom navigation contains YouTube and IPTV')
