@@ -294,8 +294,10 @@ public final class MobileNm7Application extends DroidApplication implements andr
         } catch (ReflectiveOperationException | RuntimeException error) {
             android.util.Log.e("NM7Playback", "Suspend YouTube for IPTV failed", error);
         }
-        // No mini-player: IPTV ownership ends the YouTube playback session.
-        stopYoutubeForIptv();
+        // Keep the YouTube session alive in the background. IPTV temporarily owns
+        // playback only while an IPTV player is actually READY/playing.
+        SharedPlaybackSession.setYoutubeBackground(instance, false);
+        System.setProperty("nm7.youtube.background", "0");
     }
 
     public static void stopYoutubeForIptv() {
