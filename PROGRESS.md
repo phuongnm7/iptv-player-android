@@ -3345,3 +3345,10 @@ Video cho thấy sau khi chọn YouTube video, vùng player vẫn đen và spinn
 ## Trạng thái
 
 Đã sửa source và đẩy lên branch Mobile. **Chưa coi tốc độ đã được xác nhận cho đến khi CI build thành công và người dùng test APK 1.10.74 trên máy thật.**
+
+
+## CI correction 1.10.74
+
+- Run #520 failed during the v74 patch step because the first v74 script pointed at the wrong generated SmartTube path for `VideoLoaderController.java`.
+- Corrected the path to `third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java`.
+- No APK was produced from the failed run. The correction is committed and must be rebuilt before testing.
