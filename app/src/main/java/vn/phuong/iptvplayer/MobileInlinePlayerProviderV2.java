@@ -149,9 +149,18 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
             return;
         }
         if (currentActivity != main || panel == null || panel.getParent() == null) attach(main);
+        // Returning from YouTube is a handoff, not a fresh navigation. Recreate the
+        // IPTV player after MainActivity is actually resumed so the old decoder cannot
+        // race the Activity transition.
         if (resumeAfterYoutube && currentChannel != null) {
             resumeAfterYoutube = false;
-            playInline(currentChannel);
+            mainHandler.postDelayed(() -> {
+                if (currentActivity == main
+                        && SharedPlaybackSession.TAB_IPTV.equals(SharedPlaybackSession.tab(main))
+                        && currentChannel != null) {
+                    playInline(currentChannel);
+                }
+            }, 120L);
         }
         if (!MobileNm7Application.isYoutubeSessionActive()) stopBackgroundService(main);
         backgroundActive = false;
@@ -424,6 +433,9 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
     private void playInline(Channel channel) {
         if (currentActivity == null || playerView == null) return;
         SharedPlaybackSession.setTab(currentActivity, SharedPlaybackSession.TAB_IPTV);
+        java.util.ArrayList<String> savedOptions = new java.util.ArrayList<>(channel.options());
+        SharedPlaybackSession.saveIptv(currentActivity, channel.name(), channel.url(),
+                channel.mimeHint(), new android.os.Bundle(), savedOptions, 0L, true);
         int generation = ++playGeneration;
         recoveryAttempts = 0;
         resumeAfterLifecyclePause = false;
@@ -1101,6 +1113,44 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
     public static boolean shouldResumeIptvAfterYoutube() {
         MobileInlinePlayerProviderV2 owner = instance;
         return owner != null && owner.resumeAfterYoutube && owner.currentChannel != null;
+    }
+
+    /** Explicit tab-return hook. MainActivity may already be at the top when the tab is tapped. */
+    public static void resumeForIptvTab(Activity activity) {
+        MobileInlinePlayerProviderV2 owner = instance;
+        if (owner == null || !(activity instanceof MainActivity)) return;
+        MainActivity main = (MainActivity) activity;
+        main.postResumeIptvForNm7();
+    }
+
+    private void postResumeIptvForNm7(MainActivity main) {
+        if (currentActivity != main || panel == null || playerView == null) {
+            attach(main);
+        }
+        if (currentActivity != main || SharedPlaybackSession.TAB_IPTV.equals(SharedPlaybackSession.tab(main)) == false) return;
+        if (currentChannel == null) {
+            SharedPlaybackSession.State saved = SharedPlaybackSession.loadIptv(main);
+            if (saved != null) {
+                java.util.Map<String,String> headers = new java.util.LinkedHashMap<>();
+                for (String key : saved.headers.keySet()) {
+                    String value = saved.headers.getString(key);
+                    if (value != null) headers.put(key, value);
+                }
+                Channel restored = new Channel(saved.name, "Khôi phục", saved.url, "", "", headers);
+                restored.options().addAll(saved.options);
+                currentChannel = restored;
+            }
+        }
+        if (currentChannel != null) {
+            resumeAfterYoutube = false;
+            mainHandler.postDelayed(() -> {
+                if (currentActivity == main
+                        && SharedPlaybackSession.TAB_IPTV.equals(SharedPlaybackSession.tab(main))
+                        && currentChannel != null) {
+                    playInline(currentChannel);
+                }
+            }, 80L);
+        }
     }
 
     public static void stopForSleepTimer() {
