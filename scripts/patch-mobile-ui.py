@@ -120,8 +120,42 @@ s = replace(s, '        if (listener != null) {', '''        View menu = itemVie
         if (listener != null) {''')
 s = replace(s, '        mVideo = null;', '''        mVideo = null;
         View menu = itemView.findViewById(R.id.nm7_card_menu);
-        if (menu != null) menu.setOnClickListener(null);''')
-s = replace(s, '        Glide.with(context)\n                .load(video.getCardImageUrl())', '''        if (video.videoId != null && video.videoId.matches("[A-Za-z0-9_-]{11}")) {
+        if (menu != null) menu.setOnClickListener(null);
+        View avatar = itemView.findViewById(R.id.nm7_channel_avatar);
+        if (avatar instanceof android.widget.ImageView) ((android.widget.ImageView) avatar).setImageResource(R.drawable.browse_ic_account);''')
+s = replace(s, '        Glide.with(context)\n                .load(video.getCardImageUrl())', '''        // NM7 channel avatar: resolve metadata across SmartTube phone model variants.
+        android.widget.ImageView avatar = itemView.findViewById(R.id.nm7_channel_avatar);
+        if (avatar != null) {
+            String avatarUrl = null;
+            String[] methods = {"getAuthorAvatarUrl", "getAuthorImageUrl", "getChannelImageUrl", "getAuthorIconUrl"};
+            for (String name : methods) {
+                try {
+                    java.lang.reflect.Method m = video.getClass().getMethod(name);
+                    Object v = m.invoke(video);
+                    if (v instanceof String && ((String) v).startsWith("http")) { avatarUrl = (String) v; break; }
+                } catch (ReflectiveOperationException | RuntimeException ignored) {}
+            }
+            if (avatarUrl == null) {
+                String[] fields = {"authorAvatarUrl", "authorImageUrl", "channelImageUrl", "authorIconUrl"};
+                for (String name : fields) {
+                    try {
+                        java.lang.reflect.Field f = video.getClass().getDeclaredField(name);
+                        f.setAccessible(true);
+                        Object v = f.get(video);
+                        if (v instanceof String && ((String) v).startsWith("http")) { avatarUrl = (String) v; break; }
+                    } catch (ReflectiveOperationException | RuntimeException ignored) {}
+                }
+            }
+            if (avatarUrl != null) {
+                Glide.with(context).load(avatarUrl).circleCrop()
+                        .placeholder(R.drawable.browse_ic_account)
+                        .error(R.drawable.browse_ic_account).into(avatar);
+            } else {
+                avatar.setImageResource(R.drawable.browse_ic_account);
+            }
+        }
+
+        if (video.videoId != null && video.videoId.matches("[A-Za-z0-9_-]{11}")) {
             // Decode for the physical display width, never an unbounded original bitmap.
             int imageWidth = Math.max(320, Math.min(1280, context.getResources().getDisplayMetrics().widthPixels));
             RequestOptions options = new RequestOptions()
