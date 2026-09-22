@@ -158,7 +158,11 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
                 if (currentActivity == main
                         && SharedPlaybackSession.TAB_IPTV.equals(SharedPlaybackSession.tab(main))
                         && currentChannel != null) {
-                    playInline(currentChannel);
+                    long position = pendingResumePositionMs;
+                    boolean playing = pendingResumePlaying;
+                    pendingResumePositionMs = 0L;
+                    pendingResumePlaying = false;
+                    playInline(currentChannel, position, playing);
                 }
             }, 120L);
         }
@@ -431,12 +435,22 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
     }
 
     private void playInline(Channel channel) {
+        playInline(channel, 0L, true);
+    }
+
+    private void playInline(Channel channel, long resumePositionMs, boolean resumePlaying) {
         if (currentActivity == null || playerView == null) return;
         SharedPlaybackSession.setTab(currentActivity, SharedPlaybackSession.TAB_IPTV);
         java.util.ArrayList<String> savedOptions = new java.util.ArrayList<>(channel.options());
+        android.os.Bundle savedHeaders = new android.os.Bundle();
+        for (java.util.Map.Entry<String,String> entry : channel.headers().entrySet()) {
+            if (entry.getValue() != null) savedHeaders.putString(entry.getKey(), entry.getValue());
+        }
         SharedPlaybackSession.saveIptv(currentActivity, channel.name(), channel.url(),
-                channel.mimeHint(), new android.os.Bundle(), savedOptions, 0L, true);
+                channel.mimeHint(), savedHeaders, savedOptions, 0L, true);
         int generation = ++playGeneration;
+        final long requestedResumePositionMs = Math.max(0L, resumePositionMs);
+        final boolean requestedResumePlaying = resumePlaying;
         recoveryAttempts = 0;
         resumeAfterLifecyclePause = false;
         userPaused = false;
@@ -1104,6 +1118,8 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
     @Override public void onActivityStopped(Activity a) { }
     private static MobileInlinePlayerProviderV2 instance;
     private boolean resumeAfterYoutube;
+    private long pendingResumePositionMs;
+    private boolean pendingResumePlaying;
 
     public static boolean hasSession() {
         return instance != null && instance.currentActivity != null && instance.currentChannel != null;
@@ -1149,12 +1165,18 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
             }
         }
         if (currentChannel != null) {
+            pendingResumePositionMs = saved.position;
+            pendingResumePlaying = saved.playing;
             resumeAfterYoutube = false;
             mainHandler.postDelayed(() -> {
                 if (currentActivity == main
                         && SharedPlaybackSession.TAB_IPTV.equals(SharedPlaybackSession.tab(main))
                         && currentChannel != null) {
-                    playInline(currentChannel);
+                    long position = pendingResumePositionMs;
+                    boolean playing = pendingResumePlaying;
+                    pendingResumePositionMs = 0L;
+                    pendingResumePlaying = false;
+                    playInline(currentChannel, position, playing);
                 }
             }, 80L);
         }
@@ -1175,7 +1197,21 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
     public static void releaseForYoutube() {
         MobileInlinePlayerProviderV2 owner = instance;
         if (owner == null) return;
-        if (owner.player != null) owner.resumeAfterYoutube = owner.player.getPlayWhenReady() && !owner.userPaused;
+        if (owner.player != null) {
+            owner.resumeAfterYoutube = owner.player.getPlayWhenReady() && !owner.userPaused;
+            owner.pendingResumePositionMs = owner.player.isCurrentMediaItemLive() ? 0L : Math.max(0L, owner.player.getCurrentPosition());
+            owner.pendingResumePlaying = owner.resumeAfterYoutube;
+            if (owner.currentActivity != null && owner.currentChannel != null) {
+                android.os.Bundle headers = new android.os.Bundle();
+                for (java.util.Map.Entry<String,String> entry : owner.currentChannel.headers().entrySet()) {
+                    if (entry.getValue() != null) headers.putString(entry.getKey(), entry.getValue());
+                }
+                SharedPlaybackSession.saveIptv(owner.currentActivity, owner.currentChannel.name(),
+                        owner.currentChannel.url(), owner.currentChannel.mimeHint(), headers,
+                        new java.util.ArrayList<>(owner.currentChannel.options()),
+                        owner.pendingResumePositionMs, owner.pendingResumePlaying);
+            }
+        }
         ++owner.playGeneration; // Invalidate pending DRM/retry callbacks before release.
         owner.resumeAfterLifecyclePause = false;
         owner.backgroundActive = false;
