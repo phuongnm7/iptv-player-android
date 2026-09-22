@@ -12,9 +12,17 @@ def replace(text, old, new):
     return text.replace(old, new, 1)
 
 def replace_first(text, old, new):
-    if old not in text:
-        raise SystemExit('UI anchor missing: ' + old[:100])
-    return text.replace(old, new, 1)
+    if old in text:
+        return text.replace(old, new, 1)
+    # The pinned SmartTube source has had minor formatting changes around
+    # bindThumbnail(). Replace that whole method when the exact Glide anchor
+    # is not present, instead of failing the entire mobile build.
+    if 'video.getCardImageUrl()' in old:
+        pattern = r'    private void bindThumbnail\\(Context context, Video video\\) \\{.*?\\n    \\}\\n'
+        match = re.search(pattern, text, re.S)
+        if match:
+            return text[:match.start()] + '    private void bindThumbnail(Context context, Video video) {\\n' + new.lstrip() + '\\n    }\\n' + text[match.end():]
+    raise SystemExit('UI anchor missing: ' + old[:100])
 
 for source in Path('scripts/mobile-ui/res').rglob('*.xml'):
     dest = root / 'res' / source.relative_to('scripts/mobile-ui/res')
