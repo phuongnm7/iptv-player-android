@@ -1,6 +1,7 @@
 """Presentation-only overlay on the verified v39 playback patch."""
 from pathlib import Path
 import shutil
+import re
 
 root = Path('third_party/SmartTube-droid/smarttubedroid/src/main')
 ui = root / 'java/com/liskovsoft/smartyoutubetv2/droid/ui'
@@ -113,8 +114,7 @@ p.write_text(s)
 p = ui / 'shared/VideoCardHolder.java'
 s = p.read_text()
 s = replace(s, '.inflate(isRow ? R.layout.shared_video_card_row : R.layout.shared_video_card, parent, false);',
-    '.inflate(!isRow && parent.getContext() instanceof com.liskovsoft.smartyoutubetv2/droid/ui/browse/BrowseActivity'.replace('/', '.') +
-    ' ? R.layout.nm7_video_card : isRow ? R.layout.shared_video_card_row : R.layout.shared_video_card, parent, false);')
+    '.inflate(!isRow && parent.getContext() instanceof com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity ? R.layout.nm7_video_card : isRow ? R.layout.shared_video_card_row : R.layout.shared_video_card, parent, false);')
 s = replace(s, '        if (listener != null) {', '''        View menu = itemView.findViewById(R.id.nm7_card_menu);
         if (menu != null) menu.setOnClickListener(listener == null ? null : v -> listener.onVideoLongClicked(video));
         if (listener != null) {''')
@@ -127,12 +127,14 @@ s = replace(s, '        Glide.with(context)\n                .load(video.getCard
         // direct avatar/image URLs first, then inspect the nested author/channel object.
         android.widget.ImageView avatar = itemView.findViewById(R.id.shared_card_avatar);
         if (avatar != null) {
-            String avatarUrl = null;
+            String avatarUrl = video.channelThumbnailUrl;
+            if (avatarUrl != null && !avatarUrl.startsWith("http")) avatarUrl = null;
             String[] directMethods = {
                     "getAuthorAvatarUrl", "getAuthorAvatar", "getChannelAvatarUrl", "getChannelAvatar",
                     "getAuthorImageUrl", "getChannelImageUrl", "getAuthorIconUrl", "getChannelIconUrl"
             };
             for (String name : directMethods) {
+                if (avatarUrl != null) break;
                 try {
                     java.lang.reflect.Method m = video.getClass().getMethod(name);
                     Object value = m.invoke(video);
@@ -153,38 +155,7 @@ s = replace(s, '        Glide.with(context)\n                .load(video.getCard
                             } catch (ReflectiveOperationException | RuntimeException ignored) {}
                         }
                     }
-                    if (avatarUrl != null) break;
                 } catch (ReflectiveOperationException | RuntimeException ignored) {}
-            }
-            if (avatarUrl == null) {
-                String[] fields = {
-                        "authorAvatarUrl", "authorAvatar", "channelAvatarUrl", "channelAvatar",
-                        "authorImageUrl", "channelImageUrl", "authorIconUrl", "channelIconUrl"
-                };
-                for (String name : fields) {
-                    try {
-                        java.lang.reflect.Field f = video.getClass().getDeclaredField(name);
-                        f.setAccessible(true);
-                        Object value = f.get(video);
-                        if (value instanceof String && ((String) value).startsWith("http")) {
-                            avatarUrl = (String) value;
-                            break;
-                        }
-                        if (value != null) {
-                            for (String nested : new String[]{"getAvatarUrl", "getAvatar", "getImageUrl", "getThumbnailUrl", "getUrl"}) {
-                                try {
-                                    java.lang.reflect.Method nm = value.getClass().getMethod(nested);
-                                    Object nv = nm.invoke(value);
-                                    if (nv instanceof String && ((String) nv).startsWith("http")) {
-                                        avatarUrl = (String) nv;
-                                        break;
-                                    }
-                                } catch (ReflectiveOperationException | RuntimeException ignored) {}
-                            }
-                        }
-                        if (avatarUrl != null) break;
-                    } catch (ReflectiveOperationException | RuntimeException ignored) {}
-                }
             }
             if (avatarUrl != null) {
                 Glide.with(context).load(avatarUrl).circleCrop()
@@ -195,39 +166,11 @@ s = replace(s, '        Glide.with(context)\n                .load(video.getCard
             }
         }
 
-        if (video.videoId != null && video.videoId.matches("[A-Za-z0-9_-]{11}")) {
-            // Decode for the physical display width, never an unbounded original bitmap.
-            int imageWidth = Math.max(320, Math.min(1280, context.getResources().getDisplayMetrics().widthPixels));
-            RequestOptions options = new RequestOptions()
-                    .dontTransform()
-                    .override(imageWidth, (imageWidth * 9 + 15) / 16)
-                    .format(com.bumptech.glide.load.DecodeFormat.PREFER_ARGB_8888)
-                    .downsample(com.bumptech.glide.load.resource.bitmap.DownsampleStrategy.AT_MOST)
-                    .skipMemoryCache(false)
-                    .diskCacheStrategy(DiskCacheStrategy.DATA);
-            String imageRoot = "https://i.ytimg.com/vi/" + video.videoId + "/";
-            com.bumptech.glide.RequestBuilder<android.graphics.drawable.Drawable> request =
-                    Glide.with(context).load(imageRoot + "maxresdefault.jpg").apply(options)
-                            .error(Glide.with(context).load(imageRoot + "hq720.jpg").apply(options));
-            if (video.bgImageUrl != null && video.bgImageUrl.startsWith("http")) {
-                request = request.error(Glide.with(context).load(imageRoot + "hq720.jpg").apply(options)
-                        .error(Glide.with(context).load(video.bgImageUrl).apply(options)
-                                .error(Glide.with(context).load(video.getCardImageUrl()).apply(options)
-                                        .error(R.drawable.shared_card_placeholder))));
-            } else {
-                request = request.error(Glide.with(context).load(imageRoot + "hq720.jpg").apply(options)
-                        .error(Glide.with(context).load(video.getCardImageUrl()).apply(options)
-                                .error(R.drawable.shared_card_placeholder)));
-            }
-            request.placeholder(R.drawable.shared_card_placeholder).into(mThumbnail);
-            return;
-        }
         Glide.with(context)
                 .load(video.getCardImageUrl())''')
 p.write_text(s)
 
-# Avatar-only fix: preserve YouTube's channelThumbnail from VideoItem through
-# YouTubeMediaItem -> common Video, then bind that exact URL on the card.
+# Avatar data path: VideoItem -> YouTubeMediaItem -> Video -> VideoCardHolder.
 video_candidates = list(Path('third_party/SmartTube-droid').rglob('Video.java'))
 if not video_candidates:
     raise SystemExit('Avatar patch: Video.java not found')
@@ -255,9 +198,10 @@ if media_item.exists():
     ms = media_item.read_text()
     if 'private String mChannelThumbnailUrl;' not in ms:
         ms = ms.replace('    private String mChannelId;\n', '    private String mChannelId;\n    private String mChannelThumbnailUrl;\n', 1)
-    ms = ms.replace(
-        '        video.mChannelId = item.getChannelId();\\n',
-        '''        video.mChannelId = item.getChannelId();
+
+    marker = '        video.mChannelId = item.getChannelId();'
+    if 'video.mChannelThumbnailUrl = (String) thumb;' not in ms:
+        block = '''        video.mChannelId = item.getChannelId();
         try {
             java.lang.reflect.Method thumbMethod = item.getClass().getMethod("getChannelThumbnail");
             Object thumb = thumbMethod.invoke(item);
@@ -265,32 +209,19 @@ if media_item.exists():
                 video.mChannelThumbnailUrl = (String) thumb;
             }
         } catch (ReflectiveOperationException | RuntimeException ignored) {}
-\\n''',
-        1)
-    anchor = '    public String getChannelId() {'
-    getter = '''    public String getChannelThumbnailUrl() {
+'''
+        ms = ms.replace(marker, block, 1)
+
+    # Remove any stale annotation immediately before this NM7 helper.
+    ms = re.sub(r'(?m)^\s*@Override\s*\n(?=\s*public String getChannelThumbnailUrl\(\))', '', ms)
+    if 'public String getChannelThumbnailUrl()' not in ms:
+        anchor = '    public String getChannelId() {'
+        getter = '''    public String getChannelThumbnailUrl() {
         return mChannelThumbnailUrl;
     }
 
 '''
-    # MediaServiceCore's MediaItem interface does not declare this NM7 helper.
-    # Strip a stale @Override that may exist in the pinned source before build.
-    ms = ms.replace('    @Override\n    public String getChannelThumbnailUrl()', '    public String getChannelThumbnailUrl()')
-
-    if 'getChannelThumbnailUrl()' not in ms:
         ms = ms.replace(anchor, getter + anchor, 1)
-    # MediaServiceCore's MediaItem interface does not declare this NM7 helper.
-    # Always remove a stale @Override, including when the field already exists.
-    ms = ms.replace('    @Override\\n    public String getChannelThumbnailUrl()', '    public String getChannelThumbnailUrl()')
     media_item.write_text(ms)
 
-p = ui / 'shared/VideoCardHolder.java'
-s = p.read_text()
-avatar_anchor = '            String avatarUrl = null;\n'
-if avatar_anchor in s and 'video.channelThumbnailUrl' not in s:
-    s = s.replace(avatar_anchor, '''            String avatarUrl = video.channelThumbnailUrl;
-            if (avatarUrl != null && !avatarUrl.startsWith("http")) avatarUrl = null;
-''', 1)
-p.write_text(s)
 print('NM7 Mobile avatar-only channelThumbnail fix applied')
-
