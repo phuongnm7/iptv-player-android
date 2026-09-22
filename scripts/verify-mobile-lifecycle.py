@@ -75,8 +75,8 @@ check('GRID_COLUMNS = 1' in browse, 'YouTube recommendations remain single-colum
 check('hq720.jpg' in Path('scripts/patch-mobile-ui.py').read_text(), 'YouTube thumbnail fallback remains enabled')
 
 # Version must advance for this application-level behavior change.
-check('versionCode = 88' in gradle, 'Mobile versionCode bumped for no-mini-player build')
-check('versionName = "1.10.70"' in gradle, 'Mobile versionName bumped for no-mini-player build')
+check('versionCode = 89' in gradle, 'Mobile versionCode bumped for no-mini-player build')
+check('versionName = "1.10.71"' in gradle, 'Mobile versionName bumped for no-mini-player build')
 
 Path('dist/mobile-diagnostics').mkdir(parents=True, exist_ok=True)
 Path('dist/mobile-diagnostics/lifecycle-source-proof.json').write_text(json.dumps({
