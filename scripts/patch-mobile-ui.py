@@ -14,14 +14,26 @@ def replace(text, old, new):
 def replace_first(text, old, new):
     if old in text:
         return text.replace(old, new, 1)
-    # The pinned SmartTube source has had minor formatting changes around
-    # bindThumbnail(). Replace that whole method when the exact Glide anchor
-    # is not present, instead of failing the entire mobile build.
+    # SmartTube formatting can differ between pinned snapshots. Locate the
+    # bindThumbnail method by signature and replace its balanced Java body.
     if 'video.getCardImageUrl()' in old:
-        pattern = r'    private void bindThumbnail\(Context context, Video video\) \{.*?\n    \}\n'
-        match = re.search(pattern, text, re.S)
-        if match:
-            return text[:match.start()] + '    private void bindThumbnail(Context context, Video video) {\n' + new.lstrip() + '\n    }\n' + text[match.end():]
+        signature = '    private void bindThumbnail(Context context, Video video) {'
+        pos = text.find(signature)
+        if pos >= 0:
+            brace = text.find('{', pos)
+            depth = 0
+            end = -1
+            for i in range(brace, len(text)):
+                ch = text[i]
+                if ch == '{':
+                    depth += 1
+                elif ch == '}':
+                    depth -= 1
+                    if depth == 0:
+                        end = i + 1
+                        break
+            if end > 0:
+                return text[:pos] + signature + '\n' + new.lstrip() + '\n    }' + text[end:]
     raise SystemExit('UI anchor missing: ' + old[:100])
 
 for source in Path('scripts/mobile-ui/res').rglob('*.xml'):
