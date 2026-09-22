@@ -1120,7 +1120,7 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         MobileInlinePlayerProviderV2 owner = instance;
         if (owner == null || !(activity instanceof MainActivity)) return;
         MainActivity main = (MainActivity) activity;
-        main.postResumeIptvForNm7();
+        owner.postResumeIptvForNm7(main);
     }
 
     private void postResumeIptvForNm7(MainActivity main) {
