@@ -123,8 +123,8 @@ s = replace(s, '        mVideo = null;', '''        mVideo = null;
         if (menu != null) menu.setOnClickListener(null);
         View avatar = itemView.findViewById(R.id.shared_card_avatar);
         if (avatar instanceof android.widget.ImageView) ((android.widget.ImageView) avatar).setImageResource(R.drawable.browse_ic_account);''')
-s = replace(s, '        Glide.with(context)\n                .load(video.getCardImageUrl())', '''        // NM7 channel avatar: SmartTube model fields changed across releases. Resolve
-        // direct avatar/image URLs first, then inspect the nested author/channel object.
+s = replace(s, '        Glide.with(context)\n                .load(video.getCardImageUrl())', '''        // NM7 channel avatar: use the YouTube channel thumbnail propagated from
+        // VideoItem/YouTubeMediaItem first; only then inspect nested model fields.
         android.widget.ImageView avatar = itemView.findViewById(R.id.shared_card_avatar);
         if (avatar != null) {
             String avatarUrl = video.channelThumbnailUrl;
@@ -134,7 +134,8 @@ s = replace(s, '        Glide.with(context)\n                .load(video.getCard
             // avatar directly from it as a fallback when the copied field is empty.
             if (avatarUrl == null) {
                 try {
-                    java.lang.reflect.Field mediaField = video.getClass().getField("mediaItem");
+                    java.lang.reflect.Field mediaField = video.getClass().getDeclaredField("mediaItem");
+                    mediaField.setAccessible(true);
                     Object mediaItem = mediaField.get(video);
                     String[] mediaMethods = {
                             "getChannelThumbnailUrl", "getChannelThumbnail",
@@ -190,12 +191,24 @@ s = replace(s, '        Glide.with(context)\n                .load(video.getCard
         }
 
         String cardImageUrl = video.getCardImageUrl();
-        // Prefer a higher-resolution YouTube thumbnail for the large mobile card.
+        // Keep the native high-resolution URL when the API already supplied one.
+        // For standard YouTube thumbnails, try maxres first and let Glide fall back
+        // to the original URL if maxres is unavailable. Never downgrade hq/mq to sd.
         if (cardImageUrl != null && cardImageUrl.contains("ytimg.com")) {
-            cardImageUrl = cardImageUrl
-                    .replace("/default.jpg", "/hqdefault.jpg")
-                    .replace("/mqdefault.jpg", "/sddefault.jpg")
-                    .replace("/hq720.jpg", "/sddefault.jpg");
+            String originalCardImageUrl = cardImageUrl;
+            if (cardImageUrl.contains("/default.jpg")) {
+                cardImageUrl = cardImageUrl.replace("/default.jpg", "/maxresdefault.jpg");
+            } else if (cardImageUrl.contains("/mqdefault.jpg")) {
+                cardImageUrl = cardImageUrl.replace("/mqdefault.jpg", "/maxresdefault.jpg");
+            } else if (cardImageUrl.contains("/hqdefault.jpg")) {
+                cardImageUrl = cardImageUrl.replace("/hqdefault.jpg", "/maxresdefault.jpg");
+            }
+            // Glide error fallback below will retry the original URL.
+            final String fallbackCardImageUrl = originalCardImageUrl;
+            Glide.with(context)
+                    .load(cardImageUrl)
+                    .error(Glide.with(context).load(fallbackCardImageUrl))
+                    .into((android.widget.ImageView) itemView.findViewById(R.id.shared_card_thumbnail));
         }
         Glide.with(context)
                 .load(cardImageUrl)''')
