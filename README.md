@@ -22,6 +22,22 @@ Chi tiết lịch sử, lỗi, commit, CI và kế hoạch sửa tiếp theo: [P
 
 ---
 
+# Trạng thái Mobile — 1.10.75 / versionCode 93 — CURRENT STABLE BASELINE
+
+**1.10.75 là bản ổn định nhất của NM7 IPTV Mobile tại thời điểm 2026-09-23 và là baseline bắt buộc cho các bản Mobile tiếp theo.**
+
+- Mobile Final Build **#531: SUCCESS** — run 35761975466.
+- Commit build: `a383d67c9a5bfb5621afe149b3cfd4cf03f0e96e`.
+- Artifact: **NM7-IPTV-Mobile-FINAL**.
+- Người dùng đã cài và test thực tế, xác nhận **tốc độ tải/phát video YouTube đã được cải thiện** so với các bản trước.
+- Người dùng đang tiếp tục test dài hơn; vì vậy chưa kết luận mọi tình huống phát YouTube đã được tối ưu hoàn toàn.
+- Bản này vẫn là **Mobile-only**; không đưa Android TV vào phạm vi phát triển.
+- **Mọi bản Mobile về sau phải phát triển trực tiếp từ 1.10.75**, tăng versionCode/versionName tuần tự từ 93/1.10.75 và bảo toàn các chức năng/lifecycle/UI đã ổn định của bản này.
+
+Chi tiết phân tích nguyên nhân, thay đổi kỹ thuật, CI và lịch sử phát triển: [PROGRESS.md](PROGRESS.md).
+
+---
+
 # iptv-player-android
 
 Nm7 IPTV 1.7 — ứng dụng Android tiếng Việt cho mobile và Android TV, không quảng cáo, không phân tích hành vi, không máy chủ trung gian. Màn hình chính có thanh nhóm kênh cuộn ngang; khi đang xem trên TV, phím Trái mở danh sách kênh nhanh phủ lên video mà không dừng phát.
