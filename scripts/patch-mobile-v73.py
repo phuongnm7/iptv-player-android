@@ -26,19 +26,17 @@ t, removed = pattern.subn(
 )
 
 if removed == 0 and "PLAYER_DATA_SOURCE_OKHTTP" in t:
-    # Fallback: remove only the injected conditional block up to
-    # createPlayerObjects().
-    pattern2 = re.compile(
-        r"(?ms)^        if \(getPlayerTweaksData\(\)\.getPreferredDnsType\(\).*?"
-        r"^        \}\n        createPlayerObjects\(\);"
-    )
-    t, removed2 = pattern2.subn(
-        """        // NM7 1.10.73: keep the user's DNS preference but do not force
+    # Fallback: remove the exact v37-injected block without a fragile regex.
+    start = t.find("        // The upstream fallback switches to OkHttp")
+    end = t.find("        createPlayerObjects();", start)
+    if start >= 0 and end >= start:
+        end += len("        createPlayerObjects();")
+        t = t[:start] + """        // NM7 1.10.73: keep the user's DNS preference but do not force
         // playback onto OkHttp.
-        createPlayerObjects();""",
-        t,
-        count=1,
-    )
+        createPlayerObjects();""" + t[end:]
+        removed2 = 1
+    else:
+        removed2 = 0
     if removed2 == 0 and "PLAYER_DATA_SOURCE_OKHTTP" in t:
         raise SystemExit("Unable to remove OkHttp transport override")
 
