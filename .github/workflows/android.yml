@@ -294,6 +294,10 @@ jobs:
           set -euxo pipefail
           test -e /dev/kvm
           sudo chmod a+rw /dev/kvm
+          # The hosted runner can be low on free disk after the Android/Gradle build.
+          # Keep the APK in dist/mobile, then remove build caches before AVD creation.
+          rm -rf app/build ~/.gradle/caches ~/.gradle/daemon
+          df -h
 
       - name: Smoke-test Mobile ARM64 APK on Android 14
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
@@ -308,7 +312,7 @@ jobs:
           ram-size: 4096M
           heap-size: 1024M
           emulator-boot-timeout: 600
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -wipe-data -camera-back none -camera-front none
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -wipe-data -partition-size 2048 -camera-back none -camera-front none
           disable-animations: true
           script: |
             set -euxo pipefail
