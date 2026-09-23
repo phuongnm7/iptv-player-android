@@ -90,14 +90,16 @@ public final class SmartTubeRuntime {
         initialize(context);
         if (!initialized) return false;
         try {
-            Class<?> vmClass = Class.forName(PREFIX + ".common.app.views.ViewManager");
-            Object vm = vmClass.getMethod("instance", Context.class)
-                    .invoke(null, context.getApplicationContext());
-            Class<?> browseView = Class.forName(PREFIX + ".common.app.views.BrowseView");
-            vmClass.getMethod("startView", Class.class).invoke(vm, browseView);
+            Class<?> browseActivity = Class.forName(PREFIX + ".droid.ui.browse.BrowseActivity");
+            android.content.Intent intent = new android.content.Intent(context.getApplicationContext(), browseActivity);
+            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                    | android.content.Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                    | android.content.Intent.FLAG_ACTIVITY_NO_ANIMATION);
+            context.getApplicationContext().startActivity(intent);
+            android.util.Log.i("NM7SmartTube", "BrowseActivity launch requested");
             return true;
         } catch (ReflectiveOperationException | RuntimeException error) {
-            android.util.Log.e("NM7SmartTube", "Unable to start SmartTube BrowseView", error);
+            android.util.Log.e("NM7SmartTube", "Unable to start SmartTube BrowseActivity", error);
             return false;
         }
     }
