@@ -2,7 +2,7 @@ name: NM7 Mobile Final Build
 
 "on":
   push:
-    branches: ["fix/mobile-1.10.26-sleep-timer-icon"]
+    branches: ["fix/mobile-1.10.26-sleep-timer-icon", "fix/mobile-1.10.76-live-chat"]
     paths:
       - "app/**"
       - "smarttube/**"
