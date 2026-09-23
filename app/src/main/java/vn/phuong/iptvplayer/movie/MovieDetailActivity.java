@@ -32,7 +32,7 @@ public final class MovieDetailActivity extends Activity {
         if(d==null||d.item==null){text("Không có dữ liệu");return;}
         text(d.item.title+"  "+d.item.year);
         text("⭐ "+d.item.rating+"   "+String.join(", ",d.item.genres));
-        text(d.overviewSafe());
+        text(d.item.overview);
         if(d.seasons.isEmpty()){ addPlay(d.item.id,"",""); return; }
         for(MovieContent.Season s:d.seasons){
             text(s.name);
