@@ -12,6 +12,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import vn.phuong.iptvplayer.movie.MovieActivity;
 
 /** Single Mobile navigation bar, overlaid at the bottom of NM7, player, and SmartTube Browse. */
 public final class HomeTabBar {
