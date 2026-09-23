@@ -219,6 +219,14 @@ jobs:
       - name: Install Android SDK packages
         run: sdkmanager "platforms;android-34" "platforms;android-36" "build-tools;30.0.3" "build-tools;36.0.0"
 
+      - name: Apply NM7 Mobile SmartTube UI and lifecycle patches
+        run: |
+          set -euxo pipefail
+          python3 scripts/patch-mobile-v37.py
+          # Hard guard: the pinned SmartTube phone resources do not expose this key.
+          python3 scripts/patch-mobile-v78.py
+          ! grep -R --include='PlaybackActivity.java' -n 'R.string.section_is_empty' third_party/SmartTube-droid/smarttubedroid/src/main/java
+
       - name: Diagnose SmartTube Gradle configuration
         run: |
           sed -n '1,180p' third_party/SmartTube-droid/SharedModules/appupdatechecker2/build.gradle
