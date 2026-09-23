@@ -17,6 +17,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.List;
+import java.util.ArrayList;
 import vn.phuong.iptvplayer.PlayerActivity;
 import vn.phuong.iptvplayer.SharedPlaybackSession;
 
