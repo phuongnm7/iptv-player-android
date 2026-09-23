@@ -1,3 +1,7 @@
+# MOBILE 1.10.77 / 95 — CORRECT PORTRAIT SYSTEM BAR + LIVE CHAT CLOSE
+
+User video re-check found both 1.10.76 UI fixes were ineffective. 1.10.77 replaces the edge-to-edge workaround with explicit portrait WindowInsets/system-bar handling and adds the requested X close control to live chat.
+
 # MOBILE 1.10.75 / 93 — STABLE BASELINE — USER TEST CONFIRMED IMPROVED YOUTUBE LOAD — 2026-09-23
 
 ## Trạng thái hiện tại
