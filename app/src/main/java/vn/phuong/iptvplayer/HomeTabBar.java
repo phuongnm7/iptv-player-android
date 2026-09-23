@@ -15,6 +15,9 @@ import android.widget.TextView;
 
 /** Single Mobile navigation bar, overlaid at the bottom of NM7, player, and SmartTube Browse. */
 public final class HomeTabBar {
+    public static final int TAB_YOUTUBE = 0;
+    public static final int TAB_IPTV = 1;
+    public static final int TAB_MOVIE = 2;
     private static final int TAG_KEY = R.id.mainRoot;
     private static final String BAR_TAG = "nm7_home_tab_bar";
     private static final int BG = Color.rgb(23, 23, 28);
@@ -24,7 +27,7 @@ public final class HomeTabBar {
 
     private HomeTabBar() {}
 
-    public static void attach(Activity activity, boolean youtubeSelected) {
+    public static void attach(Activity activity, boolean youtubeSelected) { attach(activity, youtubeSelected ? TAB_YOUTUBE : TAB_IPTV); }\n\n    public static void attach(Activity activity, int selectedTab) {
         View content = activity.findViewById(android.R.id.content);
         if (!(content instanceof FrameLayout)) return;
         FrameLayout host = (FrameLayout) content;
@@ -35,7 +38,7 @@ public final class HomeTabBar {
         bar.setTag(BAR_TAG);
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER);
-        bar.setBackground(new ColorDrawable(youtubeSelected ? Color.WHITE : BG));
+        bar.setBackground(new ColorDrawable(selectedTab == TAB_YOUTUBE ? Color.WHITE : BG));
         bar.setElevation(dp(activity, 8));
         bar.setPadding(0, dp(activity, 4), 0, dp(activity, 4));
 
@@ -86,7 +89,7 @@ public final class HomeTabBar {
         activity.overridePendingTransition(0, 0);
     }
 
-    private static void openIptv(Activity activity) {
+    private static void openMovie(Activity activity) {\n        SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_MOVIE);\n        Intent intent = new Intent(activity, MovieActivity.class);\n        intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);\n        startWithoutAnimation(activity, intent);\n    }\n\n    private static void openIptv(Activity activity) {
         // Switching tabs does not end YouTube. It remains paused/backgrounded until
         // an IPTV player actually reaches READY; the existing handoff logic then
         // temporarily suspends YouTube. If IPTV has no active player, YouTube remains
@@ -140,7 +143,7 @@ public final class HomeTabBar {
         }
     }
 
-    private static void addItem(Activity activity, LinearLayout bar, int iconRes, boolean selected, Runnable action) {
+    private static void addItem(Activity activity, LinearLayout bar, int iconRes, boolean selected, String title, Runnable action) {
         LinearLayout item = new LinearLayout(activity);
         item.setGravity(Gravity.CENTER);
         item.setOrientation(LinearLayout.VERTICAL);
