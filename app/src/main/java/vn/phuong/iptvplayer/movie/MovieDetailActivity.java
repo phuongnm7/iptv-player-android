@@ -158,7 +158,7 @@ public final class MovieDetailActivity extends Activity {
             try{
                 HttpURLConnection c=(HttpURLConnection)new URL(url).openConnection();
                 c.setConnectTimeout(8000);c.setReadTimeout(12000);
-                c.setRequestProperty("User-Agent","NM7-Mobile-Movie/1.10.75");
+                c.setRequestProperty("User-Agent","Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36");c.setRequestProperty("Accept","image/avif,image/webp,image/apng,image/*,*/*;q=0.8");c.setRequestProperty("Referer","https://www.themoviedb.org/");
                 InputStream in=c.getInputStream();Bitmap b=BitmapFactory.decodeStream(in);in.close();c.disconnect();
                 if(b!=null)runOnUiThread(()->target.setImageBitmap(b));
             }catch(Throwable ignored){}
