@@ -109,18 +109,12 @@ public final class HomeTabBar {
         boolean hasIptvPlayer = MobileNm7Application.hasIptvPlayer();
         if (hasIptvPlayer) MobileNm7Application.markTabSwitch();
 
-        try {
-            Class<?> playback = Class.forName(
-                    "com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity");
-            boolean active = (Boolean) playback.getMethod("isNm7SessionActive").invoke(null);
-            if (active) {
-                SmartTubeRuntime.initialize(activity.getApplicationContext());
-                playback.getMethod("restoreNm7Player").invoke(null);
-                SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_YOUTUBE);
-                return;
-            }
-        } catch (ReflectiveOperationException | RuntimeException error) {
-            android.util.Log.w("NM7Navigation", "Existing YouTube session restore failed", error);
+        // A previous playback session must never be restored merely because its
+        // static flag is still set. A stale session was causing the YouTube tab to
+        // immediately return to IPTV. First bring the real BrowseActivity forward.
+        if (MobileNm7Application.bringSmartTubeToFront()) {
+            SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_YOUTUBE);
+            return;
         }
 
         if (hasIptvPlayer) PlayerActivity.prepareForYoutubeHandoff(activity);
