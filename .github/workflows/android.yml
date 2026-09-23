@@ -2,7 +2,7 @@ name: Build private Android APK
 
 on:
   push:
-    branches: [main, "fix/mobile-*", "feature/mobile-youtube-smarttube"]
+    branches: [main, "fix/mobile-*", "feature/mobile-youtube-smarttube", "feature/mobile-1.10.75-movie"]
     paths:
       - "app/**"
       - "smarttube/**"
