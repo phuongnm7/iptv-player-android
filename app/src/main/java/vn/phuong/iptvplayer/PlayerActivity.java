@@ -58,7 +58,7 @@ public final class PlayerActivity extends Activity {
     private static PlayerActivity currentInstance;
     public static final String EXTRA_NAME = "name", EXTRA_URL = "url";
     public static final String EXTRA_USER_AGENT = "user_agent", EXTRA_REFERER = "referer", EXTRA_ORIGIN = "origin";
-    public static final String EXTRA_HEADERS = "headers", EXTRA_MIME = "mime", EXTRA_OPTIONS = "options";
+    public static final String EXTRA_HEADERS = "headers", EXTRA_MIME = "mime", EXTRA_OPTIONS = "options", EXTRA_FALLBACK_URLS = "fallback_urls", EXTRA_FALLBACK_HEADERS = "fallback_headers";
     private ExoPlayer player;
     private PlayerView playerView;
     private TextView status;
@@ -67,6 +67,9 @@ public final class PlayerActivity extends Activity {
     private String drmSystem = "", drmLicense = "";
     private ArrayList<String> options = new ArrayList<>();
     private Bundle currentHeaders = new Bundle();
+    private ArrayList<String> fallbackUrls = new ArrayList<>();
+    private ArrayList<Bundle> fallbackHeaders = new ArrayList<>();
+    private int fallbackIndex;
     private long position;
     private boolean resumePlayback = true;
     private int quality = Integer.MAX_VALUE;
@@ -150,6 +153,10 @@ public final class PlayerActivity extends Activity {
         if (passedOptions != null) options = passedOptions;
         Bundle passedHeaders = getIntent().getBundleExtra(EXTRA_HEADERS);
         if (passedHeaders != null) currentHeaders = passedHeaders;
+        ArrayList<String> passedFallbackUrls = getIntent().getStringArrayListExtra(EXTRA_FALLBACK_URLS);
+        if (passedFallbackUrls != null) fallbackUrls = passedFallbackUrls;
+        ArrayList<Bundle> passedFallbackHeaders = getIntent().getParcelableArrayListExtra(EXTRA_FALLBACK_HEADERS);
+        if (passedFallbackHeaders != null) fallbackHeaders = passedFallbackHeaders;
         DrmSpec initialDrm = DrmSpec.fromOptions(options); drmSystem = initialDrm.system; drmLicense = initialDrm.license;
         if (state != null) {
             position = state.getLong("position"); resumePlayback = state.getBoolean("playing", true);
@@ -197,6 +204,7 @@ public final class PlayerActivity extends Activity {
                     }
                 }
                 @Override public void onPlayerError(PlaybackException e){
+                    if (tryNextFallbackSource()) return;
                     if(e.errorCode==PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED&&mime.isEmpty()&&!resolvingStreamMime){resolveRedirectedMime(e);return;}
                     if(isTransientPlaybackError(e)){scheduleRecovery("Luồng tạm gián đoạn",false);return;}
                     showError(e.getErrorCodeName()+"\nKiểm tra URL, quyền truy cập và codec của thiết bị.");
@@ -220,6 +228,23 @@ public final class PlayerActivity extends Activity {
         } catch(Exception error){releasePlayer();String m=error.getMessage();showError(m==null?"Không mở được nguồn phát: "+error.getClass().getSimpleName():m);}
     }
     private void resolveRemoteClearKey(DrmSpec drm, Map<String,String> streamHeaders) { if(resolvingClearKey)return;resolvingClearKey=true;status.setText("Đang lấy giấy phép ClearKey…");drmIo.execute(()->{HttpURLConnection c=null;try{c=(HttpURLConnection)new URL(drm.license).openConnection();c.setConnectTimeout(15000);c.setReadTimeout(20000);c.setInstanceFollowRedirects(true);c.setRequestMethod("GET");for(Map.Entry<String,String> e:drm.headers.entrySet())c.setRequestProperty(e.getKey(),e.getValue());String sh=Uri.parse(url).getHost(),lh=Uri.parse(drm.license).getHost();if(sh!=null&&sh.equalsIgnoreCase(lh))for(String n:new String[]{"User-Agent","Referer","Origin","Cookie"}){String v=streamHeaders.get(n);if(v!=null&&!v.isEmpty()&&!drm.headers.containsKey(n))c.setRequestProperty(n,v);}if(c.getRequestProperty("User-Agent")==null)c.setRequestProperty("User-Agent","Dalvik/2.1.0");int code=c.getResponseCode();if(code<200||code>=300)throw new IllegalArgumentException("HTTP "+code);ByteArrayOutputStream out=new ByteArrayOutputStream();try(InputStream in=c.getInputStream()){byte[] b=new byte[4096];int n,total=0;while((n=in.read(b))>=0){total+=n;if(total>65536)throw new IllegalArgumentException("phản hồi quá lớn");out.write(b,0,n);}}String r=out.toString("UTF-8").trim();DrmPlayback.clearKeyResponse(r);runOnUiThread(()->{resolvingClearKey=false;drmLicense=r;if(activityStarted&&!isFinishing()&&!isDestroyed())startPlayer();});}catch(Exception e){runOnUiThread(()->{resolvingClearKey=false;showError("Không lấy được giấy phép ClearKey bằng GET. Kiểm tra token hoặc quyền truy cập nguồn.");});}finally{if(c!=null)c.disconnect();}}); }
+    private boolean tryNextFallbackSource(){
+        if(fallbackIndex>=fallbackUrls.size()) return false;
+        String next=fallbackUrls.get(fallbackIndex);
+        Bundle nextHeaders=fallbackIndex<fallbackHeaders.size()?fallbackHeaders.get(fallbackIndex):null;
+        fallbackIndex++;
+        if(next==null||next.isEmpty()) return false;
+        url=next;
+        currentHeaders=nextHeaders==null?new Bundle():nextHeaders;
+        mime="";
+        position=0;
+        resumePlayback=true;
+        recoveryAttempts=0;
+        status.setText("Nguồn hiện tại lỗi, đang chuyển sang nguồn dự phòng…");
+        releasePlayer();
+        startPlayer();
+        return true;
+    }
     private boolean isTransientPlaybackError(PlaybackException error){
         if(error.errorCode==PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED||error.errorCode==PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT)return true;
         Throwable cause=error.getCause();
