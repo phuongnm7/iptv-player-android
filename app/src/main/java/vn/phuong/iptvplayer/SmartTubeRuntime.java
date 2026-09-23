@@ -16,32 +16,19 @@ public final class SmartTubeRuntime {
     public static synchronized void initialize(Context context) {
         if (initialized) return;
         try {
-            // Keep pooled HTTP connections enabled. MobileNm7Application sets the same
-            // defaults; disabling keep-alive here caused avoidable reconnect latency.
-            System.setProperty("http.keepAlive", "true");
-            System.setProperty("http.maxConnections", "8");
-
-            // SmartTube exposes IPv4 DNS as a player/network preference because some
-            // networks resolve YouTube over IPv6 slowly or unreliably. Apply the same
-            // setting through reflection so the mobile fork uses the optimized path
-            // without taking a compile-time dependency on SmartTube internals.
-            try {
-                Class<?> tweaks = Class.forName(PREFIX + ".common.prefs.PlayerTweaksData");
-                Object data = tweaks.getMethod("instance", Context.class).invoke(null, context.getApplicationContext());
-
-                Field ipv4 = tweaks.getField("DNS_TYPE_IPV4");
-                tweaks.getMethod("setPreferredDnsType", int.class).invoke(data, ipv4.getInt(null));
-
-                // Prefer SmartTube's fastest available player data source (Cronet when
-                // supported by the build) instead of the legacy/default HTTP path.
-                Field cronet = tweaks.getField("PLAYER_DATA_SOURCE_CRONET");
-                tweaks.getMethod("setPlayerDataSource", int.class).invoke(data, cronet.getInt(null));
-            } catch (ReflectiveOperationException | RuntimeException ignored) { }
+            // Match SmartTube-droid's real DroidApplication bootstrap. This app owns a
+            // different Application class, so we must perform the same one-time setup here.
+            // In particular, SmartTube expects keep-alive=false for its YouTube service.
+            System.setProperty("http.keepAlive", "false");
 
             Class<?> mother = Class.forName(PREFIX + ".common.misc.MotherActivity");
             mother.getMethod("setTvDpiScalingEnabled", boolean.class).invoke(null, false);
             Class<?> screensaver = Class.forName(PREFIX + ".common.misc.ScreensaverManager");
             screensaver.getMethod("setSupported", boolean.class).invoke(null, false);
+
+            // Force AppPrefs initialization before BrowsePresenter/MediaServiceManager starts.
+            Class<?> appPrefs = Class.forName(PREFIX + ".common.prefs.AppPrefs");
+            appPrefs.getMethod("instance", Context.class).invoke(null, context.getApplicationContext());
 
             Class<?> vmClass = Class.forName(PREFIX + ".common.app.views.ViewManager");
             Object vm = vmClass.getMethod("instance", Context.class).invoke(null, context.getApplicationContext());
@@ -59,8 +46,9 @@ public final class SmartTubeRuntime {
             register(vmClass, vm, "ChannelUploadsView", "channeluploads.ChannelUploadsActivity", browse);
             register(vmClass, vm, "WebBrowserView", "webbrowser.WebBrowserActivity", browse);
             initialized = true;
-        } catch (ReflectiveOperationException | RuntimeException ignored) {
+        } catch (ReflectiveOperationException | RuntimeException error) {
             initialized = false;
+            android.util.Log.e("NM7SmartTube", "SmartTube bootstrap failed", error);
         }
     }
 
