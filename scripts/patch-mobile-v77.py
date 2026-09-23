@@ -41,7 +41,13 @@ old = """            // NM7 1.10.76: keep portrait playback below the visible An
             }
 
 """
-s = once(s, old, "", "v76 player-margin workaround")
+count = s.count(old)
+if count == 1:
+    s = s.replace(old, "", 1)
+elif count == 0:
+    print("v77: v76 player-margin workaround already absent")
+else:
+    raise SystemExit("v77: expected at most one v76 player-margin workaround, found %s" % count)
 
 # The pinned SmartTube source deliberately starts edge-to-edge. For Mobile portrait
 # we instead use normal decor fitting and explicitly show status bars. Landscape keeps
