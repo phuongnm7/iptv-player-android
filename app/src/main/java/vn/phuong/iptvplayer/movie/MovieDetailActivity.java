@@ -119,21 +119,42 @@ public final class MovieDetailActivity extends Activity {
             public void onSuccess(Object data){runOnUiThread(()->{
                 List<MovieContent.Source> s=(List<MovieContent.Source>)data;
                 if(s==null||s.isEmpty()){text("Không có nguồn phát.");return;}
+                java.util.Collections.sort(s,(a,b)->Integer.compare(score(b.quality),score(a.quality)));
                 MovieContent.Source best=s.get(0);
-                for(MovieContent.Source x:s)if(score(x.quality)>score(best.quality))best=x;
                 Intent i=new Intent(MovieDetailActivity.this,PlayerActivity.class);
                 i.putExtra(PlayerActivity.EXTRA_NAME,"Movie");
                 i.putExtra(PlayerActivity.EXTRA_URL,best.url);
                 i.putExtra(PlayerActivity.EXTRA_MIME,best.mime==null?"":best.mime);
-                android.os.Bundle headers=new android.os.Bundle();
-                if(best.referer!=null&&!best.referer.isEmpty())headers.putString("Referer",best.referer);
-                if(best.origin!=null&&!best.origin.isEmpty())headers.putString("Origin",best.origin);
-                headers.putString("User-Agent","Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36");
+                android.os.Bundle headers=sourceHeaders(best);
                 i.putExtra(PlayerActivity.EXTRA_HEADERS,headers);
+
+                ArrayList<String> fallbackUrls=new ArrayList<>();
+                ArrayList<android.os.Bundle> fallbackHeaders=new ArrayList<>();
+                for(int idx=1;idx<s.size();idx++){
+                    MovieContent.Source x=s.get(idx);
+                    if(x.url==null||x.url.isEmpty())continue;
+                    fallbackUrls.add(x.url);
+                    fallbackHeaders.add(sourceHeaders(x));
+                }
+                i.putStringArrayListExtra(PlayerActivity.EXTRA_FALLBACK_URLS,fallbackUrls);
+                i.putParcelableArrayListExtra(PlayerActivity.EXTRA_FALLBACK_HEADERS,fallbackHeaders);
                 startActivity(i);
             });}
             public void onError(Throwable e){runOnUiThread(()->text("Lỗi tải link phát: "+safe(e)));}
         });
+    }
+
+    private android.os.Bundle sourceHeaders(MovieContent.Source source){
+        android.os.Bundle h=new android.os.Bundle();
+        if(source!=null){
+            for(java.util.Map.Entry<String,String> e:source.headers.entrySet()){
+                if(e.getKey()!=null&&e.getValue()!=null&&!e.getValue().isEmpty())h.putString(e.getKey(),e.getValue());
+            }
+            if(source.referer!=null&&!source.referer.isEmpty()&&!h.containsKey("Referer"))h.putString("Referer",source.referer);
+            if(source.origin!=null&&!source.origin.isEmpty()&&!h.containsKey("Origin"))h.putString("Origin",source.origin);
+        }
+        if(!h.containsKey("User-Agent"))h.putString("User-Agent","Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36");
+        return h;
     }
 
     private int score(String q){
