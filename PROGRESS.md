@@ -1,3 +1,32 @@
+# MOBILE 1.10.75 MOVIE — PLUGIN ARCHITECTURE START — 2026-09-23
+
+## Baseline
+- Development starts from the user-confirmed stable Mobile **1.10.75 / versionCode 93**.
+- Baseline commit: `a383d67c9a5bfb5621afe149b3cfd4cf03f0e96e`.
+- Stable 1.10.75 branch is not modified.
+
+## Movie architecture
+- Movie is being developed as a **plugin-based subsystem**, not a NovaHD-specific implementation.
+- Core contract: `MoviePlugin`.
+- Shared neutral models: `MovieContent`.
+- Registry/dispatcher: `MoviePluginManager`.
+- First adapter: `NovaHdPlugin`, based on the previously supplied `novahd_plugin.js` behavior/API.
+- Additional movie providers can be added later as independent plugins without rewriting Movie UI/core.
+
+## First implementation
+- Added Movie tab to Mobile bottom navigation: YouTube / IPTV / Movie.
+- Added MovieActivity and MovieDetailActivity.
+- Added home/search/detail/source flow through the plugin contract.
+- Added Movie playback handoff to the existing PlayerActivity.
+- Added isolated CI trigger for this development branch.
+- No Android TV changes.
+
+## Validation status
+- Source implementation is in progress.
+- **No APK is claimed as built or device-tested yet.**
+- Next validation is Mobile CI compile/unit-test/package, followed by real-device smoke testing.
+
+
 # UPDATE 1.10.73 — THUMBNAIL QUALITY CORRECTION — 2026-09-22
 
 - Đã sửa ngay yêu cầu mới: **không hạ chất lượng/kích thước thumbnail** so với 1.10.72.
