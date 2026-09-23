@@ -39,14 +39,30 @@ public final class MovieActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(Color.rgb(10,10,13));
 
+        LinearLayout searchRow = new LinearLayout(this);
+        searchRow.setGravity(Gravity.CENTER_VERTICAL);
+        searchRow.setPadding(0, 0, dp(6), 0);
+
         search = new EditText(this);
         search.setHint("🔎  Tìm phim, tên diễn viên...");
         search.setSingleLine(true);
         search.setImeOptions(EditorInfo.IME_ACTION_SEARCH);
         search.setTextColor(Color.WHITE);
         search.setHintTextColor(Color.GRAY);
-        search.setPadding(dp(14),0,dp(14),0);
-        root.addView(search,new LinearLayout.LayoutParams(-1,dp(52)));
+        search.setPadding(dp(14),0,dp(8),0);
+        searchRow.addView(search,new LinearLayout.LayoutParams(0,dp(52),1));
+
+        TextView plugins = new TextView(this);
+        plugins.setText("⚙ Plugin");
+        plugins.setTextColor(Color.WHITE);
+        plugins.setTextSize(13);
+        plugins.setGravity(Gravity.CENTER);
+        plugins.setPadding(dp(8), 0, dp(8), 0);
+        plugins.setClickable(true);
+        plugins.setFocusable(true);
+        plugins.setOnClickListener(v -> startActivity(new Intent(this, MoviePluginManagerActivity.class)));
+        searchRow.addView(plugins,new LinearLayout.LayoutParams(dp(78),dp(52)));
+        root.addView(searchRow,new LinearLayout.LayoutParams(-1,dp(52)));
 
         progress = new ProgressBar(this);
         progress.setVisibility(View.GONE);
@@ -152,7 +168,10 @@ public final class MovieActivity extends Activity {
         startActivity(i);
     }
 
-    private MoviePlugin firstPlugin(){List<MoviePlugin> ps=MoviePluginManager.all();return ps.isEmpty()?null:ps.get(0);}
+    private MoviePlugin firstPlugin(){
+        List<MoviePlugin> ps=MoviePluginManager.enabled(this);
+        return ps.isEmpty()?null:ps.get(0);
+    }
 
     private TextView label(String s,float size){
         TextView v=new TextView(this);
