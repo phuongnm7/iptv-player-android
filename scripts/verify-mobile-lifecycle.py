@@ -102,3 +102,4 @@ Path('dist/mobile-diagnostics/lifecycle-source-proof.json').write_text(json.dump
     'browse_sha256': hashlib.sha256(browse.encode()).hexdigest(),
 }, indent=2))
 print(f'{checks} structural checks passed; device runtime not verified')
+\ncheck('runpy.run_path(\"scripts/patch-mobile-v76.py\")' in patch, 'v76 live chat/status-bar patch is part of the Mobile build chain')\n
