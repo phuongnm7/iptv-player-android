@@ -2,7 +2,7 @@ name: Update sports M3U
 
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch:
   push:
     paths:
@@ -11,6 +11,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: update-sports-m3u
+  cancel-in-progress: true
+
 jobs:
   update:
     runs-on: ubuntu-24.04
@@ -18,58 +22,137 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Fetch upstream sports playlist
+      - name: Fetch source A and B
+        shell: bash
         run: |
-          set -euo pipefail
+          set -u
           mkdir -p /tmp/nm7
-          curl -L --fail --retry 3 --retry-delay 2 --max-time 60 \
-            -A 'Mozilla/5.0 NM7-IPTV-Sports/1.0' \
-            -H 'Cache-Control: no-cache' \
-            'https://thcoban.github.io/thtt/tttt.m3u' \
-            -o /tmp/nm7/upstream.m3u
-          test -s /tmp/nm7/upstream.m3u
-          grep -qi '#EXTINF' /tmp/nm7/upstream.m3u
+          fetch_source() {
+            name="$1"
+            url="$2"
+            out="$3"
+            if curl -L --fail --retry 3 --retry-delay 2               --connect-timeout 10 --max-time 60               -A 'Mozilla/5.0 NM7-IPTV-Sports/2.0'               -H 'Cache-Control: no-cache'               "$url" -o "$out"               && test -s "$out"               && grep -qi '#EXTINF' "$out"; then
+              echo "$name=OK"
+            else
+              rm -f "$out"
+              echo "$name=FAIL"
+            fi
+          }
 
-      - name: Build sports playlist
+          fetch_source SOURCE_A 'https://thtt.pages.dev/tttt.m3u' /tmp/nm7/source-a.m3u
+          fetch_source SOURCE_B 'https://thcoban.github.io/thtt/tttt.m3u' /tmp/nm7/source-b.m3u
+
+          if test -s playlist/sports.m3u && grep -qi '#EXTINF' playlist/sports.m3u; then
+            echo 'SOURCE_C=OK (last-good playlist)'
+          else
+            echo 'SOURCE_C=EMPTY'
+          fi
+
+      - name: Build and validate sports playlist
+        env:
+          TZ: Asia/Ho_Chi_Minh
+          MAX_AGE_MINUTES: '180'
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import re
+          from datetime import datetime, timedelta
+          import os, re
 
-          src=Path('/tmp/nm7/upstream.m3u').read_text(encoding='utf-8',errors='ignore').replace('\r','')
-          groups={
-            'Vua Sân Cỏ TV','Khán Đài TV','Cola TV','Gà Vàng TV',
-            'Xôi Lạc Z TV','Gà Vàng 33 TV','S8 TV','Sao Kê TV',
-            'Bia Ôm TV','Chuối Chiên TV','Giờ Vàng TV','Socolive TV'
+          ROOT = Path('.')
+          TMP = Path('/tmp/nm7')
+          MAX_AGE = int(os.environ.get('MAX_AGE_MINUTES', '180'))
+          NOW = datetime.now()
+          print('NOW_VN=', NOW.strftime('%Y-%m-%d %H:%M:%S'))
+
+          groups = {
+              'Vua Sân Cỏ TV','Khán Đài TV','Cola TV','Gà Vàng TV',
+              'Xôi Lạc Z TV','Gà Vàng 33 TV','S8 TV','Sao Kê TV',
+              'Bia Ôm TV','Chuối Chiên TV','Giờ Vàng TV','Socolive TV'
           }
 
-          blocks=re.split(r'(?=#EXTINF\s*:)',src)
-          out=['#EXTM3U']
+          def load(path):
+              if not path.exists() or path.stat().st_size == 0:
+                  return []
+              return path.read_text(encoding='utf-8', errors='ignore').replace('\r','').splitlines()
+
+          def blocks(lines):
+              text='\n'.join(lines)
+              return [b for b in re.split(r'(?=#EXTINF\s*:)', text, flags=re.I)
+                      if re.match(r'\s*#EXTINF\s*:', b, flags=re.I)]
+
+          def event_dt(extinf):
+              m = re.search(r'(?<!\d)(\d{1,2}):(\d{2})\s+(\d{1,2})/(\d{1,2})(?!\d)', extinf)
+              if not m:
+                  return None
+              hh, mm, dd, mo = map(int, m.groups())
+              candidates=[]
+              for y in (NOW.year-1, NOW.year, NOW.year+1):
+                  try:
+                      candidates.append(datetime(y, mo, dd, hh, mm))
+                  except ValueError:
+                      pass
+              return min(candidates, key=lambda d: abs((d-NOW).total_seconds())) if candidates else None
+
+          def parse(path, source_name):
+              result=[]
+              for block in blocks(load(path)):
+                  lines=[x.strip() for x in block.splitlines() if x.strip()]
+                  if not lines:
+                      continue
+                  ext=lines[0]
+                  gm=re.search(r'group-title="([^"]+)"', ext, re.I)
+                  if not gm or gm.group(1).strip() not in groups:
+                      continue
+                  urls=[x for x in lines if re.match(r'^https?://', x, re.I)]
+                  if not urls:
+                      continue
+                  url=urls[-1]
+                  if url.strip().lower() == 'none':
+                      continue
+                  dt=event_dt(ext)
+                  if dt is not None and dt < NOW - timedelta(minutes=MAX_AGE):
+                      continue
+                  idx=lines.index(url)
+                  result.append((dt or datetime.max, source_name, '\n'.join(lines[:idx+1])))
+              return result
+
+          source_files=[
+              ('A', TMP/'source-a.m3u'),
+              ('B', TMP/'source-b.m3u'),
+              ('C', ROOT/'playlist/sports.m3u'),
+          ]
+
+          all_items=[]
+          status={}
+          for name, path in source_files:
+              items=parse(path, name)
+              status[name]=len(items)
+              all_items.extend(items)
+
+          all_items.sort(key=lambda x: (x[0], {'A':0,'B':1,'C':2}[x[1]]))
           seen=set()
+          selected=[]
+          for dt, src, item in all_items:
+              key=re.sub(r'\s+', ' ', item).strip()
+              if key in seen:
+                  continue
+              seen.add(key)
+              selected.append((dt, src, item))
 
-          for block in blocks:
-              if not re.match(r'\s*#EXTINF\s*:',block,re.I):
-                  continue
-              gm=re.search(r'group-title="([^"]+)"',block,re.I)
-              if not gm or gm.group(1).strip() not in groups:
-                  continue
-              lines=[x.strip() for x in block.splitlines() if x.strip()]
-              urls=[x for x in lines if re.match(r'^https?://',x,re.I)]
-              if not urls or any(x.strip().lower()=='none' for x in urls):
-                  continue
-              url=urls[0]
-              idx=lines.index(url)
-              item='\n'.join(lines[:idx+1])
-              if item in seen:
-                  continue
-              seen.add(item)
-              out.append(item)
+          selected.sort(key=lambda x: (x[0], {'A':0,'B':1,'C':2}[x[1]]))
+          out=['#EXTM3U'] + [item for _,_,item in selected]
+          Path('playlist').mkdir(exist_ok=True)
+          Path('playlist/sports.m3u').write_text('\n'.join(out)+'\n', encoding='utf-8')
 
-          if len(out) <= 1:
-              raise SystemExit('No playable sports entries found; refusing to overwrite output')
+          print('=== SOURCE STATUS ===')
+          print('SOURCE_A entries=', status['A'])
+          print('SOURCE_B entries=', status['B'])
+          print('SOURCE_C entries=', status['C'])
+          print('SELECTED entries=', len(selected))
+          print('MAX_AGE_MINUTES=', MAX_AGE)
 
-          Path('playlist/sports.m3u').write_text('\n'.join(out)+'\n',encoding='utf-8')
-          print('sports entries:',len(out)-1)
+          if len(selected) == 0:
+              raise SystemExit('No valid sports entries remain after 180-minute filtering')
           PY
 
       - name: Commit changed playlist
@@ -84,5 +167,3 @@ jobs:
           fi
           git commit -m 'auto: update sports playlist'
           git push
-
-# Initial population is performed by the scheduled run.
