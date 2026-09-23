@@ -122,8 +122,9 @@ public final class HomeTabBar {
     }
 
     private static void openBrowse(Activity activity) {
-        SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_YOUTUBE);
-        MobileNm7Application.markTabSwitch();
+        // Switch the persisted tab only after YouTube has been successfully launched.
+        boolean hasIptvPlayer = MobileNm7Application.hasIptvPlayer();
+        if (hasIptvPlayer) MobileNm7Application.markTabSwitch();
         // If a YouTube playback session already exists, return directly to its real
         // PlaybackActivity. This keeps the actual video surface visible; do not send the
         // user to Browse while the decoder is still playing invisibly in the background.
@@ -142,17 +143,27 @@ public final class HomeTabBar {
             android.util.Log.w("NM7Navigation", "Existing YouTube session restore failed", error);
         }
 
-        PlayerActivity.prepareForYoutubeHandoff(activity);
+        if (hasIptvPlayer) PlayerActivity.prepareForYoutubeHandoff(activity);
         SmartTubeRuntime.initialize(activity.getApplicationContext());
         try {
             Class<?> browse = Class.forName(BROWSE);
             Intent intent = new Intent(activity, browse);
             intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
             startWithoutAnimation(activity, intent);
-        } catch (ReflectiveOperationException | RuntimeException ignored) {
-            Intent fallback = new Intent(activity, SmartTubeHomeActivity.class);
-            fallback.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-            startWithoutAnimation(activity, fallback);
+            SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_YOUTUBE);
+        } catch (Throwable error) {
+            try {
+                Intent fallback = new Intent(activity, SmartTubeHomeActivity.class);
+                fallback.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                startWithoutAnimation(activity, fallback);
+                SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_YOUTUBE);
+            } catch (Throwable fallbackError) {
+                android.util.Log.e("NM7Navigation", "Unable to open YouTube tab", fallbackError);
+                if (hasIptvPlayer) {
+                    PlayerActivity.cancelYoutubeHandoff();
+                    SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_IPTV);
+                }
+            }
         }
     }
 
