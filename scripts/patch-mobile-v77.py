@@ -21,6 +21,10 @@ def once(text, old, new, label):
 
 s = PLAYBACK.read_text(encoding="utf-8")
 
+# Keep the upstream details-empty message; the phone resource namespace does not
+# expose section_is_empty in this pinned SmartTube flavor.
+s = s.replace("showDetailsMessage(getString(R.string.section_is_empty));", 'showDetailsMessage("No comments available");')
+
 # v76 tried to compensate with a player top margin. That cannot work while the
 # activity is edge-to-edge/fullscreen. Remove that workaround.
 old = """            // NM7 1.10.76: keep portrait playback below the visible Android
