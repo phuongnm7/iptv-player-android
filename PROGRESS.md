@@ -1,3 +1,26 @@
+# MOBILE 1.10.76 / 94 — YOUTUBE PORTRAIT STATUS-BAR + LIVE CHAT — 2026-09-23
+
+## User-reported issues addressed
+- Portrait YouTube player was drawing edge-to-edge over the Android status/notification bar. The existing 16:9 player ratio is preserved; the portrait player is now inset below the system status bar. Landscape/fullscreen behavior is left unchanged.
+- Live YouTube streams exposed the existing SmartTube `liveChatKey`, but the Mobile `PlaybackActivity.setChatReceiver()` was still a no-op, so live chat messages were never rendered.
+- The Mobile build now wires SmartTube's existing `ChatController -> LiveChatService -> ChatReceiver` into a dedicated live-chat panel below the player.
+- Incoming live messages show author, avatar when supplied by the service, and message text, with a bounded rolling list.
+- The underlying SmartTube LiveChatService is receive-only; this patch does not invent or fake a message-sending API. The panel therefore provides live comment viewing, matching the user's primary missing live-chat behavior.
+
+## Scope protection
+- Based directly on **1.10.75 / versionCode 93**.
+- New version: **1.10.76 / versionCode 94**.
+- Mobile-only.
+- No changes to IPTV, YouTube playback format path, thumbnails, decoder recovery, navigation/lifecycle, or other 1.10.75 behavior.
+- New patch is isolated in `scripts/patch-mobile-v76.py` and appended after the existing v75 patch chain.
+
+## CI
+- Mobile Final run **#534** — currently running on commit `8554e2f8d7c921d133e1500b44ac244d1f0c4f5d`.
+- Regression guard step passed.
+- APK build step is still running; do not call the APK validated until the build/upload steps complete.
+
+---
+
 # MOBILE 1.10.75 / 93 — STABLE BASELINE — USER TEST CONFIRMED IMPROVED YOUTUBE LOAD — 2026-09-23
 
 ## Trạng thái hiện tại
