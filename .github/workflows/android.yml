@@ -312,6 +312,21 @@ jobs:
             sleep 8
             adb shell dumpsys activity activities | grep -q 'vn.phuong.iptvplayer'
             adb shell pm path vn.phuong.iptvplayer
+
+            # Verify the three bottom tabs are real Activity transitions, not just visual states.
+            # Pixel 2 portrait coordinates: YouTube ~20%, IPTV ~50%, Movie ~80%.
+            adb shell input tap 864 1790
+            sleep 3
+            adb shell dumpsys activity activities | grep -q 'vn.phuong.iptvplayer.movie.MovieActivity'
+
+            adb shell input tap 216 1790
+            sleep 4
+            adb shell dumpsys activity activities | grep -q 'com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity'
+
+            adb shell input tap 864 1790
+            sleep 2
+            adb shell dumpsys activity activities | grep -q 'vn.phuong.iptvplayer.movie.MovieActivity'
+
             adb shell am force-stop vn.phuong.iptvplayer
 
       - name: Upload test and lint reports
