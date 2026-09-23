@@ -254,3 +254,6 @@ Bước tiếp theo là cài 2 APK phù hợp thiết bị và test thực tế:
 **Hiện tại dừng ở trạng thái: BUILD SUCCESSFUL — chờ test runtime.**
 
 Mọi lỗi runtime tiếp theo sẽ được xử lý dựa trên log/video/screenshot thực tế, không coi bản build thành công là đã hoàn tất chức năng.
+
+
+- 2026-09-23: CI emulator disk cleanup committed; retriggering verification build.
