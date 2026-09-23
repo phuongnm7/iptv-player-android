@@ -52,6 +52,9 @@ public final class MobileNm7Application extends DroidApplication implements andr
         System.setProperty("http.keepAlive", "true");
         System.setProperty("http.maxConnections", "8");
         System.setProperty("http.keepAliveDuration", "300000");
+        // NM7 1.10.76: allow the existing SmartTube LiveChatController to open
+        // live chat automatically for videos that expose a liveChatKey.
+        System.setProperty("nm7.mobile.livechat", "true");
         registerActivityLifecycleCallbacks(this);
         // Initialize SmartTube before any YouTube tab can be opened.
         // Delayed-only prewarm created a first-tap race with ViewManager registration.
