@@ -27,7 +27,9 @@ public final class HomeTabBar {
 
     private HomeTabBar() {}
 
-    public static void attach(Activity activity, boolean youtubeSelected) { attach(activity, youtubeSelected ? TAB_YOUTUBE : TAB_IPTV); }\n\n    public static void attach(Activity activity, int selectedTab) {
+    public static void attach(Activity activity, boolean youtubeSelected) { attach(activity, youtubeSelected ? TAB_YOUTUBE : TAB_IPTV); }
+
+    public static void attach(Activity activity, int selectedTab) {
         View content = activity.findViewById(android.R.id.content);
         if (!(content instanceof FrameLayout)) return;
         FrameLayout host = (FrameLayout) content;
@@ -42,15 +44,15 @@ public final class HomeTabBar {
         bar.setElevation(dp(activity, 8));
         bar.setPadding(0, dp(activity, 4), 0, dp(activity, 4));
 
-        addItem(activity, bar, R.drawable.nm7_nav_youtube, youtubeSelected, () -> {
-            if (!youtubeSelected) openBrowse(activity);
+        addItem(activity, bar, R.drawable.nm7_nav_youtube, selectedTab == TAB_YOUTUBE, "YouTube", () -> {
+            if (selectedTab != TAB_YOUTUBE) openBrowse(activity);
         });
 
-        addItem(activity, bar, R.drawable.nm7_nav_iptv, !youtubeSelected, () -> {
-            if (youtubeSelected) openIptv(activity);
+        addItem(activity, bar, R.drawable.nm7_nav_iptv, selectedTab == TAB_IPTV, "IPTV", () -> {
+            if (selectedTab != TAB_IPTV) openIptv(activity);
         });
 
-        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
+        addItem(activity, bar, R.drawable.nm7_nav_library, selectedTab == TAB_MOVIE, "Movie", () -> {\n            if (selectedTab != TAB_MOVIE) openMovie(activity);\n        });\n\n        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(activity, 64), Gravity.BOTTOM);
         host.addView(bar, lp);
         if (activity instanceof MainActivity) {
@@ -89,7 +91,14 @@ public final class HomeTabBar {
         activity.overridePendingTransition(0, 0);
     }
 
-    private static void openMovie(Activity activity) {\n        SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_MOVIE);\n        Intent intent = new Intent(activity, MovieActivity.class);\n        intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);\n        startWithoutAnimation(activity, intent);\n    }\n\n    private static void openIptv(Activity activity) {
+    private static void openMovie(Activity activity) {
+        SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_MOVIE);
+        Intent intent = new Intent(activity, MovieActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+        startWithoutAnimation(activity, intent);
+    }
+
+    private static void openIptv(Activity activity) {
         // Switching tabs does not end YouTube. It remains paused/backgrounded until
         // an IPTV player actually reaches READY; the existing handoff logic then
         // temporarily suspends YouTube. If IPTV has no active player, YouTube remains
@@ -160,7 +169,6 @@ public final class HomeTabBar {
         item.addView(icon, new LinearLayout.LayoutParams(size, size));
 
         TextView label = new TextView(activity);
-        String title = iconRes == R.drawable.nm7_nav_youtube ? "YouTube" : "IPTV";
         label.setText(title);
         item.setContentDescription(title);
         label.setTextSize(11);
