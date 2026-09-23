@@ -101,6 +101,21 @@ jobs:
           print('Renamed SmartTube legacy show_buffering references:',len(changed))
           PY
 
+      - name: Patch SmartTube missing playback compatibility resources
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('third_party/SmartTube-droid/smarttubedroid/src/main/res/values/nm7_compat_strings.xml')
+          p.parent.mkdir(parents=True, exist_ok=True)
+          p.write_text('''<?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <string name="section_is_empty">Section is empty</string>
+          </resources>
+          ''')
+          print('Added NM7 compatibility resource: section_is_empty')
+          PY
+
       - name: Patch SmartTube legacy OkHttp API
         run: |
           set -euxo pipefail
