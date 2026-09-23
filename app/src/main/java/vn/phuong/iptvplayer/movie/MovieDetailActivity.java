@@ -124,8 +124,8 @@ public final class MovieDetailActivity extends Activity {
                 Intent i=new Intent(MovieDetailActivity.this,PlayerActivity.class);
                 i.putExtra(PlayerActivity.EXTRA_NAME,"Movie");
                 i.putExtra(PlayerActivity.EXTRA_URL,best.url);
-                i.putExtra(PlayerActivity.EXTRA_MIME,best.mime);
-                if(!best.referer.isEmpty())i.putExtra(PlayerActivity.EXTRA_REFERER,best.referer);
+                i.putExtra(PlayerActivity.EXTRA_MIME,best.mime==null?"":best.mime);
+                android.os.Bundle headers=new android.os.Bundle();\n                if(best.referer!=null&&!best.referer.isEmpty())headers.putString("Referer",best.referer);\n                if(best.origin!=null&&!best.origin.isEmpty())headers.putString("Origin",best.origin);\n                headers.putString("User-Agent","Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36");\n                i.putExtra(PlayerActivity.EXTRA_HEADERS,headers);
                 startActivity(i);
             });}
             public void onError(Throwable e){runOnUiThread(()->text("Lỗi tải link phát: "+safe(e)));}
