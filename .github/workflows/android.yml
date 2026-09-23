@@ -316,15 +316,33 @@ jobs:
             # Verify the three bottom tabs are real Activity transitions, not just visual states.
             # Pixel 2 portrait coordinates: YouTube ~20%, IPTV ~50%, Movie ~80%.
             adb shell input tap 864 1790
-            sleep 3
+            sleep 10
             adb shell dumpsys activity activities | grep -q 'vn.phuong.iptvplayer.movie.MovieActivity'
+            adb shell uiautomator dump /sdcard/movie_home.xml >/dev/null
+            adb shell cat /sdcard/movie_home.xml | grep -q 'Phim Lẻ Mới'
+            adb shell cat /sdcard/movie_home.xml | grep -q 'Resident Evil'
 
+            # Open a real movie detail and then the real PlayerActivity.
+            adb shell input tap 120 360
+            sleep 5
+            adb shell dumpsys activity activities | grep -q 'vn.phuong.iptvplayer.movie.MovieDetailActivity'
+            adb shell uiautomator dump /sdcard/movie_detail.xml >/dev/null
+            adb shell cat /sdcard/movie_detail.xml | grep -q 'Xem phim'
+            adb shell input tap 400 650
+            sleep 8
+            adb shell dumpsys activity activities | grep -q 'vn.phuong.iptvplayer.PlayerActivity'
+
+            # YouTube must render its content area, not only open BrowseActivity.
             adb shell input tap 216 1790
-            sleep 4
+            sleep 15
             adb shell dumpsys activity activities | grep -q 'com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity'
+            adb shell uiautomator dump /sdcard/youtube_home.xml >/dev/null
+            adb shell cat /sdcard/youtube_home.xml | grep -q 'browse_progress.*visible-to-user="false"'
+            adb shell cat /sdcard/youtube_home.xml | grep -q 'browse_error_container.*visible-to-user="false"'
+            adb shell cat /sdcard/youtube_home.xml | grep -q 'browse_rows.*visible-to-user="true"'
 
             adb shell input tap 864 1790
-            sleep 2
+            sleep 3
             adb shell dumpsys activity activities | grep -q 'vn.phuong.iptvplayer.movie.MovieActivity'
 
             adb shell am force-stop vn.phuong.iptvplayer
