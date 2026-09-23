@@ -90,7 +90,7 @@ public final class MovieActivity extends Activity {
     }
 
     private View card(MovieContent.Item item) {
-        TextView v=text(item.title,14,false);v.setTextColor(Color.WHITE);v.setGravity(LEFT|CENTER_VERTICAL);
+        TextView v=text(item.title,14,false);v.setTextColor(Color.WHITE);v.setGravity(android.view.Gravity.LEFT|android.view.Gravity.CENTER_VERTICAL);
         v.setPadding(dp(8),0,dp(8),0);v.setMaxLines(2);
         v.setBackgroundColor(Color.rgb(30,30,36));
         LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(dp(170),dp(52));p.setMargins(dp(5),0,dp(5),0);
