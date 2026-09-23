@@ -1,4 +1,4 @@
-const DEFAULT_UPSTREAM = 'https://thcoban.github.io/thtt/tttt.m3u';
+const DEFAULT_UPSTREAM = 'https://raw.githubusercontent.com/phuongnm7/iptv-player-android/main/playlist/sports.m3u';
 
 const SPORTS_GROUPS = new Set([
   'Vua Sân Cỏ TV',
@@ -155,6 +155,8 @@ export default async function handler(req, res) {
     return res.status(204).end();
   }
 
+  // The app must consume the materialized, already-merged playlist. This prevents
+  // the app from bypassing the GitHub filter and reading an old upstream directly.
   const upstream = process.env.SPORTS_UPSTREAM_URL || DEFAULT_UPSTREAM;
 
   try {
