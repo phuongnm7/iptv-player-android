@@ -11,7 +11,7 @@ android {
         minSdk = 23
         targetSdk = 36
         versionCode = 95
-        versionName = "1.10.77"
+        versionName = "1.10.77" // v77 UI correction build trigger
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["applicationClass"] = "vn.phuong.iptvplayer.MobileNm7Application"
