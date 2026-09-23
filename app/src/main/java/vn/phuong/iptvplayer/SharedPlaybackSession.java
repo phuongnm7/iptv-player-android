@@ -7,6 +7,7 @@ public final class SharedPlaybackSession {
     public static final String TAB_IPTV = "iptv";
     public static final String TAB_YOUTUBE = "youtube";
     public static final String TAB_MOVIE = "movie";
+    public static final String TAB_MOVIE = "movie";
     private static final String PREFS = "nm7_shared_playback";
     private static final String KEY_TAB = "tab";
     private static final String KEY_YOUTUBE_BACKGROUND = "youtube_background";
@@ -25,6 +26,6 @@ public final class SharedPlaybackSession {
     public static synchronized void clearIptv(Context c){prefs(c).edit().remove(KEY_NAME).remove(KEY_URL).remove(KEY_MIME).remove(KEY_POSITION).remove(KEY_PLAYING).remove(KEY_HEADERS).remove(KEY_OPTIONS).apply();}
     private static android.content.SharedPreferences prefs(Context c){return c.getApplicationContext().getSharedPreferences(PREFS,Context.MODE_PRIVATE);}
     private static String encodeBundle(Bundle b){if(b==null||b.isEmpty())return "";StringBuilder o=new StringBuilder();for(String k:b.keySet()){String v=b.getString(k);if(v==null)continue;if(o.length()>0)o.append("\u001e");o.append(android.util.Base64.encodeToString(k.getBytes(java.nio.charset.StandardCharsets.UTF_8),android.util.Base64.NO_WRAP)).append(':').append(android.util.Base64.encodeToString(v.getBytes(java.nio.charset.StandardCharsets.UTF_8),android.util.Base64.NO_WRAP));}return o.toString();}
-    private static Bundle decodeBundle(String raw){Bundle o=new Bundle();if(raw==null||raw.isEmpty())return o;for(String p:raw.split("\\\\u001e")){int s=p.indexOf(':');if(s<=0)continue;try{o.putString(new String(android.util.Base64.decode(p.substring(0,s),android.util.Base64.DEFAULT),java.nio.charset.StandardCharsets.UTF_8),new String(android.util.Base64.decode(p.substring(s+1),android.util.Base64.DEFAULT),java.nio.charset.StandardCharsets.UTF_8));}catch(IllegalArgumentException ignored){}}return o;}
+    private static Bundle decodeBundle(String raw){Bundle o=new Bundle();if(raw==null||raw.isEmpty())return o;for(String p:raw.split("\\u001e")){int s=p.indexOf(':');if(s<=0)continue;try{o.putString(new String(android.util.Base64.decode(p.substring(0,s),android.util.Base64.DEFAULT),java.nio.charset.StandardCharsets.UTF_8),new String(android.util.Base64.decode(p.substring(s+1),android.util.Base64.DEFAULT),java.nio.charset.StandardCharsets.UTF_8));}catch(IllegalArgumentException ignored){}}return o;}
     public static final class State{public final String name,url,mime;public final Bundle headers;public final java.util.ArrayList<String> options;public final long position;public final boolean playing;State(String n,String u,String m,Bundle h,java.util.ArrayList<String>o,long p,boolean y){name=n;url=u;mime=m;headers=h;options=o;position=p;playing=y;}}
 }
