@@ -52,7 +52,11 @@ public final class HomeTabBar {
             if (selectedTab != TAB_IPTV) openIptv(activity);
         });
 
-        addItem(activity, bar, R.drawable.nm7_nav_library, selectedTab == TAB_MOVIE, "Movie", () -> {\n            if (selectedTab != TAB_MOVIE) openMovie(activity);\n        });\n\n        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
+        addItem(activity, bar, R.drawable.nm7_nav_library, selectedTab == TAB_MOVIE, "Movie", () -> {
+            if (selectedTab != TAB_MOVIE) openMovie(activity);
+        });
+
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(activity, 64), Gravity.BOTTOM);
         host.addView(bar, lp);
         if (activity instanceof MainActivity) {
