@@ -1,4 +1,4 @@
-package vn.phuong.iptvplayer;
+package vn.phuong.iptvplayer.movie;
 import java.util.ArrayList; import java.util.List;
 public final class MovieContent {
  private MovieContent(){}
