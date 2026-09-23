@@ -311,3 +311,5 @@ jobs:
           path: app/build/reports/
           retention-days: 14
           if-no-files-found: ignore
+
+# CI trigger: rerun Mobile build after v77 idempotence fix
