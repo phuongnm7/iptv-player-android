@@ -31,7 +31,13 @@ jobs:
             name="$1"
             url="$2"
             out="$3"
-            if curl -L --fail --retry 3 --retry-delay 2               --connect-timeout 10 --max-time 60               -A 'Mozilla/5.0 NM7-IPTV-Sports/2.0'               -H 'Cache-Control: no-cache'               "$url" -o "$out"               && test -s "$out"               && grep -qi '#EXTINF' "$out"; then
+            if curl -L --fail --retry 3 --retry-delay 2 \
+              --connect-timeout 10 --max-time 60 \
+              -A 'Mozilla/5.0 NM7-IPTV-Sports/2.0' \
+              -H 'Cache-Control: no-cache' \
+              "$url" -o "$out" \
+              && test -s "$out" \
+              && grep -qi '#EXTINF' "$out"; then
               echo "$name=OK"
             else
               rm -f "$out"
@@ -56,13 +62,23 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           from datetime import datetime, timedelta
-          import os, re
+          from zoneinfo import ZoneInfo
+          import os
+          import re
 
           ROOT = Path('.')
           TMP = Path('/tmp/nm7')
           MAX_AGE = int(os.environ.get('MAX_AGE_MINUTES', '180'))
-          NOW = datetime.now()
-          print('NOW_VN=', NOW.strftime('%Y-%m-%d %H:%M:%S'))
+          VN = ZoneInfo('Asia/Ho_Chi_Minh')
+
+          # Compare every match's scheduled start time with the actual
+          # current Vietnam time. The 180-minute rule is based on this
+          # difference, not on the workflow execution time.
+          NOW = datetime.now(VN)
+          CUTOFF = NOW - timedelta(minutes=MAX_AGE)
+
+          print('NOW_VN=', NOW.strftime('%Y-%m-%d %H:%M:%S %Z'))
+          print('CUTOFF_VN=', CUTOFF.strftime('%Y-%m-%d %H:%M:%S %Z'))
 
           groups = {
               'Vua Sân Cỏ TV','Khán Đài TV','Cola TV','Gà Vàng TV',
@@ -73,86 +89,131 @@ jobs:
           def load(path):
               if not path.exists() or path.stat().st_size == 0:
                   return []
-              return path.read_text(encoding='utf-8', errors='ignore').replace('\r','').splitlines()
+              return path.read_text(
+                  encoding='utf-8', errors='ignore'
+              ).replace('\r', '').splitlines()
 
           def blocks(lines):
-              text='\n'.join(lines)
-              return [b for b in re.split(r'(?=#EXTINF\s*:)', text, flags=re.I)
-                      if re.match(r'\s*#EXTINF\s*:', b, flags=re.I)]
+              text = '\n'.join(lines)
+              return [
+                  b for b in re.split(r'(?=#EXTINF\s*:)', text, flags=re.I)
+                  if re.match(r'\s*#EXTINF\s*:', b, flags=re.I)
+              ]
 
           def event_dt(extinf):
-              m = re.search(r'(?<!\d)(\d{1,2}):(\d{2})\s+(\d{1,2})/(\d{1,2})(?!\d)', extinf)
+              # Expected schedule in channel title: HH:MM DD/MM
+              m = re.search(
+                  r'(?<!\d)(\d{1,2}):(\d{2})\s+(\d{1,2})/(\d{1,2})(?!\d)',
+                  extinf
+              )
               if not m:
                   return None
+
               hh, mm, dd, mo = map(int, m.groups())
-              candidates=[]
-              for y in (NOW.year-1, NOW.year, NOW.year+1):
+              candidates = []
+              for year in (NOW.year - 1, NOW.year, NOW.year + 1):
                   try:
-                      candidates.append(datetime(y, mo, dd, hh, mm))
+                      candidates.append(
+                          datetime(year, mo, dd, hh, mm, tzinfo=VN)
+                      )
                   except ValueError:
                       pass
-              return min(candidates, key=lambda d: abs((d-NOW).total_seconds())) if candidates else None
+
+              return (
+                  min(candidates, key=lambda d: abs((d - NOW).total_seconds()))
+                  if candidates else None
+              )
 
           def parse(path, source_name):
-              result=[]
+              result = []
+              dropped_old = 0
+
               for block in blocks(load(path)):
-                  lines=[x.strip() for x in block.splitlines() if x.strip()]
+                  lines = [x.strip() for x in block.splitlines() if x.strip()]
                   if not lines:
                       continue
-                  ext=lines[0]
-                  gm=re.search(r'group-title="([^"]+)"', ext, re.I)
+
+                  ext = lines[0]
+                  gm = re.search(r'group-title="([^"]+)"', ext, re.I)
                   if not gm or gm.group(1).strip() not in groups:
                       continue
-                  urls=[x for x in lines if re.match(r'^https?://', x, re.I)]
+
+                  urls = [x for x in lines if re.match(r'^https?://', x, re.I)]
                   if not urls:
                       continue
-                  url=urls[-1]
+
+                  url = urls[-1]
                   if url.strip().lower() == 'none':
                       continue
-                  dt=event_dt(ext)
-                  if dt is not None and dt < NOW - timedelta(minutes=MAX_AGE):
-                      continue
-                  idx=lines.index(url)
-                  result.append((dt or datetime.max, source_name, '\n'.join(lines[:idx+1])))
-              return result
 
-          source_files=[
-              ('A', TMP/'source-a.m3u'),
-              ('B', TMP/'source-b.m3u'),
-              ('C', ROOT/'playlist/sports.m3u'),
+                  dt = event_dt(ext)
+
+                  # Keep future matches and matches from the last 180 minutes.
+                  # Remove a match only when its scheduled start is more than
+                  # 180 minutes before the actual current Vietnam time.
+                  if dt is not None and dt < CUTOFF:
+                      dropped_old += 1
+                      continue
+
+                  idx = lines.index(url)
+                  result.append((
+                      dt or datetime.max.replace(tzinfo=VN),
+                      source_name,
+                      '\n'.join(lines[:idx + 1])
+                  ))
+
+              return result, dropped_old
+
+          source_files = [
+              ('A', TMP / 'source-a.m3u'),
+              ('B', TMP / 'source-b.m3u'),
+              ('C', ROOT / 'playlist/sports.m3u'),
           ]
 
-          all_items=[]
-          status={}
+          all_items = []
+          status = {}
+          dropped = {}
+
           for name, path in source_files:
-              items=parse(path, name)
-              status[name]=len(items)
+              items, old_count = parse(path, name)
+              status[name] = len(items)
+              dropped[name] = old_count
               all_items.extend(items)
 
-          all_items.sort(key=lambda x: (x[0], {'A':0,'B':1,'C':2}[x[1]]))
-          seen=set()
-          selected=[]
+          priority = {'A': 0, 'B': 1, 'C': 2}
+          all_items.sort(key=lambda x: (x[0], priority[x[1]]))
+
+          seen = set()
+          selected = []
           for dt, src, item in all_items:
-              key=re.sub(r'\s+', ' ', item).strip()
+              key = re.sub(r'\s+', ' ', item).strip()
               if key in seen:
                   continue
               seen.add(key)
               selected.append((dt, src, item))
 
-          selected.sort(key=lambda x: (x[0], {'A':0,'B':1,'C':2}[x[1]]))
-          out=['#EXTM3U'] + [item for _,_,item in selected]
-          Path('playlist').mkdir(exist_ok=True)
-          Path('playlist/sports.m3u').write_text('\n'.join(out)+'\n', encoding='utf-8')
+          selected.sort(key=lambda x: (x[0], priority[x[1]]))
+          out = ['#EXTM3U'] + [item for _, _, item in selected]
 
-          print('=== SOURCE STATUS ===')
-          print('SOURCE_A entries=', status['A'])
-          print('SOURCE_B entries=', status['B'])
-          print('SOURCE_C entries=', status['C'])
+          Path('playlist').mkdir(exist_ok=True)
+          Path('playlist/sports.m3u').write_text(
+              '\n'.join(out) + '\n',
+              encoding='utf-8'
+          )
+
+          print('=== SPORTS FILTER RESULT ===')
+          print('CURRENT_VN=', NOW.strftime('%Y-%m-%d %H:%M:%S'))
+          print('CUTOFF_VN=', CUTOFF.strftime('%Y-%m-%d %H:%M:%S'))
+          print('SOURCE_A valid=', status['A'], 'dropped_old=', dropped['A'])
+          print('SOURCE_B valid=', status['B'], 'dropped_old=', dropped['B'])
+          print('SOURCE_C valid=', status['C'], 'dropped_old=', dropped['C'])
           print('SELECTED entries=', len(selected))
           print('MAX_AGE_MINUTES=', MAX_AGE)
 
-          if len(selected) == 0:
-              raise SystemExit('No valid sports entries remain after 180-minute filtering')
+          if not selected:
+              raise SystemExit(
+                  'No valid sports entries remain after 180-minute filtering'
+              )
           PY
 
       - name: Commit changed playlist
@@ -161,9 +222,11 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add playlist/sports.m3u
+
           if git diff --cached --quiet; then
             echo 'No playlist changes.'
             exit 0
           fi
+
           git commit -m 'auto: update sports playlist'
           git push
