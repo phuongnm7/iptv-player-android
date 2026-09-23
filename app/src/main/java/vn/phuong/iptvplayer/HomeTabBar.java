@@ -14,7 +14,6 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import vn.phuong.iptvplayer.movie.MovieActivity;
 
-/** Single Mobile navigation bar, overlaid at the bottom of NM7, player, and SmartTube Browse. */
 public final class HomeTabBar {
     public static final int TAB_YOUTUBE = 0;
     public static final int TAB_IPTV = 1;
@@ -82,14 +81,6 @@ public final class HomeTabBar {
         }
     }
 
-    private static void openBrowseSection(Activity activity, String method) {
-        try {
-            activity.getClass().getMethod(method).invoke(activity);
-        } catch (ReflectiveOperationException error) {
-            android.util.Log.e("NM7Navigation", "Browse section unavailable", error);
-        }
-    }
-
     private static void startWithoutAnimation(Activity activity, Intent intent) {
         intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION | Intent.FLAG_ACTIVITY_NO_USER_ACTION);
         activity.startActivity(intent);
@@ -104,33 +95,20 @@ public final class HomeTabBar {
     }
 
     private static void openIptv(Activity activity) {
-        // Switching tabs does not end YouTube. It remains paused/backgrounded until
-        // an IPTV player actually reaches READY; the existing handoff logic then
-        // temporarily suspends YouTube. If IPTV has no active player, YouTube remains
-        // available in the background for instant return to the previous session.
         PlayerActivity.cancelYoutubeHandoff();
         SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_IPTV);
         MobileNm7Application.markTabSwitch();
         Intent intent = new Intent(activity, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
         startWithoutAnimation(activity, intent);
-        // Explicitly request IPTV restoration after the Activity transition. This also
-        // covers the case where MainActivity is already alive and only reordered to front.
-        // The click originates from SmartTube Browse/Playback, not MainActivity.
-        // Resolve the already-running MainActivity inside the IPTV provider.
         activity.getWindow().getDecorView().postDelayed(
                 () -> MobileInlinePlayerProviderV2.resumeForIptvTab(activity), 180L);
     }
 
     private static void openBrowse(Activity activity) {
-        // Switch the persisted tab only after YouTube has been successfully launched.
         boolean hasIptvPlayer = MobileNm7Application.hasIptvPlayer();
         if (hasIptvPlayer) MobileNm7Application.markTabSwitch();
-        // If a YouTube playback session already exists, return directly to its real
-        // PlaybackActivity. This keeps the actual video surface visible; do not send the
-        // user to Browse while the decoder is still playing invisibly in the background.
-        // If no YouTube session exists, open Browse and leave IPTV untouched until a
-        // YouTube video actually reaches READY.
+
         try {
             Class<?> playback = Class.forName(
                     "com.liskovsoft.smartyoutubetv2.droid.ui.playback.PlaybackActivity");
@@ -138,6 +116,7 @@ public final class HomeTabBar {
             if (active) {
                 SmartTubeRuntime.initialize(activity.getApplicationContext());
                 playback.getMethod("restoreNm7Player").invoke(null);
+                SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_YOUTUBE);
                 return;
             }
         } catch (ReflectiveOperationException | RuntimeException error) {
@@ -145,26 +124,13 @@ public final class HomeTabBar {
         }
 
         if (hasIptvPlayer) PlayerActivity.prepareForYoutubeHandoff(activity);
-        SmartTubeRuntime.initialize(activity.getApplicationContext());
-        try {
-            Class<?> browse = Class.forName(BROWSE);
-            Intent intent = new Intent(activity, browse);
-            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-            startWithoutAnimation(activity, intent);
+
+        if (SmartTubeRuntime.openBrowse(activity.getApplicationContext())) {
             SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_YOUTUBE);
-        } catch (Throwable error) {
-            try {
-                Intent fallback = new Intent(activity, SmartTubeHomeActivity.class);
-                fallback.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-                startWithoutAnimation(activity, fallback);
-                SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_YOUTUBE);
-            } catch (Throwable fallbackError) {
-                android.util.Log.e("NM7Navigation", "Unable to open YouTube tab", fallbackError);
-                if (hasIptvPlayer) {
-                    PlayerActivity.cancelYoutubeHandoff();
-                    SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_IPTV);
-                }
-            }
+        } else {
+            PlayerActivity.cancelYoutubeHandoff();
+            SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_IPTV);
+            android.util.Log.e("NM7Navigation", "SmartTube Browse failed to start");
         }
     }
 
