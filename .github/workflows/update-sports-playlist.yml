@@ -1,4 +1,5 @@
 name: Update sports M3U
+# Force-refresh playlist logic; scheduled job also runs every 5 minutes.
 
 on:
   schedule:
