@@ -17,6 +17,8 @@
         <provider android:name=".MobileEdgeGestureProvider" android:authorities="${applicationId}.edgegestures" android:exported="false" android:initOrder="85" />
         <provider android:name=".MobileGroupSwipeProvider" android:authorities="${applicationId}.groupswipe" android:exported="false" android:initOrder="80" />
         <provider android:name=".MobileNowPlayingHighlightProvider" android:authorities="${applicationId}.nowplayinghighlight" android:exported="false" android:initOrder="75" />
+        <activity android:name=".MovieActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".MovieDetailActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".PlayerActivity" android:exported="false" android:configChanges="keyboardHidden|orientation|screenSize" />
         <activity android:name=".YoutubeActivity" android:exported="false" android:configChanges="keyboardHidden|orientation|screenSize" />
         <activity android:name=".SmartTubeHomeActivity" android:exported="false" android:launchMode="singleTop" android:configChanges="keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout|layoutDirection" />
