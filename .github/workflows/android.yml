@@ -233,7 +233,7 @@ jobs:
           if not p.is_file():
               raise SystemExit(f'Missing expected file: {p}')
           text = p.read_text()
-          old = '    @Override\n    public long getPublishedDate() {'
+                    import re\n          pattern = r'(?m)^\\s*@Override\\s*\\n(\\s*public long getPublishedDate\\(\\)\\s*\\{)'
           new = '    public long getPublishedDate() {'
           if old in text:
               text = text.replace(old, new, 1)
