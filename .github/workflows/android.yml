@@ -297,6 +297,10 @@ jobs:
           # The hosted runner can be low on free disk after the Android/Gradle build.
           # Keep the APK in dist/mobile, then remove build caches before AVD creation.
           rm -rf app/build ~/.gradle/caches ~/.gradle/daemon
+          # SmartTube sources are only needed to build the APK; remove them before AVD creation.
+          rm -rf third_party/SmartTube-droid smarttube
+          # Remove SDK payloads no longer needed after packaging; the emulator uses API 34.
+          rm -rf "$ANDROID_HOME/platforms/android-36" "$ANDROID_HOME/build-tools/30.0.3" "$ANDROID_HOME/build-tools/36.0.0"
           df -h
 
       - name: Smoke-test Mobile ARM64 APK on Android 14
