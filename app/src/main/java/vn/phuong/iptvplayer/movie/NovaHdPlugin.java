@@ -35,7 +35,7 @@ public final class NovaHdPlugin implements MoviePlugin {
    if("show".equals(type))p+="&season="+URLEncoder.encode(season==null?"":season,"UTF-8")+"&episode="+URLEncoder.encode(episode==null?"":episode,"UTF-8");
    JSONObject root=new JSONObject(get(p));JSONArray a=root.optJSONArray("sources");if(a==null)a=root.optJSONArray("data");
    List<MovieContent.Source>o=new ArrayList<>();
-   if(a!=null)for(int i=0;i<a.length();i++){JSONObject x=a.optJSONObject(i);if(x==null)continue;MovieContent.Source s=new MovieContent.Source();s.url=x.optString("url",x.optString("file",""));s.mime=x.optString("mime","");s.quality=x.optString("quality",x.optString("resolution",""));s.referer=x.optString("referer","https://novahd.cc/");if(!s.url.isEmpty())o.add(s);}
+   if(a!=null)for(int i=0;i<a.length();i++){JSONObject x=a.optJSONObject(i);if(x==null)continue;MovieContent.Source s=new MovieContent.Source();s.url=x.optString("url",x.optString("file",""));s.mime=x.optString("mime","");s.quality=x.optString("quality",x.optString("resolution",""));s.referer=x.optString("referer","https://novahd.cc/");s.origin=x.optString("origin","https://novahd.cc");if(!s.url.isEmpty())o.add(s);}
    loadSubtitles(type,id,season,episode,o);
    cb.onSuccess(o);
  }catch(Throwable e){cb.onError(e);}});}
