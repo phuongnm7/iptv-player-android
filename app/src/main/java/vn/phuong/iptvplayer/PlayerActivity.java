@@ -69,6 +69,8 @@ public final class PlayerActivity extends Activity {
     private double catchupDays = 0d;
     private boolean catchupActive;
     private long catchupStartEpochSeconds;
+    private long catchupRangeStartEpochSeconds;
+    private boolean catchupInitialPositionApplied;
     private String drmSystem = "", drmLicense = "";
     private ArrayList<String> options = new ArrayList<>();
     private Bundle currentHeaders = new Bundle();
@@ -168,6 +170,8 @@ public final class PlayerActivity extends Activity {
             catchupDays = state.getDouble("catchup_days", catchupDays);
             catchupActive = state.getBoolean("catchup_active", false);
             catchupStartEpochSeconds = state.getLong("catchup_start_epoch", 0L);
+            catchupRangeStartEpochSeconds = state.getLong("catchup_range_start_epoch", 0L);
+            catchupInitialPositionApplied = state.getBoolean("catchup_initial_position_applied", false);
             drmSystem = state.getString("drm_system", drmSystem); drmLicense = state.getString("drm_license", drmLicense);
         }
         playerView = findViewById(R.id.playerView); status = findViewById(R.id.txtPlayerStatus); fpsView = findViewById(R.id.txtFps); clockView = findViewById(R.id.txtClock);
@@ -204,6 +208,8 @@ public final class PlayerActivity extends Activity {
             player=new ExoPlayer.Builder(this,new DefaultRenderersFactory(this).setEnableDecoderFallback(true)).setLoadControl(stableLoadControl()).setMediaSourceFactory(mediaFactory).build();
             player.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),false); player.setVolume(0f); player.setHandleAudioBecomingNoisy(true); playerView.setPlayer(player);
             player.addAnalyticsListener(new AnalyticsListener(){@Override public void onVideoEnabled(EventTime e,DecoderCounters c){videoCounters=c;fpsMeter.reset();}}); applyQuality();
+            View rewindButton=playerView.findViewById(androidx.media3.ui.R.id.exo_rew); if(rewindButton!=null) rewindButton.setOnClickListener(v->handleCatchupSeek(-1));
+            View forwardButton=playerView.findViewById(androidx.media3.ui.R.id.exo_ffwd); if(forwardButton!=null) forwardButton.setOnClickListener(v->handleCatchupSeek(1));
             player.addListener(new Player.Listener(){
                 @Override public void onIsPlayingChanged(boolean playing) {
                     if(playing && player!=null && player.getVolume()==0f){
@@ -227,6 +233,7 @@ public final class PlayerActivity extends Activity {
                             player.setVolume(1f);
                         }
                         findViewById(R.id.playerError).setVisibility(View.GONE);VideoSize v=player.getVideoSize();status.setText(v.width>0?v.width+" × "+v.height+" • độ phân giải thực tế":"Đang phát âm thanh");
+                        if(catchupActive&&!catchupInitialPositionApplied&&catchupRangeStartEpochSeconds>0&&catchupStartEpochSeconds>catchupRangeStartEpochSeconds){long target=(catchupStartEpochSeconds-catchupRangeStartEpochSeconds)*1000L;long d=player.getDuration();if(d==C.TIME_UNSET||target<d){player.seekTo(Math.max(0L,target));}catchupInitialPositionApplied=true;}
                         recoveryHandler.removeCallbacks(resetRecoveryAttempts);recoveryHandler.postDelayed(resetRecoveryAttempts,30_000);
                     }
                     if(s==Player.STATE_ENDED&&resumePlayback){
@@ -342,22 +349,35 @@ public final class PlayerActivity extends Activity {
     private void showQuickChannels(){quickPanel.setVisibility(View.VISIBLE);filterQuickChannels();if(quickAdapter.getCount()>0)quickChannelList.post(()->quickChannelList.requestFocus());else if(quickGroupRow.getChildCount()>0)quickGroupRow.getChildAt(0).requestFocus();}
     private void hideQuickChannels(){quickPanel.setVisibility(View.GONE);playerView.requestFocus();}
     private void switchChannel(Channel c){if(c==null)return;hideQuickChannels();if(isCurrentChannel(c))return;name=c.name();url=c.url();mime=c.mimeHint();options=new ArrayList<>(c.options());
-        catchupType=c.catchupType(); catchupSource=c.catchupSource(); catchupDays=c.catchupDays(); catchupActive=false; catchupStartEpochSeconds=0L;DrmSpec d=DrmSpec.fromOptions(options);drmSystem=d.system;drmLicense=d.license;currentHeaders=new Bundle();for(Map.Entry<String,String> e:c.headers().entrySet())currentHeaders.putString(e.getKey(),e.getValue());getIntent().putExtra(EXTRA_NAME,name);getIntent().putExtra(EXTRA_URL,url);getIntent().putExtra(EXTRA_HEADERS,currentHeaders);getIntent().putExtra(EXTRA_MIME,mime);
+        catchupType=c.catchupType(); catchupSource=c.catchupSource(); catchupDays=c.catchupDays(); catchupActive=false; catchupStartEpochSeconds=0L; catchupRangeStartEpochSeconds=0L; catchupInitialPositionApplied=false;DrmSpec d=DrmSpec.fromOptions(options);drmSystem=d.system;drmLicense=d.license;currentHeaders=new Bundle();for(Map.Entry<String,String> e:c.headers().entrySet())currentHeaders.putString(e.getKey(),e.getValue());getIntent().putExtra(EXTRA_NAME,name);getIntent().putExtra(EXTRA_URL,url);getIntent().putExtra(EXTRA_HEADERS,currentHeaders);getIntent().putExtra(EXTRA_MIME,mime);
         getIntent().putExtra(EXTRA_CATCHUP_TYPE,catchupType); getIntent().putExtra(EXTRA_CATCHUP_SOURCE,catchupSource); getIntent().putExtra(EXTRA_CATCHUP_DAYS,catchupDays);
         getIntent().putStringArrayListExtra(EXTRA_OPTIONS,options);((TextView)findViewById(R.id.txtPlayerTitle)).setText(name);((TextView)findViewById(R.id.txtPlayerUrl)).setText(url);findViewById(R.id.playerError).setVisibility(View.GONE);AppPreferences.recordRecent(this,c);quickCurrentId=AppPreferences.id(c);position=0;resumePlayback=true;resolvingClearKey=false;resolvingStreamMime=false;recoveryAttempts=0;recoveryHandler.removeCallbacksAndMessages(null);releasePlayer();filterQuickChannels();startPlayer();}
     private boolean hasCatchup(){ return !catchupType.isEmpty() && !catchupSource.isEmpty() && catchupDays > 0d; }
+    private long catchupArchiveWindowSeconds(long maxPast){
+        String s=catchupSource==null?"":catchupSource;
+        java.util.regex.Matcher m=java.util.regex.Pattern.compile("-(\\d+)\\.m3u8(?:\\?.*)?$").matcher(s);
+        if(m.find()){try{return Math.min(maxPast,Math.max(60L,Long.parseLong(m.group(1))));}catch(Exception ignored){}}
+        return maxPast;
+    }
     private String buildCatchupPlaybackUrl(){
         long now=System.currentTimeMillis()/1000L;
-        long start=catchupStartEpochSeconds>0?catchupStartEpochSeconds:now-10L;
         long maxPast=Math.max(1L,(long)Math.floor(catchupDays*86400d));
-        start=Math.max(now-maxPast,Math.min(start,now-1L));
+        long window=catchupArchiveWindowSeconds(maxPast);
+        long start=now-window;
+        catchupRangeStartEpochSeconds=start;
+        if(catchupStartEpochSeconds<=0)catchupStartEpochSeconds=Math.max(start,now-10L);
+        catchupStartEpochSeconds=Math.max(start,Math.min(catchupStartEpochSeconds,now-1L));
         long end=now;
         return CatchupUrlBuilder.build(url,catchupType,catchupSource,start,end);
     }
     private boolean enterCatchupFromLive(){
         if(!hasCatchup()||player==null)return false;
         long now=System.currentTimeMillis()/1000L;
-        catchupStartEpochSeconds=Math.max(1L,now-10L);
+        long maxPast=Math.max(1L,(long)Math.floor(catchupDays*86400d));
+        long window=catchupArchiveWindowSeconds(maxPast);
+        catchupRangeStartEpochSeconds=now-window;
+        catchupStartEpochSeconds=Math.max(catchupRangeStartEpochSeconds,now-10L);
+        catchupInitialPositionApplied=false;
         catchupActive=true; position=0L; resumePlayback=true;
         String replay=buildCatchupPlaybackUrl();
         if(replay==null||replay.isEmpty()){catchupActive=false;return false;}
@@ -372,7 +392,7 @@ public final class PlayerActivity extends Activity {
         if(direction<0 && player.isCommandAvailable(Player.COMMAND_SEEK_BACK)){player.seekBack();return true;}
         if(direction>0 && player.isCommandAvailable(Player.COMMAND_SEEK_FORWARD)){
             long duration=player.getDuration(), current=player.getCurrentPosition();
-            if(duration!=C.TIME_UNSET && duration>0 && current>=duration-8000L){catchupActive=false;catchupStartEpochSeconds=0L;position=0L;releasePlayer();startPlayer();return true;}
+            if(duration!=C.TIME_UNSET && duration>0 && current>=duration-8000L){catchupActive=false;catchupStartEpochSeconds=0L;catchupRangeStartEpochSeconds=0L;catchupInitialPositionApplied=false;position=0L;releasePlayer();startPlayer();return true;}
             player.seekForward();return true;
         }
         return false;
@@ -428,7 +448,7 @@ public final class PlayerActivity extends Activity {
 
     @Override protected void onSaveInstanceState(Bundle out){rememberPosition();out.putLong("position",position);out.putBoolean("playing",resumePlayback);out.putInt("quality",quality);out.putInt("resize",resizeMode);out.putString("mime",mime);
         out.putString("catchup_type",catchupType); out.putString("catchup_source",catchupSource); out.putDouble("catchup_days",catchupDays);
-        out.putBoolean("catchup_active",catchupActive); out.putLong("catchup_start_epoch",catchupStartEpochSeconds);
+        out.putBoolean("catchup_active",catchupActive); out.putLong("catchup_start_epoch",catchupStartEpochSeconds); out.putLong("catchup_range_start_epoch",catchupRangeStartEpochSeconds); out.putBoolean("catchup_initial_position_applied",catchupInitialPositionApplied);
         super.onSaveInstanceState(out);} @Override protected void onStop(){activityStarted=false;fpsHandler.removeCallbacks(fpsUpdate);clockHandler.removeCallbacks(clockUpdate);rememberPosition();if(!isFinishing()&&(isYoutubeHandoffPending()||SharedPlaybackSession.TAB_YOUTUBE.equals(SharedPlaybackSession.tab(this)))){keepPlayerForTabSwitch=true;}if(MobileNm7Application.isTabSwitchPending()){keepPlayerForTabSwitch=true;}if(!backgroundPlaybackActive&&!keepPlayerForTabSwitch){recoveryHandler.removeCallbacksAndMessages(null);releasePlayer();}super.onStop();}
     private void releasePlayer(){bufferingSinceMs=0;recoveryHandler.removeCallbacks(stalledPlaybackCheck);if(player!=null){playerView.setPlayer(null);player.release();player=null;}videoCounters=null;fpsMeter.reset();if(multicastLock!=null){if(multicastLock.isHeld())multicastLock.release();multicastLock=null;}} @Override protected void onDestroy(){boolean preserveForYoutube=!isFinishing()&&(keepPlayerForTabSwitch||isYoutubeHandoffPending()||SharedPlaybackSession.TAB_YOUTUBE.equals(SharedPlaybackSession.tab(this)));if(currentInstance==this) currentInstance=null; drmIo.shutdownNow();if(!preserveForYoutube&&(isFinishing()||!backgroundPlaybackActive)){stopService(new android.content.Intent(this,BackgroundPlaybackService.class));releasePlayer();}super.onDestroy();}
 }
