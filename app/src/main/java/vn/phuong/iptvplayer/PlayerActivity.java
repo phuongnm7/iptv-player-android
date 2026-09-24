@@ -203,13 +203,13 @@ public final class PlayerActivity extends Activity {
             if (playbackUrl == null || playbackUrl.isEmpty()) { showError("Không tạo được URL xem lại từ cấu hình Catch-up."); return; }
             DefaultHttpDataSource.Factory http=new DefaultHttpDataSource.Factory().setUserAgent(ua).setConnectTimeoutMs(20_000).setReadTimeoutMs(35_000).setAllowCrossProtocolRedirects(true).setDefaultRequestProperties(headers);
             DefaultDataSource.Factory data=new DefaultDataSource.Factory(this,http); DefaultMediaSourceFactory mediaFactory=new DefaultMediaSourceFactory(data).setLoadErrorHandlingPolicy(new DefaultLoadErrorHandlingPolicy(6));
-            MediaItem.Builder builder=new MediaItem.Builder().setUri(playbackUrl); String inferred=mime.isEmpty()?StreamSpec.inferMime(url,options):mime; if(inferred!=null&&!inferred.isEmpty()) builder.setMimeType(inferred);
+            MediaItem.Builder builder=new MediaItem.Builder().setUri(playbackUrl); String inferred=mime.isEmpty()?StreamSpec.inferMime(url,options):mime; if(catchupActive && playbackUrl.toLowerCase(Locale.ROOT).contains(".m3u8")) inferred=MimeTypes.APPLICATION_M3U8; if(inferred!=null&&!inferred.isEmpty()) builder.setMimeType(inferred);
             DrmSpec drm=DrmSpec.create(drmSystem,drmLicense); findViewById(R.id.btnDrm).setVisibility(drm.hasDrm()?View.VISIBLE:View.GONE); if(drm.remoteClearKey()){resolveRemoteClearKey(drm,headers);return;} DrmPlayback.configure(drm,builder,mediaFactory);
             player=new ExoPlayer.Builder(this,new DefaultRenderersFactory(this).setEnableDecoderFallback(true)).setLoadControl(stableLoadControl()).setMediaSourceFactory(mediaFactory).build();
+            player.setSeekBackIncrementMs(10_000L); player.setSeekForwardIncrementMs(10_000L);
             player.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),false); player.setVolume(0f); player.setHandleAudioBecomingNoisy(true); playerView.setPlayer(player);
             player.addAnalyticsListener(new AnalyticsListener(){@Override public void onVideoEnabled(EventTime e,DecoderCounters c){videoCounters=c;fpsMeter.reset();}}); applyQuality();
-            View rewindButton=playerView.findViewById(androidx.media3.ui.R.id.exo_rew); if(rewindButton!=null) rewindButton.setOnClickListener(v->handleCatchupSeek(-1));
-            View forwardButton=playerView.findViewById(androidx.media3.ui.R.id.exo_ffwd); if(forwardButton!=null) forwardButton.setOnClickListener(v->handleCatchupSeek(1));
+            bindCatchupControllerButtons();
             player.addListener(new Player.Listener(){
                 @Override public void onIsPlayingChanged(boolean playing) {
                     if(playing && player!=null && player.getVolume()==0f){
@@ -226,7 +226,7 @@ public final class PlayerActivity extends Activity {
                 @Override public void onVideoSizeChanged(VideoSize s){status.setText(s.width+" × "+s.height+" • độ phân giải thực tế");}
                 @Override public void onPlaybackStateChanged(int s){
                     if(s==Player.STATE_BUFFERING){status.setText("Đang tải luồng…");if(bufferingSinceMs==0){bufferingSinceMs=android.os.SystemClock.elapsedRealtime();recoveryHandler.removeCallbacks(stalledPlaybackCheck);recoveryHandler.postDelayed(stalledPlaybackCheck,20_000);}}
-                    if(s==Player.STATE_READY){bufferingSinceMs=0;recoveryHandler.removeCallbacks(stalledPlaybackCheck);
+                    if(s==Player.STATE_READY){bufferingSinceMs=0;recoveryHandler.removeCallbacks(stalledPlaybackCheck); bindCatchupControllerButtons();
                         if(player.getPlayWhenReady() && player.getVolume()==0f){
                             MobileNm7Application.suspendYoutubeForIptv();
                             player.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),true);
@@ -381,19 +381,38 @@ public final class PlayerActivity extends Activity {
         catchupActive=true; position=0L; resumePlayback=true;
         String replay=buildCatchupPlaybackUrl();
         if(replay==null||replay.isEmpty()){catchupActive=false;return false;}
-        status.setText("Đang mở xem lại…");
+        status.setText("Đang mở xem lại • " + (window/60L) + " phút");
         releasePlayer(); startPlayer(); return true;
+    }
+    private void bindCatchupControllerButtons(){
+        if(playerView==null)return;
+        View rewindButton=playerView.findViewById(androidx.media3.ui.R.id.exo_rew);
+        View forwardButton=playerView.findViewById(androidx.media3.ui.R.id.exo_ffwd);
+        if(rewindButton!=null) rewindButton.setOnClickListener(v->handleCatchupSeek(-1));
+        if(forwardButton!=null) forwardButton.setOnClickListener(v->handleCatchupSeek(1));
     }
     private boolean handleCatchupSeek(int direction){
         if(player==null)return false;
         if(!catchupActive){
-            return direction<0 && enterCatchupFromLive();
+            return enterCatchupFromLive();
         }
-        if(direction<0 && player.isCommandAvailable(Player.COMMAND_SEEK_BACK)){player.seekBack();return true;}
-        if(direction>0 && player.isCommandAvailable(Player.COMMAND_SEEK_FORWARD)){
-            long duration=player.getDuration(), current=player.getCurrentPosition();
-            if(duration!=C.TIME_UNSET && duration>0 && current>=duration-8000L){catchupActive=false;catchupStartEpochSeconds=0L;catchupRangeStartEpochSeconds=0L;catchupInitialPositionApplied=false;position=0L;releasePlayer();startPlayer();return true;}
-            player.seekForward();return true;
+        long current=player.getCurrentPosition();
+        long duration=player.getDuration();
+        long step=10_000L;
+        if(direction<0){
+            long target=Math.max(0L,current-step);
+            player.seekTo(target);
+            status.setText("Xem lại • -10 giây");
+            return true;
+        }
+        if(direction>0){
+            if(duration!=C.TIME_UNSET && duration>0 && current+step>=duration-1500L){
+                catchupActive=false; catchupStartEpochSeconds=0L; catchupRangeStartEpochSeconds=0L; catchupInitialPositionApplied=false; position=0L; resumePlayback=true; releasePlayer(); startPlayer(); return true;
+            }
+            long target=duration==C.TIME_UNSET?current+step:Math.min(duration-500L,current+step);
+            player.seekTo(Math.max(0L,target));
+            status.setText("Xem lại • +10 giây");
+            return true;
         }
         return false;
     }
