@@ -32,7 +32,9 @@ public final class M3uParser {
             hls.options().add("#KODIPROP:inputstream.adaptive.manifest_type=hls");
             return new Result(Collections.singletonList(hls), 0, 0);
         }
-        String[] lines = content.split("\\r\\n|\\n|\\r");
+        String[] lines = content.split("\\r\
+|\
+|\\r");
         List<Channel> channels = new ArrayList<>();
         Set<String> seen = new LinkedHashSet<>();
         int duplicates = 0;
@@ -128,14 +130,22 @@ public final class M3uParser {
                 case "tvg-name": if (metadata.name.isEmpty()) metadata.name = value; break;
                 case "tvg-logo": metadata.logo = value; break;
                 case "tvg-id": metadata.tvgId = value; break;
-                case "group-title": metadata.group = value; break;\n                case "catchup":\n                case "catchup-type": metadata.catchupType = value; break;\n                case "catchup-source": metadata.catchupSource = value; break;\n                case "catchup-days": metadata.catchupDays = parseDouble(value); break;
+                case "group-title": metadata.group = value; break;
+                case "catchup":
+                case "catchup-type": metadata.catchupType = value; break;
+                case "catchup-source": metadata.catchupSource = value; break;
+                case "catchup-days": metadata.catchupDays = parseDouble(value); break;
                 default: break;
             }
         }
         return metadata;
     }
 
-    private double parseDouble(String value) {\n        try { return Math.max(0d, Double.parseDouble(value)); } catch (RuntimeException ignored) { return 0d; }\n    }\n\n    private int findNameComma(String line) {
+    private double parseDouble(String value) {
+        try { return Math.max(0d, Double.parseDouble(value)); } catch (RuntimeException ignored) { return 0d; }
+    }
+
+    private int findNameComma(String line) {
         boolean quoted = false;
         char quote = 0;
         for (int i = 0; i < line.length(); i++) {
@@ -227,20 +237,25 @@ public final class M3uParser {
     }
 
     private String export(List<Channel> channels, boolean selectedOnly) {
-        StringBuilder output = new StringBuilder("#EXTM3U\n");
+        StringBuilder output = new StringBuilder("#EXTM3U
+");
         for (Channel channel : channels) {
             if ((selectedOnly && !channel.selected()) || channel.url().isEmpty()) continue;
             if (!channel.originalExtInf().isEmpty()) {
-                output.append(singleLine(channel.originalExtInf())).append('\n');
-                output.append("#EXTGRP:").append(singleLine(channel.group())).append('\n');
+                output.append(singleLine(channel.originalExtInf())).append('
+');
+                output.append("#EXTGRP:").append(singleLine(channel.group())).append('
+');
             } else {
                 output.append("#EXTINF:-1");
                 appendAttribute(output, "tvg-id", channel.tvgId());
                 appendAttribute(output, "tvg-logo", channel.logo());
                 appendAttribute(output, "group-title", channel.group());
-                output.append(',').append(singleLine(channel.name())).append('\n');
+                output.append(',').append(singleLine(channel.name())).append('
+');
             }
-            for (String option : channel.options()) output.append(singleLine(option)).append('\n');
+            for (String option : channel.options()) output.append(singleLine(option)).append('
+');
             output.append(channel.url());
             boolean first = true;
             for (Map.Entry<String, String> header : channel.headers().entrySet()) {
@@ -249,7 +264,8 @@ public final class M3uParser {
                 output.append(encode(header.getKey())).append('=').append(encode(header.getValue()));
                 first = false;
             }
-            output.append('\n');
+            output.append('
+');
         }
         return output.toString();
     }
@@ -273,11 +289,13 @@ public final class M3uParser {
 
     private static boolean validHeader(String key, String value) {
         return key.matches("[!#$%&'*+.^_`|~0-9A-Za-z-]+")
-                && value.indexOf('\r') < 0 && value.indexOf('\n') < 0;
+                && value.indexOf('\r') < 0 && value.indexOf('
+') < 0;
     }
 
     private String singleLine(String value) {
-        return value.replace('\r', ' ').replace('\n', ' ');
+        return value.replace('\r', ' ').replace('
+', ' ');
     }
 
     private String encode(String value) {
