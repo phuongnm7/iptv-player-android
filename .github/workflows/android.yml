@@ -1,4 +1,5 @@
 name: Build private Android APK
+# NM7: interface contract fix is compiled from the clean Mobile patch before Gradle.
 
 on:
   push:
