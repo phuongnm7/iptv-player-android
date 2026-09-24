@@ -264,5 +264,6 @@ jobs:
 # Budget restored; run Mobile Final CI.
 
 # NM7 CI retrigger after mobile thumbnail regex fix
+# NM7 Catch-up 1.10.78 FPT UA fix
 
 # NM7 v74 rebuild trigger: corrected selected-video loader path and fullscreen tab handling.
