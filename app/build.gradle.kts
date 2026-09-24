@@ -10,8 +10,8 @@ android {
         applicationId = "vn.phuong.iptvplayer"
         minSdk = 23
         targetSdk = 36
-        versionCode = 96
-        versionName = "1.10.80" // restore stable YouTube playback path before UI changes
+        versionCode = 97
+        versionName = "1.10.81" // restore stable YouTube playback path before UI changes
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["applicationClass"] = "vn.phuong.iptvplayer.MobileNm7Application"
