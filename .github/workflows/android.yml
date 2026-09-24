@@ -310,3 +310,5 @@ jobs:
           if-no-files-found: ignore
 
 # clean 1.10.76 build from exact 1.10.75 baseline
+
+# trigger clean build after getPlaylistId override fix
