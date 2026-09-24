@@ -356,4 +356,16 @@ cs = once(
 )
 CHAT.write_text(cs, encoding="utf-8")
 
+# 5) The current pinned SmartTube snapshot references an upstream string that is absent
+#    from its resource table. Normalize this compatibility-only message after every
+#    baseline patch has run, so later source transforms cannot reintroduce it.
+final_playback = PLAYBACK.read_text(encoding="utf-8")
+final_playback = final_playback.replace(
+    "getString(R.string.section_is_empty)",
+    '"No comments available"',
+)
+if "R.string.section_is_empty" in final_playback:
+    raise SystemExit("clean-v76: unresolved section_is_empty resource reference")
+PLAYBACK.write_text(final_playback, encoding="utf-8")
+
 print("NM7 clean Mobile 1.10.76 UI patch applied on top of 1.10.75")
