@@ -32,9 +32,7 @@ public final class M3uParser {
             hls.options().add("#KODIPROP:inputstream.adaptive.manifest_type=hls");
             return new Result(Collections.singletonList(hls), 0, 0);
         }
-        String[] lines = content.split("\\r\
-|\
-|\\r");
+        String[] lines = content.split("\\r\\n|\\n|\\r");
         List<Channel> channels = new ArrayList<>();
         Set<String> seen = new LinkedHashSet<>();
         int duplicates = 0;
@@ -237,25 +235,20 @@ public final class M3uParser {
     }
 
     private String export(List<Channel> channels, boolean selectedOnly) {
-        StringBuilder output = new StringBuilder("#EXTM3U
-");
+        StringBuilder output = new StringBuilder("#EXTM3U\n");
         for (Channel channel : channels) {
             if ((selectedOnly && !channel.selected()) || channel.url().isEmpty()) continue;
             if (!channel.originalExtInf().isEmpty()) {
-                output.append(singleLine(channel.originalExtInf())).append('
-');
-                output.append("#EXTGRP:").append(singleLine(channel.group())).append('
-');
+                output.append(singleLine(channel.originalExtInf())).append('\n');
+                output.append("#EXTGRP:").append(singleLine(channel.group())).append('\n');
             } else {
                 output.append("#EXTINF:-1");
                 appendAttribute(output, "tvg-id", channel.tvgId());
                 appendAttribute(output, "tvg-logo", channel.logo());
                 appendAttribute(output, "group-title", channel.group());
-                output.append(',').append(singleLine(channel.name())).append('
-');
+                output.append(',').append(singleLine(channel.name())).append('\n');
             }
-            for (String option : channel.options()) output.append(singleLine(option)).append('
-');
+            for (String option : channel.options()) output.append(singleLine(option)).append('\n');
             output.append(channel.url());
             boolean first = true;
             for (Map.Entry<String, String> header : channel.headers().entrySet()) {
@@ -264,8 +257,7 @@ public final class M3uParser {
                 output.append(encode(header.getKey())).append('=').append(encode(header.getValue()));
                 first = false;
             }
-            output.append('
-');
+            output.append('\n');
         }
         return output.toString();
     }
@@ -289,13 +281,11 @@ public final class M3uParser {
 
     private static boolean validHeader(String key, String value) {
         return key.matches("[!#$%&'*+.^_`|~0-9A-Za-z-]+")
-                && value.indexOf('\r') < 0 && value.indexOf('
-') < 0;
+                && value.indexOf('\r') < 0 && value.indexOf('\n') < 0;
     }
 
     private String singleLine(String value) {
-        return value.replace('\r', ' ').replace('
-', ' ');
+        return value.replace('\r', ' ').replace('\n', ' ');
     }
 
     private String encode(String value) {
@@ -309,6 +299,9 @@ public final class M3uParser {
         String group = "";
         String logo = "";
         String tvgId = "";
+        String catchupType = "";
+        String catchupSource = "";
+        double catchupDays = 0d;
     }
 
     private static final class UrlAndHeaders {
