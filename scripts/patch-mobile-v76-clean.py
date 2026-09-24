@@ -34,10 +34,10 @@ media = MEDIA_ITEM.read_text(encoding="utf-8")
 INTERFACE = ROOT / "MediaServiceCore/mediaserviceinterfaces/src/main/java/com/liskovsoft/mediaserviceinterfaces/data/MediaItem.java"
 interface_text = INTERFACE.read_text(encoding="utf-8")
 if "String getPlaylistId();" not in interface_text:
-    anchor = "    // Playlist props\\n"
+    anchor = "    // Playlist props\n"
     if interface_text.count(anchor) != 1:
         raise SystemExit("clean-v76: MediaItem playlist anchor missing")
-    interface_text = interface_text.replace(anchor, anchor + "    String getPlaylistId();\\n", 1)
+    interface_text = interface_text.replace(anchor, anchor + "    String getPlaylistId();\n", 1)
     INTERFACE.write_text(interface_text, encoding="utf-8")
     print("clean-v76: restored MediaItem.getPlaylistId() contract")
 if "String getPlaylistId();" not in INTERFACE.read_text(encoding="utf-8"):
