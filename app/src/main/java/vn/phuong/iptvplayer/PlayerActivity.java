@@ -58,12 +58,17 @@ public final class PlayerActivity extends Activity {
     private static PlayerActivity currentInstance;
     public static final String EXTRA_NAME = "name", EXTRA_URL = "url";
     public static final String EXTRA_USER_AGENT = "user_agent", EXTRA_REFERER = "referer", EXTRA_ORIGIN = "origin";
+    public static final String EXTRA_CATCHUP_TYPE = "catchup_type", EXTRA_CATCHUP_SOURCE = "catchup_source", EXTRA_CATCHUP_DAYS = "catchup_days";
     public static final String EXTRA_HEADERS = "headers", EXTRA_MIME = "mime", EXTRA_OPTIONS = "options";
     private ExoPlayer player;
     private PlayerView playerView;
     private TextView status;
     private TextView fpsView;
     private String url, name, mime;
+    private String catchupType = "", catchupSource = "";
+    private double catchupDays = 0d;
+    private boolean catchupActive;
+    private long catchupStartEpochSeconds;
     private String drmSystem = "", drmLicense = "";
     private ArrayList<String> options = new ArrayList<>();
     private Bundle currentHeaders = new Bundle();
@@ -134,6 +139,9 @@ public final class PlayerActivity extends Activity {
         setContentView(R.layout.activity_player);
         Insets.apply(findViewById(R.id.playerRoot));
         url = value(EXTRA_URL); name = value(EXTRA_NAME); mime = value(EXTRA_MIME);
+        catchupType = value(EXTRA_CATCHUP_TYPE);
+        catchupSource = value(EXTRA_CATCHUP_SOURCE);
+        catchupDays = getIntent().getDoubleExtra(EXTRA_CATCHUP_DAYS, 0d);
         if (url.isEmpty()) {
             SharedPlaybackSession.State saved = SharedPlaybackSession.loadIptv(this);
             if (saved != null) {
@@ -154,7 +162,13 @@ public final class PlayerActivity extends Activity {
         if (state != null) {
             position = state.getLong("position"); resumePlayback = state.getBoolean("playing", true);
             quality = state.getInt("quality", Integer.MAX_VALUE); resizeMode = state.getInt("resize", AspectRatioFrameLayout.RESIZE_MODE_FIT);
-            mime = state.getString("mime", mime); drmSystem = state.getString("drm_system", drmSystem); drmLicense = state.getString("drm_license", drmLicense);
+            mime = state.getString("mime", mime);
+            catchupType = state.getString("catchup_type", catchupType);
+            catchupSource = state.getString("catchup_source", catchupSource);
+            catchupDays = state.getDouble("catchup_days", catchupDays);
+            catchupActive = state.getBoolean("catchup_active", false);
+            catchupStartEpochSeconds = state.getLong("catchup_start_epoch", 0L);
+            drmSystem = state.getString("drm_system", drmSystem); drmLicense = state.getString("drm_license", drmLicense);
         }
         playerView = findViewById(R.id.playerView); status = findViewById(R.id.txtPlayerStatus); fpsView = findViewById(R.id.txtFps); clockView = findViewById(R.id.txtClock);
         quickPanel = findViewById(R.id.quickChannelPanel); quickGroupRow = findViewById(R.id.quickGroupRow); quickChannelList = findViewById(R.id.quickChannelList); quickEmpty = findViewById(R.id.txtQuickEmpty); setupQuickGroupSwipe(findViewById(R.id.quickGroupScroller));
@@ -181,9 +195,11 @@ public final class PlayerActivity extends Activity {
         try {
             Map<String,String> headers = new LinkedHashMap<>(); if (currentHeaders != null) for (String key : currentHeaders.keySet()) { String v=currentHeaders.getString(key); if(v!=null) headers.put(key,v); } if(!headers.containsKey("Connection"))headers.put("Connection","keep-alive");
             String ua=headers.containsKey("User-Agent")?headers.get("User-Agent"):"Nm7-IPTV/1.10.8 Android";
+            String playbackUrl = catchupActive ? buildCatchupPlaybackUrl() : url;
+            if (playbackUrl == null || playbackUrl.isEmpty()) { showError("Không tạo được URL xem lại từ cấu hình Catch-up."); return; }
             DefaultHttpDataSource.Factory http=new DefaultHttpDataSource.Factory().setUserAgent(ua).setConnectTimeoutMs(20_000).setReadTimeoutMs(35_000).setAllowCrossProtocolRedirects(true).setDefaultRequestProperties(headers);
             DefaultDataSource.Factory data=new DefaultDataSource.Factory(this,http); DefaultMediaSourceFactory mediaFactory=new DefaultMediaSourceFactory(data).setLoadErrorHandlingPolicy(new DefaultLoadErrorHandlingPolicy(6));
-            MediaItem.Builder builder=new MediaItem.Builder().setUri(url); String inferred=mime.isEmpty()?StreamSpec.inferMime(url,options):mime; if(inferred!=null&&!inferred.isEmpty()) builder.setMimeType(inferred);
+            MediaItem.Builder builder=new MediaItem.Builder().setUri(playbackUrl); String inferred=mime.isEmpty()?StreamSpec.inferMime(url,options):mime; if(inferred!=null&&!inferred.isEmpty()) builder.setMimeType(inferred);
             DrmSpec drm=DrmSpec.create(drmSystem,drmLicense); findViewById(R.id.btnDrm).setVisibility(drm.hasDrm()?View.VISIBLE:View.GONE); if(drm.remoteClearKey()){resolveRemoteClearKey(drm,headers);return;} DrmPlayback.configure(drm,builder,mediaFactory);
             player=new ExoPlayer.Builder(this,new DefaultRenderersFactory(this).setEnableDecoderFallback(true)).setLoadControl(stableLoadControl()).setMediaSourceFactory(mediaFactory).build();
             player.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),false); player.setVolume(0f); player.setHandleAudioBecomingNoisy(true); playerView.setPlayer(player);
@@ -213,7 +229,10 @@ public final class PlayerActivity extends Activity {
                         findViewById(R.id.playerError).setVisibility(View.GONE);VideoSize v=player.getVideoSize();status.setText(v.width>0?v.width+" × "+v.height+" • độ phân giải thực tế":"Đang phát âm thanh");
                         recoveryHandler.removeCallbacks(resetRecoveryAttempts);recoveryHandler.postDelayed(resetRecoveryAttempts,30_000);
                     }
-                    if(s==Player.STATE_ENDED&&resumePlayback)scheduleRecovery("Danh sách phát đã hết, đang lấy phiên mới",true);
+                    if(s==Player.STATE_ENDED&&resumePlayback){
+                        if(catchupActive){ catchupActive=false; catchupStartEpochSeconds=0L; position=0L; resumePlayback=true; status.setText("Đã về cuối chương trình • đang chuyển về trực tiếp…"); releasePlayer(); startPlayer(); }
+                        else scheduleRecovery("Danh sách phát đã hết, đang lấy phiên mới",true);
+                    }
                 }
             });
             MediaItem item=builder.build(); if("rtsp".equalsIgnoreCase(scheme)) player.setMediaSource(new RtspMediaSource.Factory().setForceUseRtpTcp(true).setUserAgent(ua).createMediaSource(item)); else {if("udp".equalsIgnoreCase(scheme))acquireMulticast();player.setMediaItem(item);} if(position>0)player.seekTo(position);player.setPlayWhenReady(resumePlayback);player.prepare();
@@ -322,9 +341,46 @@ public final class PlayerActivity extends Activity {
     private boolean isCurrentChannel(Channel c){if(!c.url().equals(url)||!c.options().equals(options))return false;if(currentHeaders.size()!=c.headers().size())return false;for(Map.Entry<String,String> e:c.headers().entrySet())if(!e.getValue().equals(currentHeaders.getString(e.getKey())))return false;return true;}
     private void showQuickChannels(){quickPanel.setVisibility(View.VISIBLE);filterQuickChannels();if(quickAdapter.getCount()>0)quickChannelList.post(()->quickChannelList.requestFocus());else if(quickGroupRow.getChildCount()>0)quickGroupRow.getChildAt(0).requestFocus();}
     private void hideQuickChannels(){quickPanel.setVisibility(View.GONE);playerView.requestFocus();}
-    private void switchChannel(Channel c){if(c==null)return;hideQuickChannels();if(isCurrentChannel(c))return;name=c.name();url=c.url();mime=c.mimeHint();options=new ArrayList<>(c.options());DrmSpec d=DrmSpec.fromOptions(options);drmSystem=d.system;drmLicense=d.license;currentHeaders=new Bundle();for(Map.Entry<String,String> e:c.headers().entrySet())currentHeaders.putString(e.getKey(),e.getValue());getIntent().putExtra(EXTRA_NAME,name);getIntent().putExtra(EXTRA_URL,url);getIntent().putExtra(EXTRA_HEADERS,currentHeaders);getIntent().putExtra(EXTRA_MIME,mime);getIntent().putStringArrayListExtra(EXTRA_OPTIONS,options);((TextView)findViewById(R.id.txtPlayerTitle)).setText(name);((TextView)findViewById(R.id.txtPlayerUrl)).setText(url);findViewById(R.id.playerError).setVisibility(View.GONE);AppPreferences.recordRecent(this,c);quickCurrentId=AppPreferences.id(c);position=0;resumePlayback=true;resolvingClearKey=false;resolvingStreamMime=false;recoveryAttempts=0;recoveryHandler.removeCallbacksAndMessages(null);releasePlayer();filterQuickChannels();startPlayer();}
+    private void switchChannel(Channel c){if(c==null)return;hideQuickChannels();if(isCurrentChannel(c))return;name=c.name();url=c.url();mime=c.mimeHint();options=new ArrayList<>(c.options());
+        catchupType=c.catchupType(); catchupSource=c.catchupSource(); catchupDays=c.catchupDays(); catchupActive=false; catchupStartEpochSeconds=0L;DrmSpec d=DrmSpec.fromOptions(options);drmSystem=d.system;drmLicense=d.license;currentHeaders=new Bundle();for(Map.Entry<String,String> e:c.headers().entrySet())currentHeaders.putString(e.getKey(),e.getValue());getIntent().putExtra(EXTRA_NAME,name);getIntent().putExtra(EXTRA_URL,url);getIntent().putExtra(EXTRA_HEADERS,currentHeaders);getIntent().putExtra(EXTRA_MIME,mime);
+        getIntent().putExtra(EXTRA_CATCHUP_TYPE,catchupType); getIntent().putExtra(EXTRA_CATCHUP_SOURCE,catchupSource); getIntent().putExtra(EXTRA_CATCHUP_DAYS,catchupDays);
+        getIntent().putStringArrayListExtra(EXTRA_OPTIONS,options);((TextView)findViewById(R.id.txtPlayerTitle)).setText(name);((TextView)findViewById(R.id.txtPlayerUrl)).setText(url);findViewById(R.id.playerError).setVisibility(View.GONE);AppPreferences.recordRecent(this,c);quickCurrentId=AppPreferences.id(c);position=0;resumePlayback=true;resolvingClearKey=false;resolvingStreamMime=false;recoveryAttempts=0;recoveryHandler.removeCallbacksAndMessages(null);releasePlayer();filterQuickChannels();startPlayer();}
+    private boolean hasCatchup(){ return !catchupType.isEmpty() && !catchupSource.isEmpty() && catchupDays > 0d; }
+    private String buildCatchupPlaybackUrl(){
+        long now=System.currentTimeMillis()/1000L;
+        long start=catchupStartEpochSeconds>0?catchupStartEpochSeconds:now-10L;
+        long maxPast=Math.max(1L,(long)Math.floor(catchupDays*86400d));
+        start=Math.max(now-maxPast,Math.min(start,now-1L));
+        long end=now;
+        return CatchupUrlBuilder.build(url,catchupType,catchupSource,start,end);
+    }
+    private boolean enterCatchupFromLive(){
+        if(!hasCatchup()||player==null)return false;
+        long now=System.currentTimeMillis()/1000L;
+        catchupStartEpochSeconds=Math.max(1L,now-10L);
+        catchupActive=true; position=0L; resumePlayback=true;
+        String replay=buildCatchupPlaybackUrl();
+        if(replay==null||replay.isEmpty()){catchupActive=false;return false;}
+        status.setText("Đang mở xem lại…");
+        releasePlayer(); startPlayer(); return true;
+    }
+    private boolean handleCatchupSeek(int direction){
+        if(player==null)return false;
+        if(!catchupActive){
+            return direction<0 && enterCatchupFromLive();
+        }
+        if(direction<0 && player.isCommandAvailable(Player.COMMAND_SEEK_BACK)){player.seekBack();return true;}
+        if(direction>0 && player.isCommandAvailable(Player.COMMAND_SEEK_FORWARD)){
+            long duration=player.getDuration(), current=player.getCurrentPosition();
+            if(duration!=C.TIME_UNSET && duration>0 && current>=duration-8000L){catchupActive=false;catchupStartEpochSeconds=0L;position=0L;releasePlayer();startPlayer();return true;}
+            player.seekForward();return true;
+        }
+        return false;
+    }
     private boolean switchRelative(int delta){for(int i=0;i<quickChannels.size();i++)if(isCurrentChannel(quickChannels.get(i))){switchChannel(quickChannels.get((i+delta+quickChannels.size())%quickChannels.size()));playerView.hideController();return true;}return false;}
-    @Override public boolean dispatchKeyEvent(KeyEvent event){int key=event.getKeyCode();if(event.getAction()==KeyEvent.ACTION_UP&&key==consumedRemoteKey){consumedRemoteKey=KeyEvent.KEYCODE_UNKNOWN;return true;}if(event.getAction()==KeyEvent.ACTION_DOWN){if(event.getRepeatCount()>0&&key==consumedRemoteKey)return true;boolean panel=quickPanel!=null&&quickPanel.getVisibility()==View.VISIBLE;if(key==KeyEvent.KEYCODE_BACK&&panel){hideQuickChannels();consumedRemoteKey=key;return true;}if(AppPreferences.isTvInterface(this)&&!panel){boolean controller=playerView.isControllerFullyVisible();boolean handled=false;if(key==KeyEvent.KEYCODE_BACK&&controller){playerView.hideController();playerView.requestFocus();handled=true;}else if((key==KeyEvent.KEYCODE_DPAD_CENTER||key==KeyEvent.KEYCODE_ENTER||key==KeyEvent.KEYCODE_NUMPAD_ENTER)&&!controller){playerView.showController();handled=true;}else if(!controller&&key==KeyEvent.KEYCODE_DPAD_LEFT){showQuickChannels();handled=true;}else if(!controller&&(key==KeyEvent.KEYCODE_DPAD_UP||key==KeyEvent.KEYCODE_DPAD_DOWN)){handled=switchRelative(key==KeyEvent.KEYCODE_DPAD_UP?1:-1);}else if(key==KeyEvent.KEYCODE_MENU){AppPreferences.setShowPlayerSource(this,!AppPreferences.showPlayerSource(this));findViewById(R.id.txtPlayerUrl).setVisibility(AppPreferences.showPlayerSource(this)?View.VISIBLE:View.GONE);handled=true;}if(handled){consumedRemoteKey=key;return true;}}}return super.dispatchKeyEvent(event);}
+    @Override public boolean dispatchKeyEvent(KeyEvent event){int key=event.getKeyCode();if(event.getAction()==KeyEvent.ACTION_UP&&key==consumedRemoteKey){consumedRemoteKey=KeyEvent.KEYCODE_UNKNOWN;return true;}if(event.getAction()==KeyEvent.ACTION_DOWN){if(event.getRepeatCount()>0&&key==consumedRemoteKey)return true;boolean panel=quickPanel!=null&&quickPanel.getVisibility()==View.VISIBLE;if(key==KeyEvent.KEYCODE_BACK&&panel){hideQuickChannels();consumedRemoteKey=key;return true;}if(AppPreferences.isTvInterface(this)&&!panel){boolean controller=playerView.isControllerFullyVisible();boolean handled=false;if(key==KeyEvent.KEYCODE_BACK&&controller){playerView.hideController();playerView.requestFocus();handled=true;}
+                else if(controller&&key==KeyEvent.KEYCODE_DPAD_LEFT){handled=handleCatchupSeek(-1);}
+                else if(controller&&key==KeyEvent.KEYCODE_DPAD_RIGHT){handled=handleCatchupSeek(1);}else if((key==KeyEvent.KEYCODE_DPAD_CENTER||key==KeyEvent.KEYCODE_ENTER||key==KeyEvent.KEYCODE_NUMPAD_ENTER)&&!controller){playerView.showController();handled=true;}else if(!controller&&key==KeyEvent.KEYCODE_DPAD_LEFT){showQuickChannels();handled=true;}else if(!controller&&(key==KeyEvent.KEYCODE_DPAD_UP||key==KeyEvent.KEYCODE_DPAD_DOWN)){handled=switchRelative(key==KeyEvent.KEYCODE_DPAD_UP?1:-1);}else if(key==KeyEvent.KEYCODE_MENU){AppPreferences.setShowPlayerSource(this,!AppPreferences.showPlayerSource(this));findViewById(R.id.txtPlayerUrl).setVisibility(AppPreferences.showPlayerSource(this)?View.VISIBLE:View.GONE);handled=true;}if(handled){consumedRemoteKey=key;return true;}}}return super.dispatchKeyEvent(event);}
     private int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);} private void acquireMulticast(){WifiManager wifi=(WifiManager)getApplicationContext().getSystemService(WIFI_SERVICE);if(wifi!=null){multicastLock=wifi.createMulticastLock("iptv-stream");multicastLock.setReferenceCounted(false);multicastLock.acquire();}}
     private void showSource(){TextView v=new TextView(this);v.setText(url);v.setTextIsSelectable(true);v.setPadding(24,16,24,16);android.widget.ScrollView s=new android.widget.ScrollView(this);s.addView(v);new AlertDialog.Builder(this).setTitle("URL nguồn").setView(s).setPositiveButton("Đóng",null).show();}
     private void showError(String m){findViewById(R.id.playerError).setVisibility(View.VISIBLE);((TextView)findViewById(R.id.txtPlayerError)).setText(m);playerView.showController();} private String value(String k){String v=getIntent().getStringExtra(k);return v==null?"":v;}
@@ -370,6 +426,9 @@ public final class PlayerActivity extends Activity {
         System.setProperty(YOUTUBE_HANDOFF_PROPERTY, "0");
     }
 
-    @Override protected void onSaveInstanceState(Bundle out){rememberPosition();out.putLong("position",position);out.putBoolean("playing",resumePlayback);out.putInt("quality",quality);out.putInt("resize",resizeMode);out.putString("mime",mime);super.onSaveInstanceState(out);} @Override protected void onStop(){activityStarted=false;fpsHandler.removeCallbacks(fpsUpdate);clockHandler.removeCallbacks(clockUpdate);rememberPosition();if(!isFinishing()&&(isYoutubeHandoffPending()||SharedPlaybackSession.TAB_YOUTUBE.equals(SharedPlaybackSession.tab(this)))){keepPlayerForTabSwitch=true;}if(MobileNm7Application.isTabSwitchPending()){keepPlayerForTabSwitch=true;}if(!backgroundPlaybackActive&&!keepPlayerForTabSwitch){recoveryHandler.removeCallbacksAndMessages(null);releasePlayer();}super.onStop();}
+    @Override protected void onSaveInstanceState(Bundle out){rememberPosition();out.putLong("position",position);out.putBoolean("playing",resumePlayback);out.putInt("quality",quality);out.putInt("resize",resizeMode);out.putString("mime",mime);
+        out.putString("catchup_type",catchupType); out.putString("catchup_source",catchupSource); out.putDouble("catchup_days",catchupDays);
+        out.putBoolean("catchup_active",catchupActive); out.putLong("catchup_start_epoch",catchupStartEpochSeconds);
+        super.onSaveInstanceState(out);} @Override protected void onStop(){activityStarted=false;fpsHandler.removeCallbacks(fpsUpdate);clockHandler.removeCallbacks(clockUpdate);rememberPosition();if(!isFinishing()&&(isYoutubeHandoffPending()||SharedPlaybackSession.TAB_YOUTUBE.equals(SharedPlaybackSession.tab(this)))){keepPlayerForTabSwitch=true;}if(MobileNm7Application.isTabSwitchPending()){keepPlayerForTabSwitch=true;}if(!backgroundPlaybackActive&&!keepPlayerForTabSwitch){recoveryHandler.removeCallbacksAndMessages(null);releasePlayer();}super.onStop();}
     private void releasePlayer(){bufferingSinceMs=0;recoveryHandler.removeCallbacks(stalledPlaybackCheck);if(player!=null){playerView.setPlayer(null);player.release();player=null;}videoCounters=null;fpsMeter.reset();if(multicastLock!=null){if(multicastLock.isHeld())multicastLock.release();multicastLock=null;}} @Override protected void onDestroy(){boolean preserveForYoutube=!isFinishing()&&(keepPlayerForTabSwitch||isYoutubeHandoffPending()||SharedPlaybackSession.TAB_YOUTUBE.equals(SharedPlaybackSession.tab(this)));if(currentInstance==this) currentInstance=null; drmIo.shutdownNow();if(!preserveForYoutube&&(isFinishing()||!backgroundPlaybackActive)){stopService(new android.content.Intent(this,BackgroundPlaybackService.class));releasePlayer();}super.onDestroy();}
 }
