@@ -213,10 +213,27 @@ t = t.replace('import android.view.WindowInsetsController;\n', '')
 p = phone / 'playback/PlaybackActivity.java'
 t = p.read_text(encoding='utf-8')
 t = t.replace('import android.view.WindowInsetsController;\\n', '')
-method_re = re.compile(r'(?ms)^    private void applySystemUi\\(boolean fullscreen\\) \\{.*?^    \\}')
-if len(method_re.findall(t)) != 1:
-    raise SystemExit('v80: expected exactly one applySystemUi method')
-t = method_re.sub('    private void applySystemUi(boolean fullscreen) {\\n        setNavigationBarVisible(!fullscreen);\\n    }', t, count=1)
+sig = '    private void applySystemUi(boolean fullscreen) {'
+start = t.find(sig)
+if start < 0:
+    raise SystemExit('v80: applySystemUi method not found')
+brace = t.find('{', start)
+depth = 0
+end = -1
+for i in range(brace, len(t)):
+    if t[i] == '{':
+        depth += 1
+    elif t[i] == '}':
+        depth -= 1
+        if depth == 0:
+            end = i + 1
+            break
+if end < 0:
+    raise SystemExit('v80: applySystemUi closing brace not found')
+replacement = '''    private void applySystemUi(boolean fullscreen) {
+        setNavigationBarVisible(!fullscreen);
+    }'''
+t = t[:start] + replacement + t[end:]
 p.write_text(t, encoding='utf-8')
 
 # Do not auto-start the live-chat controller during normal YouTube playback.
