@@ -14,6 +14,16 @@ public class CatchupUrlBuilderTest {
         assertEquals("https://archive.test/vtv3/start-1700000000-10800.m3u8", result);
     }
 
+    @Test public void offsetTokenUsesPositiveDuration() {
+        String result = CatchupUrlBuilder.build(
+                "https://live.test/vtv3.m3u8",
+                "append",
+                "https://archive.test/vtv3/start-$"+"{start}-$"+"{offset}.m3u8",
+                1700000000L,
+                1700003600L);
+        assertEquals("https://archive.test/vtv3/start-1700000000-3600.m3u8", result);
+    }
+
     @Test public void appendQueryUsesLiveUrl() {
         String result = CatchupUrlBuilder.build(
                 "https://live.test/vtv3.m3u8?token=abc",
