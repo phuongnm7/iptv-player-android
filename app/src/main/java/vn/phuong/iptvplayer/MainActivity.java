@@ -120,8 +120,7 @@ public final class MainActivity extends Activity {
         inputUrl.setText(DEFAULT_PLAYLIST);setImportExpanded(false);saveSession();loadFromUrl();
     }
 
-    private void reloadPlaylistUrl(){String source=currentSource==null?"":currentSource.split("\
-",2)[0].trim();if(!PlaylistSourceStore.isValid(source)){toast("Playlist hiện tại không phải link URL");return;}inputUrl.setText(source);loadFromUrl();}
+    private void reloadPlaylistUrl(){String source=currentSource==null?"":currentSource.split("\\n",2)[0].trim();if(!PlaylistSourceStore.isValid(source)){toast("Playlist hiện tại không phải link URL");return;}inputUrl.setText(source);loadFromUrl();}
 
     private void loadFromUrl(){loadFromUrl(inputUrl.getText().toString().trim(),false);}
 
@@ -158,8 +157,7 @@ public final class MainActivity extends Activity {
                     c.setRequestProperty("Pragma","no-cache");
                     int status=c.getResponseCode();
                     if(status<200||status>=300)throw new Exception("HTTP "+status);
-                    String effective=c.getURL().toString(),type=c.getContentType(),description=source.equals(effective)?source:source+"
-Chuyển hướng: "+effective;
+                    String effective=c.getURL().toString(),type=c.getContentType(),description=source.equals(effective)?source:source+"\\nChuyển hướng: "+effective;
                     if(type!=null&&(type.startsWith("video/")||type.contains("dash+xml"))){
                         Channel direct=new Channel("Luồng trực tiếp","Phát trực tiếp",effective,"","",java.util.Collections.emptyMap());
                         if(type.contains("dash+xml"))direct.options().add("#KODIPROP:inputstream.adaptive.manifest_type=mpd");
@@ -229,8 +227,7 @@ Chuyển hướng: "+effective;
         LinearLayout defaultRow=new LinearLayout(this);defaultRow.setOrientation(LinearLayout.VERTICAL);defaultRow.setPadding(dp(6),dp(10),dp(6),dp(12));
         TextView defaultName=new TextView(this);defaultName.setText(PlaylistSourceStore.DEFAULT_NAME);defaultName.setTextSize(18);defaultName.setTextColor(getColor(R.color.text_primary));
         TextView defaultInfo=new TextView(this);defaultInfo.setText("Nguồn mặc định tích hợp sẵn • URL được ẩn");defaultInfo.setTextSize(13);defaultInfo.setTextColor(getColor(R.color.text_secondary));
-        Button selectDefault=new Button(this);boolean defaultActive=PlaylistSourceStore.isDefault(currentSource==null?"":currentSource.split("\
-",2)[0].trim());selectDefault.setText(defaultActive?"Đang sử dụng nguồn mặc định":"Chọn nguồn mặc định");selectDefault.setAllCaps(false);selectDefault.setEnabled(!defaultActive);
+        Button selectDefault=new Button(this);boolean defaultActive=PlaylistSourceStore.isDefault(currentSource==null?"":currentSource.split("\\n",2)[0].trim());selectDefault.setText(defaultActive?"Đang sử dụng nguồn mặc định":"Chọn nguồn mặc định");selectDefault.setAllCaps(false);selectDefault.setEnabled(!defaultActive);
         defaultRow.addView(defaultName);defaultRow.addView(defaultInfo);defaultRow.addView(selectDefault,new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,dp(46)));rows.addView(defaultRow,new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,LinearLayout.LayoutParams.WRAP_CONTENT));
         selectDefault.setOnClickListener(v->{holder[0].dismiss();loadDefaultPlaylist();});
         if(sources.isEmpty()){
