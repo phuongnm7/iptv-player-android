@@ -1,3 +1,30 @@
+# MOBILE 1.10.76 — M3U CATCH-UP / TIMESHIFT — 2026-09-24
+
+## Phạm vi
+- Phát triển riêng trên branch `feature/m3u-catchup-timeshift-v1`.
+- Baseline Mobile giữ nguyên 1.10.75 / versionCode 93; feature branch bump lên 1.10.76 / versionCode 94.
+- Không sửa branch đang dùng.
+
+## Thay đổi
+- M3U parser đọc `catchup`, `catchup-type`, `catchup-source`, `catchup-days`.
+- Giữ nguyên EXTINF gốc khi export để không làm mất metadata Catch-up.
+- Player nhận metadata Catch-up theo từng kênh.
+- Thêm `CatchupUrlBuilder` hỗ trợ template absolute archive URL, append query và shift.
+- Hỗ trợ provider pattern FPT Play đang dùng trong playlist: `catchup="append"` nhưng `catchup-source` là URL DVR đầy đủ.
+- Khi kênh có Catch-up, TV remote: OK mở controller như cũ; LEFT khi controller đang hiện sẽ mở DVR bắt đầu khoảng 10 giây trước live; LEFT/RIGHT tiếp tục seek trong DVR.
+- RIGHT ở gần cuối DVR sẽ quay về live.
+- Kênh không có Catch-up giữ nguyên đường phát và điều khiển hiện tại.
+
+## Regression tests
+- Thêm test parser Catch-up.
+- Thêm test xây URL DVR/append/shift.
+- CI Mobile Final được mở thêm cho branch feature này.
+
+## Trạng thái
+- Source đã commit, đang chờ Mobile Final CI và test APK trên thiết bị thật.
+- Chưa coi Catch-up hoạt động hoàn toàn cho tới khi VTV3/VTV6 được test thực tế.
+
+
 # MOBILE 1.10.75 / 93 — STABLE BASELINE — USER TEST CONFIRMED IMPROVED YOUTUBE LOAD — 2026-09-23
 
 ## Trạng thái hiện tại
