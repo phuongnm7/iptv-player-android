@@ -226,20 +226,24 @@ jobs:
           # Hard guard: the pinned SmartTube phone resources do not expose this key.
           python3 scripts/patch-mobile-v78.py
           # SmartTube's pinned MediaServiceCore no longer exposes getPublishedDate() on MediaItem.
-          # Remove only the stale annotation; tolerate whitespace differences.
+          # Remove exactly the annotation immediately preceding that method.
           python3 - <<'PY'
           from pathlib import Path
-          import re
           p = Path('third_party/SmartTube-droid/MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/data/YouTubeMediaItem.java')
           if not p.is_file():
               raise SystemExit(f'Missing expected file: {p}')
           text = p.read_text()
-          pattern = r'(?m)^\s*@Override\s*\n(\s*public long getPublishedDate\(\)\s*\{)'
-          text2, count = re.subn(pattern, r'\1', text, count=1)
-          if count:
-              p.write_text(text2)
-              print('Removed stale @Override from getPublishedDate()')
-          elif re.search(r'(?m)^\s*public long getPublishedDate\(\)\s*\{', text):
+          needle = '@Override\n    public long getPublishedDate()'
+          needle_crlf = '@Override\r\n    public long getPublishedDate()'
+          if needle in text:
+              text = text.replace(needle, 'public long getPublishedDate()', 1)
+              p.write_text(text)
+              print('Removed stale getPublishedDate @Override')
+          elif needle_crlf in text:
+              text = text.replace(needle_crlf, 'public long getPublishedDate()', 1)
+              p.write_text(text)
+              print('Removed stale getPublishedDate @Override (CRLF)')
+          elif 'public long getPublishedDate()' in text:
               print('getPublishedDate() override already normalized')
           else:
               raise SystemExit('Expected getPublishedDate() method not found')
