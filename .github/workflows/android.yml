@@ -1,4 +1,5 @@
 name: Build private Android APK
+# NM7 mobile UI rebuild trigger
 
 on:
   push:
