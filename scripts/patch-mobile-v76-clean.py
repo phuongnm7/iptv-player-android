@@ -43,6 +43,18 @@ if "String getPlaylistId();" not in interface_text:
 if "String getPlaylistId();" not in INTERFACE.read_text(encoding="utf-8"):
     raise SystemExit("clean-v76: MediaItem.getPlaylistId() contract is still missing")
 
+# The Mobile build's resolved MediaItem contract can come from a legacy binary
+# that does not expose getPlaylistId(). Keep the implementation source compatible
+# with that ABI by removing only this annotation; the method itself remains.
+media_lines = media.splitlines(keepends=True)
+for i, line in enumerate(media_lines):
+    if "public String getPlaylistId(" in line and i > 0 and media_lines[i - 1].strip() == "@Override":
+        media_lines.pop(i - 1)
+        media = "".join(media_lines)
+        MEDIA_ITEM.write_text(media, encoding="utf-8")
+        print("clean-v76: removed getPlaylistId @Override for legacy ABI compatibility")
+        break
+
 s = PLAYBACK.read_text(encoding="utf-8")
 
 s = once(
