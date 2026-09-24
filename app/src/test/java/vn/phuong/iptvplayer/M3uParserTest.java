@@ -147,6 +147,18 @@ public class M3uParserTest {
         assertEquals("https://example.test/list/guide/epg.xml.gz", r.epgUrl);
         assertEquals("vtv1.vn", r.channels.get(0).tvgId());
     }
+
+    @Test public void parsesCatchupMetadata() {
+        String input = "#EXTM3U\n"
+                + "#EXTINF:-1 tvg-id=\"vtv3hd\" catchup=\"append\" catchup-days=\"2\" catchup-source=\"https://tshift.test/dvr/start-$"+"{start}-10800.m3u8\",VTV3 HD\n"
+                + "https://live.test/vtv3.m3u8\n";
+        Channel channel = new M3uParser().parse(input, "").channels.get(0);
+        assertTrue(channel.hasCatchup());
+        assertEquals("append", channel.catchupType());
+        assertEquals("https://tshift.test/dvr/start-$"+"{start}-10800.m3u8", channel.catchupSource());
+        assertEquals(2d, channel.catchupDays(), 0.001d);
+    }
+
 }
 
 
