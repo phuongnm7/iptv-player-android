@@ -273,7 +273,7 @@ jobs:
           PY
           rm -rf third_party/SmartTube-droid/MediaServiceCore/youtubeapi/build
           rm -rf third_party/SmartTube-droid/MediaServiceCore/build
-          gradle --no-daemon --console=plain -PmobileAbiSplits=true -PcompileSdkVersion=android-36 -PminSdkVersion=23 -PtargetSdkVersion=36 -PbuildToolsVersion=36.0.0 -PtestXSupportVersion=1.1.0 -PannotationXVersion=1.1.0 -ProbolectricVersion=4.6.1 clean testMobileDebugUnitTest assembleMobileDebug
+          gradle --no-daemon --no-build-cache --rerun-tasks --console=plain -PmobileAbiSplits=true -PcompileSdkVersion=android-36 -PminSdkVersion=23 -PtargetSdkVersion=36 -PbuildToolsVersion=36.0.0 -PtestXSupportVersion=1.1.0 -PannotationXVersion=1.1.0 -ProbolectricVersion=4.6.1 clean testMobileDebugUnitTest assembleMobileDebug
 
       - name: Lint Mobile (legacy SmartTube warnings do not block APK)
         continue-on-error: true
