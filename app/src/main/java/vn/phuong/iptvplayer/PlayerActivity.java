@@ -198,7 +198,7 @@ public final class PlayerActivity extends Activity {
         if (scheme == null || !(scheme.matches("(?i)https?|rtsp|udp|rtmp"))) { showError("Bản này chưa hỗ trợ giao thức " + scheme + ". Không thể bảo đảm mọi giao thức IPTV."); return; }
         try {
             Map<String,String> headers = new LinkedHashMap<>(); if (currentHeaders != null) for (String key : currentHeaders.keySet()) { String v=currentHeaders.getString(key); if(v!=null) headers.put(key,v); } if(!headers.containsKey("Connection"))headers.put("Connection","keep-alive");
-            String ua=headers.containsKey("User-Agent")?headers.get("User-Agent"):"Nm7-IPTV/1.10.8 Android";
+            String ua=headers.containsKey("User-Agent")?headers.get("User-Agent"):(catchupActive ? "Mozilla/5.0 (Linux; Android 10; KM6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Mobile Safari/537.36" : "Nm7-IPTV/1.10.8 Android");
             String playbackUrl = catchupActive ? buildCatchupPlaybackUrl() : url;
             if (playbackUrl == null || playbackUrl.isEmpty()) { showError("Không tạo được URL xem lại từ cấu hình Catch-up."); return; }
             DefaultHttpDataSource.Factory http=new DefaultHttpDataSource.Factory().setUserAgent(ua).setConnectTimeoutMs(20_000).setReadTimeoutMs(35_000).setAllowCrossProtocolRedirects(true).setDefaultRequestProperties(headers);
