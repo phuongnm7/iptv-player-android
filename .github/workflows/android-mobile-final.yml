@@ -8,6 +8,7 @@ name: NM7 Mobile Final Build
       - "smarttube/**"
       - "scripts/**"
       - ".github/workflows/android-mobile-final.yml"
+      - "PROGRESS.md"
       - "gradle/**"
       - "*.gradle.kts"
       - "gradle.properties"
