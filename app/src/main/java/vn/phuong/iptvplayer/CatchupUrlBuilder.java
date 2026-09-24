@@ -29,6 +29,7 @@ public final class CatchupUrlBuilder {
             .replace("$"+"{start}",Long.toString(start)).replace("$"+"{utc}",Long.toString(start))
             .replace("{start}",Long.toString(start)).replace("{utc}",Long.toString(start))
             .replace("$"+"{timestamp}",Long.toString(start)).replace("$"+"{end}",Long.toString(end)).replace("{end}",Long.toString(end))
+            .replace("$"+"{stop}",Long.toString(end)).replace("{stop}",Long.toString(end))
             .replace("$"+"{duration}",Long.toString(duration)).replace("{duration}",Long.toString(duration))
             .replace("$"+"{offset}",Long.toString(offset)).replace("{offset}",Long.toString(offset));
     }
