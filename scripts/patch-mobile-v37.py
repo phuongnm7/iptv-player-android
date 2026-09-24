@@ -200,3 +200,68 @@ runpy.run_path("scripts/patch-mobile-v75.py")
 runpy.run_path("scripts/patch-mobile-v76.py")
 runpy.run_path("scripts/patch-mobile-v77.py")
 runpy.run_path("scripts/patch-mobile-v78.py")
+
+# 1.10.80 emergency YouTube playback recovery:
+# keep the stable 1.10.75 PlaybackActivity system-bar path. The v77
+# WindowInsetsController override changed window behavior and the resulting
+# build was observed to load the YouTube feed without reliably entering playback.
+p = phone / 'playback/PlaybackActivity.java'
+t = p.read_text(encoding='utf-8')
+t = t.replace('import android.view.WindowInsetsController;\n', '')
+v77_apply = '''    private void applySystemUi(boolean fullscreen) {
+        if (!fullscreen) {
+            if (VERSION.SDK_INT >= 30) {
+                getWindow().setDecorFitsSystemWindows(true);
+                WindowInsetsController controller = getWindow().getInsetsController();
+                if (controller != null) {
+                    controller.show(WindowInsets.Type.statusBars());
+                    controller.show(WindowInsets.Type.navigationBars());
+                }
+            } else {
+                getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+                getWindow().getDecorView().setSystemUiVisibility(
+                        View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+            }
+            setNavigationBarVisible(true);
+            mRoot.post(() -> mRoot.requestApplyInsets());
+            return;
+        }
+
+        if (VERSION.SDK_INT >= 30) {
+            getWindow().setDecorFitsSystemWindows(false);
+            WindowInsetsController controller = getWindow().getInsetsController();
+            if (controller != null) {
+                controller.hide(WindowInsets.Type.systemBars());
+                controller.setSystemBarsBehavior(
+                        WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            }
+        }
+        setNavigationBarVisible(false);
+    }
+'''
+if t.count(v77_apply) == 1:
+    t=t.replace(v77_apply, '''    private void applySystemUi(boolean fullscreen) {
+        setNavigationBarVisible(!fullscreen);
+    }
+''')
+elif 'private void applySystemUi(boolean fullscreen)' not in t:
+    raise SystemExit('v80: applySystemUi anchor missing')
+p.write_text(t, encoding='utf-8')
+
+# Do not auto-start the live-chat controller during normal YouTube playback.
+# The chat panel remains compiled, but playback must not depend on chat setup.
+chat = Path('third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/ChatController.java')
+t = chat.read_text(encoding='utf-8')
+hook = '''        // NM7 Mobile: show the existing SmartTube live-chat stream automatically
+        // when a video exposes a liveChatKey. The service remains receive-only.
+        if (mLiveChatKey != null && "true".equals(System.getProperty("nm7.mobile.livechat"))) {
+            getPlayerData().setLiveChatEnabled(true);
+        }
+
+'''
+if t.count(hook) == 1:
+    t=t.replace(hook,'')
+chat.write_text(t, encoding='utf-8')
+
+print('NM7 1.10.80: restore stable YouTube PlaybackActivity system UI and remove automatic chat startup')
+
