@@ -24,7 +24,7 @@ s = PLAYBACK.read_text(encoding="utf-8")
 # Android 11+ controller API used by the portrait/fullscreen fix.
 if "import android.view.WindowInsetsController;" not in s:
     if "import android.view.WindowInsets;\n" in s:
-        s = s.replace("import android.view.WindowInsets;\n", "import android.view.WindowInsets;\nimport android.view.WindowInsetsController;\\n", 1)
+        s = s.replace("import android.view.WindowInsets;\n", "import android.view.WindowInsets;\nimport android.view.WindowInsetsController;\n", 1)
     else:
         raise SystemExit("v77: expected WindowInsets import not found")
 
