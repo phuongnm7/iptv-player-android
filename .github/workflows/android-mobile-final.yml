@@ -2,7 +2,7 @@ name: NM7 Mobile Final Build
 
 "on":
   push:
-    branches: ["fix/mobile-1.10.26-sleep-timer-icon"]
+    branches: ["fix/mobile-1.10.26-sleep-timer-icon", "feature/m3u-catchup-timeshift-v1"]
     paths:
       - "app/**"
       - "smarttube/**"
