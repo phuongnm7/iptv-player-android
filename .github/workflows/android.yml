@@ -226,25 +226,25 @@ jobs:
           # Hard guard: the pinned SmartTube phone resources do not expose this key.
           python3 scripts/patch-mobile-v78.py
           # SmartTube's pinned MediaServiceCore no longer exposes getPublishedDate() on MediaItem.
-          # Remove exactly the annotation immediately preceding that method.
+          # Normalize this method by line structure so whitespace/CRLF cannot defeat the patch.
           python3 - <<'PY'
           from pathlib import Path
           p = Path('third_party/SmartTube-droid/MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/data/YouTubeMediaItem.java')
           if not p.is_file():
               raise SystemExit(f'Missing expected file: {p}')
-          text = p.read_text()
-          needle = '@Override\n    public long getPublishedDate()'
-          needle_crlf = '@Override\r\n    public long getPublishedDate()'
-          if needle in text:
-              text = text.replace(needle, 'public long getPublishedDate()', 1)
-              p.write_text(text)
-              print('Removed stale getPublishedDate @Override')
-          elif needle_crlf in text:
-              text = text.replace(needle_crlf, 'public long getPublishedDate()', 1)
-              p.write_text(text)
-              print('Removed stale getPublishedDate @Override (CRLF)')
-          elif 'public long getPublishedDate()' in text:
-              print('getPublishedDate() override already normalized')
+          lines = p.read_text().splitlines(True)
+          for i, line in enumerate(lines):
+              if 'public long getPublishedDate()' in line:
+                  j = i - 1
+                  while j >= 0 and not lines[j].strip():
+                      j -= 1
+                  if j >= 0 and '@Override' in lines[j]:
+                      del lines[j]
+                      print('Removed stale getPublishedDate @Override')
+                  else:
+                      print('getPublishedDate() override already normalized')
+                  p.write_text(''.join(lines))
+                  break
           else:
               raise SystemExit('Expected getPublishedDate() method not found')
           PY
