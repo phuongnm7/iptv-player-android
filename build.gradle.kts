@@ -76,26 +76,6 @@ subprojects {
     }
 }
 
-// Enforce the pinned MediaServiceCore compatibility before javac input snapshots are taken.
-subprojects {
-    if (path == ":youtubeapi") {
-        // This compatibility edit must happen during project configuration, before Gradle
-        // snapshots JavaCompile inputs. A task dependency is too late for this source file.
-        val source = rootProject.file("third_party/SmartTube-droid/MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/data/YouTubeMediaItem.java")
-        val text = source.readText()
-        val pattern = Regex("(?m)^\\s*@Override\\s*\\r?\\n(?=\\s*public String getPlaylistId\\s*\\(\\))")
-        val cleaned = pattern.replace(text, "")
-        if (cleaned != text) {
-            source.writeText(cleaned)
-            logger.lifecycle("NM7 configuration patch: removed stale getPlaylistId @Override")
-        }
-        check(!pattern.containsMatchIn(source.readText())) {
-            "NM7 configuration patch: stale getPlaylistId @Override remains"
-        }
-        logger.lifecycle("NM7 configuration patch: YouTubeMediaItem.java is clean before task graph")
-    }
-}
-
 subprojects {
     if (path.startsWith(":exoplayer-")) {
         tasks.matching { it.name.contains("MobileDebugUnitTest") }.configureEach { enabled = false }
