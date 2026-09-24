@@ -248,6 +248,18 @@ jobs:
           else:
               raise SystemExit('Expected getPublishedDate() method not found')
           PY
+          # MediaServiceCore's interface shape can differ from the SmartTube wrapper's cached sources;
+          # annotations are compile-time only, so remove them from this adapter without changing behavior.
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('third_party/SmartTube-droid/MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/data/YouTubeMediaItem.java')
+          text = p.read_text()
+          lines = text.splitlines(True)
+          new = [line for line in lines if line.strip() != '@Override']
+          removed = len(lines) - len(new)
+          p.write_text(''.join(new))
+          print(f'Removed YouTubeMediaItem @Override annotations: {removed}')
+          PY
           ! grep -R --include='PlaybackActivity.java' -n 'R.string.section_is_empty' third_party/SmartTube-droid/smarttubedroid/src/main/java
 
       - name: Diagnose SmartTube Gradle configuration
