@@ -276,8 +276,7 @@ Chuyển hướng: "+effective;
         dialog.show();
     }
     private void confirmDeleteSource(PlaylistSourceStore.Source source,int index){
-        new AlertDialog.Builder(this).setTitle("Xóa nguồn IPTV?").setMessage(source.name+"
-"+source.url)
+        new AlertDialog.Builder(this).setTitle("Xóa nguồn IPTV?").setMessage(source.name+"\\n"+source.url)
                 .setPositiveButton("Xóa",(d,w)->{try{PlaylistSourceStore.remove(this,index);List<PlaylistSourceStore.Source> remaining=PlaylistSourceStore.load(this);toast("Đã xóa nguồn");if(PlaylistSourceStore.shouldReturnToDefault(currentSource,remaining)){resetToDefaultPlaylist();toast("Nguồn đang dùng đã bị xóa • đang tải lại NM7 IPTV");}else showPlaylistSources();}catch(Exception e){showError("Không xóa được nguồn: "+readable(e));}})
                 .setNegativeButton("Hủy",null).show();
     }
@@ -343,9 +342,7 @@ Chuyển hướng: "+effective;
         int generation=++wallpaperGeneration;
         io.execute(()->{android.graphics.drawable.Drawable background=WallpaperStore.load(getApplicationContext());ui(()->{if(generation==wallpaperGeneration)findViewById(R.id.mainRoot).setBackground(background);});});
     }
-    private void showAbout(){String version;try{version=getPackageManager().getPackageInfo(getPackageName(),0).versionName;if(version.endsWith("-mobile"))version=version.substring(0,version.length()-7)+" (Mobile)";}catch(Exception ignored){version="Không xác định";}new AlertDialog.Builder(this).setTitle("Nm7 IPTV Player").setMessage("Phiên bản: "+version+"
-
-Ứng dụng được phát triển bởi Phuongnm7 vì mục đích cá nhân, không vì mục đích thương mại.").setPositiveButton("Đóng",null).show();}
+    private void showAbout(){String version;try{version=getPackageManager().getPackageInfo(getPackageName(),0).versionName;if(version.endsWith("-mobile"))version=version.substring(0,version.length()-7)+" (Mobile)";}catch(Exception ignored){version="Không xác định";}new AlertDialog.Builder(this).setTitle("Nm7 IPTV Player").setMessage("Phiên bản: "+version+"\\n\\nỨng dụng được phát triển bởi Phuongnm7 vì mục đích cá nhân, không vì mục đích thương mại.").setPositiveButton("Đóng",null).show();}
     private void showChannelActions(Channel c){new AlertDialog.Builder(this).setTitle(c.name()).setItems(new String[]{AppPreferences.isFavorite(this,c)?"Bỏ Yêu thích":"Thêm vào Yêu thích","Phát"},(d,w)->{if(w==0){AppPreferences.toggleFavorite(this,c);filter();}else play(c);}).show();}
     private void ui(Runnable r){runOnUiThread(r);}
     private void showError(String m){setLoading(false);new AlertDialog.Builder(this).setTitle("Lỗi").setMessage(m).setPositiveButton("Đóng",null).show();}
