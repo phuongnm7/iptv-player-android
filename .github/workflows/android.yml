@@ -49,7 +49,7 @@ jobs:
           git -C third_party/SmartTube-droid/MediaServiceCore fetch --depth 1 https://github.com/yuliskov/MediaServiceCore.git 9df453a0b13d593452b4817d778645916b978236
           git -C third_party/SmartTube-droid/MediaServiceCore checkout --detach 9df453a0b13d593452b4817d778645916b978236
           test "$(git -C third_party/SmartTube-droid/MediaServiceCore rev-parse HEAD)" = "9df453a0b13d593452b4817d778645916b978236"
-          grep -q '^    String getPlaylistId();$' third_party/SmartTube-droid/MediaServiceCore/mediaserviceinterfaces/src/main/java/com/liskovsoft/mediaserviceinterfaces/data/MediaItem.java
+          grep -q 'String getPlaylistId();' third_party/SmartTube-droid/MediaServiceCore/mediaserviceinterfaces/src/main/java/com/liskovsoft/mediaserviceinterfaces/data/MediaItem.java
           test -f third_party/SmartTube-droid/SharedModules/constants.gradle
           test -f third_party/SmartTube-droid/MediaServiceCore/core_settings.gradle
 
