@@ -8,7 +8,7 @@ public final class CatchupUrlBuilder {
         if (source == null || source.trim().isEmpty()) return "";
         long now = Math.max(startEpochSeconds, endEpochSeconds);
         long duration = Math.max(1L, endEpochSeconds - startEpochSeconds);
-        long offset = startEpochSeconds - now;
+        long offset = duration;
         String url = replaceTokens(source.trim(), startEpochSeconds, endEpochSeconds, duration, offset);
         String normalizedType = type == null ? "" : type.trim().toLowerCase(Locale.ROOT);
         if (isAbsoluteHttp(url)) return url;
