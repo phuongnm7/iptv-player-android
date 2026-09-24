@@ -24,6 +24,16 @@ def once(text, old, new, label):
 
 # 1) Handle Android 15 edge-to-edge correctly using the already-existing
 #    WindowInsets listener. Do NOT change player initialization or lifecycle.
+# 0) Keep the pinned MediaServiceCore source compatible with the pinned
+#    SharedModules interface used by the clean 1.10.75 build. Some current
+#    upstream snapshots no longer expose getPlaylistId() on MediaItem.
+MEDIA_ITEM = ROOT / "MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/data/YouTubeMediaItem.java"
+media = MEDIA_ITEM.read_text(encoding="utf-8")
+media_new = media.replace("    @Override\\n    public String getPlaylistId() {\\n", "    public String getPlaylistId() {\\n", 1)
+if media_new == media:
+    raise SystemExit("clean-v76: expected getPlaylistId override in MediaServiceCore")
+MEDIA_ITEM.write_text(media_new, encoding="utf-8")
+
 s = PLAYBACK.read_text(encoding="utf-8")
 
 s = once(
