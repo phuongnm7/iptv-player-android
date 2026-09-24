@@ -2,6 +2,7 @@ name: Build private Android APK
 # NM7 mobile UI rebuild trigger
 # Rebuild after v77 import fix
 # Trigger after literal-newline correction
+# Trigger after OkHttp resolution fix
 
 on:
   push:
