@@ -29,17 +29,19 @@ def once(text, old, new, label):
 #    upstream snapshots no longer expose getPlaylistId() on MediaItem.
 MEDIA_ITEM = ROOT / "MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/data/YouTubeMediaItem.java"
 media = MEDIA_ITEM.read_text(encoding="utf-8")
-lines = media.splitlines(keepends=True)
-out = []
-removed = False
-for i, line in enumerate(lines):
-    if line.strip() == "@Override" and i + 1 < len(lines) and "getPlaylistId(" in lines[i + 1]:
-        removed = True
-        continue
-    out.append(line)
-if not removed:
-    raise SystemExit("clean-v76: getPlaylistId @Override was not found")
-MEDIA_ITEM.write_text("".join(out), encoding="utf-8")
+# Restore the interface contract used by YouTubeMediaItem before Gradle starts.
+# This is safer than stripping @Override: the implementation and interface stay aligned.
+INTERFACE = ROOT / "MediaServiceCore/mediaserviceinterfaces/src/main/java/com/liskovsoft/mediaserviceinterfaces/data/MediaItem.java"
+interface_text = INTERFACE.read_text(encoding="utf-8")
+if "String getPlaylistId();" not in interface_text:
+    anchor = "    // Playlist props\\n"
+    if interface_text.count(anchor) != 1:
+        raise SystemExit("clean-v76: MediaItem playlist anchor missing")
+    interface_text = interface_text.replace(anchor, anchor + "    String getPlaylistId();\\n", 1)
+    INTERFACE.write_text(interface_text, encoding="utf-8")
+    print("clean-v76: restored MediaItem.getPlaylistId() contract")
+if "String getPlaylistId();" not in INTERFACE.read_text(encoding="utf-8"):
+    raise SystemExit("clean-v76: MediaItem.getPlaylistId() contract is still missing")
 
 s = PLAYBACK.read_text(encoding="utf-8")
 
