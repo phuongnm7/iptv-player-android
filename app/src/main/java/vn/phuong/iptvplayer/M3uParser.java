@@ -85,7 +85,7 @@ public final class M3uParser {
                     missingUrls++;
                 } else {
                     Channel channel = new Channel(name, metadata.group, parsedUrl.url,
-                            metadata.logo, metadata.tvgId, pendingHeaders);
+                            metadata.logo, metadata.tvgId, pendingHeaders, metadata.catchupType, metadata.catchupSource, metadata.catchupDays);
                     channel.setOriginalExtInf(metadata.original);
                     channel.options().addAll(pendingOptions);
                     if (!seen.add(channel.identityKey())) duplicates++;
@@ -128,14 +128,14 @@ public final class M3uParser {
                 case "tvg-name": if (metadata.name.isEmpty()) metadata.name = value; break;
                 case "tvg-logo": metadata.logo = value; break;
                 case "tvg-id": metadata.tvgId = value; break;
-                case "group-title": metadata.group = value; break;
+                case "group-title": metadata.group = value; break;\n                case "catchup":\n                case "catchup-type": metadata.catchupType = value; break;\n                case "catchup-source": metadata.catchupSource = value; break;\n                case "catchup-days": metadata.catchupDays = parseDouble(value); break;
                 default: break;
             }
         }
         return metadata;
     }
 
-    private int findNameComma(String line) {
+    private double parseDouble(String value) {\n        try { return Math.max(0d, Double.parseDouble(value)); } catch (RuntimeException ignored) { return 0d; }\n    }\n\n    private int findNameComma(String line) {
         boolean quoted = false;
         char quote = 0;
         for (int i = 0; i < line.length(); i++) {
