@@ -120,7 +120,8 @@ public final class MainActivity extends Activity {
         inputUrl.setText(DEFAULT_PLAYLIST);setImportExpanded(false);saveSession();loadFromUrl();
     }
 
-    private void reloadPlaylistUrl(){String source=currentSource==null?"":currentSource.split("\\n",2)[0].trim();if(!PlaylistSourceStore.isValid(source)){toast("Playlist hiện tại không phải link URL");return;}inputUrl.setText(source);loadFromUrl();}
+    private void reloadPlaylistUrl(){String source=currentSource==null?"":currentSource.split("\
+",2)[0].trim();if(!PlaylistSourceStore.isValid(source)){toast("Playlist hiện tại không phải link URL");return;}inputUrl.setText(source);loadFromUrl();}
 
     private void loadFromUrl(){loadFromUrl(inputUrl.getText().toString().trim(),false);}
 
@@ -157,7 +158,8 @@ public final class MainActivity extends Activity {
                     c.setRequestProperty("Pragma","no-cache");
                     int status=c.getResponseCode();
                     if(status<200||status>=300)throw new Exception("HTTP "+status);
-                    String effective=c.getURL().toString(),type=c.getContentType(),description=source.equals(effective)?source:source+"\nChuyển hướng: "+effective;
+                    String effective=c.getURL().toString(),type=c.getContentType(),description=source.equals(effective)?source:source+"
+Chuyển hướng: "+effective;
                     if(type!=null&&(type.startsWith("video/")||type.contains("dash+xml"))){
                         Channel direct=new Channel("Luồng trực tiếp","Phát trực tiếp",effective,"","",java.util.Collections.emptyMap());
                         if(type.contains("dash+xml"))direct.options().add("#KODIPROP:inputstream.adaptive.manifest_type=mpd");
@@ -187,7 +189,10 @@ public final class MainActivity extends Activity {
         });
     }
 
-    private void openFilePicker(){Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("*/*");i.putExtra(Intent.EXTRA_MIME_TYPES,new String[]{"audio/x-mpegurl","application/x-mpegURL","application/vnd.apple.mpegurl","text/plain","application/octet-stream"});startActivityForResult(i,OPEN_M3U);}\n    @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(result!=RESULT_OK||data==null||data.getData()==null)return;Uri uri=data.getData();if(request==OPEN_M3U){try{final int flags=data.getFlags()&(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION);if(flags!=0)getContentResolver().takePersistableUriPermission(uri,flags&Intent.FLAG_GRANT_READ_URI_PERMISSION);}catch(Exception ignored){}readLocalFile(uri);}if(request==PICK_WALLPAPER){io.execute(()->{try{WallpaperStore.importPhoto(getApplicationContext(),uri);ui(()->{applyWallpaper();toast("Đã đổi hình nền");});}catch(Exception e){ui(()->toast("Không mở được hình nền: "+readable(e)));}});}}\n    private void readLocalFile(Uri uri){int requestGeneration=++playlistRequestGeneration;setLoading(true);io.execute(()->{try(InputStream s=getContentResolver().openInputStream(uri)){if(s==null)throw new Exception("Không thể mở tệp");M3uParser.Result r=parser.parse(readText(s),uri.toString());ui(()->{if(requestGeneration==playlistRequestGeneration)showPlaylist(r,uri.toString());});}catch(Exception e){ui(()->{if(requestGeneration==playlistRequestGeneration)showError("Không đọc được tệp M3U: "+readable(e));});}});}\n    private String readText(InputStream s)throws Exception{ByteArrayOutputStream b=new ByteArrayOutputStream();byte[] chunk=new byte[8192];int total=0,n;while((n=s.read(chunk))!=-1){total+=n;if(total>MAX_PLAYLIST_BYTES)throw new Exception("Playlist lớn hơn 8 MB. Với link video, dùng Phát URL.");b.write(chunk,0,n);}byte[] data=b.toByteArray();if(data.length>=2&&data[0]==(byte)0xFF&&data[1]==(byte)0xFE)return new String(data,java.nio.charset.StandardCharsets.UTF_16LE);if(data.length>=2&&data[0]==(byte)0xFE&&data[1]==(byte)0xFF)return new String(data,java.nio.charset.StandardCharsets.UTF_16BE);if(data.length>=3&&data[0]==(byte)0xEF&&data[1]==(byte)0xBB&&data[2]==(byte)0xBF)return new String(data,3,data.length-3,StandardCharsets.UTF_8);return new String(data,StandardCharsets.UTF_8);}
+    private void openFilePicker(){Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("*/*");i.putExtra(Intent.EXTRA_MIME_TYPES,new String[]{"audio/x-mpegurl","application/x-mpegURL","application/vnd.apple.mpegurl","text/plain","application/octet-stream"});startActivityForResult(i,OPEN_M3U);}
+    @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(result!=RESULT_OK||data==null||data.getData()==null)return;Uri uri=data.getData();if(request==OPEN_M3U){try{final int flags=data.getFlags()&(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION);if(flags!=0)getContentResolver().takePersistableUriPermission(uri,flags&Intent.FLAG_GRANT_READ_URI_PERMISSION);}catch(Exception ignored){}readLocalFile(uri);}if(request==PICK_WALLPAPER){io.execute(()->{try{WallpaperStore.importPhoto(getApplicationContext(),uri);ui(()->{applyWallpaper();toast("Đã đổi hình nền");});}catch(Exception e){ui(()->toast("Không mở được hình nền: "+readable(e)));}});}}
+    private void readLocalFile(Uri uri){int requestGeneration=++playlistRequestGeneration;setLoading(true);io.execute(()->{try(InputStream s=getContentResolver().openInputStream(uri)){if(s==null)throw new Exception("Không thể mở tệp");M3uParser.Result r=parser.parse(readText(s),uri.toString());ui(()->{if(requestGeneration==playlistRequestGeneration)showPlaylist(r,uri.toString());});}catch(Exception e){ui(()->{if(requestGeneration==playlistRequestGeneration)showError("Không đọc được tệp M3U: "+readable(e));});}});}
+    private String readText(InputStream s)throws Exception{ByteArrayOutputStream b=new ByteArrayOutputStream();byte[] chunk=new byte[8192];int total=0,n;while((n=s.read(chunk))!=-1){total+=n;if(total>MAX_PLAYLIST_BYTES)throw new Exception("Playlist lớn hơn 8 MB. Với link video, dùng Phát URL.");b.write(chunk,0,n);}byte[] data=b.toByteArray();if(data.length>=2&&data[0]==(byte)0xFF&&data[1]==(byte)0xFE)return new String(data,java.nio.charset.StandardCharsets.UTF_16LE);if(data.length>=2&&data[0]==(byte)0xFE&&data[1]==(byte)0xFF)return new String(data,java.nio.charset.StandardCharsets.UTF_16BE);if(data.length>=3&&data[0]==(byte)0xEF&&data[1]==(byte)0xBB&&data[2]==(byte)0xBF)return new String(data,3,data.length-3,StandardCharsets.UTF_8);return new String(data,StandardCharsets.UTF_8);}
     private void showPlaylist(M3uParser.Result r,String source){showPlaylist(r,source,false);}
 
     private void showPlaylist(M3uParser.Result r,String source,boolean preserveNavigation){
@@ -224,7 +229,8 @@ public final class MainActivity extends Activity {
         LinearLayout defaultRow=new LinearLayout(this);defaultRow.setOrientation(LinearLayout.VERTICAL);defaultRow.setPadding(dp(6),dp(10),dp(6),dp(12));
         TextView defaultName=new TextView(this);defaultName.setText(PlaylistSourceStore.DEFAULT_NAME);defaultName.setTextSize(18);defaultName.setTextColor(getColor(R.color.text_primary));
         TextView defaultInfo=new TextView(this);defaultInfo.setText("Nguồn mặc định tích hợp sẵn • URL được ẩn");defaultInfo.setTextSize(13);defaultInfo.setTextColor(getColor(R.color.text_secondary));
-        Button selectDefault=new Button(this);boolean defaultActive=PlaylistSourceStore.isDefault(currentSource==null?"":currentSource.split("\\n",2)[0].trim());selectDefault.setText(defaultActive?"Đang sử dụng nguồn mặc định":"Chọn nguồn mặc định");selectDefault.setAllCaps(false);selectDefault.setEnabled(!defaultActive);
+        Button selectDefault=new Button(this);boolean defaultActive=PlaylistSourceStore.isDefault(currentSource==null?"":currentSource.split("\
+",2)[0].trim());selectDefault.setText(defaultActive?"Đang sử dụng nguồn mặc định":"Chọn nguồn mặc định");selectDefault.setAllCaps(false);selectDefault.setEnabled(!defaultActive);
         defaultRow.addView(defaultName);defaultRow.addView(defaultInfo);defaultRow.addView(selectDefault,new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,dp(46)));rows.addView(defaultRow,new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,LinearLayout.LayoutParams.WRAP_CONTENT));
         selectDefault.setOnClickListener(v->{holder[0].dismiss();loadDefaultPlaylist();});
         if(sources.isEmpty()){
@@ -270,7 +276,8 @@ public final class MainActivity extends Activity {
         dialog.show();
     }
     private void confirmDeleteSource(PlaylistSourceStore.Source source,int index){
-        new AlertDialog.Builder(this).setTitle("Xóa nguồn IPTV?").setMessage(source.name+"\n"+source.url)
+        new AlertDialog.Builder(this).setTitle("Xóa nguồn IPTV?").setMessage(source.name+"
+"+source.url)
                 .setPositiveButton("Xóa",(d,w)->{try{PlaylistSourceStore.remove(this,index);List<PlaylistSourceStore.Source> remaining=PlaylistSourceStore.load(this);toast("Đã xóa nguồn");if(PlaylistSourceStore.shouldReturnToDefault(currentSource,remaining)){resetToDefaultPlaylist();toast("Nguồn đang dùng đã bị xóa • đang tải lại NM7 IPTV");}else showPlaylistSources();}catch(Exception e){showError("Không xóa được nguồn: "+readable(e));}})
                 .setNegativeButton("Hủy",null).show();
     }
@@ -336,7 +343,9 @@ public final class MainActivity extends Activity {
         int generation=++wallpaperGeneration;
         io.execute(()->{android.graphics.drawable.Drawable background=WallpaperStore.load(getApplicationContext());ui(()->{if(generation==wallpaperGeneration)findViewById(R.id.mainRoot).setBackground(background);});});
     }
-    private void showAbout(){String version;try{version=getPackageManager().getPackageInfo(getPackageName(),0).versionName;if(version.endsWith("-mobile"))version=version.substring(0,version.length()-7)+" (Mobile)";}catch(Exception ignored){version="Không xác định";}new AlertDialog.Builder(this).setTitle("Nm7 IPTV Player").setMessage("Phiên bản: "+version+"\n\nỨng dụng được phát triển bởi Phuongnm7 vì mục đích cá nhân, không vì mục đích thương mại.").setPositiveButton("Đóng",null).show();}
+    private void showAbout(){String version;try{version=getPackageManager().getPackageInfo(getPackageName(),0).versionName;if(version.endsWith("-mobile"))version=version.substring(0,version.length()-7)+" (Mobile)";}catch(Exception ignored){version="Không xác định";}new AlertDialog.Builder(this).setTitle("Nm7 IPTV Player").setMessage("Phiên bản: "+version+"
+
+Ứng dụng được phát triển bởi Phuongnm7 vì mục đích cá nhân, không vì mục đích thương mại.").setPositiveButton("Đóng",null).show();}
     private void showChannelActions(Channel c){new AlertDialog.Builder(this).setTitle(c.name()).setItems(new String[]{AppPreferences.isFavorite(this,c)?"Bỏ Yêu thích":"Thêm vào Yêu thích","Phát"},(d,w)->{if(w==0){AppPreferences.toggleFavorite(this,c);filter();}else play(c);}).show();}
     private void ui(Runnable r){runOnUiThread(r);}
     private void showError(String m){setLoading(false);new AlertDialog.Builder(this).setTitle("Lỗi").setMessage(m).setPositiveButton("Đóng",null).show();}
