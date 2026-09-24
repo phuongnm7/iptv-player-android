@@ -20,7 +20,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: iptv-private-android-build
+  group: iptv-private-android-build-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -248,7 +248,7 @@ jobs:
 
       - name: Lint Mobile (legacy SmartTube warnings do not block APK)
         continue-on-error: true
-        run: gradle --no-daemon --console=plain -PmobileAbiSplits=true -PcompileSdkVersion=android-36 -PminSdkVersion=23 -PtargetSdkVersion=36 -PbuildToolsVersion=36.0.0 -PtestXSupportVersion=1.1.0 -PannotationXVersion=1.1.0 -ProbolectricVersion=4.6.1 lintMobileDebug
+        run: gradle --no-daemon --console=plain -PmobileAbiSplits=true -PcompileSdkVersion=android-36 -PminSdkVersion=23 -PtargetSdkVersion=36 -PbuildToolsVersion=36.0.0 -PtestXSupportVersion=1.1.0 -ProbolectricVersion=4.6.1 lintMobileDebug
 
       - name: Read Mobile version
         id: mobile_version
@@ -294,12 +294,8 @@ jobs:
           set -euxo pipefail
           test -e /dev/kvm
           sudo chmod a+rw /dev/kvm
-          # The hosted runner can be low on free disk after the Android/Gradle build.
-          # Keep the APK in dist/mobile, then remove build caches before AVD creation.
           rm -rf app/build ~/.gradle/caches ~/.gradle/daemon
-          # SmartTube sources are only needed to build the APK; remove them before AVD creation.
           rm -rf third_party/SmartTube-droid smarttube
-          # Remove SDK payloads no longer needed after packaging; the emulator uses API 34.
           rm -rf "$ANDROID_HOME/platforms/android-36" "$ANDROID_HOME/build-tools/30.0.3" "$ANDROID_HOME/build-tools/36.0.0"
           df -h
 
@@ -328,8 +324,6 @@ jobs:
             adb shell dumpsys activity activities | grep -q 'vn.phuong.iptvplayer'
             adb shell pm path vn.phuong.iptvplayer
 
-            # Verify the three bottom tabs are real Activity transitions, not just visual states.
-            # Pixel 2 portrait coordinates: YouTube ~20%, IPTV ~50%, Movie ~80%.
             adb shell input tap 864 1790
             sleep 10
             adb shell dumpsys activity activities | grep -q 'vn.phuong.iptvplayer.movie.MovieActivity'
@@ -337,7 +331,6 @@ jobs:
             adb shell cat /sdcard/movie_home.xml | grep -q 'Phim Lẻ Mới'
             adb shell cat /sdcard/movie_home.xml | grep -q 'Resident Evil'
 
-            # Open a real movie detail and then the real PlayerActivity.
             adb shell input tap 120 360
             sleep 5
             adb shell dumpsys activity activities | grep -q 'vn.phuong.iptvplayer.movie.MovieDetailActivity'
@@ -349,7 +342,6 @@ jobs:
             adb shell uiautomator dump /sdcard/movie_player.xml >/dev/null
             adb shell cat /sdcard/movie_player.xml | grep -q 'playerError.*visible-to-user="false"'
 
-            # YouTube must render its content area, not only open BrowseActivity.
             adb shell input tap 216 1790
             sleep 15
             adb shell dumpsys activity activities | grep -q 'com.liskovsoft.smartyoutubetv2.droid.ui.browse.BrowseActivity'
