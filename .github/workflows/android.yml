@@ -234,19 +234,20 @@ jobs:
           set -euxo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import re
           p=Path("third_party/SmartTube-droid/MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/data/YouTubeMediaItem.java")
-          s=p.read_text(encoding="utf-8")
-          m=re.search(r"(?m)^\\s*public String getPlaylistId\\s*\\(\\)\\s*\\{", s)
-          if not m:
+          lines=p.read_text(encoding="utf-8").splitlines(keepends=True)
+          method_index=next((i for i,line in enumerate(lines) if "getPlaylistId(" in line and "public String" in line), None)
+          if method_index is None:
               raise SystemExit("compat: getPlaylistId method not found")
-          prefix=s[max(0,m.start()-200):m.start()]
-          if "@Override" in prefix:
-              s=s[:max(0,m.start()-200)] + prefix.replace("@Override","") + s[m.start():]
-              p.write_text(s,encoding="utf-8")
+          if method_index > 0 and lines[method_index-1].strip() == "@Override":
+              lines.pop(method_index-1)
+              p.write_text("".join(lines), encoding="utf-8")
           check=p.read_text(encoding="utf-8")
-          m=re.search(r"(?m)^\\s*public String getPlaylistId\\s*\\(\\)\\s*\\{", check)
-          if "@Override" in check[max(0,m.start()-200):m.start()]:
+          lines=check.splitlines()
+          method_index=next((i for i,line in enumerate(lines) if "getPlaylistId(" in line and "public String" in line), None)
+          if method_index is None:
+              raise SystemExit("compat: getPlaylistId method disappeared")
+          if method_index > 0 and lines[method_index-1].strip() == "@Override":
               raise SystemExit("compat: stale @Override still present")
           print("Verified getPlaylistId compatibility annotation removed")
           PY
