@@ -60,7 +60,7 @@ public final class Channel {
         key.append(options.size()).append(':'); for(String option:options)appendKeyPart(key,option);
         return key.toString();
     }
-    private static void appendKeyPart(String target,String value){target.append(value.length()).append(':').append(value);}
+    private static void appendKeyPart(StringBuilder target,String value){target.append(value.length()).append(':').append(value);}
     @Override public boolean equals(Object object){return object instanceof Channel && identityKey().equals(((Channel)object).identityKey());}
     @Override public int hashCode(){return Objects.hash(identityKey());}
 }
