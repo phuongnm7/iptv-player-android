@@ -58,7 +58,6 @@ public final class Channel {
         key.append(normalized.size()).append(':');
         for(Map.Entry<String,String> header:normalized.entrySet()){appendKeyPart(key,header.getKey());appendKeyPart(key,header.getValue());}
         key.append(options.size()).append(':'); for(String option:options)appendKeyPart(key,option);
-        appendKeyPart(key,catchupType); appendKeyPart(key,catchupSource); key.append(Double.doubleToLongBits(catchupDays)).append(':');
         return key.toString();
     }
     private static void appendKeyPart(String target,String value){target.append(value.length()).append(':').append(value);}
