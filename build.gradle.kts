@@ -76,6 +76,33 @@ subprojects {
     }
 }
 
+// Enforce the pinned MediaServiceCore compatibility at the exact javac task boundary.
+// The source can be re-materialized while Gradle configures legacy modules, so an
+// earlier shell-level patch is not sufficient.
+subprojects {
+    if (path == ":youtubeapi") {
+        tasks.matching { it.name == "compileStstableMobileDebugJavaWithJavac" }.configureEach {
+            doFirst {
+                val source = rootProject.file("third_party/SmartTube-droid/MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/data/YouTubeMediaItem.java")
+                val text = source.readText()
+                val pattern = Regex("(?m)^\\\\s*@Override\\\\s*\\\\r?\\\\n(?=\\\\s*public String getPlaylistId\\\\s*\\\\(\\\\))")
+                val cleaned = pattern.replace(text, "")
+                if (cleaned != text) {
+                    source.writeText(cleaned)
+                    logger.lifecycle("NM7 javac guard: removed stale getPlaylistId @Override immediately before javac")
+                }
+                val verify = source.readText()
+                check(!pattern.containsMatchIn(verify)) {
+                    "NM7 javac guard: stale getPlaylistId @Override remains before javac"
+                }
+                val lines = verify.lines()
+                val methodLine = lines.indexOfFirst { it.contains("public String getPlaylistId(") }
+                check(methodLine >= 0) { "NM7 javac guard: getPlaylistId method missing" }
+                logger.lifecycle("NM7 javac guard: getPlaylistId source line " + (methodLine + 1) + " is clean")
+            }
+        }
+    }
+}
 subprojects {
     if (path.startsWith(":exoplayer-")) {
         tasks.matching { it.name.contains("MobileDebugUnitTest") }.configureEach { enabled = false }
