@@ -48,6 +48,11 @@ jobs:
           test -f third_party/SmartTube-droid/SharedModules/constants.gradle
           test -f third_party/SmartTube-droid/MediaServiceCore/core_settings.gradle
 
+      - name: Apply NM7 Mobile 1.10.75 baseline and clean YouTube UI patch
+        run: |
+          set -euxo pipefail
+          python3 scripts/patch-mobile-v37.py
+
       - name: Patch SmartTube legacy Gradle modules
         run: |
           python3 - <<'PY'
