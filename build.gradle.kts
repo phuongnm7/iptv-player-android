@@ -79,29 +79,20 @@ subprojects {
 // Enforce the pinned MediaServiceCore compatibility before javac input snapshots are taken.
 subprojects {
     if (path == ":youtubeapi") {
-        val nm7PatchGetPlaylistId = tasks.register("nm7PatchGetPlaylistId") {
-            doLast {
-                val source = rootProject.file("third_party/SmartTube-droid/MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/data/YouTubeMediaItem.java")
-                val text = source.readText()
-                val pattern = Regex("(?m)^\\s*@Override\\s*\\r?\\n(?=\\s*public String getPlaylistId\\s*\\(\\))")
-                val cleaned = pattern.replace(text, "")
-                if (cleaned != text) {
-                    source.writeText(cleaned)
-                    logger.lifecycle("NM7 pre-javac dependency: removed stale getPlaylistId @Override")
-                }
-                val verify = source.readText()
-                check(!pattern.containsMatchIn(verify)) {
-                    "NM7 pre-javac dependency: stale getPlaylistId @Override remains"
-                }
-                logger.lifecycle("NM7 pre-javac dependency: YouTubeMediaItem.java is clean")
-            }
+        // This compatibility edit must happen during project configuration, before Gradle
+        // snapshots JavaCompile inputs. A task dependency is too late for this source file.
+        val source = rootProject.file("third_party/SmartTube-droid/MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/data/YouTubeMediaItem.java")
+        val text = source.readText()
+        val pattern = Regex("(?m)^\\s*@Override\\s*\\r?\\n(?=\\s*public String getPlaylistId\\s*\\(\\))")
+        val cleaned = pattern.replace(text, "")
+        if (cleaned != text) {
+            source.writeText(cleaned)
+            logger.lifecycle("NM7 configuration patch: removed stale getPlaylistId @Override")
         }
-
-        tasks.withType<org.gradle.api.tasks.compile.JavaCompile>().configureEach {
-            if (name.contains("MobileDebug") && name.contains("JavaWithJavac")) {
-                dependsOn(nm7PatchGetPlaylistId)
-            }
+        check(!pattern.containsMatchIn(source.readText())) {
+            "NM7 configuration patch: stale getPlaylistId @Override remains"
         }
+        logger.lifecycle("NM7 configuration patch: YouTubeMediaItem.java is clean before task graph")
     }
 }
 
