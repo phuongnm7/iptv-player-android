@@ -330,4 +330,4 @@ jobs:
 
 # trigger deterministic getPlaylistId annotation removal
 
-# NM7 CI trigger after getPlaylistId newline fix
+# NM7 CI trigger after getPlaylistId ABI compatibility fix
