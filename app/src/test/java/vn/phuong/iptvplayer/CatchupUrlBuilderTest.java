@@ -24,6 +24,16 @@ public class CatchupUrlBuilderTest {
         assertEquals("https://archive.test/vtv3/start-1700000000-3600.m3u8", result);
     }
 
+    @Test public void vtvStyleMpdReplacesStartAndStop() {
+        String result = CatchupUrlBuilder.build(
+                "https://live.test/vtv1/manifest.mpd",
+                "default",
+                "https://archive.test/VTV1_HD/manifest.mpd?startTime=$"+"{start}&stopTime=$"+"{stop}",
+                1700000000L,
+                1700003600L);
+        assertEquals("https://archive.test/VTV1_HD/manifest.mpd?startTime=1700000000&stopTime=1700003600", result);
+    }
+
     @Test public void appendQueryUsesLiveUrl() {
         String result = CatchupUrlBuilder.build(
                 "https://live.test/vtv3.m3u8?token=abc",
