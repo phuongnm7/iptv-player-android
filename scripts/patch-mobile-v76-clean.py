@@ -29,17 +29,14 @@ def once(text, old, new, label):
 #    upstream snapshots no longer expose getPlaylistId() on MediaItem.
 MEDIA_ITEM = ROOT / "MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/data/YouTubeMediaItem.java"
 media = MEDIA_ITEM.read_text(encoding="utf-8")
-lines = media.splitlines(keepends=True)
-out = []
-removed = False
-for i, line in enumerate(lines):
-    if line.strip() == "@Override" and i + 1 < len(lines) and "getPlaylistId(" in lines[i + 1]:
-        removed = True
-        continue
-    out.append(line)
-media_new = "".join(out)
-if not removed:
-    raise SystemExit("clean-v76: expected getPlaylistId override in MediaServiceCore")
+media_new = media.replace("@Override\n    public String getPlaylistId()", "    public String getPlaylistId()")
+if media_new == media:
+    media_new = media.replace("@Override\r\n    public String getPlaylistId()", "    public String getPlaylistId()")
+if media_new == media:
+    import re
+    media_new = re.sub(r"@Override[ \\t]*\\r?\\n(\\s*public String getPlaylistId\\s*\\(\\)\\s*\\{)", r"\\1", media_new, count=1)
+if media_new == media:
+    raise SystemExit("clean-v76: getPlaylistId @Override was not removed")
 MEDIA_ITEM.write_text(media_new, encoding="utf-8")
 
 s = PLAYBACK.read_text(encoding="utf-8")
