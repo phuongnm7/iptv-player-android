@@ -363,3 +363,5 @@ jobs:
 # trigger clean regex syntax repair
 
 # trigger deterministic getPlaylistId annotation removal
+
+# NM7 CI trigger after getPlaylistId newline fix
