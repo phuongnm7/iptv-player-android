@@ -234,49 +234,11 @@ jobs:
           sed -n '1,180p' third_party/SmartTube-droid/SharedModules/appupdatechecker2/build.gradle
           gradle --no-daemon --console=plain -PcompileSdkVersion=android-36 -PminSdkVersion=23 -PtargetSdkVersion=36 -PbuildToolsVersion=36.0.0 :appupdatechecker2:tasks --stacktrace
 
-      - name: Verify pinned MediaServiceCore compatibility
-        run: |
-          set -euxo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path("third_party/SmartTube-droid/MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/data/YouTubeMediaItem.java")
-          lines=p.read_text(encoding="utf-8").splitlines(keepends=True)
-          method_index=next((i for i,line in enumerate(lines) if "getPlaylistId(" in line and "public String" in line), None)
-          if method_index is None:
-              raise SystemExit("compat: getPlaylistId method not found")
-          if method_index > 0 and lines[method_index-1].strip() == "@Override":
-              lines.pop(method_index-1)
-              p.write_text("".join(lines), encoding="utf-8")
-          check=p.read_text(encoding="utf-8")
-          lines=check.splitlines()
-          method_index=next((i for i,line in enumerate(lines) if "getPlaylistId(" in line and "public String" in line), None)
-          if method_index is None:
-              raise SystemExit("compat: getPlaylistId method disappeared")
-          if method_index > 0 and lines[method_index-1].strip() == "@Override":
-              raise SystemExit("compat: stale @Override still present")
-          print("Verified getPlaylistId compatibility annotation removed")
-          PY
-
       - name: Compile, test and package Mobile ARM APKs
         run: |
           set -euxo pipefail
-          # The compatibility step above is authoritative and already removes the stale
-          # annotation. Keep this final guard idempotent so a clean source is valid too.
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-          p=Path("third_party/SmartTube-droid/MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/data/YouTubeMediaItem.java")
-          s=p.read_text(encoding="utf-8")
-          s2,n=re.subn(r"(?m)^\s*@Override\s*\n(?=\s*public String getPlaylistId\s*\(\))","",s)
-          if s2 != s:
-              p.write_text(s2,encoding="utf-8")
-          check=p.read_text(encoding="utf-8")
-          if re.search(r"(?m)^\s*@Override\s*\n(?=\s*public String getPlaylistId\s*\(\))",check):
-              raise SystemExit("precompile: stale getPlaylistId @Override remains")
-          print("precompile: source clean; removed",n,"additional annotation(s)")
-          PY
-          rm -rf third_party/SmartTube-droid/MediaServiceCore/youtubeapi/build
-          rm -rf third_party/SmartTube-droid/MediaServiceCore/build
+           # MediaServiceCore is pinned above to a matching interface/implementation snapshot.
+           # Do not mutate YouTubeMediaItem.java here; getPlaylistId() @Override is valid.
           gradle --no-daemon --no-build-cache --rerun-tasks --console=plain -PmobileAbiSplits=true -PcompileSdkVersion=android-36 -PminSdkVersion=23 -PtargetSdkVersion=36 -PbuildToolsVersion=36.0.0 -PtestXSupportVersion=1.1.0 -PannotationXVersion=1.1.0 -ProbolectricVersion=4.6.1 clean testMobileDebugUnitTest assembleMobileDebug
 
       - name: Lint Mobile (legacy SmartTube warnings do not block APK)
