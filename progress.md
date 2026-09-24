@@ -254,3 +254,7 @@ Bước tiếp theo là cài 2 APK phù hợp thiết bị và test thực tế:
 **Hiện tại dừng ở trạng thái: BUILD SUCCESSFUL — chờ test runtime.**
 
 Mọi lỗi runtime tiếp theo sẽ được xử lý dựa trên log/video/screenshot thực tế, không coi bản build thành công là đã hoàn tất chức năng.
+
+
+## 2026-09-24 — Clean 1.10.76 build fix
+- Fixed the clean Mobile build patch so the pinned SmartTube source cannot reintroduce the missing `section_is_empty` resource reference.
