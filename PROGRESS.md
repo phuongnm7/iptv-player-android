@@ -1,3 +1,49 @@
+# MOBILE 1.10.91 / versionCode 107 — STABLE BASELINE — USER TEST CONFIRMED — 2026-09-25
+
+## Quyết định baseline
+
+**Người dùng đã test thực tế bản 1.10.91 và xác nhận đây là bản tốt nhất/ổn định nhất hiện tại.** Từ đây, các bản Mobile tiếp theo phải phát triển trực tiếp trên nền 1.10.91.
+
+- versionName: **1.10.91**
+- versionCode: **107**
+- Branch: `fix/mobile-1.10.83-youtube-player-ui`
+- Source commit build: `60f3be09859f608b23b40b066a9da9168f7b0b7b`
+- Mobile Final Build: **#611 — SUCCESS**
+- Run ID: `36104328880`
+- Artifact: `NM7-IPTV-Mobile-FINAL`
+- Artifact ID: `10850193056`
+- [GitHub Actions #611](https://github.com/phuongnm7/iptv-player-android/actions/runs/36104328880)
+- [Artifact APK ARM64/ARMv7](https://github.com/phuongnm7/iptv-player-android/actions/runs/36104328880/artifacts/10850193056)
+
+## Kết quả test thiết bị
+
+Người dùng đã cài/test 1.10.91 trên thiết bị thật và đánh giá đây là bản có chức năng ổn định nhất hiện tại.
+
+Các chức năng cần **giữ nguyên** làm nền:
+- IPTV và danh sách kênh; kênh cuối cùng không còn bị thanh YouTube/IPTV đè.
+- Status bar Android hiển thị trong player YouTube.
+- Avatar video/kênh YouTube hiển thị.
+- Live chat hoạt động.
+- Video YouTube không còn treo hình ở thumbnail trong khi âm thanh chạy.
+- Pipeline tải/phát YouTube đã được cải thiện so với các bản trước.
+- Không đưa miniplayer trở lại; giữ kiến trúc hiện tại đã được người dùng test ổn định.
+
+## Lỗi còn lại, không coi là regression của baseline
+
+- Khi mở video YouTube vẫn còn **một nhịp nháy nhẹ khung hình đầu/chuyển cảnh**. 1.10.91 đã giảm hiện tượng này nhưng chưa loại bỏ hoàn toàn.
+- Đây là mục ưu tiên tiếp theo, nhưng mọi bản sửa phải **giữ nguyên 1.10.91 làm nền** và không làm ảnh hưởng IPTV/status bar/avatar/live chat.
+
+## Quy tắc phát triển từ 1.10.91
+
+1. Bản kế tiếp phải tăng từ **1.10.91 / 107**.
+2. Không quay lại 1.10.75 hoặc các baseline cũ để phát triển tính năng mới.
+3. Không sửa các phần đang ổn định nếu không có yêu cầu hoặc bằng chứng regression.
+4. Với lỗi nháy mở video, chỉ thay đổi transition/player-loading; không thay đổi hành vi IPTV, status bar, avatar, live chat.
+5. CI phải pass trước khi bàn giao APK.
+6. Người dùng test thực tế là điều kiện để chốt baseline mới.
+
+---
+
 # MOBILE 1.10.83 / 99 — YOUTUBE PLAYER STATUS BAR + LIVE CHAT + FEED QUALITY + STARTUP POLISH — 2026-09-25
 
 ## Yêu cầu người dùng
