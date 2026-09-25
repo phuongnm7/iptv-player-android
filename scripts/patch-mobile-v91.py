@@ -148,19 +148,6 @@ new_set = """        mNm7FirstFrameRendered = false;
 """
 s = once(s, old_set, new_set, "first-frame selection reset")
 
-# Remove any window enter animation at the Activity itself as a second guard.
-old_create = """    protected void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
-        setContentView(R.layout.playback_activity);
-"""
-new_create = """    protected void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        overridePendingTransition(0, 0);
-
-        setContentView(R.layout.playback_activity);
-"""
-s = once(s, old_create, new_create, "PlaybackActivity enter animation")
 PLAYBACK.write_text(s, encoding="utf-8")
 
 # ---------------------------------------------------------------------------
