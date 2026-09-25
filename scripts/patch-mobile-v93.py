@@ -50,12 +50,13 @@ new_block = f'''{indent}boolean renderedNewFrame = rendered >= mNm7PosterRendere
 {indent}}}'''
 s = s[:line_start] + new_block + s[brace_end:]
 
-old_timeout = "if (elapsed >= 1200L)"
-new_timeout = "if (elapsed >= 1800L)"
-if s.count(old_timeout) == 1:
-    s = s.replace(old_timeout, new_timeout, 1)
-elif "if (elapsed >= 1800L)" not in s:
-    raise SystemExit("v93: poster timeout anchor not found")
+if "if (elapsed >= 1800L)" not in s:
+    tail = s[brace_end:]
+    timeout_match = re.search(r'if \(elapsed >= \d+L\)', tail)
+    if not timeout_match:
+        raise SystemExit("v93: poster timeout decision not found after v92 probe")
+    pos = brace_end + timeout_match.start()
+    s = s[:pos] + "if (elapsed >= 1800L)" + s[pos + len(timeout_match.group(0)):]
 
 PLAYBACK.write_text(s, encoding="utf-8")
 
