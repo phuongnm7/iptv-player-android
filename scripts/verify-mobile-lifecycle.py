@@ -84,15 +84,15 @@ check('versionName = "1.10.93"' in gradle, 'Mobile versionName is 1.10.93')
 # Stable playback patches.
 for ver, needles, label in [
     ('v75', ['TV_CLIENT','getFastPlaybackFormatInfo'], 'v75 fast format resolver'),
-    ('v76', ['runpy.run_path("scripts/patch-mobile-v76.py")','nm7_live_chat_panel','mNm7LiveChatAdapter'], 'v76 live chat/status-bar'),
-    ('v77', ['runpy.run_path("scripts/patch-mobile-v77.py")','nm7_live_chat_close','setDecorFitsSystemWindows(true)'], 'v77 status-bar/chat'),
-    ('v84', ['runpy.run_path("scripts/patch-mobile-v84.py")','channelThumbnail.thumbnails[0].url','onRenderedFirstFrame','sendLiveChatMessageObserve'], 'v84 playback/chat/avatar/poster'),
-    ('v85', ['runpy.run_path("scripts/patch-mobile-v85.py")','android:paddingBottom="64dp"','String nm7ChannelThumbnail = item.getChannelThumbnail();'], 'v85 status/chat/avatar'),
-    ('v86', ['runpy.run_path("scripts/patch-mobile-v86.py")','nm7_startup_poster','mNm7FirstFrameRendered = true;','NM7_AVATAR_CACHE'], 'v86 status/avatar/poster'),
-    ('v87', ['runpy.run_path("scripts/patch-mobile-v87.py")','FLAG_FORCE_NOT_FULLSCREEN','onWindowFocusChanged(boolean hasFocus)','nm7ArmPosterReadyFallback'], 'v87 hard status/poster'),
-    ('v88', ['runpy.run_path("scripts/patch-mobile-v88.py")','renderedOutputBufferCount','absolute_safety_timeout'], 'v88 decoder-backed poster'),
-    ('v89', ['runpy.run_path("scripts/patch-mobile-v89.py")','mNm7PosterVideoId','dontAnimate()'], 'v89 late-poster'),
-    ('v90', ['runpy.run_path("scripts/patch-mobile-v90.py")','consumeNm7TransitionPoster','startup_poster_source=clicked_card'], 'v90 clicked-card handoff'),
+    ('v76', ['nm7_live_chat_panel','mNm7LiveChatAdapter'], 'v76 live chat/status-bar'),
+    ('v77', ['nm7_live_chat_close','setDecorFitsSystemWindows(true)'], 'v77 status-bar/chat'),
+    ('v84', ['channelThumbnail.thumbnails[0].url','onRenderedFirstFrame','sendLiveChatMessageObserve'], 'v84 playback/chat/avatar/poster'),
+    ('v85', ['android:paddingBottom="64dp"','String nm7ChannelThumbnail = item.getChannelThumbnail();'], 'v85 status/chat/avatar'),
+    ('v86', ['nm7_startup_poster','mNm7FirstFrameRendered = true;','NM7_AVATAR_CACHE'], 'v86 status/avatar/poster'),
+    ('v87', ['FLAG_FORCE_NOT_FULLSCREEN','onWindowFocusChanged(boolean hasFocus)','nm7ArmPosterReadyFallback'], 'v87 hard status/poster'),
+    ('v88', ['renderedOutputBufferCount','absolute_safety_timeout'], 'v88 decoder-backed poster'),
+    ('v89', ['mNm7PosterVideoId','dontAnimate()'], 'v89 late-poster'),
+    ('v90', ['consumeNm7TransitionPoster','startup_poster_source=clicked_card'], 'v90 clicked-card handoff'),
 ]:
     source = Path(f'scripts/patch-mobile-{ver}.py').read_text()
     for needle in needles:
