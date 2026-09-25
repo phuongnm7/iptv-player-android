@@ -296,3 +296,6 @@ runpy.run_path("scripts/patch-mobile-v89.py")
 
 # NM7 1.10.90: clicked-card thumbnail handoff only.
 runpy.run_path("scripts/patch-mobile-v90.py")
+
+# NM7 1.10.91: smooth YouTube open + sharper handoff + feed priority.
+runpy.run_path("scripts/patch-mobile-v91.py")
