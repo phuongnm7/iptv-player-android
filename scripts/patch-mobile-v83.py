@@ -17,7 +17,6 @@ ROOT = Path("third_party/SmartTube-droid")
 PHONE = ROOT / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui"
 PLAYBACK = PHONE / "playback/PlaybackActivity.java"
 CHAT = ROOT / "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/ChatController.java"
-UI_PATCH = Path("scripts/patch-mobile-ui.py")
 INIT = ROOT / "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/other/ExoPlayerInitializer.java"
 
 def once(s, old, new, label):
@@ -142,11 +141,11 @@ CHAT.write_text(cs, encoding="utf-8")
 
 # ---------------------------------------------------------------------------
 # 3+4) Feed quality + channel avatars.
-# Extend the existing generated UI patch rather than touching IPTV or playback classes.
-u = UI_PATCH.read_text(encoding="utf-8")
+# Patch the already-generated SmartTube source directly because patch-mobile-ui.py
+# has already run earlier in the v37 chain.
+card = PHONE / "shared/VideoCardHolder.java"
+u = card.read_text(encoding="utf-8")
 
-# Media-item avatar fallback currently accepts only a raw String. Support nested
-# thumbnail/avatar objects returned by MediaService interfaces.
 old_media = """                            Object value = mm.invoke(mediaItem);
                             if (value instanceof String && ((String) value).startsWith("http")) {
                                 avatarUrl = (String) value;
@@ -179,7 +178,6 @@ new_media = """                            Object value = mm.invoke(mediaItem);
 if old_media in u:
     u = once(u, old_media, new_media, "nested media-item avatar resolution")
 
-# Add more direct method candidates used by different YouTube media item builds.
 u = u.replace(
     '"getChannelThumbnailUrl", "getChannelThumbnail",\n                            "getAuthorAvatarUrl", "getAuthorAvatar"',
     '"getChannelThumbnailUrl", "getChannelThumbnail", "getChannelAvatarUrl", "getChannelAvatar",\n'
@@ -187,7 +185,6 @@ u = u.replace(
     1,
 )
 
-# Sharper final decode: maxres -> sd -> original, ARGB_8888 at a phone-useful 1280x720.
 old_glide = """            Glide.with(context)
                     .load(highResCardImageUrl)
                     .error(Glide.with(context).load(originalCardImageUrl))
@@ -208,15 +205,17 @@ new_glide = """            String sdResCardImageUrl = highResCardImageUrl.replac
 """
 if old_glide in u:
     u = once(u, old_glide, new_glide, "high-quality thumbnail Glide chain")
+card.write_text(u, encoding="utf-8")
 
-# Strengthen YouTubeMediaItem channel thumbnail assignment when the source returns
-# an object instead of a String.
-old_assign = """            Object thumb = thumbMethod.invoke(item);
+media_item = ROOT / "MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/data/YouTubeMediaItem.java"
+if media_item.is_file():
+    ms = media_item.read_text(encoding="utf-8")
+    old_assign = """            Object thumb = thumbMethod.invoke(item);
             if (thumb instanceof String) {
                 video.mChannelThumbnailUrl = (String) thumb;
             }
 """
-new_assign = """            Object thumb = thumbMethod.invoke(item);
+    new_assign = """            Object thumb = thumbMethod.invoke(item);
             if (thumb instanceof String && ((String) thumb).startsWith("http")) {
                 video.mChannelThumbnailUrl = (String) thumb;
             } else if (thumb != null) {
@@ -236,10 +235,9 @@ new_assign = """            Object thumb = thumbMethod.invoke(item);
                 }
             }
 """
-if old_assign in u:
-    u = once(u, old_assign, new_assign, "YouTubeMediaItem nested thumbnail object")
-
-UI_PATCH.write_text(u, encoding="utf-8")
+    if old_assign in ms:
+        ms = once(ms, old_assign, new_assign, "YouTubeMediaItem nested thumbnail object")
+    media_item.write_text(ms, encoding="utf-8")
 
 # ---------------------------------------------------------------------------
 # 5) Conservative startup latency trim. This affects only initial first-frame
