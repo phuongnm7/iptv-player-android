@@ -1,3 +1,15 @@
+# Mobile 1.10.83 / versionCode 99 — TEST BUILD
+
+Bản phát triển hiện tại: **1.10.83**, dựa trên stable baseline 1.10.75.
+
+Phạm vi vòng này: sửa player YouTube dọc để hiện lại Android status bar, bổ sung xem live chat cho video Live, làm nét thumbnail, sửa pipeline avatar kênh, tối ưu thêm first-frame và thêm hiệu ứng mở video nhẹ. Đây vẫn là **Mobile-only**.
+
+**1.10.83 chưa được chốt stable** cho tới khi CI build thành công và được test trên thiết bị thật. Stable baseline đã được xác nhận trước đó vẫn là **1.10.75 / versionCode 93**.
+
+Xem chi tiết trong [PROGRESS.md](PROGRESS.md).
+
+---
+
 # Trạng thái Mobile — 1.10.72 / versionCode 90 — STABLE BASELINE
 
 **1.10.72 được chốt làm bản ổn định tạm thời để các bản Mobile tiếp theo phát triển từ đây.**
