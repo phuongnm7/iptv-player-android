@@ -302,3 +302,6 @@ runpy.run_path("scripts/patch-mobile-v91.py")
 
 # NM7 1.10.92: faster, flash-free thumbnail-to-video handoff.
 runpy.run_path("scripts/patch-mobile-v92.py")
+
+# NM7 1.10.93: require actual playback progression and restore startup resilience.
+runpy.run_path("scripts/patch-mobile-v93.py")
