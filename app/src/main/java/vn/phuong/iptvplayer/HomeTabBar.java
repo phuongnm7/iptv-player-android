@@ -56,6 +56,17 @@ public final class HomeTabBar {
                 root.setPadding(root.getPaddingLeft(), root.getPaddingTop(), root.getPaddingRight(),
                         root.getPaddingBottom() + dp(activity, 64));
             }
+
+            // NM7 1.10.89: the tab bar is an overlay, so reserve scrollable space
+            // inside the IPTV channel list itself. This guarantees the final channel
+            // can be scrolled completely above the YouTube/IPTV bar and tapped.
+            View channelList = activity.findViewById(R.id.listChannels);
+            if (channelList instanceof android.widget.ListView) {
+                android.widget.ListView list = (android.widget.ListView) channelList;
+                list.setClipToPadding(false);
+                list.setPadding(list.getPaddingLeft(), list.getPaddingTop(),
+                        list.getPaddingRight(), list.getPaddingBottom() + dp(activity, 76));
+            }
         }
     }
 
