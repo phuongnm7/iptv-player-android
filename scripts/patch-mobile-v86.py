@@ -7,6 +7,7 @@ PLAYBACK = PHONE / "playback/PlaybackActivity.java"
 LAYOUT = ROOT / "smarttubedroid/src/main/res/layout/playback_activity.xml"
 CARD = PHONE / "shared/VideoCardHolder.java"
 APP = Path("app/src/main/java/vn/phuong/iptvplayer/MobileNm7Application.java")
+MOTHER = ROOT / "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/misc/MotherActivity.java"
 
 def once(s, old, new, label):
     if s.count(old) != 1:
@@ -41,15 +42,29 @@ a = APP.read_text(encoding="utf-8")
 anchor = """        System.setProperty("nm7.mobile.livechat", "true");
 """
 repl = """        System.setProperty("nm7.mobile.livechat", "true");
-        // NM7 1.10.86: phone UI must use normal portrait system windows.
-        // MotherActivity otherwise executes makeActivityFullscreen2() on every resume,
-        // which wins over the player's later show(statusBars()) calls on some devices.
-        com.liskovsoft.smartyoutubetv2.common.prefs.GeneralData.instance(this)
-                .setFullscreenModeEnabled(false);
+        // NM7 1.10.86: tell SmartTube's own MotherActivity to skip persistent
+        // fullscreen on the integrated phone UI. Avoid a cross-module Java dependency.
+        System.setProperty("nm7.mobile.normalbars", "true");
 """
 if "NM7 1.10.86: phone UI must use normal portrait system windows" not in a:
     a = once(a, anchor, repl, "Mobile fullscreen preference anchor")
 APP.write_text(a, encoding="utf-8")
+
+
+# Patch SmartTube common layer itself so its onResume() cannot hide the portrait status bar again.
+m = MOTHER.read_text(encoding="utf-8")
+mother_old = """    private void applyFullscreenModeIfNeeded() {
+        if (mIsFullscreenModeEnabled) {
+"""
+mother_new = """    private void applyFullscreenModeIfNeeded() {
+        if ("true".equals(System.getProperty("nm7.mobile.normalbars"))) {
+            return;
+        }
+        if (mIsFullscreenModeEnabled) {
+"""
+if 'System.getProperty("nm7.mobile.normalbars")' not in m:
+    m = once(m, mother_old, mother_new, "MotherActivity fullscreen bypass")
+MOTHER.write_text(m, encoding="utf-8")
 
 s = PLAYBACK.read_text(encoding="utf-8")
 system_ui = """    private void applySystemUi(boolean fullscreen) {
