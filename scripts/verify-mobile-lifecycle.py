@@ -81,8 +81,8 @@ check('maxresdefault.jpg' in Path('scripts/patch-mobile-v73.py').read_text(), 'Y
 check('mqdefault.jpg' not in Path('scripts/patch-mobile-v73.py').read_text(), 'YouTube Browse optimization does not downgrade thumbnail quality')
 
 # Version must advance for this application-level behavior change.
-check('versionCode = 105' in gradle, 'Mobile versionCode is 105 for Mobile 1.10.89 build')
-check('versionName = "1.10.89"' in gradle, 'Mobile versionName is 1.10.89')
+check('versionCode = 106' in gradle, 'Mobile versionCode is 106 for Mobile 1.10.90 build')
+check('versionName = "1.10.90"' in gradle, 'Mobile versionName is 1.10.90')
 check('TV_CLIENT' in Path('scripts/patch-mobile-v75.py').read_text(), 'v75 uses the lightweight TV_DOWNGRADED playback client first')
 check('getFastPlaybackFormatInfo' in Path('scripts/patch-mobile-v75.py').read_text(), 'v75 fast format resolver is present')
 check('maxresdefault.jpg' in Path('scripts/patch-mobile-v75.py').read_text(), 'v75 preserves 1.10.72 max-resolution thumbnail target')
@@ -141,3 +141,7 @@ check('runpy.run_path("scripts/patch-mobile-v89.py")' in patch, 'v89 late-poster
 check('mNm7PosterVideoId' in Path('scripts/patch-mobile-v89.py').read_text(), 'v89 rejects stale/late poster completion')
 check('dontAnimate()' in Path('scripts/patch-mobile-v89.py').read_text(), 'v89 removes Glide animation from startup poster')
 check('list.setClipToPadding(false)' in Path('app/src/main/java/vn/phuong/iptvplayer/HomeTabBar.java').read_text(), 'v89 keeps the final IPTV channel scrollable above bottom tabs')
+
+check('runpy.run_path("scripts/patch-mobile-v90.py")' in patch, 'v90 clicked-card thumbnail handoff is part of the Mobile build chain')
+check('consumeNm7TransitionPoster' in Path('scripts/patch-mobile-v90.py').read_text(), 'v90 reuses the already visible tapped thumbnail')
+check('startup_poster_source=clicked_card' in Path('scripts/patch-mobile-v90.py').read_text(), 'v90 exposes no black gap when clicked thumbnail is available')
