@@ -73,7 +73,7 @@ jobs:
           grep -q 'public void onRenderedFirstFrame()' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
           grep -q 'channelThumbnail.thumbnails\[0\].url' third_party/SmartTube-droid/MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/common/models/items/VideoItem.java
           grep -q 'nm7_live_chat_input' third_party/SmartTube-droid/smarttubedroid/src/main/res/layout/playback_activity.xml
-          grep -q 'sendLiveChatMessageObserve' third_party/SmartTube-droid/mediaserviceinterfaces/src/main/java/com/liskovsoft/mediaserviceinterfaces/LiveChatService.java
+          grep -q 'sendLiveChatMessageObserve' third_party/SmartTube-droid/MediaServiceCore/mediaserviceinterfaces/src/main/java/com/liskovsoft/mediaserviceinterfaces/LiveChatService.java
           grep -q 'sendLiveChatMessageEndpoint' third_party/SmartTube-droid/MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/chat/gen/LiveChatResult.kt
 
       - name: Check Mobile lifecycle regression guards
