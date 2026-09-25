@@ -81,8 +81,8 @@ check('maxresdefault.jpg' in Path('scripts/patch-mobile-v73.py').read_text(), 'Y
 check('mqdefault.jpg' not in Path('scripts/patch-mobile-v73.py').read_text(), 'YouTube Browse optimization does not downgrade thumbnail quality')
 
 # Version must advance for this application-level behavior change.
-check('versionCode = 99' in gradle, 'Mobile versionCode is 99 for Mobile 1.10.83 build')
-check('versionName = "1.10.83"' in gradle, 'Mobile versionName is 1.10.83')
+check('versionCode = 100' in gradle, 'Mobile versionCode is 100 for Mobile 1.10.84 build')
+check('versionName = "1.10.84"' in gradle, 'Mobile versionName is 1.10.84')
 check('TV_CLIENT' in Path('scripts/patch-mobile-v75.py').read_text(), 'v75 uses the lightweight TV_DOWNGRADED playback client first')
 check('getFastPlaybackFormatInfo' in Path('scripts/patch-mobile-v75.py').read_text(), 'v75 fast format resolver is present')
 check('maxresdefault.jpg' in Path('scripts/patch-mobile-v75.py').read_text(), 'v75 preserves 1.10.72 max-resolution thumbnail target')
@@ -110,3 +110,9 @@ check('nm7.mobile.livechat' in Path('app/src/main/java/vn/phuong/iptvplayer/Mobi
 check('runpy.run_path("scripts/patch-mobile-v77.py")' in patch, 'v77 status-bar/chat UI patch is in the Mobile chain')
 check('nm7_live_chat_close' in Path('scripts/patch-mobile-v77.py').read_text(), 'v77 has live-chat close control')
 check('setDecorFitsSystemWindows(true)' in Path('scripts/patch-mobile-v77.py').read_text(), 'v77 enables non-edge-to-edge portrait')
+
+check('runpy.run_path("scripts/patch-mobile-v84.py")' in patch, 'v84 playback/chat/avatar/poster patch is part of the Mobile build chain')
+check('channelThumbnail.thumbnails[0].url' in Path('scripts/patch-mobile-v84.py').read_text(), 'v84 fixes channel avatar parser at source')
+check('onRenderedFirstFrame' in Path('scripts/patch-mobile-v84.py').read_text(), 'v84 keeps poster until first rendered frame')
+check('sendLiveChatMessageObserve' in Path('scripts/patch-mobile-v84.py').read_text(), 'v84 adds live-chat send path')
+check('protected void applySystemBars()' in Path('scripts/patch-mobile-v84.py').read_text(), 'v84 restores status bar after DroidActivity resume')
