@@ -9,32 +9,46 @@ INIT = ROOT / "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exopla
 
 s = PLAYBACK.read_text(encoding="utf-8")
 
-pattern = re.compile(
-    r'(?ms)^(\s*boolean renderedNewFrame = rendered >= mNm7PosterRenderedBaseline \+ 2;\s*)'
-    r'if \(renderedNewFrame && elapsed >= 90L\s*'
-    r'&& \(mNm7FirstFrameSeenAt == 0L\s*'
-    r'\|\| android\.os\.SystemClock\.elapsedRealtime\(\) - mNm7FirstFrameSeenAt >= 60L\)\)\s*'
-    r'\{\s*'
-    r'nm7HideStartupPoster\("decoder_moving_frames_fast"\);\s*'
-    r'return;\s*'
-    r'\}'
-)
-replacement = """\\1long firstFrameAge = mNm7FirstFrameSeenAt == 0L
-        ? 0L
-        : android.os.SystemClock.elapsedRealtime() - mNm7FirstFrameSeenAt;
-boolean actuallyPlaying = mPlayer.getPlaybackState() == com.google.android.exoplayer2.Player.STATE_READY
-        && mPlayer.getPlayWhenReady()
-        && mPlayer.isPlaying();
-if (renderedNewFrame && elapsed >= 220L
-        && mNm7FirstFrameSeenAt > 0L
-        && firstFrameAge >= 140L
-        && actuallyPlaying) {
-    nm7HideStartupPoster("decoder_playing_stable");
-    return;
-}"""
-s, count = pattern.subn(replacement, s, count=1)
-if count != 1:
-    raise SystemExit(f"v93: expected exactly one v92 poster decision, found {count}")
+marker = "boolean renderedNewFrame = rendered >= mNm7PosterRenderedBaseline + 2;"
+start = s.find(marker)
+if start < 0:
+    raise SystemExit("v93: v92 rendered-frame marker not found")
+line_start = s.rfind("\n", 0, start) + 1
+if_start = s.find("if (renderedNewFrame", start)
+if if_start < 0:
+    raise SystemExit("v93: v92 poster decision if-block not found")
+brace_start = s.find("{", if_start)
+if brace_start < 0:
+    raise SystemExit("v93: v92 poster decision opening brace not found")
+depth = 0
+brace_end = -1
+for i in range(brace_start, len(s)):
+    if s[i] == "{":
+        depth += 1
+    elif s[i] == "}":
+        depth -= 1
+        if depth == 0:
+            brace_end = i + 1
+            break
+if brace_end < 0:
+    raise SystemExit("v93: v92 poster decision closing brace not found")
+old_block = s[line_start:brace_end]
+indent = old_block[:len(old_block) - len(old_block.lstrip())]
+new_block = f'''{indent}boolean renderedNewFrame = rendered >= mNm7PosterRenderedBaseline + 2;
+{indent}long firstFrameAge = mNm7FirstFrameSeenAt == 0L
+{indent}        ? 0L
+{indent}        : android.os.SystemClock.elapsedRealtime() - mNm7FirstFrameSeenAt;
+{indent}boolean actuallyPlaying = mPlayer.getPlaybackState() == com.google.android.exoplayer2.Player.STATE_READY
+{indent}        && mPlayer.getPlayWhenReady()
+{indent}        && mPlayer.isPlaying();
+{indent}if (renderedNewFrame && elapsed >= 220L
+{indent}        && mNm7FirstFrameSeenAt > 0L
+{indent}        && firstFrameAge >= 140L
+{indent}        && actuallyPlaying) {{
+{indent}    nm7HideStartupPoster("decoder_playing_stable");
+{indent}    return;
+{indent}}}'''
+s = s[:line_start] + new_block + s[brace_end:]
 
 old_timeout = "if (elapsed >= 1200L)"
 new_timeout = "if (elapsed >= 1800L)"
