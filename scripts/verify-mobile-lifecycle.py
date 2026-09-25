@@ -78,8 +78,8 @@ check('maxresdefault.jpg' in Path('scripts/patch-mobile-v73.py').read_text(), 'Y
 check('mqdefault.jpg' not in Path('scripts/patch-mobile-v73.py').read_text(), 'YouTube Browse optimization does not downgrade thumbnail quality')
 
 # Version.
-check('versionCode = 109' in gradle, 'Mobile versionCode is 109 for Mobile 1.10.93 build')
-check('versionName = "1.10.93"' in gradle, 'Mobile versionName is 1.10.93')
+check('versionCode = 110' in gradle, 'Mobile versionCode is 110 for Mobile 1.10.94 build')
+check('versionName = "1.10.94"' in gradle, 'Mobile versionName is 1.10.94')
 
 # Stable playback patches.
 for ver, needles, label in [
