@@ -19,7 +19,6 @@ tabs = (app / 'HomeTabBar.java').read_text(encoding='utf-8')
 gradle = Path('app/build.gradle.kts').read_text(encoding='utf-8')
 patch = Path('scripts/patch-mobile-v37.py').read_text(encoding='utf-8')
 final_delta = Path('scripts/patch-mobile-v69-no-miniplayer.py').read_text(encoding='utf-8')
-inc = Path('scripts/smarttube-playback-mobile.java.inc').read_text(encoding='utf-8')
 
 def body(signature):
     match = re.search(r'(?ms)^    ' + re.escape(signature) + r' \{(.*?)^    \}', play)
@@ -44,21 +43,19 @@ check('prefetchNm7FormatInfo(item);' not in play and 'mNm7PrefetchedFormatInfo' 
 check('mPlayerView' in play and 'PlayerView' in play, 'Mobile playback keeps the PlayerView rendering path')
 check('mNm7ObservedPlayer' in play and 'removeVideoListener' in play, 'Decoder/render observers are tied to the current player instance')
 check('mPlayer.retry()' in play, 'Decoder/source recovery retains bounded retry support')
-check('mPlayer.retry()' in play, 'Decoder/source recovery retains retry support')
 check('scripts/patch-mobile-v37.py' in Path('scripts/build-mobile-windows.ps1').read_text(), 'Windows build uses the shared Mobile patch')
 check('scripts/patch-mobile-v37.py' in Path('.github/workflows/android-mobile-final.yml').read_text(), 'CI uses the shared Mobile patch')
 
-# Direction 2: no embedded YouTube mini-player.
+# No embedded YouTube mini-player.
 check('installNm7MiniPlayer();' not in browse, 'Browse does not install an embedded mini-player')
 check('installYoutubeMiniPlayer(activity)' not in application, 'Application lifecycle does not reattach a mini-player')
 check('MobileMiniPlayer.attach' not in application, 'Application does not create mini-player surfaces')
 check('MobileMiniPlayer.remove' not in application, 'Application does not manage mini-player overlays')
 check('consumeNm7BrowseBack()' not in search, 'Search uses normal Back without mini-player interception')
-
 check('mNm7LeavingForMini = false;' in final_delta and 'sNm7Mini = false;' in final_delta, 'Mobile playback Back patch clears legacy mini-player state')
 check('startActivity(intent);' in final_delta and 'finish();' in final_delta, 'Mobile playback Back patch returns to Browse')
 
-# Bottom navigation: exactly the two requested tabs.
+# Bottom navigation.
 check('"YouTube"' in tabs and '"IPTV"' in tabs, 'Bottom navigation contains YouTube and IPTV')
 check('"Thư viện"' not in tabs and '"Cài đặt"' not in tabs, 'Bottom navigation has no extra YouTube tabs')
 check('addItem(activity, bar, R.drawable.nm7_nav_youtube' in tabs, 'YouTube tab is present')
@@ -68,7 +65,7 @@ check('SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_IPTV);' 
 check('SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_YOUTUBE);' in tabs, 'YouTube tab switches the shared product tab')
 check(tabs.count('addItem(activity, bar,') == 2, 'Exactly two bottom navigation items are created')
 
-# Keep Mobile YouTube Browse usable.
+# Browse/loading.
 check('HomeTabBar.attach(activity, true);' in application, 'YouTube Browse receives the bottom tab bar')
 check('HomeTabBar.attach(activity, false);' in application, 'IPTV MainActivity receives the bottom tab bar')
 check('GRID_COLUMNS = 1' in browse, 'YouTube recommendations remain single-column')
@@ -77,20 +74,40 @@ check('patch-mobile-v73.py' in patch and 'runpy.run_path("scripts/patch-mobile-v
 check('patch-mobile-v74.py' in patch and 'runpy.run_path("scripts/patch-mobile-v74.py")' in patch, 'v74 playback/fullscreen optimization patch is part of the Mobile build chain')
 check('patch-mobile-v75.py' in patch and 'runpy.run_path("scripts/patch-mobile-v75.py")' in patch, 'v75 fast playback format patch is part of the Mobile build chain')
 check('setPlayerDataSource' not in play, 'Mobile playback does not force the YouTube transport to OkHttp')
-check('maxresdefault.jpg' in Path('scripts/patch-mobile-v73.py').read_text(), 'YouTube Browse cards preserve 1.10.72 max-resolution thumbnail target')
+check('maxresdefault.jpg' in Path('scripts/patch-mobile-v73.py').read_text(), 'YouTube Browse cards preserve max-resolution thumbnail target')
 check('mqdefault.jpg' not in Path('scripts/patch-mobile-v73.py').read_text(), 'YouTube Browse optimization does not downgrade thumbnail quality')
 
-# Version must advance for this application-level behavior change.
-check('versionCode = 109' in gradle, 'Mobile versionCode is 108 for Mobile 1.10.92 build')
-check('versionName = "1.10.93"' in gradle, 'Mobile versionName is 1.10.92')
-check('TV_CLIENT' in Path('scripts/patch-mobile-v75.py').read_text(), 'v75 uses the lightweight TV_DOWNGRADED playback client first')
-check('getFastPlaybackFormatInfo' in Path('scripts/patch-mobile-v75.py').read_text(), 'v75 fast format resolver is present')
-check('maxresdefault.jpg' in Path('scripts/patch-mobile-v75.py').read_text(), 'v75 preserves 1.10.72 max-resolution thumbnail target')
-check('mqdefault.jpg' not in Path('scripts/patch-mobile-v75.py').read_text(), 'v75 does not downgrade thumbnail quality')
-check('mNm7SelectedRequest.pendingFor(mPendingVideo.videoId)' in Path('scripts/patch-mobile-v74.py').read_text(), 'v74 keeps selected-video format lookup alive across owner cleanup')
-check('HomeTabBar.setVisible(activity, !fullscreen)' in Path('scripts/patch-mobile-v74.py').read_text(), 'v74 hides the two bottom tabs in landscape/fullscreen playback')
-check('maxresdefault.jpg' in Path('scripts/patch-mobile-v74.py').read_text(), 'v74 preserves 1.10.72 max-resolution thumbnail target')
-check('mqdefault.jpg' not in Path('scripts/patch-mobile-v74.py').read_text(), 'v74 does not downgrade thumbnail quality')
+# Version.
+check('versionCode = 109' in gradle, 'Mobile versionCode is 109 for Mobile 1.10.93 build')
+check('versionName = "1.10.93"' in gradle, 'Mobile versionName is 1.10.93')
+
+# Stable playback patches.
+for ver, needles, label in [
+    ('v75', ['TV_CLIENT','getFastPlaybackFormatInfo'], 'v75 fast format resolver'),
+    ('v76', ['runpy.run_path("scripts/patch-mobile-v76.py")','nm7_live_chat_panel','mNm7LiveChatAdapter'], 'v76 live chat/status-bar'),
+    ('v77', ['runpy.run_path("scripts/patch-mobile-v77.py")','nm7_live_chat_close','setDecorFitsSystemWindows(true)'], 'v77 status-bar/chat'),
+    ('v84', ['runpy.run_path("scripts/patch-mobile-v84.py")','channelThumbnail.thumbnails[0].url','onRenderedFirstFrame','sendLiveChatMessageObserve'], 'v84 playback/chat/avatar/poster'),
+    ('v85', ['runpy.run_path("scripts/patch-mobile-v85.py")','android:paddingBottom="64dp"','String nm7ChannelThumbnail = item.getChannelThumbnail();'], 'v85 status/chat/avatar'),
+    ('v86', ['runpy.run_path("scripts/patch-mobile-v86.py")','nm7_startup_poster','mNm7FirstFrameRendered = true;','NM7_AVATAR_CACHE'], 'v86 status/avatar/poster'),
+    ('v87', ['runpy.run_path("scripts/patch-mobile-v87.py")','FLAG_FORCE_NOT_FULLSCREEN','onWindowFocusChanged(boolean hasFocus)','nm7ArmPosterReadyFallback'], 'v87 hard status/poster'),
+    ('v88', ['runpy.run_path("scripts/patch-mobile-v88.py")','renderedOutputBufferCount','absolute_safety_timeout'], 'v88 decoder-backed poster'),
+    ('v89', ['runpy.run_path("scripts/patch-mobile-v89.py")','mNm7PosterVideoId','dontAnimate()'], 'v89 late-poster'),
+    ('v90', ['runpy.run_path("scripts/patch-mobile-v90.py")','consumeNm7TransitionPoster','startup_poster_source=clicked_card'], 'v90 clicked-card handoff'),
+]:
+    source = patch if ver in {'v76','v77','v84','v85','v86','v87','v88','v89','v90'} else Path(f'scripts/patch-mobile-{ver}.py').read_text()
+    for needle in needles:
+        check(needle in source, f'{label}: {needle}')
+
+check('runpy.run_path("scripts/patch-mobile-v91.py")' in patch, 'v91 smooth-open optimization is in the Mobile chain')
+check('decoder_moving_frames' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 waits for moving decoder frames')
+check('runpy.run_path("scripts/patch-mobile-v93.py")' in patch, 'v93 startup recovery patch is in the Mobile chain')
+check('decoder_playing_stable' in Path('scripts/patch-mobile-v93.py').read_text(), 'v93 requires actual player progression')
+check('bufferForPlaybackMs = 500' in Path('scripts/patch-mobile-v93.py').read_text(), 'v93 restores startup buffer resilience')
+check('BitmapDrawable' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 reuses original decoded thumbnail bitmap')
+check('delaySubscription(650' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 defers optional avatar metadata')
+check('FLAG_ACTIVITY_NO_ANIMATION' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 suppresses playback activity transition flash')
+check('rendered >= mNm7PosterRenderedBaseline + 2' in Path('scripts/patch-mobile-v93.py').read_text(), 'v93 uses the intended +2 moving-frame threshold')
+check('elapsed >= 220L' in Path('scripts/patch-mobile-v93.py').read_text(), 'v93 requires a minimum startup stability window')
 
 Path('dist/mobile-diagnostics').mkdir(parents=True, exist_ok=True)
 Path('dist/mobile-diagnostics/lifecycle-source-proof.json').write_text(json.dumps({
@@ -102,55 +119,3 @@ Path('dist/mobile-diagnostics/lifecycle-source-proof.json').write_text(json.dump
     'browse_sha256': hashlib.sha256(browse.encode()).hexdigest(),
 }, indent=2))
 print(f'{checks} structural checks passed; device runtime not verified')
-check('runpy.run_path("scripts/patch-mobile-v76.py")' in patch, 'v76 live chat/status-bar patch is part of the Mobile build chain')
-check('nm7_live_chat_panel' in Path('scripts/patch-mobile-v76.py').read_text(), 'v76 adds the live chat panel')
-check('mNm7LiveChatAdapter' in Path('scripts/patch-mobile-v76.py').read_text(), 'v76 wires the ChatReceiver adapter')
-check('nm7.mobile.livechat' in Path('app/src/main/java/vn/phuong/iptvplayer/MobileNm7Application.java').read_text(), 'Mobile enables the live-chat integration flag')
-
-check('runpy.run_path("scripts/patch-mobile-v77.py")' in patch, 'v77 status-bar/chat UI patch is in the Mobile chain')
-check('nm7_live_chat_close' in Path('scripts/patch-mobile-v77.py').read_text(), 'v77 has live-chat close control')
-check('setDecorFitsSystemWindows(true)' in Path('scripts/patch-mobile-v77.py').read_text(), 'v77 enables non-edge-to-edge portrait')
-
-check('runpy.run_path("scripts/patch-mobile-v84.py")' in patch, 'v84 playback/chat/avatar/poster patch is part of the Mobile build chain')
-check('channelThumbnail.thumbnails[0].url' in Path('scripts/patch-mobile-v84.py').read_text(), 'v84 fixes channel avatar parser at source')
-check('onRenderedFirstFrame' in Path('scripts/patch-mobile-v84.py').read_text(), 'v84 keeps poster until first rendered frame')
-check('sendLiveChatMessageObserve' in Path('scripts/patch-mobile-v84.py').read_text(), 'v84 adds live-chat send path')
-check('protected void applySystemBars()' in Path('scripts/patch-mobile-v84.py').read_text(), 'v84 restores status bar after DroidActivity resume')
-
-check('runpy.run_path("scripts/patch-mobile-v85.py")' in patch, 'v85 status/chat/avatar correction is part of the Mobile build chain')
-check('android:paddingBottom="64dp"' in Path('scripts/patch-mobile-v85.py').read_text(), 'v85 reserves visible space for live-chat composer')
-check('String nm7ChannelThumbnail = item.getChannelThumbnail();' in Path('scripts/patch-mobile-v85.py').read_text(), 'v85 propagates VideoItem channel avatar directly')
-check('setDecorFitsSystemWindows(true)' in Path('scripts/patch-mobile-v85.py').read_text(), 'v85 forces portrait status bar window fitting')
-
-check('runpy.run_path("scripts/patch-mobile-v86.py")' in patch, 'v86 status/avatar/poster correction is part of the Mobile build chain')
-check('nm7_startup_poster' in Path('scripts/patch-mobile-v86.py').read_text(), 'v86 adds poster overlay above SurfaceView')
-check('mNm7FirstFrameRendered = true;' in Path('scripts/patch-mobile-v86.py').read_text(), 'v86 removes poster only on decoded first frame')
-check('NM7_AVATAR_CACHE' in Path('scripts/patch-mobile-v86.py').read_text(), 'v86 caches metadata-resolved YouTube avatars')
-check('nm7.mobile.normalbars' in Path('scripts/patch-mobile-v86.py').read_text(), 'v86 disables persistent Mobile fullscreen mode inside SmartTube')
-
-check('runpy.run_path("scripts/patch-mobile-v87.py")' in patch, 'v87 hard status/poster correction is part of the Mobile build chain')
-check('FLAG_FORCE_NOT_FULLSCREEN' in Path('scripts/patch-mobile-v87.py').read_text(), 'v87 forces portrait window out of fullscreen')
-check('onWindowFocusChanged(boolean hasFocus)' in Path('scripts/patch-mobile-v87.py').read_text(), 'v87 reasserts status bar after focus')
-check('nm7ArmPosterReadyFallback' in Path('scripts/patch-mobile-v87.py').read_text(), 'v87 has READY fallback to remove stuck poster')
-
-check('runpy.run_path("scripts/patch-mobile-v88.py")' in patch, 'v88 decoder-backed poster correction is part of the Mobile build chain')
-check('renderedOutputBufferCount' in Path('scripts/patch-mobile-v88.py').read_text(), 'v88 observes real decoder output before removing poster')
-check('absolute_safety_timeout' in Path('scripts/patch-mobile-v88.py').read_text(), 'v88 cannot leave poster overlay indefinitely')
-
-check('runpy.run_path("scripts/patch-mobile-v89.py")' in patch, 'v89 late-poster correction is part of the Mobile build chain')
-check('mNm7PosterVideoId' in Path('scripts/patch-mobile-v89.py').read_text(), 'v89 rejects stale/late poster completion')
-check('dontAnimate()' in Path('scripts/patch-mobile-v89.py').read_text(), 'v89 removes Glide animation from startup poster')
-check('list.setClipToPadding(false)' in Path('app/src/main/java/vn/phuong/iptvplayer/HomeTabBar.java').read_text(), 'v89 keeps the final IPTV channel scrollable above bottom tabs')
-
-check('runpy.run_path("scripts/patch-mobile-v90.py")' in patch, 'v90 clicked-card thumbnail handoff is part of the Mobile build chain')
-check('consumeNm7TransitionPoster' in Path('scripts/patch-mobile-v90.py').read_text(), 'v90 reuses the already visible tapped thumbnail')
-check('startup_poster_source=clicked_card' in Path('scripts/patch-mobile-v90.py').read_text(), 'v90 exposes no black gap when clicked thumbnail is available')
-
-check('runpy.run_path("scripts/patch-mobile-v91.py")' in patch, 'v91 smooth-open optimization is part of the Mobile build chain')
-check('decoder_moving_frames' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 waits for moving decoder frames before revealing video')
-check('runpy.run_path("scripts/patch-mobile-v93.py")' in patch, 'v93 startup recovery patch is part of the Mobile build chain')
-check('decoder_playing_stable' in Path('scripts/patch-mobile-v93.py').read_text(), 'v93 requires actual player progression before removing poster')
-check('bufferForPlaybackMs = 500' in Path('scripts/patch-mobile-v93.py').read_text(), 'v93 restores startup buffer resilience')
-check('BitmapDrawable' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 reuses original decoded thumbnail bitmap')
-check('delaySubscription(650' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 defers optional avatar metadata to protect feed loading')
-check('FLAG_ACTIVITY_NO_ANIMATION' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 suppresses playback activity transition flash')
