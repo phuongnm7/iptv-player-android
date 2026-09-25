@@ -139,15 +139,16 @@ if "showHideWidgets(true);\n        nm7RestorePortraitBars();" not in s:
 # 2) Poster overlay ABOVE SurfaceView. The old playback_background sits below
 # SurfaceView and is therefore invisible during decoder/source startup.
 layout = LAYOUT.read_text(encoding="utf-8")
-player_tag = """        <com.github.vkay94.dtpv.DoubleTapPlayerViewImpl
-            android:id="@+id/playback_player_view"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            app:resize_mode="fit"
-            app:surface_type="surface_view"
-            app:use_controller="false" />
-"""
-poster_tag = player_tag + """
+if 'android:id="@+id/nm7_startup_poster"' not in layout:
+    player_id = 'android:id="@+id/playback_player_view"'
+    pid = layout.find(player_id)
+    if pid < 0:
+        raise SystemExit("v86: playback_player_view id not found")
+    tag_end = layout.find("/>", pid)
+    if tag_end < 0:
+        raise SystemExit("v86: playback_player_view closing tag not found")
+    insert_at = tag_end + 2
+    poster_tag = """
         <!-- NM7 1.10.86: selected-video poster sits above SurfaceView until first frame. -->
         <ImageView
             android:id="@+id/nm7_startup_poster"
@@ -157,8 +158,7 @@ poster_tag = player_tag + """
             android:scaleType="centerCrop"
             android:visibility="gone" />
 """
-if 'android:id="@+id/nm7_startup_poster"' not in layout:
-    layout = once(layout, player_tag, poster_tag, "player view poster overlay")
+    layout = layout[:insert_at] + poster_tag + layout[insert_at:]
 LAYOUT.write_text(layout, encoding="utf-8")
 
 field_anchor = """    private ImageView mBackgroundView;
