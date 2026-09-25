@@ -30,7 +30,6 @@ if "nm7HideStartupPoster" not in old_block:
     raise SystemExit("v93: v92 render probe does not contain expected poster-hide decision")
 
 new_block = """                boolean renderedNewFrame = rendered >= mNm7PosterRenderedBaseline + 2;
-                long elapsed = android.os.SystemClock.elapsedRealtime() - mNm7PosterProbeStartedAt;
                 long firstFrameAge = mNm7FirstFrameSeenAt == 0L
                         ? 0L
                         : android.os.SystemClock.elapsedRealtime() - mNm7FirstFrameSeenAt;
