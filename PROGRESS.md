@@ -1,3 +1,36 @@
+# MOBILE 1.10.92 / versionCode 108 — SMOOTHER YOUTUBE OPEN — 2026-09-25
+
+## Mục tiêu
+Tiếp tục trực tiếp từ baseline người dùng đã xác nhận **1.10.91 / versionCode 107**. Vòng này chỉ xử lý lỗi mở video YouTube còn hơi chậm và hiện tượng nháy/flash thumbnail ở các frame đầu.
+
+## Phân tích lỗi
+- 1.10.91 giữ thumbnail chính xác của card cho tới khi decoder có nhiều frame mới.
+- Tuy nhiên player vẫn còn **animation 170 ms** trên container trong khi SurfaceView đang handoff, tạo một lớp transition không cần thiết và có thể làm cảm giác hình ảnh bị nháy.
+- Ngưỡng chờ trước khi bỏ poster ở 1.10.91 là tương đối bảo thủ: tối thiểu 3 output buffers và khoảng 180 ms.
+- Đây là phần được thay đổi; không hạ chất lượng thumbnail.
+
+## Thay đổi 1.10.92
+- Loại bỏ animation 170 ms của player container trong lúc SurfaceView handoff.
+- Giữ nguyên poster lấy trực tiếp từ **BitmapDrawable/Glide bitmap hiện tại**, không resample thumbnail.
+- Chỉ bỏ poster khi decoder đã có **2 output buffers mới** thay vì 3.
+- Giảm thời gian an toàn từ **180 ms → 90 ms**, và khoảng chờ sau first-frame từ **120 ms → 60 ms**.
+- Giảm `bufferForPlaybackMs` **250 → 200 ms**; không thay đổi rebuffer reserve.
+- Không thay đổi IPTV, status bar, avatar, live chat, background playback, navigation hoặc chất lượng thumbnail.
+
+## Version
+- versionName: **1.10.92**
+- versionCode: **108**
+- Branch: `fix/mobile-1.10.92-smooth-youtube-open`
+- Baseline: **1.10.91 / 107**
+
+## Điều kiện chốt
+- CI phải PASS.
+- APK phải có đủ ARM64-v8a và armeabi-v7a.
+- Sau đó người dùng test thực tế để xác nhận không còn flash thumbnail và thời gian mở video được cải thiện.
+- Nếu còn flash, không được tự ý sửa các chức năng ổn định khác; chỉ tiếp tục truy vết SurfaceView/poster handoff.
+
+---
+
 # MOBILE 1.10.91 / versionCode 107 — STABLE BASELINE — USER TEST CONFIRMED — 2026-09-25
 
 ## Quyết định baseline
