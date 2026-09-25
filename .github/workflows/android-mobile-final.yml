@@ -80,7 +80,8 @@ jobs:
           grep -q 'nm7_startup_poster' third_party/SmartTube-droid/smarttubedroid/src/main/res/layout/playback_activity.xml
           grep -q 'mNm7FirstFrameRendered = true;' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
           grep -q 'NM7_AVATAR_CACHE' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/shared/VideoCardHolder.java
-          grep -q 'setFullscreenModeEnabled(false)' app/src/main/java/vn/phuong/iptvplayer/MobileNm7Application.java
+          grep -q 'nm7.mobile.normalbars' app/src/main/java/vn/phuong/iptvplayer/MobileNm7Application.java
+          grep -q 'System.getProperty("nm7.mobile.normalbars")' third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/misc/MotherActivity.java
           grep -q 'getWindow().setDecorFitsSystemWindows(true);' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
 
       - name: Check Mobile lifecycle regression guards
