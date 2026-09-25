@@ -272,3 +272,6 @@ chat.write_text(t, encoding='utf-8')
 
 print('NM7 1.10.80: restore stable YouTube PlaybackActivity system UI and remove automatic chat startup')
 
+
+# NM7 1.10.83 final Mobile YouTube UI/chat/performance patch.
+runpy.run_path("scripts/patch-mobile-v83.py")
