@@ -275,3 +275,6 @@ print('NM7 1.10.80: restore stable YouTube PlaybackActivity system UI and remove
 
 # NM7 1.10.83 final Mobile YouTube UI/chat/performance patch.
 runpy.run_path("scripts/patch-mobile-v83.py")
+
+# NM7 1.10.84: status bar + live-chat send + avatar parser + poster-first loading.
+runpy.run_path("scripts/patch-mobile-v84.py")
