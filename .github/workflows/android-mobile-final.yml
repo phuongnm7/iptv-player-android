@@ -68,7 +68,7 @@ jobs:
       - name: Verify NM7 1.10.97 YouTube patch
         run: |
           set -euxo pipefail
-          test "$(grep -c 'versionName = \"1.10.96\"' app/build.gradle.kts)" -eq 1
+          test "$(grep -c 'versionName = \"1.10.97\"' app/build.gradle.kts)" -eq 1
           test "$(grep -c 'versionCode = 113' app/build.gradle.kts)" -eq 1
           grep -q 'window.setDecorFitsSystemWindows(true);' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
           grep -q 'public void onRenderedFirstFrame()' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
