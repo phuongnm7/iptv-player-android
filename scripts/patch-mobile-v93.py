@@ -1,7 +1,5 @@
 """NM7 Mobile 1.10.93: robust YouTube startup handoff and buffer recovery."""
 from pathlib import Path
-import re
-
 ROOT = Path("third_party/SmartTube-droid")
 PHONE = ROOT / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui"
 PLAYBACK = PHONE / "playback/PlaybackActivity.java"
@@ -50,13 +48,9 @@ new_block = f'''{indent}boolean renderedNewFrame = rendered >= mNm7PosterRendere
 {indent}}}'''
 s = s[:line_start] + new_block + s[brace_end:]
 
-if "if (elapsed >= 1800L)" not in s:
-    tail = s[brace_end:]
-    timeout_match = re.search(r'if \(elapsed >= \d+L\)', tail)
-    if not timeout_match:
-        raise SystemExit("v93: poster timeout decision not found after v92 probe")
-    pos = brace_end + timeout_match.start()
-    s = s[:pos] + "if (elapsed >= 1800L)" + s[pos + len(timeout_match.group(0)):]
+# Keep the existing v92 safety timeout unchanged. The v93 fix gates the poster
+# reveal on actual READY/isPlaying progression; changing the unrelated timeout
+# is intentionally avoided because its owner may be an earlier lifecycle patch.
 
 PLAYBACK.write_text(s, encoding="utf-8")
 
