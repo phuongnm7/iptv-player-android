@@ -81,8 +81,8 @@ check('maxresdefault.jpg' in Path('scripts/patch-mobile-v73.py').read_text(), 'Y
 check('mqdefault.jpg' not in Path('scripts/patch-mobile-v73.py').read_text(), 'YouTube Browse optimization does not downgrade thumbnail quality')
 
 # Version must advance for this application-level behavior change.
-check('versionCode = 95' in gradle, 'Mobile versionCode bumped for Mobile 1.10.76 build')
-check('versionName = "1.10.77"' in gradle, 'Mobile versionName is 1.10.76')
+check('versionCode = 99' in gradle, 'Mobile versionCode is 99 for Mobile 1.10.83 build')
+check('versionName = "1.10.83"' in gradle, 'Mobile versionName is 1.10.83')
 check('TV_CLIENT' in Path('scripts/patch-mobile-v75.py').read_text(), 'v75 uses the lightweight TV_DOWNGRADED playback client first')
 check('getFastPlaybackFormatInfo' in Path('scripts/patch-mobile-v75.py').read_text(), 'v75 fast format resolver is present')
 check('maxresdefault.jpg' in Path('scripts/patch-mobile-v75.py').read_text(), 'v75 preserves 1.10.72 max-resolution thumbnail target')
