@@ -14,11 +14,10 @@ def once(s, old, new, label):
 
 # ---------------------------------------------------------------------------
 # 1) Status bar: DroidActivity.onResume() calls applySystemBars() after the player
-# asks for bars, so override that lifecycle hook in PlaybackActivity itself.
+# asks for bars. Replace any existing PlaybackActivity override in-place instead
+# of adding a duplicate method.
 s = PLAYBACK.read_text(encoding="utf-8")
-anchor = """    private void applySystemUi(boolean fullscreen) {
-"""
-override = """    @Override
+status_method = """    @Override
     protected void applySystemBars() {
         // NM7 1.10.84: DroidActivity.onResume() used to hide the status bar again
         // after portrait playback had already requested it. Keep the base nav-bar
@@ -39,11 +38,33 @@ override = """    @Override
             if (mRoot != null) mRoot.post(() -> mRoot.requestApplyInsets());
         }
     }
-
-    private void applySystemUi(boolean fullscreen) {
 """
 if "NM7 1.10.84: DroidActivity.onResume()" not in s:
-    s = once(s, anchor, override, "applySystemBars override anchor")
+    sig = "    protected void applySystemBars() {"
+    pos = s.find(sig)
+    if pos >= 0:
+        method_start = s.rfind("    @Override\n", 0, pos)
+        if method_start < 0 or pos - method_start > 80:
+            method_start = pos
+        brace = s.find("{", pos)
+        depth = 0
+        method_end = -1
+        for i in range(brace, len(s)):
+            if s[i] == "{":
+                depth += 1
+            elif s[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    method_end = i + 1
+                    break
+        if method_end < 0:
+            raise SystemExit("v84: existing applySystemBars closing brace not found")
+        s = s[:method_start] + status_method + s[method_end:]
+    else:
+        anchor = "    private void applySystemUi(boolean fullscreen) {\n"
+        if s.count(anchor) != 1:
+            raise SystemExit(f"v84: expected one applySystemUi anchor, found {s.count(anchor)}")
+        s = s.replace(anchor, status_method + "\n" + anchor, 1)
 
 # ---------------------------------------------------------------------------
 # 2) Poster-first player startup. Keep the selected video thumbnail visible until
