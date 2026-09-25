@@ -81,8 +81,8 @@ check('maxresdefault.jpg' in Path('scripts/patch-mobile-v73.py').read_text(), 'Y
 check('mqdefault.jpg' not in Path('scripts/patch-mobile-v73.py').read_text(), 'YouTube Browse optimization does not downgrade thumbnail quality')
 
 # Version must advance for this application-level behavior change.
-check('versionCode = 102' in gradle, 'Mobile versionCode is 102 for Mobile 1.10.86 build')
-check('versionName = "1.10.86"' in gradle, 'Mobile versionName is 1.10.86')
+check('versionCode = 103' in gradle, 'Mobile versionCode is 103 for Mobile 1.10.87 build')
+check('versionName = "1.10.87"' in gradle, 'Mobile versionName is 1.10.87')
 check('TV_CLIENT' in Path('scripts/patch-mobile-v75.py').read_text(), 'v75 uses the lightweight TV_DOWNGRADED playback client first')
 check('getFastPlaybackFormatInfo' in Path('scripts/patch-mobile-v75.py').read_text(), 'v75 fast format resolver is present')
 check('maxresdefault.jpg' in Path('scripts/patch-mobile-v75.py').read_text(), 'v75 preserves 1.10.72 max-resolution thumbnail target')
@@ -127,3 +127,8 @@ check('nm7_startup_poster' in Path('scripts/patch-mobile-v86.py').read_text(), '
 check('mNm7FirstFrameRendered = true;' in Path('scripts/patch-mobile-v86.py').read_text(), 'v86 removes poster only on decoded first frame')
 check('NM7_AVATAR_CACHE' in Path('scripts/patch-mobile-v86.py').read_text(), 'v86 caches metadata-resolved YouTube avatars')
 check('nm7.mobile.normalbars' in Path('scripts/patch-mobile-v86.py').read_text(), 'v86 disables persistent Mobile fullscreen mode inside SmartTube')
+
+check('runpy.run_path("scripts/patch-mobile-v87.py")' in patch, 'v87 hard status/poster correction is part of the Mobile build chain')
+check('FLAG_FORCE_NOT_FULLSCREEN' in Path('scripts/patch-mobile-v87.py').read_text(), 'v87 forces portrait window out of fullscreen')
+check('onWindowFocusChanged(boolean hasFocus)' in Path('scripts/patch-mobile-v87.py').read_text(), 'v87 reasserts status bar after focus')
+check('nm7ArmPosterReadyFallback' in Path('scripts/patch-mobile-v87.py').read_text(), 'v87 has READY fallback to remove stuck poster')
