@@ -64,11 +64,11 @@ jobs:
       - name: Patch SmartTube Mobile UI and playback lifecycle
         run: python3 scripts/patch-mobile-v37.py
 
-      - name: Verify NM7 1.10.86 YouTube patch
+      - name: Verify NM7 1.10.87 YouTube patch
         run: |
           set -euxo pipefail
-          test "$(grep -c 'versionName = \"1.10.86\"' app/build.gradle.kts)" -eq 1
-          test "$(grep -c 'versionCode = 102' app/build.gradle.kts)" -eq 1
+          test "$(grep -c 'versionName = \"1.10.87\"' app/build.gradle.kts)" -eq 1
+          test "$(grep -c 'versionCode = 103' app/build.gradle.kts)" -eq 1
           grep -q 'getWindow().setDecorFitsSystemWindows(true);' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
           grep -q 'public void onRenderedFirstFrame()' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
           grep -q 'channelThumbnail.thumbnails\[0\].url' third_party/SmartTube-droid/MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/common/models/items/VideoItem.java
@@ -82,6 +82,10 @@ jobs:
           grep -q 'NM7_AVATAR_CACHE' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/shared/VideoCardHolder.java
           grep -q 'nm7.mobile.normalbars' app/src/main/java/vn/phuong/iptvplayer/MobileNm7Application.java
           grep -q 'System.getProperty("nm7.mobile.normalbars")' third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/misc/MotherActivity.java
+          grep -q 'FLAG_FORCE_NOT_FULLSCREEN' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
+          grep -q 'onWindowFocusChanged(boolean hasFocus)' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
+          grep -q 'startup_poster_hidden reason=' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
+          grep -q 'nm7ArmPosterReadyFallback' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
           grep -q 'getWindow().setDecorFitsSystemWindows(true);' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
 
       - name: Check Mobile lifecycle regression guards
