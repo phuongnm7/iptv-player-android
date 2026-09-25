@@ -1,12 +1,44 @@
-# Mobile 1.10.83 / versionCode 99 — TEST BUILD
+# Mobile 1.10.91 / versionCode 107 — STABLE BASELINE — USER TEST CONFIRMED
 
-Bản phát triển hiện tại: **1.10.83**, dựa trên stable baseline 1.10.75.
+**1.10.91 là bản Mobile tốt nhất/ổn định nhất hiện tại theo kết quả test thực tế mới nhất của người dùng.** Từ thời điểm này, mọi bản Mobile tiếp theo phải phát triển trực tiếp trên nền **1.10.91**, không quay lại các baseline cũ nếu không có yêu cầu đặc biệt.
 
-Phạm vi vòng này: sửa player YouTube dọc để hiện lại Android status bar, bổ sung xem live chat cho video Live, làm nét thumbnail, sửa pipeline avatar kênh, tối ưu thêm first-frame và thêm hiệu ứng mở video nhẹ. Đây vẫn là **Mobile-only**.
+- Version: **1.10.91**
+- versionCode: **107**
+- Branch: `fix/mobile-1.10.83-youtube-player-ui`
+- Source commit đã build: `60f3be09859f608b23b40b066a9da9168f7b0b7b`
+- **NM7 Mobile Final Build #611 — SUCCESS**
+- Run: `36104328880`
+- Artifact: `NM7-IPTV-Mobile-FINAL`
+- Artifact ID: `10850193056`
+- [GitHub Actions #611](https://github.com/phuongnm7/iptv-player-android/actions/runs/36104328880)
+- [Tải artifact APK ARM64/ARMv7](https://github.com/phuongnm7/iptv-player-android/actions/runs/36104328880/artifacts/10850193056)
 
-**1.10.83 chưa được chốt stable** cho tới khi CI build thành công và được test trên thiết bị thật. Stable baseline đã được xác nhận trước đó vẫn là **1.10.75 / versionCode 93**.
+## Trạng thái test thiết bị
 
-Xem chi tiết trong [PROGRESS.md](PROGRESS.md).
+Người dùng đã cài và test **1.10.91** trên thiết bị thật. Kết luận hiện tại: **đây là bản tốt nhất để làm nền phát triển tiếp theo**.
+
+Các phần đang được giữ nguyên:
+- IPTV và danh sách kênh, bao gồm việc kênh cuối không còn bị thanh YouTube/IPTV đè.
+- Android status bar trong player YouTube.
+- Avatar video/kênh YouTube.
+- Live chat.
+- Thumbnail không còn bị treo khi video đã phát.
+- Tốc độ tải/phát YouTube đã được tối ưu so với các baseline trước.
+
+Lỗi còn lại đã biết:
+- Khi mở video YouTube vẫn còn **một nhịp nháy nhẹ của khung hình đầu/chuyển cảnh**. Đây là lỗi ưu tiên cho các bản sau, nhưng **không thay đổi baseline 1.10.91**.
+- Thumbnail ở một số đường chuyển tiếp vẫn cần tiếp tục tối ưu độ nét/tốc độ nếu có bằng chứng regression.
+
+## Quy tắc baseline từ 1.10.91
+
+1. Mọi build Mobile mới phải bắt đầu trực tiếp từ **1.10.91 / versionCode 107**.
+2. VersionCode/versionName tiếp theo tăng tuần tự từ 107.
+3. Không sửa lại các chức năng đã ổn định ở 1.10.91 nếu không có yêu cầu hoặc bằng chứng regression.
+4. Khi xử lý lỗi nháy mở video, chỉ thay đổi pipeline transition/player-loading liên quan; phải giữ nguyên IPTV, status bar, avatar, live chat và các phần ổn định khác.
+5. Mỗi bản mới phải được CI build/verify trước khi giao APK.
+6. Chỉ sau khi người dùng test thực tế mới đánh dấu một bản mới là baseline.
+
+Xem lịch sử kỹ thuật và từng lỗi đã xử lý trong [PROGRESS.md](PROGRESS.md).
 
 ---
 
