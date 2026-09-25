@@ -81,8 +81,8 @@ check('maxresdefault.jpg' in Path('scripts/patch-mobile-v73.py').read_text(), 'Y
 check('mqdefault.jpg' not in Path('scripts/patch-mobile-v73.py').read_text(), 'YouTube Browse optimization does not downgrade thumbnail quality')
 
 # Version.
-check('versionCode = 111' in gradle, 'Mobile versionCode is 111 for Mobile 1.10.95 build')
-check('versionName = "1.10.95"' in gradle, 'Mobile versionName is 1.10.95')
+check('versionCode = 112' in gradle, 'Mobile versionCode is 112 for Mobile 1.10.96 build')
+check('versionName = "1.10.96"' in gradle, 'Mobile versionName is 1.10.95')
 
 # Stable playback patches.
 for ver, needles, label in [
@@ -108,7 +108,9 @@ check('runpy.run_path("scripts/patch-mobile-v95.py")' in patch, 'v95 reference-s
 check('keep_content_on_player_reset="false"' in Path('scripts/patch-mobile-v95.py').read_text(), 'v95 disables stale SurfaceView content on reset')
 check('shutter_background_color="@android:color/black"' in Path('scripts/patch-mobile-v95.py').read_text(), 'v95 uses a black native PlayerView shutter')
 check('android.graphics.Bitmap nm7TransitionPoster = null;' in Path('scripts/patch-mobile-v95.py').read_text(), 'v95 disables the early clicked-card poster')
-check('mProgressBar.setVisibility(View.VISIBLE)' in Path('scripts/patch-mobile-v95.py').read_text(), 'v95 shows loading state immediately')
+check('mProgressBar.setVisibility(View.GONE)' in Path('scripts/patch-mobile-v96.py').read_text(), 'v96 removes the indeterminate startup spinner')
+check('bufferForPlaybackMs = 150' in Path('scripts/patch-mobile-v96.py').read_text(), 'v96 lowers the initial playback threshold to 150ms')
+check('runpy.run_path(\"scripts/patch-mobile-v96.py\")' in patch, 'v96 startup performance patch is in the Mobile chain')
 check('runpy.run_path("scripts/patch-mobile-v92.py")' not in patch and 'runpy.run_path("scripts/patch-mobile-v93.py")' not in patch, 'experimental v92/v93 patches are excluded from the Mobile chain')
 check('mNm7FirstFramePositionMs' in Path('scripts/patch-mobile-v94.py').read_text(), 'v94 gates poster handoff on playback position')
 check('playbackProgressMs >= 120L' in Path('scripts/patch-mobile-v94.py').read_text(), 'v94 requires playback position to advance')
@@ -117,7 +119,7 @@ check('delaySubscription(650' in Path('scripts/patch-mobile-v91.py').read_text()
 check('FLAG_ACTIVITY_NO_ANIMATION' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 suppresses playback activity transition flash')
 check('rendered >= mNm7PosterRenderedBaseline + 3' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 uses the tested +3 moving-frame threshold')
 check('elapsed >= 180L' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 requires the tested startup stability window')
-check('bufferForPlaybackMs = 250' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 keeps the tested 250ms startup buffer')
+check('bufferForPlaybackMs = 250' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 baseline retains the 250ms startup buffer before v96 override')
 
 Path('dist/mobile-diagnostics').mkdir(parents=True, exist_ok=True)
 Path('dist/mobile-diagnostics/lifecycle-source-proof.json').write_text(json.dumps({
