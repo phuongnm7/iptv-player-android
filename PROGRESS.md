@@ -3524,3 +3524,30 @@ Video cho thấy sau khi chọn YouTube video, vùng player vẫn đen và spinn
 - versionCode: **93**
 
 **Chưa kết luận tốc độ đã đạt mức IPTV cho tới khi APK 1.10.75 được build và người dùng test trên cùng thiết bị/mạng.**
+
+
+# 1.10.93 — sửa dứt điểm startup YouTube theo video máy thật — 2026-09-25
+
+Người dùng gửi video test sau 1.10.92 và xác nhận hiện tượng nháy khung hình vẫn còn, đồng thời lúc mở video có hiện tượng đơ/lag/giật.
+
+## Phân tích video
+- Tại khoảng 9.9s người dùng mở video YouTube.
+- Vùng player giữ trạng thái chuyển tiếp trong khoảng ~1 giây trước khi nội dung mới ổn định.
+- Vì vậy v92 chỉ giảm thời gian chờ poster/đếm rendered buffer nhưng chưa chứng minh được decoder đã thực sự vào trạng thái đang phát.
+
+## Sửa 1.10.93
+- Poster chỉ được gỡ khi đồng thời đạt:
+  - ít nhất 4 output buffers mới;
+  - đã có first-frame timestamp;
+  - first-frame đã tồn tại ít nhất 140ms;
+  - ExoPlayer ở STATE_READY, playWhenReady=true và isPlaying=true.
+- Tăng safety timeout poster lên 1800ms để không lộ surface chưa ổn định.
+- Khôi phục bufferForPlaybackMs từ 200ms lên 500ms; 200ms là quá tích cực cho startup và có thể làm tăng stall/giật khi format/network vừa bắt đầu.
+- Không thay đổi IPTV, status bar, avatar, live chat, background playback hoặc navigation.
+
+## Version
+- versionName: **1.10.93**
+- versionCode: **109**
+
+## Trạng thái
+Source đã cập nhật và CI sẽ build lại Mobile. Chưa đánh dấu lỗi đã hết cho đến khi CI thành công và người dùng test APK 1.10.93 trên đúng thiết bị/mạng.
