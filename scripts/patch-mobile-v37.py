@@ -278,3 +278,6 @@ runpy.run_path("scripts/patch-mobile-v83.py")
 
 # NM7 1.10.84: status bar + live-chat send + avatar parser + poster-first loading.
 runpy.run_path("scripts/patch-mobile-v84.py")
+
+# NM7 1.10.85: device-verified status/chat/avatar corrections.
+runpy.run_path("scripts/patch-mobile-v85.py")
