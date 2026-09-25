@@ -281,3 +281,6 @@ runpy.run_path("scripts/patch-mobile-v84.py")
 
 # NM7 1.10.85: device-verified status/chat/avatar corrections.
 runpy.run_path("scripts/patch-mobile-v85.py")
+
+# NM7 1.10.86: status bar + avatar metadata fallback + poster overlay.
+runpy.run_path("scripts/patch-mobile-v86.py")
