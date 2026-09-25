@@ -300,6 +300,7 @@ runpy.run_path("scripts/patch-mobile-v90.py")
 # NM7 1.10.91: smooth YouTube open + sharper handoff + feed priority.
 runpy.run_path("scripts/patch-mobile-v91.py")
 
-# NM7 1.10.94: return to the user-tested 1.10.91 baseline.
-# Do not apply the experimental v92/v93 poster/buffer changes.
+# NM7 1.10.95: match the reference video with native PlayerView shutter/reset.
+# Keep 1.10.91/1.10.94 transport and playback logic unchanged.
 runpy.run_path("scripts/patch-mobile-v94.py")
+runpy.run_path("scripts/patch-mobile-v95.py")
