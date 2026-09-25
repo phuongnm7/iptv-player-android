@@ -81,8 +81,8 @@ check('maxresdefault.jpg' in Path('scripts/patch-mobile-v73.py').read_text(), 'Y
 check('mqdefault.jpg' not in Path('scripts/patch-mobile-v73.py').read_text(), 'YouTube Browse optimization does not downgrade thumbnail quality')
 
 # Version must advance for this application-level behavior change.
-check('versionCode = 108' in gradle, 'Mobile versionCode is 108 for Mobile 1.10.92 build')
-check('versionName = "1.10.92"' in gradle, 'Mobile versionName is 1.10.92')
+check('versionCode = 109' in gradle, 'Mobile versionCode is 108 for Mobile 1.10.92 build')
+check('versionName = "1.10.93"' in gradle, 'Mobile versionName is 1.10.92')
 check('TV_CLIENT' in Path('scripts/patch-mobile-v75.py').read_text(), 'v75 uses the lightweight TV_DOWNGRADED playback client first')
 check('getFastPlaybackFormatInfo' in Path('scripts/patch-mobile-v75.py').read_text(), 'v75 fast format resolver is present')
 check('maxresdefault.jpg' in Path('scripts/patch-mobile-v75.py').read_text(), 'v75 preserves 1.10.72 max-resolution thumbnail target')
@@ -148,6 +148,9 @@ check('startup_poster_source=clicked_card' in Path('scripts/patch-mobile-v90.py'
 
 check('runpy.run_path("scripts/patch-mobile-v91.py")' in patch, 'v91 smooth-open optimization is part of the Mobile build chain')
 check('decoder_moving_frames' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 waits for moving decoder frames before revealing video')
+check('runpy.run_path("scripts/patch-mobile-v93.py")' in patch, 'v93 startup recovery patch is part of the Mobile build chain')
+check('decoder_playing_stable' in Path('scripts/patch-mobile-v93.py').read_text(), 'v93 requires actual player progression before removing poster')
+check('bufferForPlaybackMs = 500' in Path('scripts/patch-mobile-v93.py').read_text(), 'v93 restores startup buffer resilience')
 check('BitmapDrawable' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 reuses original decoded thumbnail bitmap')
 check('delaySubscription(650' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 defers optional avatar metadata to protect feed loading')
 check('FLAG_ACTIVITY_NO_ANIMATION' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 suppresses playback activity transition flash')
