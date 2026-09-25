@@ -293,3 +293,6 @@ runpy.run_path("scripts/patch-mobile-v88.py")
 
 # NM7 1.10.89: gate late Glide poster + keep final IPTV channel above tabs.
 runpy.run_path("scripts/patch-mobile-v89.py")
+
+# NM7 1.10.90: clicked-card thumbnail handoff only.
+runpy.run_path("scripts/patch-mobile-v90.py")
