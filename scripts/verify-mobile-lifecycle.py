@@ -81,8 +81,8 @@ check('maxresdefault.jpg' in Path('scripts/patch-mobile-v73.py').read_text(), 'Y
 check('mqdefault.jpg' not in Path('scripts/patch-mobile-v73.py').read_text(), 'YouTube Browse optimization does not downgrade thumbnail quality')
 
 # Version must advance for this application-level behavior change.
-check('versionCode = 104' in gradle, 'Mobile versionCode is 104 for Mobile 1.10.88 build')
-check('versionName = "1.10.88"' in gradle, 'Mobile versionName is 1.10.88')
+check('versionCode = 105' in gradle, 'Mobile versionCode is 105 for Mobile 1.10.89 build')
+check('versionName = "1.10.89"' in gradle, 'Mobile versionName is 1.10.89')
 check('TV_CLIENT' in Path('scripts/patch-mobile-v75.py').read_text(), 'v75 uses the lightweight TV_DOWNGRADED playback client first')
 check('getFastPlaybackFormatInfo' in Path('scripts/patch-mobile-v75.py').read_text(), 'v75 fast format resolver is present')
 check('maxresdefault.jpg' in Path('scripts/patch-mobile-v75.py').read_text(), 'v75 preserves 1.10.72 max-resolution thumbnail target')
@@ -136,3 +136,8 @@ check('nm7ArmPosterReadyFallback' in Path('scripts/patch-mobile-v87.py').read_te
 check('runpy.run_path("scripts/patch-mobile-v88.py")' in patch, 'v88 decoder-backed poster correction is part of the Mobile build chain')
 check('renderedOutputBufferCount' in Path('scripts/patch-mobile-v88.py').read_text(), 'v88 observes real decoder output before removing poster')
 check('absolute_safety_timeout' in Path('scripts/patch-mobile-v88.py').read_text(), 'v88 cannot leave poster overlay indefinitely')
+
+check('runpy.run_path("scripts/patch-mobile-v89.py")' in patch, 'v89 late-poster correction is part of the Mobile build chain')
+check('mNm7PosterVideoId' in Path('scripts/patch-mobile-v89.py').read_text(), 'v89 rejects stale/late poster completion')
+check('dontAnimate()' in Path('scripts/patch-mobile-v89.py').read_text(), 'v89 removes Glide animation from startup poster')
+check('list.setClipToPadding(false)' in Path('app/src/main/java/vn/phuong/iptvplayer/HomeTabBar.java').read_text(), 'v89 keeps the final IPTV channel scrollable above bottom tabs')
