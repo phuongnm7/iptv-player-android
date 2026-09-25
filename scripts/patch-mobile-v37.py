@@ -304,4 +304,5 @@ runpy.run_path("scripts/patch-mobile-v91.py")
 # Keep 1.10.91/1.10.94 transport and playback logic unchanged.
 runpy.run_path("scripts/patch-mobile-v94.py")
 runpy.run_path("scripts/patch-mobile-v95.py")
-runpy.run_path("scripts/patch-mobile-v96.py")\nrunpy.run_path("scripts/patch-mobile-v97.py")
+runpy.run_path("scripts/patch-mobile-v96.py")
+runpy.run_path("scripts/patch-mobile-v97.py")
