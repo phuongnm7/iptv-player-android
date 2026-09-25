@@ -308,3 +308,5 @@ jobs:
 # NM7 CI retrigger after mobile thumbnail regex fix
 
 # NM7 v74 rebuild trigger: corrected selected-video loader path and fullscreen tab handling.
+
+# NM7 CI retrigger: verifier regex corrected in 5aa1aa469fe01f1877fd398bd6fbd60dcb1aba4d
