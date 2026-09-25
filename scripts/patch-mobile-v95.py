@@ -31,7 +31,7 @@ def once(s, old, new, label):
 # exact PlayerView attribute order, so match the whole tag rather than relying
 # on a brittle text fragment.
 xml = LAYOUT.read_text(encoding="utf-8")
-player_re = re.compile(r'(?s)(<com\\.github\\.vkay94\\.dtpv\\.DoubleTapPlayerViewImpl\\b.*?/>)')
+player_re = re.compile(r'(?s)(<com\.github\.vkay94\.dtpv\.DoubleTapPlayerViewImpl\b.*?/>)')
 m = player_re.search(xml)
 if not m:
     raise SystemExit("v95: playback PlayerView tag not found")
