@@ -86,16 +86,12 @@ listener_tail_repl = """                if (mProgressHidePending && !isPlayerBuf
 if "public void onRenderedFirstFrame()" not in s:
     s = once(s, listener_tail, listener_tail_repl, "first rendered frame listener")
 
-setvideo_anchor = """    @Override
-    public void setVideo(Video item) {
-        mExoPlayerController.setVideo(item);
-
-        if (item == null) {
-            return;
-        }
-"""
-setvideo_repl = """    @Override
-    public void setVideo(Video item) {
+setvideo_sig = "    public void setVideo(Video item) {\n"
+if "NM7 1.10.84: show the selected video's poster immediately" not in s:
+    count = s.count(setvideo_sig)
+    if count != 1:
+        raise SystemExit(f"v84: expected exactly one setVideo signature, found {count}")
+    poster = """    public void setVideo(Video item) {
         // NM7 1.10.84: show the selected video's poster immediately, before network
         // format resolution/decoder startup. It is removed only on first rendered frame.
         mNm7FirstFrameRendered = false;
@@ -114,15 +110,8 @@ setvideo_repl = """    @Override
                     .error(Glide.with(this).load(item.getCardImageUrl()))
                     .into(mBackgroundView);
         }
-
-        mExoPlayerController.setVideo(item);
-
-        if (item == null) {
-            return;
-        }
 """
-if "NM7 1.10.84: show the selected video's poster immediately" not in s:
-    s = once(s, setvideo_anchor, setvideo_repl, "setVideo poster")
+    s = s.replace(setvideo_sig, poster, 1)
 
 progress_anchor = """            mProgressHidePending = false;
             mProgressBar.setVisibility(show ? View.VISIBLE : View.GONE);
