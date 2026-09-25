@@ -21,7 +21,7 @@ patch = Path('scripts/patch-mobile-v37.py').read_text(encoding='utf-8')
 final_delta = Path('scripts/patch-mobile-v69-no-miniplayer.py').read_text(encoding='utf-8')
 
 def body(signature):
-    match = re.search(r'(?ms)^    ' + re.escape(signature) + r' \{(.*?)^    \}', play)
+    match = re.search(r'(?ms)^    ' + re.escape(signature) + r' \\{(.*?)^    \\}', play)
     assert match, signature
     return match.group(1)
 
@@ -78,8 +78,8 @@ check('maxresdefault.jpg' in Path('scripts/patch-mobile-v73.py').read_text(), 'Y
 check('mqdefault.jpg' not in Path('scripts/patch-mobile-v73.py').read_text(), 'YouTube Browse optimization does not downgrade thumbnail quality')
 
 # Version.
-check('versionCode = 110' in gradle, 'Mobile versionCode is 111 for Mobile 1.10.95 build')
-check('versionName = "1.10.94"' in gradle, 'Mobile versionName is 1.10.95')
+check('versionCode = 111' in gradle, 'Mobile versionCode is 111 for Mobile 1.10.95 build')
+check('versionName = "1.10.95"' in gradle, 'Mobile versionName is 1.10.95')
 
 # Stable playback patches.
 for ver, needles, label in [
