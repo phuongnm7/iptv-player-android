@@ -64,11 +64,11 @@ jobs:
       - name: Patch SmartTube Mobile UI and playback lifecycle
         run: python3 scripts/patch-mobile-v37.py
 
-      - name: Verify NM7 1.10.93 YouTube patch
+      - name: Verify NM7 1.10.94 YouTube patch
         run: |
           set -euxo pipefail
-          test "$(grep -c 'versionName = \"1.10.93\"' app/build.gradle.kts)" -eq 1
-          test "$(grep -c 'versionCode = 109' app/build.gradle.kts)" -eq 1
+          test "$(grep -c 'versionName = \"1.10.94\"' app/build.gradle.kts)" -eq 1
+          test "$(grep -c 'versionCode = 110' app/build.gradle.kts)" -eq 1
           grep -q 'window.setDecorFitsSystemWindows(true);' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
           grep -q 'public void onRenderedFirstFrame()' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
           grep -q 'channelThumbnail.thumbnails\[0\].url' third_party/SmartTube-droid/MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/common/models/items/VideoItem.java
@@ -95,11 +95,12 @@ jobs:
           grep -q 'list.getPaddingBottom() + dp(activity, 76)' app/src/main/java/vn/phuong/iptvplayer/HomeTabBar.java
           grep -q 'consumeNm7TransitionPoster' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/shared/VideoCardHolder.java
           grep -q 'startup_poster_source=clicked_card' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-          grep -q 'decoder_playing_stable' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
+          grep -q 'decoder_playback_progress' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
+          grep -q 'mNm7FirstFramePositionMs' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
           grep -q 'BitmapDrawable' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/shared/VideoCardHolder.java
-          grep -q 'decoder_playing_stable' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-          grep -q 'rendered >= mNm7PosterRenderedBaseline + 2' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-          grep -q 'elapsed >= 220L' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
+          grep -q 'decoder_playback_progress' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
+          grep -q 'rendered >= mNm7PosterRenderedBaseline + 3' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
+          grep -q 'playbackProgressMs >= 120L' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
           ! grep -q 'NM7 1.10.83: subtle phone-style player entrance' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
           grep -q 'delaySubscription(650' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/shared/VideoCardHolder.java
           grep -q 'FLAG_ACTIVITY_NO_ANIMATION' third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/views/ViewManager.java
