@@ -24,7 +24,7 @@ def body(signature):
     # SmartTube may use public/protected and annotations differently across
     # generated source revisions. Match the method by name, not visibility.
     name = re.escape(signature.split()[-1].replace('()', ''))
-    match = re.search(r'(?ms)\\b' + name + r'\\s*\\([^)]*\\)\\s*\\{(.*?)(?=^\\s*(?:public|protected|private)\\s+|\\Z)', play)
+    match = re.search(r'(?ms)\b' + name + r'\s*\([^)]*\)\s*\{(.*?)(?=^\s*(?:public|protected|private|@Override)\s+|\Z)', play)
     assert match, signature
     return match.group(1)
 
