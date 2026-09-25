@@ -3588,3 +3588,11 @@ Người dùng gửi video test sau 1.10.92 và xác nhận hiện tượng nhá
 
 ## Trạng thái
 Source đã cập nhật và CI sẽ build lại Mobile. Chưa đánh dấu lỗi đã hết cho đến khi CI thành công và người dùng test APK 1.10.93 trên đúng thiết bị/mạng.
+
+
+## 1.10.96 — startup spinner removed / faster YouTube start (2026-09-25)
+- Built from the tested 1.10.91 → 1.10.94 → 1.10.95 chain; Mobile only.
+- Removed the indeterminate YouTube loading spinner during startup. The player now stays visually clean while the native black shutter handles the transition.
+- Reduced the ExoPlayer initial playback threshold from 250 ms to 150 ms to reduce time-to-first-play. The rebuffer threshold remains unchanged.
+- No changes to IPTV, live chat, avatar, status bar, navigation, or mini-player behavior.
+- Runtime behavior still requires device testing; CI verification only proves the patch is structurally applied.
