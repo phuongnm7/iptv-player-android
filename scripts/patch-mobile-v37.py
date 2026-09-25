@@ -290,3 +290,6 @@ runpy.run_path("scripts/patch-mobile-v87.py")
 
 # NM7 1.10.88: decoder-backed poster lifecycle; status/avatar remain unchanged.
 runpy.run_path("scripts/patch-mobile-v88.py")
+
+# NM7 1.10.89: gate late Glide poster + keep final IPTV channel above tabs.
+runpy.run_path("scripts/patch-mobile-v89.py")
