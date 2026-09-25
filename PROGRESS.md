@@ -1,3 +1,25 @@
+# 1.10.95 — làm theo video mẫu: reset player về màn đen trước khi phát
+
+Ngày 2026-09-25.
+
+Đã đối chiếu trực tiếp hai video người dùng gửi:
+- Video mẫu: `219187.mp4` — khi chọn video mới, khung player bỏ nội dung cũ, chuyển sang vùng đen/loading; sau đó thumbnail của video mới xuất hiện rồi mới phát.
+- Video bản 1.10.94: `219190.mp4` — khung SurfaceView vẫn giữ hình video cũ trong lúc video mới đang tải, đúng lỗi người dùng phản ánh.
+
+Sửa 1.10.95:
+- Dùng cơ chế **PlayerView native shutter/reset** thay vì cố phủ SurfaceView bằng poster ImageView.
+- `keep_content_on_player_reset=false` để frame cũ bị ẩn ngay khi player reset.
+- Shutter có nền đen.
+- Bỏ poster lấy đồng bộ từ card vừa bấm; chỉ cho poster của video mới xuất hiện qua đường Glide sau khi có dữ liệu, khớp trình tự video mẫu.
+- Hiện loading indicator ngay khi chọn video mới.
+- Không thay đổi IPTV, chat, avatar, background playback, navigation hoặc Android TV.
+
+Version: **1.10.95 / versionCode 111**.
+
+Trạng thái: đã đẩy source + verifier + CI; đang chờ CI build. Chưa coi lỗi đã hết cho đến khi APK được build và người dùng test trên máy thật.
+
+---
+
 # MOBILE 1.10.94 — RETURN TO TESTED 1.10.91 BASELINE
 
 ## 2026-09-25
