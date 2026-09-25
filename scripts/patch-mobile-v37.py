@@ -287,3 +287,6 @@ runpy.run_path("scripts/patch-mobile-v86.py")
 
 # NM7 1.10.87: hard status bar + non-sticky poster lifecycle.
 runpy.run_path("scripts/patch-mobile-v87.py")
+
+# NM7 1.10.88: decoder-backed poster lifecycle; status/avatar remain unchanged.
+runpy.run_path("scripts/patch-mobile-v88.py")
