@@ -126,4 +126,4 @@ check('runpy.run_path("scripts/patch-mobile-v86.py")' in patch, 'v86 status/avat
 check('nm7_startup_poster' in Path('scripts/patch-mobile-v86.py').read_text(), 'v86 adds poster overlay above SurfaceView')
 check('mNm7FirstFrameRendered = true;' in Path('scripts/patch-mobile-v86.py').read_text(), 'v86 removes poster only on decoded first frame')
 check('NM7_AVATAR_CACHE' in Path('scripts/patch-mobile-v86.py').read_text(), 'v86 caches metadata-resolved YouTube avatars')
-check('setFullscreenModeEnabled(false)' in Path('scripts/patch-mobile-v86.py').read_text(), 'v86 disables persistent Mobile fullscreen mode')
+check('nm7.mobile.normalbars' in Path('scripts/patch-mobile-v86.py').read_text(), 'v86 disables persistent Mobile fullscreen mode inside SmartTube')
