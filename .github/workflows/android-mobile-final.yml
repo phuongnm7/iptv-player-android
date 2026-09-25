@@ -104,7 +104,7 @@ jobs:
           ! grep -q 'NM7 1.10.83: subtle phone-style player entrance' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
           grep -q 'delaySubscription(650' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/shared/VideoCardHolder.java
           grep -q 'FLAG_ACTIVITY_NO_ANIMATION' third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/views/ViewManager.java
-          grep -q 'bufferForPlaybackMs = 500' third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/other/ExoPlayerInitializer.java
+          grep -q 'bufferForPlaybackMs = 250' third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/other/ExoPlayerInitializer.java
           grep -q 'window.setDecorFitsSystemWindows(true);' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
 
       - name: Check Mobile lifecycle regression guards
