@@ -1,3 +1,35 @@
+# MOBILE 1.10.83 / 99 — YOUTUBE PLAYER STATUS BAR + LIVE CHAT + FEED QUALITY + STARTUP POLISH — 2026-09-25
+
+## Yêu cầu người dùng
+- Player YouTube dọc không được che thanh status/notification của điện thoại; player phải bắt đầu bên dưới status bar.
+- Video YouTube Live phải có khu vực xem live chat giống video mẫu.
+- Thumbnail ngoài feed cần rõ nét hơn.
+- Avatar kênh trong danh sách video phải hiển thị.
+- Tiếp tục giảm thời gian từ lúc chọn video tới frame đầu tiên.
+- Thêm hiệu ứng mở video nhẹ giống cách chuyển màn hình trong video mẫu.
+
+## Thay đổi 1.10.83
+- Giữ đường window/playback ổn định đã phục hồi ở 1.10.80/1.10.82; **không dùng lại setDecorFitsSystemWindows** từng gây regression khi mở video.
+- Ở portrait, yêu cầu Android hiện status bar và lấy inset thật; đặt topMargin của player bằng status-bar inset. Landscape/fullscreen vẫn giữ hành vi fullscreen.
+- Giữ panel live chat đã có từ v76 và bật lại SmartTube LiveChatService **chỉ khi metadata có liveChatKey**. Đây là đường chat thật từ SmartTube/YouTube, không tạo dữ liệu giả; hiện hỗ trợ xem chat.
+- Mở rộng pipeline avatar để nhận cả URL trực tiếp và object thumbnail/avatar lồng nhau từ MediaService, sau đó chuyển tới VideoCardHolder.
+- Thumbnail feed dùng maxresdefault, fallback sddefault rồi URL gốc; yêu cầu decode ARGB_8888 ở mức 1280x720 phù hợp màn hình điện thoại để giảm hiện tượng mờ.
+- Thêm animation mở player 170 ms (fade + dịch nhẹ + scale rất nhỏ), chạy song song với network/decoder nên không chặn first frame.
+- Giảm nhẹ ngưỡng buffer khởi phát 500 -> 350 ms và rebuffer 1500 -> 1200 ms; giữ nguyên fast format resolver 1.10.75 và selected-request pipeline 1.10.68.
+- Mobile-only; không thay đổi IPTV hay Android TV.
+
+## Version / branch
+- versionName: **1.10.83**
+- versionCode: **99**
+- Branch: `fix/mobile-1.10.83-youtube-player-ui`
+- Stable baseline vẫn là **1.10.75 / 93** cho tới khi APK mới build SUCCESS và người dùng test thực tế.
+
+## CI
+- Workflow đã được cập nhật để build branch 1.10.83 và thêm guard cho status-bar inset, live-chat hook, thumbnail ARGB_8888 và avatar resolver.
+- Chưa đánh dấu 1.10.83 stable trước khi CI và test thiết bị hoàn tất.
+
+---
+
 # MOBILE 1.10.77 / 95 — CORRECT PORTRAIT SYSTEM BAR + LIVE CHAT CLOSE
 
 User video re-check found both 1.10.76 UI fixes were ineffective. 1.10.77 replaces the edge-to-edge workaround with explicit portrait WindowInsets/system-bar handling and adds the requested X close control to live chat.
