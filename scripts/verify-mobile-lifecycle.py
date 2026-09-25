@@ -81,8 +81,8 @@ check('maxresdefault.jpg' in Path('scripts/patch-mobile-v73.py').read_text(), 'Y
 check('mqdefault.jpg' not in Path('scripts/patch-mobile-v73.py').read_text(), 'YouTube Browse optimization does not downgrade thumbnail quality')
 
 # Version must advance for this application-level behavior change.
-check('versionCode = 103' in gradle, 'Mobile versionCode is 103 for Mobile 1.10.87 build')
-check('versionName = "1.10.87"' in gradle, 'Mobile versionName is 1.10.87')
+check('versionCode = 104' in gradle, 'Mobile versionCode is 104 for Mobile 1.10.88 build')
+check('versionName = "1.10.88"' in gradle, 'Mobile versionName is 1.10.88')
 check('TV_CLIENT' in Path('scripts/patch-mobile-v75.py').read_text(), 'v75 uses the lightweight TV_DOWNGRADED playback client first')
 check('getFastPlaybackFormatInfo' in Path('scripts/patch-mobile-v75.py').read_text(), 'v75 fast format resolver is present')
 check('maxresdefault.jpg' in Path('scripts/patch-mobile-v75.py').read_text(), 'v75 preserves 1.10.72 max-resolution thumbnail target')
@@ -132,3 +132,7 @@ check('runpy.run_path("scripts/patch-mobile-v87.py")' in patch, 'v87 hard status
 check('FLAG_FORCE_NOT_FULLSCREEN' in Path('scripts/patch-mobile-v87.py').read_text(), 'v87 forces portrait window out of fullscreen')
 check('onWindowFocusChanged(boolean hasFocus)' in Path('scripts/patch-mobile-v87.py').read_text(), 'v87 reasserts status bar after focus')
 check('nm7ArmPosterReadyFallback' in Path('scripts/patch-mobile-v87.py').read_text(), 'v87 has READY fallback to remove stuck poster')
+
+check('runpy.run_path("scripts/patch-mobile-v88.py")' in patch, 'v88 decoder-backed poster correction is part of the Mobile build chain')
+check('renderedOutputBufferCount' in Path('scripts/patch-mobile-v88.py').read_text(), 'v88 observes real decoder output before removing poster')
+check('absolute_safety_timeout' in Path('scripts/patch-mobile-v88.py').read_text(), 'v88 cannot leave poster overlay indefinitely')
