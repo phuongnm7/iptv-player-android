@@ -52,6 +52,10 @@ s = s[:line_start] + new_block + s[brace_end:]
 # reveal on actual READY/isPlaying progression; changing the unrelated timeout
 # is intentionally avoided because its owner may be an earlier lifecycle patch.
 
+# v92 may leave a timeout guard that references the v93-local playback boolean.
+# v93 no longer needs that local because the poster reveal itself is gated above.
+s = s.replace("if (readyAndPlaying && elapsed >= 1800L) {", "if (elapsed >= 1800L) {")
+
 PLAYBACK.write_text(s, encoding="utf-8")
 
 e = INIT.read_text(encoding="utf-8")
