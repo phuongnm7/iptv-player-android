@@ -32,7 +32,7 @@ old_probe = """                boolean renderedNewFrame = rendered >= mNm7Poster
                     return;
                 }
 """
-new_probe = """                boolean renderedNewFrame = rendered >= mNm7PosterRenderedBaseline + 4;
+new_probe = """                boolean renderedNewFrame = rendered >= mNm7PosterRenderedBaseline + 2;
                 long elapsed = android.os.SystemClock.elapsedRealtime() - mNm7PosterProbeStartedAt;
                 long firstFrameAge = mNm7FirstFrameSeenAt == 0L
                         ? 0L
@@ -48,7 +48,7 @@ new_probe = """                boolean renderedNewFrame = rendered >= mNm7Poster
                     return;
                 }
 """
-s = once(s, old_probe, new_probe, "v92 render probe")
+s = once(s, old_probe, new_probe, "v92 render probe (threshold +2)")
 
 # Keep the poster during a short startup window if the decoder is ready but has not
 # yet entered isPlaying(). This prevents a blank/surface flash during renderer attach.
