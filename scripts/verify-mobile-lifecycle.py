@@ -82,7 +82,7 @@ check('mqdefault.jpg' not in Path('scripts/patch-mobile-v73.py').read_text(), 'Y
 
 # Version.
 check('versionCode = 112' in gradle, 'Mobile versionCode is 112 for Mobile 1.10.96 build')
-check('versionName = "1.10.96"' in gradle, 'Mobile versionName is 1.10.95')
+check('versionName = "1.10.96"' in gradle, 'Mobile versionName is 1.10.96')
 
 # Stable playback patches.
 for ver, needles, label in [
