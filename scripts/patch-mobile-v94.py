@@ -47,7 +47,10 @@ new_block = f'''{indent}boolean renderedNewFrame = rendered >= mNm7PosterRendere
 {indent}        && playbackProgressMs >= 120L) {{
 {indent}    nm7HideStartupPoster("decoder_playback_progress");
 {indent}    return;
-{indent}}}'''
+{indent}}}
+{indent}boolean readyAndPlaying = mPlayer.getPlaybackState() == com.google.android.exoplayer2.Player.STATE_READY
+{indent}        && mPlayer.getPlayWhenReady()
+{indent}        && mPlayer.getPlaybackError() == null;'''
 s = s[:line_start] + new_block + s[end:]
 reset = """        mNm7FirstFrameRendered = false;
         mNm7FirstFrameSeenAt = 0L;
