@@ -21,7 +21,10 @@ patch = Path('scripts/patch-mobile-v37.py').read_text(encoding='utf-8')
 final_delta = Path('scripts/patch-mobile-v69-no-miniplayer.py').read_text(encoding='utf-8')
 
 def body(signature):
-    match = re.search(r'(?ms)^    ' + re.escape(signature) + r' \\{(.*?)^    \\}', play)
+    # Match the method opening brace independently of formatting, then capture
+    # until the next method-level closing brace. SmartTube source formatting can
+    # vary slightly between the pinned source and generated patches.
+    match = re.search(r'(?ms)^    ' + re.escape(signature) + r'\\s*\\{(.*?)^    \\}', play)
     assert match, signature
     return match.group(1)
 
