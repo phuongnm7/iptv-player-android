@@ -13,6 +13,7 @@ ImageView. Also disable the synchronous clicked-card poster so the sequence
 matches the reference video rather than showing a stale/early frame.
 """
 from pathlib import Path
+import re
 
 ROOT = Path("third_party/SmartTube-droid")
 PHONE = ROOT / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui"
@@ -25,19 +26,23 @@ def once(s, old, new, label):
     return s.replace(old, new, 1)
 
 # ---------------------------------------------------------------------------
-# 1) Use the PlayerView shutter to clear the old SurfaceView frame on media reset.
-# This is the native ExoPlayer mechanism for preventing a previous frame from
-# remaining visible while the next media item is prepared.
+# 1) Use PlayerView's native shutter/reset contract to clear the old
+# SurfaceView frame immediately. Earlier Mobile patches may have rewritten the
+# exact PlayerView attribute order, so match the whole tag rather than relying
+# on a brittle text fragment.
 xml = LAYOUT.read_text(encoding="utf-8")
-old_view = '''            app:resize_mode="fit"
-            app:surface_type="surface_view"
-            app:use_controller="false" />'''
-new_view = '''            app:resize_mode="fit"
-            app:surface_type="surface_view"
-            app:keep_content_on_player_reset="false"
-            app:shutter_background_color="@android:color/black"
-            app:use_controller="false" />'''
-xml = once(xml, old_view, new_view, "PlayerView reset/shutter attributes")
+player_re = re.compile(r'(?s)(<com\\.github\\.vkay94\\.dtpv\\.DoubleTapPlayerViewImpl\\b.*?/>)')
+m = player_re.search(xml)
+if not m:
+    raise SystemExit("v95: playback PlayerView tag not found")
+tag = m.group(1)
+for attr in (
+    'app:keep_content_on_player_reset="false"',
+    'app:shutter_background_color="@android:color/black"',
+):
+    if attr not in tag:
+        tag = tag[:-2] + "\n            " + attr + " />"
+xml = xml[:m.start(1)] + tag + xml[m.end(1):]
 LAYOUT.write_text(xml, encoding="utf-8")
 
 # ---------------------------------------------------------------------------
