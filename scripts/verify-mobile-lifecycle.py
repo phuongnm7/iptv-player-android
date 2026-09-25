@@ -100,14 +100,16 @@ for ver, needles, label in [
 
 check('runpy.run_path("scripts/patch-mobile-v91.py")' in patch, 'v91 smooth-open optimization is in the Mobile chain')
 check('decoder_moving_frames' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 waits for moving decoder frames')
-check('runpy.run_path("scripts/patch-mobile-v93.py")' in patch, 'v93 startup recovery patch is in the Mobile chain')
-check('decoder_playing_stable' in Path('scripts/patch-mobile-v93.py').read_text(), 'v93 requires actual player progression')
-check('bufferForPlaybackMs = 500' in Path('scripts/patch-mobile-v93.py').read_text(), 'v93 restores startup buffer resilience')
+check('runpy.run_path("scripts/patch-mobile-v94.py")' in patch, 'v94 playback-position poster gate is in the Mobile chain')
+check('runpy.run_path("scripts/patch-mobile-v92.py")' not in patch and 'runpy.run_path("scripts/patch-mobile-v93.py")' not in patch, 'experimental v92/v93 patches are excluded from the Mobile chain')
+check('mNm7FirstFramePositionMs' in Path('scripts/patch-mobile-v94.py').read_text(), 'v94 gates poster handoff on playback position')
+check('playbackProgressMs >= 120L' in Path('scripts/patch-mobile-v94.py').read_text(), 'v94 requires playback position to advance')
 check('BitmapDrawable' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 reuses original decoded thumbnail bitmap')
 check('delaySubscription(650' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 defers optional avatar metadata')
 check('FLAG_ACTIVITY_NO_ANIMATION' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 suppresses playback activity transition flash')
-check('rendered >= mNm7PosterRenderedBaseline + 2' in Path('scripts/patch-mobile-v93.py').read_text(), 'v93 uses the intended +2 moving-frame threshold')
-check('elapsed >= 220L' in Path('scripts/patch-mobile-v93.py').read_text(), 'v93 requires a minimum startup stability window')
+check('rendered >= mNm7PosterRenderedBaseline + 3' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 uses the tested +3 moving-frame threshold')
+check('elapsed >= 180L' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 requires the tested startup stability window')
+check('bufferForPlaybackMs = 250' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 keeps the tested 250ms startup buffer')
 
 Path('dist/mobile-diagnostics').mkdir(parents=True, exist_ok=True)
 Path('dist/mobile-diagnostics/lifecycle-source-proof.json').write_text(json.dumps({
