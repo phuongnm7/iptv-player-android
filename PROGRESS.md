@@ -3596,3 +3596,4 @@ Source đã cập nhật và CI sẽ build lại Mobile. Chưa đánh dấu lỗ
 - Reduced the ExoPlayer initial playback threshold from 250 ms to 150 ms to reduce time-to-first-play. The rebuffer threshold remains unchanged.
 - No changes to IPTV, live chat, avatar, status bar, navigation, or mini-player behavior.
 - Runtime behavior still requires device testing; CI verification only proves the patch is structurally applied.
+\n\n## 1.10.97 — hard-disable YouTube spinner (2026-09-25)\n- Built on the tested 1.10.91 playback/format path plus v94/v95/v96 handoff fixes.\n- Root cause of the persistent black spinner identified: SmartTube's `showProgressBar(boolean)` callback can re-enable `mProgressBar` after `setVideo()`.\n- v1.10.97 overrides that callback on Mobile so the indeterminate spinner is always hidden.\n- No TV changes and no speculative network/buffer changes.\n- Runtime device test remains required.\n
