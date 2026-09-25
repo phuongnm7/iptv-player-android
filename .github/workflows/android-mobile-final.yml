@@ -2,7 +2,7 @@ name: NM7 Mobile Final Build
 
 "on":
   push:
-    branches: ["fix/mobile-1.10.26-sleep-timer-icon", "fix/mobile-1.10.76-live-chat"]
+    branches: ["fix/mobile-1.10.26-sleep-timer-icon", "fix/mobile-1.10.76-live-chat", "fix/mobile-1.10.83-youtube-player-ui"]
     paths:
       - "app/**"
       - "smarttube/**"
@@ -63,6 +63,17 @@ jobs:
 
       - name: Patch SmartTube Mobile UI and playback lifecycle
         run: python3 scripts/patch-mobile-v37.py
+
+      - name: Verify NM7 1.10.83 YouTube patch
+        run: |
+          set -euxo pipefail
+          test "$(grep -c 'versionName = \"1.10.83\"' app/build.gradle.kts)" -eq 1
+          test "$(grep -c 'versionCode = 99' app/build.gradle.kts)" -eq 1
+          grep -q 'NM7 1.10.83: portrait keeps the Android status/notification bar visible' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
+          grep -q 'nm7PlayerLp.topMargin' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
+          grep -q 'true YouTube Live streams expose liveChatKey' third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/ChatController.java
+          grep -q 'PREFER_ARGB_8888' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/shared/VideoCardHolder.java
+          grep -q 'nestedAvatarMethods' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/shared/VideoCardHolder.java
 
       - name: Check Mobile lifecycle regression guards
         run: python3 scripts/verify-mobile-lifecycle.py
