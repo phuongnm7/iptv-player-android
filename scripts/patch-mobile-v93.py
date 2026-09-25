@@ -7,7 +7,6 @@ Builds on v1.10.92 and the supplied device recording:
 - leave IPTV/status bar/avatar/live chat/background playback/navigation unchanged.
 """
 from pathlib import Path
-import re
 
 ROOT = Path("third_party/SmartTube-droid")
 PHONE = ROOT / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui"
@@ -16,14 +15,12 @@ INIT = ROOT / "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exopla
 
 s = PLAYBACK.read_text(encoding="utf-8")
 
-# v92 leaves a +2 render probe. Replace only the probe's decision block rather
-# than depending on whitespace/formatting from an earlier patch.
 marker = "                boolean renderedNewFrame = rendered >= mNm7PosterRenderedBaseline + 2;"
 if s.count(marker) != 1:
     raise SystemExit(f"v93: expected exactly one v92 render probe marker, found {s.count(marker)}")
 
 start = s.index(marker)
-end_marker = '                    return;\n                }'
+end_marker = '                    return;\\n                }'
 end = s.index(end_marker, start) + len(end_marker)
 old_block = s[start:end]
 if "nm7HideStartupPoster" not in old_block:
@@ -45,7 +42,7 @@ new_block = """                boolean renderedNewFrame = rendered >= mNm7Poster
                 }"""
 s = s[:start] + new_block + s[end:]
 
-old_timeout = """                if (elapsed >= 1200L) {
+old_timeout = """                if (readyAndPlaying && elapsed >= 1800L) {
                     nm7HideStartupPoster("poster_timeout");
                     return;
                 }"""
@@ -53,12 +50,9 @@ new_timeout = """                if (elapsed >= 1800L) {
                     nm7HideStartupPoster("poster_timeout");
                     return;
                 }"""
-if old_timeout in s:
-    if s.count(old_timeout) != 1:
-        raise SystemExit(f"v93: expected exactly one poster timeout, found {s.count(old_timeout)}")
-    s = s.replace(old_timeout, new_timeout, 1)
-elif "elapsed >= 1800L" not in s:
-    raise SystemExit("v93: poster timeout anchor not found")
+if old_timeout not in s:
+    raise SystemExit("v93: stale readyAndPlaying timeout anchor not found")
+s = s.replace(old_timeout, new_timeout, 1)
 
 PLAYBACK.write_text(s, encoding="utf-8")
 
