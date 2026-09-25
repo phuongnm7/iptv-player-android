@@ -284,3 +284,6 @@ runpy.run_path("scripts/patch-mobile-v85.py")
 
 # NM7 1.10.86: status bar + avatar metadata fallback + poster overlay.
 runpy.run_path("scripts/patch-mobile-v86.py")
+
+# NM7 1.10.87: hard status bar + non-sticky poster lifecycle.
+runpy.run_path("scripts/patch-mobile-v87.py")
