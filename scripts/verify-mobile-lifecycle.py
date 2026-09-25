@@ -94,7 +94,7 @@ for ver, needles, label in [
     ('v89', ['runpy.run_path("scripts/patch-mobile-v89.py")','mNm7PosterVideoId','dontAnimate()'], 'v89 late-poster'),
     ('v90', ['runpy.run_path("scripts/patch-mobile-v90.py")','consumeNm7TransitionPoster','startup_poster_source=clicked_card'], 'v90 clicked-card handoff'),
 ]:
-    source = patch if ver in {'v76','v77','v84','v85','v86','v87','v88','v89','v90'} else Path(f'scripts/patch-mobile-{ver}.py').read_text()
+    source = Path(f'scripts/patch-mobile-{ver}.py').read_text()
     for needle in needles:
         check(needle in source, f'{label}: {needle}')
 
