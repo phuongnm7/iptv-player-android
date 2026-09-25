@@ -1,3 +1,18 @@
+# MOBILE 1.10.94 — RETURN TO TESTED 1.10.91 BASELINE
+
+## 2026-09-25
+
+- **Base:** 1.10.91 / versionCode 107, the user-tested stable Mobile baseline.
+- Removed experimental **1.10.92 and 1.10.93** from the Mobile patch chain; their poster/buffer changes are not used by 1.10.94.
+- 1.10.94 changes only the startup poster reveal decision: after the first rendered frame, the actual ExoPlayer playback position must advance by at least 120 ms before the clicked-card poster is removed.
+- Preserved 1.10.91's decoder moving-frame threshold (+3), 180 ms safety window, thumbnail quality, avatar delay, status bar, live chat, IPTV ownership, navigation, and transport path.
+- No Android TV changes.
+- CI build is required before the APK is considered ready. Device runtime remains unverified until the user tests the APK.
+
+1.10.94 / versionCode 110
+
+---
+
 # MOBILE 1.10.92 / versionCode 108 — SMOOTHER YOUTUBE OPEN — 2026-09-25
 
 ## Mục tiêu
