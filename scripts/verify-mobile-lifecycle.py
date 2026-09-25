@@ -81,7 +81,7 @@ check('maxresdefault.jpg' in Path('scripts/patch-mobile-v73.py').read_text(), 'Y
 check('mqdefault.jpg' not in Path('scripts/patch-mobile-v73.py').read_text(), 'YouTube Browse optimization does not downgrade thumbnail quality')
 
 # Version must advance for this application-level behavior change.
-check('versionCode = 100' in gradle, 'Mobile versionCode is 100 for Mobile 1.10.84 build')
+check('versionCode = 101' in gradle, 'Mobile versionCode is 101 for Mobile 1.10.85 build')
 check('versionName = "1.10.84"' in gradle, 'Mobile versionName is 1.10.84')
 check('TV_CLIENT' in Path('scripts/patch-mobile-v75.py').read_text(), 'v75 uses the lightweight TV_DOWNGRADED playback client first')
 check('getFastPlaybackFormatInfo' in Path('scripts/patch-mobile-v75.py').read_text(), 'v75 fast format resolver is present')
@@ -116,3 +116,8 @@ check('channelThumbnail.thumbnails[0].url' in Path('scripts/patch-mobile-v84.py'
 check('onRenderedFirstFrame' in Path('scripts/patch-mobile-v84.py').read_text(), 'v84 keeps poster until first rendered frame')
 check('sendLiveChatMessageObserve' in Path('scripts/patch-mobile-v84.py').read_text(), 'v84 adds live-chat send path')
 check('protected void applySystemBars()' in Path('scripts/patch-mobile-v84.py').read_text(), 'v84 restores status bar after DroidActivity resume')
+
+check('runpy.run_path("scripts/patch-mobile-v85.py")' in patch, 'v85 status/chat/avatar correction is part of the Mobile build chain')
+check('android:paddingBottom="64dp"' in Path('scripts/patch-mobile-v85.py').read_text(), 'v85 reserves visible space for live-chat composer')
+check('String nm7ChannelThumbnail = item.getChannelThumbnail();' in Path('scripts/patch-mobile-v85.py').read_text(), 'v85 propagates VideoItem channel avatar directly')
+check('setDecorFitsSystemWindows(true)' in Path('scripts/patch-mobile-v85.py').read_text(), 'v85 forces portrait status bar window fitting')
