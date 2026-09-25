@@ -10,8 +10,8 @@ android {
         applicationId = "vn.phuong.iptvplayer"
         minSdk = 23
         targetSdk = 36
-        versionCode = 106
-        versionName = "1.10.90"
+        versionCode = 107
+        versionName = "1.10.91"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["applicationClass"] = "vn.phuong.iptvplayer.MobileNm7Application"
