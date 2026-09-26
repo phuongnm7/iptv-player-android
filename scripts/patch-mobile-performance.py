@@ -114,3 +114,68 @@ print("NM7 1.10.101 performance patch prepared")
 # Safe performance scope: rows cache + YouTube grid RecyclerView prefetch only; 1.10.97 playback/avatar/status-bar paths stay untouched.
 
 # CI retrigger after removing risky grid-data cache path.
+
+
+# NM7 1.10.102 final runtime correction.
+# Re-assert the user-confirmed 1.10.97 behavior after all performance edits.
+import re
+
+p = ROOT / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java"
+s = p.read_text(encoding="utf-8")
+
+spinner_re = re.compile(
+    r'(?ms)^    @Override\n    public void showProgressBar\(boolean show\) \{.*?^    \}\n\n    /\*\*\n     \* Only STATE_BUFFERING counts as stalled\.'
+)
+spinner_new = """    @Override
+    public void showProgressBar(boolean show) {
+        // NM7 1.10.102: never render SmartTube's indeterminate Mobile spinner.
+        if (mProgressBar != null) mProgressBar.setVisibility(View.GONE);
+        mProgressHidePending = false;
+    }
+
+    /**
+     * Only STATE_BUFFERING counts as stalled."""
+s, count = spinner_re.subn(spinner_new, s, count=1)
+if count != 1:
+    raise SystemExit("v102: showProgressBar guard missing")
+
+focus_sig = "    public void onWindowFocusChanged(boolean hasFocus) {"
+if "mRoot.postDelayed(this::nm7RestorePortraitBars, 700L);" not in s:
+    start = s.find(focus_sig)
+    if start < 0: raise SystemExit("v102: focus method missing")
+    ms = s.rfind("    @Override\n", 0, start)
+    brace = s.find("{", start)
+    depth = 0
+    end = -1
+    for i in range(brace, len(s)):
+        if s[i] == "{": depth += 1
+        elif s[i] == "}":
+            depth -= 1
+            if depth == 0:
+                end = i + 1
+                break
+    if end < 0: raise SystemExit("v102: focus method end missing")
+    focus = """    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus && !isLandscape() && !isInPIPMode()) {
+            nm7RestorePortraitBars();
+            if (mRoot != null) {
+                mRoot.postDelayed(this::nm7RestorePortraitBars, 80L);
+                mRoot.postDelayed(this::nm7RestorePortraitBars, 350L);
+                mRoot.postDelayed(this::nm7RestorePortraitBars, 700L);
+            }
+        }
+    }"""
+    s = s[:ms] + focus + s[end:]
+p.write_text(s, encoding="utf-8")
+
+# Avatar metadata fallback must not wait 650 ms. Direct channelThumbnailUrl stays first.
+card = ROOT / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/shared/VideoCardHolder.java"
+s = card.read_text(encoding="utf-8")
+s = s.replace(".delaySubscription(650, java.util.concurrent.TimeUnit.MILLISECONDS)\n", "")
+s = s.replace(".subscribeOn(io.reactivex.schedulers.Schedulers.single())",
+              ".subscribeOn(io.reactivex.schedulers.Schedulers.io())")
+card.write_text(s, encoding="utf-8")
+
+print("NM7 1.10.102 final runtime correction applied")
