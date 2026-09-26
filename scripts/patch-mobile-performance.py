@@ -79,7 +79,7 @@ replacement="""        java.util.List<MediaGroup> cachedRows = mNm7RowsCache.get
         Disposable updateAction = groups
                 .subscribe(
 """
-if s.indexOf(anchor)<0: raise SystemExit("performance: rows subscription anchor missing")
+if s.index(anchor)<0: raise SystemExit("performance: rows subscription anchor missing")
 s=s.replace(anchor,replacement,1)
 anchor="""                        mediaGroup -> {
                             getView().showProgressBar(false);
