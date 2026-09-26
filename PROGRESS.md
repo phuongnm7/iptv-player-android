@@ -1,3 +1,54 @@
+# MOBILE 1.10.97 / versionCode 113 — STABLE BASELINE — USER TEST CONFIRMED — 2026-09-26
+
+## Trạng thái
+
+**1.10.97 đã được người dùng cài và test thực tế. Bản này được chốt là baseline ổn định hiện tại để tiếp tục phát triển các bản Mobile sau.**
+
+- Version: **1.10.97**
+- versionCode: **113**
+- Branch: `fix/mobile-1.10.83-youtube-player-ui`
+- Commit source: `bb6045a761b2ae972b8283ba272d29ef39f209cb`
+- Mobile Final Build: **#676 — SUCCESS**
+- Run ID: `36145909202`
+- Artifact: **NM7-IPTV-Mobile-FINAL**
+- Artifact ID: `10870151994`
+- Artifact SHA-256: `023315d1b4cfadd0f40f19eaa5b472996fea0435a8d9fc79f67c10ab12598d2b`
+- APK: ARM64-v8a + armeabi-v7a
+- **Mobile-only; không thay đổi Android TV.**
+
+## Kết quả test thực tế
+
+Người dùng đã test bản 1.10.97 và xác nhận:
+
+- Bản hiện tại đủ ổn định để làm mốc phát triển tiếp theo.
+- Tốc độ load video YouTube **vẫn hơi chậm** và cần tiếp tục tối ưu.
+- Thao tác **vuốt/chuyển giữa các tab trong khu vực YouTube còn chậm**, chưa đủ mượt.
+
+Hai vấn đề tốc độ trên **chưa được coi là đã giải quyết**. Không được đánh đổi các chức năng đã ổn định để lấy cải thiện tốc độ chưa được kiểm chứng.
+
+## Hướng phát triển bản tiếp theo
+
+Các bản Mobile sau phải phát triển trực tiếp từ **1.10.97 / versionCode 113**.
+
+Ưu tiên vòng tiếp theo:
+
+1. Tối ưu **thời gian load video YouTube** từ lúc chạm video đến khi bắt đầu phát.
+2. Tối ưu **độ mượt khi vuốt/chuyển giữa các tab trong YouTube**.
+3. Tiếp tục test thực tế sau mỗi thay đổi, đặc biệt với danh sách YouTube, chuyển tab, mở video liên tiếp và quay lại tab.
+4. Giữ nguyên các phần đang ổn định của 1.10.97: IPTV, player lifecycle, status bar, avatar, live chat, bottom navigation và kiến trúc không-miniplayer.
+5. Không đưa Android TV vào phạm vi thay đổi của các bản Mobile.
+
+## Quy tắc baseline
+
+1. **1.10.97 / 113 là stable baseline hiện tại.**
+2. Bản kế tiếp phải phát triển từ source của 1.10.97, không quay về baseline cũ.
+3. Mỗi bản mới phải tăng versionName/versionCode.
+4. Không sửa chức năng ổn định nếu không có yêu cầu hoặc bằng chứng regression.
+5. CI phải PASS và APK phải build đủ ARM64-v8a + armeabi-v7a trước khi giao test.
+6. Chỉ sau khi người dùng test thực tế mới chốt baseline mới.
+
+---
+
 # 1.10.95 — làm theo video mẫu: reset player về màn đen trước khi phát
 
 Ngày 2026-09-25.
