@@ -81,8 +81,8 @@ check('maxresdefault.jpg' in Path('scripts/patch-mobile-v73.py').read_text(), 'Y
 check('mqdefault.jpg' not in Path('scripts/patch-mobile-v73.py').read_text(), 'YouTube Browse optimization does not downgrade thumbnail quality')
 
 # Version.
-check('versionCode = 118' in gradle, 'Mobile versionCode is 117 for Mobile 1.10.101 build')
-check('versionName = "1.10.102"' in gradle, 'Mobile versionName is 1.10.101')
+check('versionCode = 118' in gradle, 'Mobile versionCode is 118 for Mobile 1.10.102 build')
+check('versionName = "1.10.102"' in gradle, 'Mobile versionName is 1.10.102')
 
 # Stable playback patches.
 for ver, needles, label in [
@@ -118,7 +118,9 @@ check('runpy.run_path("scripts/patch-mobile-v92.py")' not in patch and 'runpy.ru
 check('mNm7FirstFramePositionMs' in Path('scripts/patch-mobile-v94.py').read_text(), 'v94 gates poster handoff on playback position')
 check('playbackProgressMs >= 120L' in Path('scripts/patch-mobile-v94.py').read_text(), 'v94 requires playback position to advance')
 check('BitmapDrawable' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 reuses original decoded thumbnail bitmap')
-check('delaySubscription(650' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 defers optional avatar metadata')
+check('delaySubscription(650' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 source records the original deferred avatar fallback')
+check('delaySubscription(650' not in Path('scripts/patch-mobile-performance.py').read_text(), 'v102 removes the 650ms avatar delay from final runtime')
+check('Schedulers.io()' in Path('scripts/patch-mobile-performance.py').read_text(), 'v102 avatar fallback uses the I/O scheduler')
 check('FLAG_ACTIVITY_NO_ANIMATION' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 suppresses playback activity transition flash')
 check('rendered >= mNm7PosterRenderedBaseline + 3' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 uses the tested +3 moving-frame threshold')
 check('elapsed >= 180L' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 requires the tested startup stability window')
