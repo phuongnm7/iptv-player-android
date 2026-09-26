@@ -1,9 +1,9 @@
-# NM7 Mobile 1.10.97 CI retrigger marker
+# NM7 Mobile 1.10.101 — rebuild from user-confirmed 1.10.97 baseline
 name: NM7 Mobile Final Build
 
 "on":
   push:
-    branches: ["fix/mobile-1.10.26-sleep-timer-icon", "fix/mobile-1.10.76-live-chat", "fix/mobile-1.10.83-youtube-player-ui"]
+    branches: ["fix/mobile-1.10.26-sleep-timer-icon", "fix/mobile-1.10.76-live-chat", "fix/mobile-1.10.83-youtube-player-ui", "fix/mobile-1.10.79-youtube-performance"]
     paths:
       - "app/**"
       - "smarttube/**"
