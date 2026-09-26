@@ -112,3 +112,5 @@ print("NM7 1.10.101 performance patch prepared")
 
 
 # Safe performance scope: rows cache + YouTube grid RecyclerView prefetch only; 1.10.97 playback/avatar/status-bar paths stay untouched.
+
+# CI retrigger after removing risky grid-data cache path.
