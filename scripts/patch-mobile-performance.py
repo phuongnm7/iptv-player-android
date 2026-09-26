@@ -102,7 +102,7 @@ replacement2="""                                return;
 """
 if s.count(anchor2)!=1: raise SystemExit("performance: grid cache anchor missing")
 s=s.replace(anchor2,replacement2,1)
-idx=s.indexOf("        Disposable updateAction = group")
+idx=s.index("        Disposable updateAction = group")
 if idx<0: raise SystemExit("performance: grid subscription anchor missing")
 insert="""        Nm7CachedGrid cachedGrid = mNm7GridCache.get(section.getId());
         if (cachedGrid != null && cachedGrid.group != null
