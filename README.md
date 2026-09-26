@@ -1,3 +1,56 @@
+# Mobile 1.10.97 / versionCode 113 — STABLE BASELINE — USER TEST CONFIRMED
+
+**1.10.97 là bản Mobile ổn định hiện tại đã được người dùng cài và test thực tế.** Từ đây, mọi bản Mobile tiếp theo phải phát triển trực tiếp trên nền **1.10.97 / versionCode 113**.
+
+- Version: **1.10.97**
+- versionCode: **113**
+- Branch: `fix/mobile-1.10.83-youtube-player-ui`
+- Source commit: `bb6045a761b2ae972b8283ba272d29ef39f209cb`
+- **NM7 Mobile Final Build #676 — SUCCESS**
+- Run: `36145909202`
+- Artifact: `NM7-IPTV-Mobile-FINAL`
+- Artifact ID: `10870151994`
+- Artifact SHA-256: `023315d1b4cfadd0f40f19eaa5b472996fea0435a8d9fc79f67c10ab12598d2b`
+- APK: **ARM64-v8a + armeabi-v7a**
+- [GitHub Actions #676](https://github.com/phuongnm7/iptv-player-android/actions/runs/36145909202)
+- [Artifact APK ARM64/ARMv7](https://github.com/phuongnm7/iptv-player-android/actions/runs/36145909202/artifacts/10870151994)
+
+## Trạng thái test thiết bị
+
+Người dùng đã cài và test **1.10.97** trên thiết bị thật. Bản này được chốt làm **stable baseline hiện tại**.
+
+### Các phần cần giữ nguyên
+
+- IPTV và danh sách kênh.
+- YouTube player lifecycle và đường phát hiện tại.
+- Android status bar trong player YouTube.
+- Avatar video/kênh YouTube.
+- Live chat.
+- Bottom navigation **YouTube + IPTV**.
+- Kiến trúc không sử dụng mini-player.
+- Các sửa lỗi ổn định đã được xác nhận ở các baseline trước.
+
+### Hai vấn đề tốc độ còn lại
+
+- **Load video YouTube vẫn hơi chậm.**
+- **Vuốt/chuyển giữa các tab trong khu vực YouTube còn chậm**, chưa đủ mượt.
+
+Hai vấn đề này là **mục tiêu tối ưu của bản tiếp theo**, chưa đánh dấu là đã giải quyết.
+
+## Kế hoạch bản tiếp theo
+
+Bản sau sẽ tiếp tục phát triển trực tiếp từ **1.10.97 / 113**, tập trung vào:
+
+1. Giảm thời gian từ lúc chọn video đến khi video bắt đầu phát.
+2. Làm mượt thao tác vuốt/chuyển giữa các tab YouTube.
+3. Test thực tế sau từng thay đổi để tránh regression.
+4. Giữ nguyên IPTV, status bar, avatar, live chat, navigation và các chức năng ổn định của 1.10.97.
+5. **Mobile-only**, không thêm thay đổi Android TV.
+
+Xem lịch sử kỹ thuật, nguyên nhân lỗi và kết quả từng vòng trong [PROGRESS.md](PROGRESS.md).
+
+---
+
 # Mobile 1.10.91 / versionCode 107 — STABLE BASELINE — USER TEST CONFIRMED
 
 **1.10.91 là bản Mobile tốt nhất/ổn định nhất hiện tại theo kết quả test thực tế mới nhất của người dùng.** Từ thời điểm này, mọi bản Mobile tiếp theo phải phát triển trực tiếp trên nền **1.10.91**, không quay lại các baseline cũ nếu không có yêu cầu đặc biệt.
