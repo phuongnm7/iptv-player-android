@@ -12,14 +12,8 @@ s=p.read_text(encoding="utf-8")
 anchor="    private int mBootstrapSectionId = -1;\n"
 fields="""    private int mBootstrapSectionId = -1;
     private static final long NM7_SECTION_CACHE_TTL_MS = 45_000L;
-    private final java.util.Map<Integer, Nm7CachedGrid> mNm7GridCache = new java.util.HashMap<>();
     private final java.util.Map<Integer, java.util.List<MediaGroup>> mNm7RowsCache = new java.util.HashMap<>();
     private final java.util.Map<Integer, Long> mNm7RowsCacheTime = new java.util.HashMap<>();
-    private static final class Nm7CachedGrid {
-        final MediaGroup group;
-        final long timestampMs;
-        Nm7CachedGrid(MediaGroup group, long timestampMs) { this.group=group; this.timestampMs=timestampMs; }
-    }
 """
 if s.count(anchor)!=1: raise SystemExit("performance: BrowsePresenter field anchor missing/ambiguous")
 s=s.replace(anchor,fields,1)
@@ -31,7 +25,6 @@ anchor="""    public void refresh(boolean focusOnContent) {
     }
 """
 replacement="""    public void refresh(boolean focusOnContent) {
-        mNm7GridCache.clear();
         mNm7RowsCache.clear();
         mNm7RowsCacheTime.clear();
         updateCurrentSection();
@@ -95,28 +88,10 @@ anchor2="""                                return;
 replacement2="""                                return;
                             }
 
-                            mNm7GridCache.put(section.getId(),
-                                    new Nm7CachedGrid(mediaGroup, System.currentTimeMillis()));
-
                             VideoGroup videoGroup = VideoGroup.from(baseGroup, mediaGroup);
 """
 if s.count(anchor2)!=1: raise SystemExit("performance: grid cache anchor missing")
 s=s.replace(anchor2,replacement2,1)
-idx=s.find("        Disposable updateAction = group\\n")
-if idx<0: raise SystemExit("performance: grid subscription anchor missing")
-insert="""        Nm7CachedGrid cachedGrid = mNm7GridCache.get(section.getId());
-        if (cachedGrid != null && cachedGrid.group != null
-                && System.currentTimeMillis() - cachedGrid.timestampMs < NM7_SECTION_CACHE_TTL_MS) {
-            getView().showProgressBar(false);
-            VideoGroup videoGroup = VideoGroup.from(baseGroup, cachedGrid.group);
-            appendLocalHistory(videoGroup);
-            getView().updateSection(videoGroup);
-            mBrowseProcessor.process(videoGroup);
-            return;
-        }
-
-"""
-s=s[:idx]+insert+s[idx:]
 p.write_text(s,encoding="utf-8")
 
 p=ROOT/"smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/browse/BrowseActivity.java"
@@ -134,6 +109,6 @@ s=s.replace(anchor,repl,1)
 p.write_text(s,encoding="utf-8")
 
 print("NM7 1.10.101 performance patch prepared")
-# CI retrigger after exact grid subscription anchor correction.
 
-# CI retrigger after exact Python string anchor correction.
+
+# Safe performance scope: rows cache + YouTube grid RecyclerView prefetch only; 1.10.97 playback/avatar/status-bar paths stay untouched.
