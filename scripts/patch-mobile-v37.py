@@ -306,3 +306,7 @@ runpy.run_path("scripts/patch-mobile-v94.py")
 runpy.run_path("scripts/patch-mobile-v95.py")
 runpy.run_path("scripts/patch-mobile-v96.py")
 runpy.run_path("scripts/patch-mobile-v97.py")
+
+
+# NM7 1.10.101: performance-only improvements built on the user-confirmed 1.10.97 baseline.
+runpy.run_path("scripts/patch-mobile-performance.py")
