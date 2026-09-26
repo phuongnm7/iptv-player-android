@@ -116,7 +116,7 @@ insert="""        Nm7CachedGrid cachedGrid = mNm7GridCache.get(section.getId());
         }
 
 """
-s=s.slice(0,idx)+insert+s.slice(idx)
+s=s[:idx]+insert+s[idx:]
 p.write_text(s,encoding="utf-8")
 
 p=ROOT/"smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/browse/BrowseActivity.java"
