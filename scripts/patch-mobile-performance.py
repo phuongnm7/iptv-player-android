@@ -134,3 +134,4 @@ s=s.replace(anchor,repl,1)
 p.write_text(s,encoding="utf-8")
 
 print("NM7 1.10.101 performance patch prepared")
+# CI retrigger after exact grid subscription anchor correction.
