@@ -119,7 +119,7 @@ check('mNm7FirstFramePositionMs' in Path('scripts/patch-mobile-v94.py').read_tex
 check('playbackProgressMs >= 120L' in Path('scripts/patch-mobile-v94.py').read_text(), 'v94 requires playback position to advance')
 check('BitmapDrawable' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 reuses original decoded thumbnail bitmap')
 check('delaySubscription(650' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 source records the original deferred avatar fallback')
-check('delaySubscription(650' not in Path('scripts/patch-mobile-performance.py').read_text(), 'v102 removes the 650ms avatar delay from final runtime')
+check('delaySubscription(650' not in Path('third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/shared/VideoCardHolder.java').read_text(), 'v102 removes the 650ms avatar delay from final runtime')
 check('Schedulers.io()' in Path('scripts/patch-mobile-performance.py').read_text(), 'v102 avatar fallback uses the I/O scheduler')
 check('FLAG_ACTIVITY_NO_ANIMATION' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 suppresses playback activity transition flash')
 check('rendered >= mNm7PosterRenderedBaseline + 3' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 uses the tested +3 moving-frame threshold')
