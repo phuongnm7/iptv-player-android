@@ -179,3 +179,131 @@ s = s.replace(".subscribeOn(io.reactivex.schedulers.Schedulers.single())",
 card.write_text(s, encoding="utf-8")
 
 print("NM7 1.10.102 final runtime correction applied")
+
+
+# NM7 final Android 15/16 + YouTube regression correction.
+# Target SDK 35/36 enforces edge-to-edge, so portrait playback must explicitly
+# apply status/navigation insets to the root content.
+p = ROOT / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java"
+ps = p.read_text(encoding="utf-8")
+
+if "mNm7PortraitInsetsInstalled" not in ps:
+    anchor = "    private ImageView mNm7StartupPoster;\n"
+    if ps.count(anchor) != 1:
+        raise SystemExit("final: startup poster field anchor missing")
+    ps = ps.replace(anchor, anchor +
+        "    private boolean mNm7PortraitInsetsInstalled;\n"
+        "    private int mNm7BaseRootPaddingLeft;\n"
+        "    private int mNm7BaseRootPaddingTop;\n"
+        "    private int mNm7BaseRootPaddingRight;\n"
+        "    private int mNm7BaseRootPaddingBottom;\n", 1)
+
+if "private void nm7InstallPortraitInsets()" not in ps:
+    anchor = "    private void nm7RestorePortraitBars() {\n"
+    if ps.count(anchor) != 1:
+        raise SystemExit("final: portrait restore anchor missing")
+    helper = """    private void nm7InstallPortraitInsets() {
+        if (mNm7PortraitInsetsInstalled || mRoot == null) return;
+        mNm7PortraitInsetsInstalled = true;
+        mNm7BaseRootPaddingLeft = mRoot.getPaddingLeft();
+        mNm7BaseRootPaddingTop = mRoot.getPaddingTop();
+        mNm7BaseRootPaddingRight = mRoot.getPaddingRight();
+        mNm7BaseRootPaddingBottom = mRoot.getPaddingBottom();
+        if (android.os.Build.VERSION.SDK_INT >= 20) {
+            mRoot.setOnApplyWindowInsetsListener((v, insets) -> {
+                if (!isLandscape() && !isInPIPMode()) {
+                    int top = 0;
+                    int bottom = 0;
+                    if (android.os.Build.VERSION.SDK_INT >= 30) {
+                        android.graphics.Insets bars = insets.getInsets(
+                                android.view.WindowInsets.Type.statusBars()
+                                        | android.view.WindowInsets.Type.navigationBars()
+                                        | android.view.WindowInsets.Type.displayCutout());
+                        top = bars.top;
+                        bottom = bars.bottom;
+                    } else {
+                        top = insets.getSystemWindowInsetTop();
+                        bottom = insets.getSystemWindowInsetBottom();
+                    }
+                    mRoot.setPadding(
+                            mNm7BaseRootPaddingLeft,
+                            Math.max(mNm7BaseRootPaddingTop, top),
+                            mNm7BaseRootPaddingRight,
+                            Math.max(mNm7BaseRootPaddingBottom, bottom));
+                } else {
+                    mRoot.setPadding(mNm7BaseRootPaddingLeft, mNm7BaseRootPaddingTop,
+                            mNm7BaseRootPaddingRight, mNm7BaseRootPaddingBottom);
+                }
+                return insets;
+            });
+            mRoot.requestApplyInsets();
+        }
+    }
+
+"""
+    ps = ps.replace(anchor, helper + anchor, 1)
+
+request_anchor = "        if (mRoot != null) mRoot.requestApplyInsets();\n"
+if request_anchor not in ps:
+    raise SystemExit("final: requestApplyInsets anchor missing")
+if "nm7InstallPortraitInsets();" not in ps:
+    ps = ps.replace(request_anchor, "        nm7InstallPortraitInsets();\n" + request_anchor, 1)
+
+# Install immediately after onResume as well, because targetSdk 35/36 ignores
+# legacy decor fitting and relies on explicit inset handling.
+resume = "    protected void onResume() {"
+if resume not in ps:
+    raise SystemExit("final: onResume missing")
+rp = ps.find(resume)
+if "nm7InstallPortraitInsets();" not in ps[rp:rp+1600]:
+    sp = ps.find("        super.onResume();", rp)
+    if sp < 0:
+        raise SystemExit("final: onResume super anchor missing")
+    e = sp + len("        super.onResume();")
+    ps = ps[:e] + "\n        nm7InstallPortraitInsets();" + ps[e:]
+
+# Keep the startup spinner permanently hidden.
+spinner = "    public void showProgressBar(boolean show) {"
+if spinner not in ps:
+    raise SystemExit("final: showProgressBar missing")
+if "NM7 final spinner hard-hide" not in ps:
+    start = ps.find(spinner)
+    brace = ps.find("{", start)
+    depth = 0
+    end = -1
+    for i in range(brace, len(ps)):
+        if ps[i] == "{":
+            depth += 1
+        elif ps[i] == "}":
+            depth -= 1
+            if depth == 0:
+                end = i + 1
+                break
+    if end < 0:
+        raise SystemExit("final: showProgressBar end missing")
+    replacement = """    public void showProgressBar(boolean show) {
+        // NM7 final spinner hard-hide: use the native shutter/poster lifecycle.
+        if (mProgressBar != null) mProgressBar.setVisibility(View.GONE);
+        mProgressHidePending = false;
+    }"""
+    ps = ps[:start] + replacement + ps[end:]
+
+p.write_text(ps, encoding="utf-8")
+
+# Avatar metadata: remove the artificial 650 ms delay and keep the existing
+# ConcurrentHashMap de-duplication/cache.
+card = ROOT / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/shared/VideoCardHolder.java"
+cs = card.read_text(encoding="utf-8")
+cs = cs.replace(".delaySubscription(650, java.util.concurrent.TimeUnit.MILLISECONDS)\n", "")
+cs = cs.replace(".subscribeOn(io.reactivex.schedulers.Schedulers.single())",
+                ".subscribeOn(io.reactivex.schedulers.Schedulers.io())")
+card.write_text(cs, encoding="utf-8")
+
+# Feed cards do not need maxres thumbnails while swiping. Keep playback source
+# selection unchanged, but use hqdefault for the feed to reduce decode/network work.
+ui = Path("scripts/patch-mobile-ui.py")
+us = ui.read_text(encoding="utf-8")
+us = us.replace("/maxresdefault.jpg", "/hqdefault.jpg")
+ui.write_text(us, encoding="utf-8")
+
+print("NM7 final regression correction: Android 15/16 insets + spinner hard-hide + avatar priority + faster feed thumbnails")
