@@ -33,10 +33,10 @@ Các lỗi còn lại cần xử lý:
 
 ## Phiên bản/source hiện tại
 
-- Version: **1.10.102**
-- versionCode: **118**
+- Version: **1.10.103**
+- versionCode: **119**
 - Branch: `fix/mobile-1.10.79-youtube-performance`
-- Current HEAD: `475ff88ee05fd58abcd0616ad04c487534c3f88d`
+- Current HEAD: `4c7cf9fd55c8b689e0cac0c9aaf5049599bf9e41`
 - Commit trước đó chứa source correction: `c676fec63965d6933fda6572ff827ce9466e1cbf`
 
 ## Hướng tiếp tục
