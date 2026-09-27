@@ -3736,3 +3736,60 @@ Generated source sau toàn bộ patch chain phải được kiểm tra, không c
 - Không giao APK mới cho tới khi CI build thành công và artifact đúng version.
 - Runtime device test là điều kiện bắt buộc để xác nhận avatar/status-bar/spinner/performance.
 - Phiên chat mới phải đọc `README.md` và phần HANDOFF này trước khi sửa tiếp.
+
+
+# CẬP NHẬT TIẾN ĐỘ — 1.10.103 — 2026-09-27
+
+## Phản hồi test 1.10.102 đã được người dùng xác nhận
+
+Cập nhật lại trạng thái 1.10.102 theo test thực tế mới nhất:
+- **Avatar YouTube:** đã xử lý được.
+- **Status bar/player portrait:** đã xử lý được.
+- **Spinner đen:** đã xử lý được.
+
+Không tiếp tục thay đổi ba đường này trong vòng performance 1.10.103.
+
+## Lỗi còn lại
+1. **YouTube video load còn chậm.**
+2. **Browse/vuốt chuyển trang YouTube còn chậm/lag.**
+3. **Video 4K rất lag/giật**, theo video test `219395.mp4` người dùng gửi.
+
+## Phân tích video test
+Video `219395.mp4` cho thấy nội dung 4K vẫn phát được nhưng chuyển động có hiện tượng không mượt/giật trong player. Vì vậy vòng sửa mới không coi đây là lỗi UI poster/status-bar; trọng tâm chuyển sang đường render/decoder SurfaceView và khả năng phản ứng khi decoder rơi frame.
+
+## 1.10.103 — source correction
+### Browse/swipe
+- Cache hit của row không chạy lại `BrowseProcessorManager`.
+- Thêm grid cache nhẹ nhưng chỉ dùng khi MediaGroup đã hết continuation page, tránh bỏ sót dữ liệu.
+- TTL cache: 45 giây; refresh sẽ xóa cache.
+
+### Video startup
+- Rút ngắn gate poster từ nhiều rendered buffer xuống 1 rendered buffer mới và giảm thời gian chờ sau first frame.
+- Vẫn yêu cầu decoder render frame mới trước khi chuyển sang video thật; không thay đổi avatar/status bar/spinner.
+
+### 4K/high-FPS
+- Generated `DebugInfoMediaCodecVideoRenderer.java` nhận diện 4K >=50fps và tránh SurfaceView timestamp pacing trong trường hợp này.
+- PlaybackActivity theo dõi `DecoderCounters.droppedBufferCount` sau khi 4K đã render.
+- Nếu decoder rơi ít nhất 12 frame trong cửa sổ 2,5 giây, app sẽ hạ trần tạm thời xuống 2560×1440 và bỏ selection override video cũ để giữ playback liên tục.
+- Nếu 4K không rơi frame, không hạ chất lượng.
+
+## Version/source
+- versionName: **1.10.103**
+- versionCode: **119**
+- Branch: `fix/mobile-1.10.79-youtube-performance`
+- Patch commit: `a799ece305f4559139c63e462957591254115843`
+- v37 chain commit: `73ad6e09951d12452a4ec5f03783fdc3da836514`
+- Version bump: `c8a659d8a68405c29856a63f56a9df64ffd4131e`
+- CI workflow update: `ed4ea6f5cd7e1fc8c787e820719f1d2bbf13ec31`
+- Subsequent 1.10.103 patch refinements:
+  - `d925794eef92b07034c1346089c3aa0facd28a78`
+  - `0b021eba3b7333f714292ae0dcb5fe019d03d8bf`
+
+## Điều kiện xác nhận
+1. GitHub Actions build thành công.
+2. Generated source sau toàn bộ patch chain đúng.
+3. APK artifact đúng versionCode 119.
+4. Người dùng test trên thiết bị thật cùng điều kiện với 1.10.102.
+5. Không đánh dấu PASS chỉ dựa trên CI.
+
+**Trạng thái hiện tại: source 1.10.103 đã sẵn sàng trong build chain; đang chờ CI và test máy thật.**
