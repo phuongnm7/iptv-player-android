@@ -3793,3 +3793,25 @@ Video `219395.mp4` cho thấy nội dung 4K vẫn phát được nhưng chuyển
 5. Không đánh dấu PASS chỉ dựa trên CI.
 
 **Trạng thái hiện tại: source 1.10.103 đã sẵn sàng trong build chain; đang chờ CI và test máy thật.**
+
+
+## CI WATCH — 1.10.103 — 2026-09-27 02:40 UTC
+
+### Run #741–#745: fail-fast source-patch failures
+Các run 741–745 đều dừng ở bước **Patch SmartTube Mobile UI and playback lifecycle**, trước khi Gradle build:
+- #741–#744: các iteration đầu của v103 chưa khớp generated source/patch-chain.
+- #745 (`44605423...`): lỗi cụ thể là anchor **4K watchdog fields** không tồn tại ở generated PlaybackActivity sau v67/v68; sau đó đã sửa anchor.
+- Các run này **không tạo APK**.
+
+### Run #746 — đang build
+- Run: **NM7 Mobile Final Build #746**
+- Run ID: `36289079120`
+- Commit: `20ecf01ad75dd304740e98b6d357cc21eddff49b`
+- Bước patch SmartTube: **SUCCESS**
+- Verifier 1.10.103: **SUCCESS**
+- Lifecycle regression guards: **SUCCESS**
+- Generated lifecycle source artifact step: **SUCCESS**
+- SmartTube compatibility/resource patches: **SUCCESS**
+- Hiện đang ở bước **Build Mobile only**; chưa có APK cho đến khi bước này hoàn tất.
+
+Đây là lần đầu vòng 1.10.103 vượt qua toàn bộ patch/verifier và đi vào Gradle build. Chưa đánh dấu PASS cho đến khi build + artifact hoàn tất và người dùng test máy thật.
