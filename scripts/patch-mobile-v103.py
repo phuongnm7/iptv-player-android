@@ -79,6 +79,7 @@ new = """        VideoGroup baseGroup = VideoGroup.from(section, column);
         MediaGroup cachedGrid = mNm7GridCache.get(section.getId());
         Long cachedGridAt = mNm7GridCacheTime.get(section.getId());
         if (cachedGrid != null && cachedGridAt != null
+                && (cachedGrid.getNextPageKey() == null || cachedGrid.getNextPageKey().isEmpty())
                 && System.currentTimeMillis() - cachedGridAt < NM7_GRID_CACHE_TTL_MS) {
             getView().showProgressBar(false);
             VideoGroup cachedGroup = VideoGroup.from(baseGroup, cachedGrid);
