@@ -200,14 +200,17 @@ s=s.replace(anchor,helper+anchor,1)
 
 # Hook policy/watchdog into the existing first-frame callback without depending on
 # whitespace or the exact surrounding observer implementation.
-needle = re.compile(r'(    @Override\\n    public void onRenderedFirstFrame\\(\\) \\{)')
+needle = re.compile(r'(onRenderedFirstFrame\\s*\\(\\)\\s*\\{)')
 match = needle.search(s)
 if not match:
     raise SystemExit("v106: first-frame callback signature missing")
-injection = match.group(1) + '''
+brace_end = match.end()
+injection = '''
                 applyNm74kPolicyIfNeeded();
-                armNm74kRecoveryWatchdog();'''
-s = s[:match.start()] + injection + s[match.end():]
+                armNm74kRecoveryWatchdog();
+'''
+if 'applyNm74kPolicyIfNeeded();' not in s[brace_end:brace_end+500]:
+    s = s[:brace_end] + injection + s[brace_end:]
 
 PLAY.write_text(s,encoding='utf-8')
 
