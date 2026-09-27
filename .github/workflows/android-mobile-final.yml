@@ -4,9 +4,6 @@ name: NM7 Mobile Final Build
   push:
     branches:
       - "fix/mobile-1.10.79-youtube-performance"
-      - "fix/mobile-1.10.26-sleep-timer-icon"
-      - "fix/mobile-1.10.76-live-chat"
-      - "fix/mobile-1.10.83-youtube-player-ui"
       - "main"
   workflow_dispatch:
 
@@ -57,34 +54,24 @@ jobs:
               if t!=orig: p.write_text(t)
           PY
 
+      # Chạy cả 2 script: v37 tạo nền tảng Mobile UI và v106 tối ưu hiệu năng + sửa lỗi compile
       - name: Patch SmartTube Mobile UI and playback lifecycle
         run: |
           set -euxo pipefail
+          python3 scripts/patch-mobile-v37.py
           python3 scripts/patch-mobile-v106.py
 
-      - name: Verify 1.10.106 build preserves the 1.10.102 user-confirmed behavior
+      - name: Verify 1.10.106 build configuration
         run: |
           set -euxo pipefail
           test "$(grep -c 'versionName = "1.10.106"' app/build.gradle.kts)" -eq 1
           test "$(grep -c 'versionCode = 122' app/build.gradle.kts)" -eq 1
-          echo "Build configuration verified."
 
       - name: Check Mobile lifecycle regression guards
         run: |
           set -euxo pipefail
           mkdir -p dist/mobile-diagnostics
-          echo "NM7 1.10.106 Lifecycle verified" > dist/mobile-diagnostics/lifecycle_audit.txt
           python3 scripts/verify-mobile-lifecycle.py || true
-
-      - name: Upload generated lifecycle source evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: Mobile-lifecycle-source-proof
-          path: |
-            dist/mobile-diagnostics/
-            third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-            third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/browse/BrowseActivity.java
-          if-no-files-found: warn
 
       - name: Patch SmartTube show_buffering resource collision
         run: |
@@ -205,7 +192,7 @@ jobs:
 
       - name: Build Mobile only (current NM7 IPTV Mobile)
         run: |
-         set -o pipefail
+          set -o pipefail
           gradle --no-daemon --console=plain \
             -PcompileSdkVersion=android-36 \
             -PminSdkVersion=23 \
