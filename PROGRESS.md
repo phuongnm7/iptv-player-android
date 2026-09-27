@@ -3646,6 +3646,24 @@ Chuỗi Mobile hiện tại vẫn chạy patch v84 → v97 trước performance 
 Bản **1.10.97** được giữ làm mốc behavior cho các lỗi UI đã từng được người dùng xác nhận là đã sửa.
 
 
+# BUILD UPDATE — 1.10.102 — 2026-09-27
+
+## GitHub Actions
+
+- Workflow: **NM7 Mobile Final Build #731**
+- Trigger commit: c676fec63965d6933fda6572ff827ce9466e1cbf
+- Kết quả: **SUCCESS**
+- Tổng thời gian: khoảng **10m 7s**
+- Artifacts: **3**
+- Artifact chính: NM7-IPTV-Mobile-FINAL
+
+## Trạng thái
+
+**1.10.102 đã build thành công.** Đây là xác nhận về quá trình build/packaging, **không phải xác nhận runtime**. Các lỗi avatar, status bar/player, spinner, YouTube video load và Browse/swipe vẫn phải được người dùng test lại trên thiết bị thật trước khi đánh dấu PASS.
+
+c676fec tiếp tục là mốc source của bản build này.
+
+
 # HANDOFF — 2026-09-27 — CHUYỂN SANG PHIÊN CHAT MỚI
 
 ## Trạng thái thực tế phải giữ nguyên
