@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
+NM7 IPTV - YouTube Performance & Seamless Mobile Transition Patch v1.10.106
+- Khắc phục lỗi sNm7TransitionPoster private access.
+- Xóa bỏ màn hình đen: Gắn thumbnail đè trực tiếp lên player container và mờ dần khi có video.
+- Sửa lỗi lệch hình/tiếng 4K: Đồng bộ buffer khởi động 1000ms, mở rộng đệm 64MB chống drop frame.
+- Sửa triệt để các lỗi biên dịch dependencies và trùng biến.
+"""
+
 from pathlib import Path
 import re
 
@@ -20,7 +28,7 @@ def patch_file(path: Path, transform_fn):
     return False
 
 # =========================================================================
-# 1. FIX LỖI BUILD GRADLE & DEPENDENCY
+# 1. FIX LỖI BUILD GRADLE & DEPENDENCY NULL
 # =========================================================================
 props_content = """
 junitXVersion=1.1.5
@@ -50,33 +58,31 @@ for p_gradle in SMARTTUBE_ROOT.rglob("*.gradle*"):
     if ".git" in p_gradle.parts: continue
     patch_file(p_gradle, fix_test_deps)
 
+# Cập nhật cache định dạng 60s và tránh duplicate variable
+p_item = SMARTTUBE_ROOT / "MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java"
+def opt_item(t):
+    if "NM7_FORMAT_REUSE_MS" in t:
+        t = re.sub(r'(NM7_FORMAT_REUSE_MS\s*=\s*)[^;]+;', r'\g<1>60_000L;', t)
+    else:
+        idx = t.find("public class YouTubeMediaItemService")
+        if idx != -1:
+            b = t.find("{", idx)
+            t = t[:b+1] + "\n    public static final long NM7_FORMAT_REUSE_MS = 60_000L;\n" + t[b+1:]
+    return t
+patch_file(p_item, opt_item)
+
 # =========================================================================
-# 2. XÓA MÀN HÌNH ĐEN (INSTANT POSTER) & SỬA LỖI BIÊN DỊCH PLAYBACK
+# 2. XỬ LÝ LỖI PRIVATE ACCESS & BẮT ẢNH THUMBNAIL
 # =========================================================================
-# 2.1 Bắt thumbnail ngay khi bấm thẻ video
 p_card = SMARTTUBE_ROOT / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/shared/VideoCardHolder.java"
 def opt_card(t):
     t = re.sub(r'\.delaySubscription\(650[^)]*\)', '', t)
-    if "sNm7TransitionPoster" not in t:
-        idx = t.find("public class VideoCardHolder")
-        if idx != -1:
-            b = t.find("{", idx)
-            injected = """
-    public static android.graphics.drawable.Drawable sNm7TransitionPoster = null;
-    public static void setNm7Poster(android.graphics.drawable.Drawable d) { sNm7TransitionPoster = d; }
-"""
-            t = t[:b+1] + injected + t[b+1:]
-    
-    if "setNm7Poster" not in t and "onClick" in t:
-        t = re.sub(
-            r'(public\s+void\s+onClick\s*\([^)]*\)\s*\{)',
-            r'\1\n        try { android.widget.ImageView iv = itemView.findViewById(com.liskovsoft.smartyoutubetv2.droid.R.id.card_image); if (iv != null && iv.getDrawable() != null) setNm7Poster(iv.getDrawable()); } catch(Throwable e) {}',
-            t
-        )
+    # Chuyển sNm7TransitionPoster sang public để PlaybackActivity truy cập hợp lệ
+    t = re.sub(r'\bprivate(\s+static\s+[^\n;]*sNm7TransitionPoster)', r'public\1', t)
     return t
 patch_file(p_card, opt_card)
 
-# 2.2 Thêm ImageView đè lên Player
+# Thêm ImageView poster vào layout nếu chưa có
 p_layout = SMARTTUBE_ROOT / "smarttubedroid/src/main/res/layout/playback_activity.xml"
 def opt_layout(t):
     if "nm7_startup_poster" not in t:
@@ -94,10 +100,12 @@ def opt_layout(t):
     return t
 patch_file(p_layout, opt_layout)
 
-# 2.3 Hiển thị poster và mờ đi khi video chạy
+# =========================================================================
+# 3. GẮN THUMBNAIL LÊN KHUNG PHÁT (LOẠI BỎ MÀN HÌNH ĐEN)
+# =========================================================================
 p_play = SMARTTUBE_ROOT / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java"
 def opt_play(t):
-    # Sửa lỗi javac section_is_empty
+    # Sửa lỗi string section_is_empty
     t = re.sub(r'getString\(\s*R\.string\.section_is_empty\s*\)', '"Section is empty"', t)
     
     if "nm7InitPoster" not in t:
@@ -110,19 +118,57 @@ def opt_play(t):
         try {
             overridePendingTransition(0, 0);
             mNm7Poster = findViewById(com.liskovsoft.smartyoutubetv2.droid.R.id.nm7_startup_poster);
-            android.graphics.drawable.Drawable d = com.liskovsoft.smartyoutubetv2.droid.ui.shared.VideoCardHolder.sNm7TransitionPoster;
-            if (mNm7Poster != null && d != null) {
-                mNm7Poster.setImageDrawable(d);
-                mNm7Poster.setVisibility(android.view.View.VISIBLE);
+            android.graphics.Bitmap b = null;
+            try {
+                b = com.liskovsoft.smartyoutubetv2.droid.ui.shared.VideoCardHolder.consumeNm7TransitionPoster(null);
+            } catch(Throwable ignored) {}
+            if (b == null) {
+                try {
+                    Object obj = com.liskovsoft.smartyoutubetv2.droid.ui.shared.VideoCardHolder.sNm7TransitionPoster;
+                    if (obj instanceof android.graphics.Bitmap) b = (android.graphics.Bitmap) obj;
+                } catch(Throwable ignored) {}
             }
-        } catch(Throwable e) {}
+            if (mNm7Poster != null && b != null) {
+                mNm7Poster.setImageBitmap(b);
+                mNm7Poster.setVisibility(android.view.View.VISIBLE);
+                mNm7Poster.setAlpha(1.0f);
+
+                // Gắn thẳng mNm7Poster lên trên cùng của khung player để không bị đen
+                android.view.View playerView = findViewById(com.liskovsoft.smartyoutubetv2.droid.R.id.player_view);
+                if (playerView != null && playerView.getParent() instanceof android.view.ViewGroup) {
+                    android.view.ViewGroup parent = (android.view.ViewGroup) playerView.getParent();
+                    if (mNm7Poster.getParent() != parent) {
+                        if (mNm7Poster.getParent() != null) {
+                            ((android.view.ViewGroup) mNm7Poster.getParent()).removeView(mNm7Poster);
+                        }
+                        parent.addView(mNm7Poster, new android.view.ViewGroup.LayoutParams(
+                            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                            android.view.ViewGroup.LayoutParams.MATCH_PARENT
+                        ));
+                    }
+                    mNm7Poster.bringToFront();
+                }
+            }
+        } catch(Throwable ignored) {}
     }
     private void nm7HidePoster() {
-        if (mNm7Poster != null && mNm7Poster.getVisibility() == android.view.View.VISIBLE) {
-            mNm7Poster.animate().alpha(0.0f).setDuration(250).withEndAction(() -> mNm7Poster.setVisibility(android.view.View.GONE)).start();
-            com.liskovsoft.smartyoutubetv2.droid.ui.shared.VideoCardHolder.sNm7TransitionPoster = null;
-        }
-        if (mProgressBar != null) mProgressBar.setVisibility(android.view.View.GONE);
+        try {
+            if (mNm7Poster != null && mNm7Poster.getVisibility() == android.view.View.VISIBLE) {
+                mNm7Poster.animate()
+                    .alpha(0.0f)
+                    .setDuration(220)
+                    .withEndAction(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                if (mNm7Poster != null) mNm7Poster.setVisibility(android.view.View.GONE);
+                            } catch(Throwable ignored) {}
+                        }
+                    })
+                    .start();
+            }
+            if (mProgressBar != null) mProgressBar.setVisibility(android.view.View.GONE);
+        } catch(Throwable ignored) {}
     }
 """
             t = t[:b+1] + methods + t[b+1:]
@@ -130,14 +176,12 @@ def opt_play(t):
     if "nm7InitPoster();" not in t:
         t = re.sub(r'(super\.onCreate\([^)]*\);)', r'\1\n        nm7InitPoster();', t)
 
-    # Nếu file đã có onRenderedFirstFrame, chèn nm7HidePoster vào. Nếu chưa, tạo mới.
     if "nm7HidePoster();" not in t:
         if "onRenderedFirstFrame" in t:
             t = re.sub(r'(public\s+void\s+onRenderedFirstFrame\s*\([^)]*\)\s*\{)', r'\1\n        nm7HidePoster();', t)
         else:
             t = t[:t.rfind("}")] + "\n    public void onRenderedFirstFrame() { nm7HidePoster(); }\n}"
 
-    # Gỡ bỏ các watchdog ép hạ phân giải gây giật hình 4K
     t = re.sub(r'.*mNm74kRecoveryWatchdog.*', '', t)
     t = re.sub(r'.*setMaxVideoSize\(2560,\s*1440\);?.*', '', t)
 
@@ -150,41 +194,27 @@ def opt_play(t):
 patch_file(p_play, opt_play)
 
 # =========================================================================
-# 3. TỐI ƯU 4K MƯỢT MÀ VÀ LOAD SIÊU TỐC
+# 4. ĐỒNG BỘ BUFFER KHỞI ĐỘNG VÀ TỐI ƯU 4K CHỐNG LỆCH HÌNH/TIẾNG
 # =========================================================================
 p_exo = SMARTTUBE_ROOT / "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/other/ExoPlayerInitializer.java"
 def opt_exo(t):
-    # Khởi động video siêu tốc (150ms thay vì mặc định 2500ms)
-    if "bufferForPlaybackMs = 150" not in t:
-        if re.search(r'int\s+bufferForPlaybackMs\s*=', t):
-            t = re.sub(r'int\s+bufferForPlaybackMs\s*=\s*[^;]+;', 'int bufferForPlaybackMs = 150;', t)
-        else:
-            idx = t.find("public class ExoPlayerInitializer")
-            if idx != -1:
-                b = t.find("{", idx)
-                t = t[:b+1] + "\n    public static final int bufferForPlaybackMs = 150;\n" + t[b+1:]
+    # Khởi động ở mức 1000ms để hình và tiếng giải mã đồng thời, không bị drop frame
+    if re.search(r'int\s+bufferForPlaybackMs\s*=', t):
+        t = re.sub(r'int\s+bufferForPlaybackMs\s*=\s*[^;]+;', 'int bufferForPlaybackMs = 1000;', t)
+    elif "bufferForPlaybackMs" not in t:
+        idx = t.find("public class ExoPlayerInitializer")
+        if idx != -1:
+            b = t.find("{", idx)
+            t = t[:b+1] + "\n    public static final int bufferForPlaybackMs = 1000;\n" + t[b+1:]
 
-    # Tăng buffer RAM lên 128MB để gánh 4K 60fps không bị nghẽn
-    t = re.sub(r'\.setTargetBufferBytes\([^)]+\)', '.setTargetBufferBytes(128 * 1024 * 1024)', t)
-    # Tăng thời lượng nạp trước luồng video
-    t = re.sub(r'\.setBufferDurationsMs\([^)]+\)', '.setBufferDurationsMs(32000, 64000, 150, 1000)', t)
+    # Tăng buffer RAM lên 64MB để giữ dòng truyền 4K ổn định
+    t = re.sub(r'\.setTargetBufferBytes\([^)]+\)', '.setTargetBufferBytes(64 * 1024 * 1024)', t)
+    t = re.sub(r'\.setBufferDurationsMs\([^)]+\)', '.setBufferDurationsMs(25000, 60000, 1000, 2000)', t)
     return t
 patch_file(p_exo, opt_exo)
 
-p_item = SMARTTUBE_ROOT / "MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java"
-def opt_item(t):
-    if "NM7_FORMAT_REUSE_MS" in t:
-        t = re.sub(r'(NM7_FORMAT_REUSE_MS\s*=\s*)[^;]+;', r'\g<1>60_000L;', t)
-    else:
-        idx = t.find("public class YouTubeMediaItemService")
-        if idx != -1:
-            b = t.find("{", idx)
-            t = t[:b+1] + "\n    public static final long NM7_FORMAT_REUSE_MS = 60_000L;\n" + t[b+1:]
-    return t
-patch_file(p_item, opt_item)
-
 # =========================================================================
-# 4. TẮT ANIMATION CHUYỂN TRANG GÂY GIẬT
+# 5. TẮT ANIMATION CHUYỂN CẢNH GÂY GIẬT KHUNG HÌNH
 # =========================================================================
 p_browse = SMARTTUBE_ROOT / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/browse/BrowseActivity.java"
 def opt_browse(t):
