@@ -19,14 +19,20 @@ if "private String mChannelThumbnailUrl;" not in s:
     s = s.replace("    private String mChannelId;\n",
                   "    private String mChannelId;\n    private String mChannelThumbnailUrl;\n", 1)
 
-anchor = "        video.mChannelId = item.getChannelId();\n"
+method_start = s.find("public static YouTubeMediaItem from(VideoItem item)")
+method_end = s.find("public static YouTubeMediaItem from(MusicItem item)", method_start)
+if method_start < 0 or method_end < 0:
+    raise SystemExit("v76: VideoItem factory boundaries missing")
+method_text = s[method_start:method_end]
+anchor = "        video.mChannelId = item.getChannelId();\\n"
 replacement = """        video.mChannelId = item.getChannelId();
         video.mChannelThumbnailUrl = item.getChannelThumbnail();
 """
-if s.count(anchor) != 1:
-    raise SystemExit("v76: VideoItem channelId anchor missing/ambiguous")
-if "video.mChannelThumbnailUrl = item.getChannelThumbnail();" not in s:
-    s = s.replace(anchor, replacement, 1)
+if method_text.count(anchor) != 1:
+    raise SystemExit("v76: VideoItem channelId anchor missing/ambiguous inside VideoItem factory")
+if "video.mChannelThumbnailUrl = item.getChannelThumbnail();" not in method_text:
+    method_text = method_text.replace(anchor, replacement, 1)
+    s = s[:method_start] + method_text + s[method_end:]
 
 getter = """    public String getChannelThumbnailUrl() {
         return mChannelThumbnailUrl;
