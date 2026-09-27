@@ -20,22 +20,46 @@ def patch_file(path: Path, transform_fn):
     return False
 
 # -------------------------------------------------------------------------
-# 0. Sửa triệt để lỗi androidx.test.ext:junit:null & truth:null
+# 1. Sửa triệt để lỗi androidx.test.ext:junit:null và truth:null trong ExoPlayer
 # -------------------------------------------------------------------------
-for p_gradle in SMARTTUBE_ROOT.rglob("build.gradle"):
+# 1.1. Bổ sung các biến version vào gradle.properties để Groovy không bị null
+props_content = """
+junitXVersion=1.1.5
+truthXVersion=1.5.0
+testCoreVersion=1.5.0
+testRunnerVersion=1.5.2
+testRulesVersion=1.5.0
+truthVersion=1.1.3
+"""
+for gp in [Path("gradle.properties"), SMARTTUBE_ROOT / "gradle.properties"]:
+    if gp.parent.is_dir():
+        cur = gp.read_text(errors="ignore") if gp.is_file() else ""
+        if "junitXVersion" not in cur:
+            gp.write_text(cur + "\n" + props_content)
+            log(f"Injected test versions into {gp}")
+
+# 1.2. Thay thế toàn bộ cú pháp nối chuỗi ('+ junitXVersion) trong mọi file gradle
+def fix_test_deps(t):
+    # Thay thế dạng nối chuỗi: 'androidx.test.ext:junit:' + ...
+    t = re.sub(r"['\"]androidx\.test\.ext:junit:?['\"]\s*\+\s*[^,\n\)]+", "'androidx.test.ext:junit:1.1.5'", t)
+    t = re.sub(r"['\"]androidx\.test\.ext:truth:?['\"]\s*\+\s*[^,\n\)]+", "'androidx.test.ext:truth:1.5.0'", t)
+    t = re.sub(r"['\"]androidx\.test:core:?['\"]\s*\+\s*[^,\n\)]+", "'androidx.test:core:1.5.0'", t)
+    t = re.sub(r"['\"]androidx\.test:runner:?['\"]\s*\+\s*[^,\n\)]+", "'androidx.test:runner:1.5.2'", t)
+    t = re.sub(r"['\"]androidx\.test:rules:?['\"]\s*\+\s*[^,\n\)]+", "'androidx.test:rules:1.5.0'", t)
+    t = re.sub(r"['\"]com\.google\.truth:truth:?['\"]\s*\+\s*[^,\n\)]+", "'com.google.truth:truth:1.1.3'", t)
+    
+    # Thay thế dạng chuỗi template: "androidx.test.ext:junit:$..."
+    t = re.sub(r"['\"]androidx\.test\.ext:junit:[^'\"]*['\"]", "'androidx.test.ext:junit:1.1.5'", t)
+    t = re.sub(r"['\"]androidx\.test\.ext:truth:[^'\"]*['\"]", "'androidx.test.ext:truth:1.5.0'", t)
+    return t
+
+for p_gradle in SMARTTUBE_ROOT.rglob("*.gradle*"):
     if ".git" in p_gradle.parts:
         continue
-    def fix_null_versions(t):
-        t = re.sub(r'androidx\.test\.ext:junit:(\$junitXVersion|null|\$rootProject\.ext\.junitXVersion)', 'androidx.test.ext:junit:1.1.5', t)
-        t = re.sub(r'androidx\.test\.ext:truth:(\$truthXVersion|null|\$rootProject\.ext\.truthXVersion)', 'androidx.test.ext:truth:1.5.0', t)
-        t = re.sub(r'androidx\.test:core:(\$testCoreVersion|null)', 'androidx.test:core:1.5.0', t)
-        t = re.sub(r'androidx\.test:runner:(\$testRunnerVersion|null)', 'androidx.test:runner:1.5.2', t)
-        t = re.sub(r'androidx\.test:rules:(\$testRulesVersion|null)', 'androidx.test:rules:1.5.0', t)
-        return t
-    patch_file(p_gradle, fix_null_versions)
+    patch_file(p_gradle, fix_test_deps)
 
 # -------------------------------------------------------------------------
-# 1. Sửa thiếu symbol section_is_empty và tối ưu PlaybackActivity
+# 2. Sửa thiếu symbol section_is_empty và tối ưu PlaybackActivity
 # -------------------------------------------------------------------------
 p_play = SMARTTUBE_ROOT / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java"
 def opt_play(t):
@@ -58,7 +82,7 @@ def opt_play(t):
 patch_file(p_play, opt_play)
 
 # -------------------------------------------------------------------------
-# 2. Tối ưu ExoPlayer Buffer (150ms để phát tức thì khi chọn video)
+# 3. Tối ưu ExoPlayer Buffer: Khởi động phát video tức thì (150ms)
 # -------------------------------------------------------------------------
 p_exo = SMARTTUBE_ROOT / "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/other/ExoPlayerInitializer.java"
 def opt_exo(t):
@@ -74,7 +98,7 @@ def opt_exo(t):
 patch_file(p_exo, opt_exo)
 
 # -------------------------------------------------------------------------
-# 3. Tối ưu Metadata format cache (tránh gọi lặp API)
+# 4. Tối ưu Metadata format cache: Giảm thời gian chờ API YouTube (60s)
 # -------------------------------------------------------------------------
 p_item = SMARTTUBE_ROOT / "MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java"
 def opt_item(t):
@@ -87,7 +111,7 @@ def opt_item(t):
 patch_file(p_item, opt_item)
 
 # -------------------------------------------------------------------------
-# 4. Tắt hiệu ứng giật lag khi cuộn trang/danh mục
+# 5. Tắt hiệu ứng giật lag khi cuộn trang và đổi màn hình
 # -------------------------------------------------------------------------
 p_browse = SMARTTUBE_ROOT / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/browse/BrowseActivity.java"
 def opt_browse(t):
@@ -99,9 +123,6 @@ def opt_browse(t):
     return t
 patch_file(p_browse, opt_browse)
 
-# -------------------------------------------------------------------------
-# 5. Tắt hiệu ứng Activity Intent chuyển cảnh
-# -------------------------------------------------------------------------
 p_view = SMARTTUBE_ROOT / "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/views/ViewManager.java"
 def opt_view(t):
     if "FLAG_ACTIVITY_NO_ANIMATION" not in t:
@@ -112,4 +133,4 @@ def opt_view(t):
     return t
 patch_file(p_view, opt_view)
 
-log("Đã áp dụng tối ưu YouTube và vá lỗi testutils thành công.")
+log("Hoàn tất sửa lỗi dependency và áp dụng tối ưu YouTube.")
