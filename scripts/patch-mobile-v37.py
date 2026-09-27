@@ -317,3 +317,7 @@ runpy.run_path("scripts/patch-mobile-v104.py")
 
 # NM7 1.10.105: targeted YouTube network/Browse/4K performance pass.
 runpy.run_path("scripts/patch-mobile-v105.py")
+
+
+# NM7 1.10.106: preserve YouTube player across HOME/background and add measured 4K recovery.
+runpy.run_path("scripts/patch-mobile-v106.py")
