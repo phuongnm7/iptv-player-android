@@ -22,6 +22,18 @@ Chi tiết lịch sử, lỗi, commit, CI và kế hoạch sửa tiếp theo: [P
 
 ---
 
+# Mobile 1.10.76 / versionCode 94 — IN PROGRESS
+
+**1.10.76 đang được phát triển trực tiếp từ baseline 1.10.75; chưa được coi là stable cho đến khi CI PASS và người dùng test APK thực tế.**
+
+Phạm vi vòng này:
+- Sửa đường dữ liệu **avatar kênh YouTube** theo đường xác định từ source SmartTube: VideoItem.getChannelThumbnail() → YouTubeMediaItem → Video.channelThumbnailUrl → VideoCardHolder.
+- Loại bỏ điểm không xác định của patch cũ dùng rglob("Video.java"); bản mới nhắm đúng common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/data/Video.java.
+- Xử lý **status bar đè lên YouTube player** trên Android 15/16 bằng runtime WindowInsets cho playback_root; landscape/fullscreen không thêm top inset.
+- Không thay đổi IPTV, Android TV, bottom navigation 2 tab, playback ownership hoặc fast-load path của 1.10.75.
+
+**Current stable vẫn là 1.10.75 / versionCode 93** cho đến khi 1.10.76 được build và test thực tế.
+
 # Trạng thái Mobile — 1.10.75 / versionCode 93 — CURRENT STABLE BASELINE
 
 **1.10.75 là bản ổn định nhất của NM7 IPTV Mobile tại thời điểm 2026-09-23 và là baseline bắt buộc cho các bản Mobile tiếp theo.**
