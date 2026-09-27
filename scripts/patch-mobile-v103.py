@@ -178,11 +178,9 @@ replacement = """    private boolean mNm7OwnsPlayback;
 """
 s = once(s, anchor, replacement, "4K watchdog fields")
 
-anchor = """        DefaultTrackSelector trackSelector = new RestoreTrackSelector(new AdaptiveTrackSelection.Factory());
-        mExoPlayerController.setTrackSelector(trackSelector);
+anchor = """        mExoPlayerController.setTrackSelector(trackSelector);
 """
-replacement = """        DefaultTrackSelector trackSelector = new RestoreTrackSelector(new AdaptiveTrackSelection.Factory());
-        mNm7TrackSelector = trackSelector;
+replacement = """        mNm7TrackSelector = trackSelector;
         mExoPlayerController.setTrackSelector(trackSelector);
 """
 s = once(s, anchor, replacement, "track selector capture")
