@@ -19,7 +19,9 @@ def patch_file(path: Path, transform_fn):
         return True
     return False
 
+# -------------------------------------------------------------------------
 # 1. Sửa lỗi androidx.test.ext:junit:null và truth:null trong ExoPlayer
+# -------------------------------------------------------------------------
 props_content = """
 junitXVersion=1.1.5
 truthXVersion=1.5.0
@@ -49,7 +51,25 @@ for p_gradle in SMARTTUBE_ROOT.rglob("*.gradle*"):
         continue
     patch_file(p_gradle, fix_test_deps)
 
-# 2. Sửa thiếu symbol section_is_empty trong PlaybackActivity
+# -------------------------------------------------------------------------
+# 2. Sửa lỗi trùng lặp biến NM7_FORMAT_REUSE_MS (Cập nhật 8_000L thành 60_000L)
+# -------------------------------------------------------------------------
+p_item = SMARTTUBE_ROOT / "MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java"
+def opt_item(t):
+    if "NM7_FORMAT_REUSE_MS" in t:
+        # Thay thế giá trị cũ thành 60_000L để tránh bị lỗi duplicate variable
+        t = re.sub(r'(NM7_FORMAT_REUSE_MS\s*=\s*)[^;]+;', r'\g<1>60_000L;', t)
+    else:
+        idx = t.find("public class YouTubeMediaItemService")
+        if idx != -1:
+            b = t.find("{", idx)
+            t = t[:b+1] + "\n    public static final long NM7_FORMAT_REUSE_MS = 60_000L;\n" + t[b+1:]
+    return t
+patch_file(p_item, opt_item)
+
+# -------------------------------------------------------------------------
+# 3. Sửa thiếu symbol section_is_empty và tối ưu PlaybackActivity
+# -------------------------------------------------------------------------
 p_play = SMARTTUBE_ROOT / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java"
 def opt_play(t):
     t = re.sub(r'getString\(\s*R\.string\.section_is_empty\s*\)', '"Section is empty"', t)
@@ -58,13 +78,15 @@ def opt_play(t):
     return t
 patch_file(p_play, opt_play)
 
-# 3. Tối ưu ExoPlayer Buffer: Khởi động phát video tức thì (150ms)
+# -------------------------------------------------------------------------
+# 4. Tối ưu ExoPlayer Buffer: Khởi động phát video tức thì (150ms)
+# -------------------------------------------------------------------------
 p_exo = SMARTTUBE_ROOT / "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/other/ExoPlayerInitializer.java"
 def opt_exo(t):
     if "bufferForPlaybackMs = 150" not in t:
         if re.search(r'int\s+bufferForPlaybackMs\s*=', t):
             t = re.sub(r'int\s+bufferForPlaybackMs\s*=\s*[^;]+;', 'int bufferForPlaybackMs = 150;', t)
-        else:
+        elif "bufferForPlaybackMs" not in t:
             idx = t.find("public class ExoPlayerInitializer")
             if idx != -1:
                 b = t.find("{", idx)
@@ -72,18 +94,9 @@ def opt_exo(t):
     return t
 patch_file(p_exo, opt_exo)
 
-# 4. Tối ưu Metadata format cache: Giảm thời gian chờ API YouTube (60s)
-p_item = SMARTTUBE_ROOT / "MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java"
-def opt_item(t):
-    if "NM7_FORMAT_REUSE_MS = 60_000L" not in t:
-        idx = t.find("public class YouTubeMediaItemService")
-        if idx != -1:
-            b = t.find("{", idx)
-            t = t[:b+1] + "\n    public static final long NM7_FORMAT_REUSE_MS = 60_000L;\n" + t[b+1:]
-    return t
-patch_file(p_item, opt_item)
-
+# -------------------------------------------------------------------------
 # 5. Tắt hiệu ứng giật lag khi chuyển Intent và cuộn trang
+# -------------------------------------------------------------------------
 p_browse = SMARTTUBE_ROOT / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/browse/BrowseActivity.java"
 def opt_browse(t):
     if "setItemAnimator(null)" not in t:
@@ -104,4 +117,4 @@ def opt_view(t):
     return t
 patch_file(p_view, opt_view)
 
-log("Hoàn tất tối ưu YouTube và cấu hình Mobile UI.")
+log("Hoàn tất sửa lỗi trùng biến và áp dụng tối ưu.")
