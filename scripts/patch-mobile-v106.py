@@ -20,7 +20,11 @@ PLAY = PHONE / "playback/PlaybackActivity.java"
 
 # 1) Keep the player alive during normal HOME/background transitions.
 s = PLAY.read_text(encoding="utf-8")
-field_pattern = re.compile(r'(?m)^    private boolean mNm7OwnsPlayback(?:\\s*=\\s*false)?;\\s*
+if "mNm7Backgrounding" not in s:
+    anchor = "    private boolean mNm7Stopped;"
+    if s.count(anchor) != 1:
+        raise SystemExit("v106: mNm7Stopped field anchor missing")
+    s = s.replace(anchor, anchor + "\n    private boolean mNm7Backgrounding;", 1)
 
 s = s.replace(
 '''        mIsBackPressed = false;
