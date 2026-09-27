@@ -1,3 +1,43 @@
+# NM7 IPTV Mobile — TRẠNG THÁI HIỆN TẠI — 2026-09-27
+
+> **1.10.102 đã được người dùng test trên thiết bị thật và FAIL đối với các mục tiêu chính. Không được coi 1.10.102 là bản ổn định.**
+
+## Kết quả test mới nhất
+
+Các lỗi người dùng xác nhận vẫn còn:
+- **Avatar YouTube:** thẻ video vẫn hiện icon mặc định, chưa hiển thị đúng avatar kênh.
+- **Status bar:** thanh status bar Android vẫn đè lên player khi mở video. **1.10.97 là behavioral reference đã được người dùng xác nhận xử lý đúng lỗi này.**
+- **YouTube video load:** vẫn chậm.
+- **YouTube Browse / vuốt chuyển tab:** vẫn lag/chậm.
+- **Spinner:** vòng tròn đen/spinner vẫn xuất hiện khi mở video, dù 1.10.97 đã có hard-disable.
+
+## Mốc bắt buộc cho vòng sửa tiếp theo
+
+- Dùng **1.10.97** làm mốc hành vi cho **avatar + status bar/player portrait + spinner**.
+- **Không** dùng 1.10.98/1.10.99 làm behavioral reference cho các phần trên vì đã có regression.
+- Performance chỉ được tác động vào **video loading, Browse/tab loading, swipe responsiveness, data/network scheduling và RecyclerView/render workload**.
+- Không thay đổi IPTV, avatar, status-bar/player layout hoặc spinner khi chỉ đang tối ưu performance.
+- Không đánh dấu PASS chỉ vì CI build thành công; phải có test thực tế trên thiết bị.
+
+## Phiên bản/source hiện tại
+
+- Version: **1.10.102**
+- versionCode: **118**
+- Branch: `fix/mobile-1.10.79-youtube-performance`
+- Current HEAD: `475ff88ee05fd58abcd0616ad04c487534c3f88d`
+- Commit trước đó chứa source correction: `c676fec63965d6933fda6572ff827ce9466e1cbf`
+
+## Hướng tiếp tục
+
+1. Khôi phục chính xác generated/runtime behavior của **1.10.97** cho status bar, avatar và spinner.
+2. Sau khi các phần này được bảo toàn, tối ưu riêng video load và Browse/swipe.
+3. Build CI, kiểm tra generated source và artifact.
+4. Người dùng test APK thật; chỉ sau đó mới chốt baseline mới.
+
+Chi tiết đầy đủ nằm trong `PROGRESS.md`.
+
+---
+
 # Mobile 1.10.91 / versionCode 107 — STABLE BASELINE — USER TEST CONFIRMED
 
 **1.10.91 là bản Mobile tốt nhất/ổn định nhất hiện tại theo kết quả test thực tế mới nhất của người dùng.** Từ thời điểm này, mọi bản Mobile tiếp theo phải phát triển trực tiếp trên nền **1.10.91**, không quay lại các baseline cũ nếu không có yêu cầu đặc biệt.
