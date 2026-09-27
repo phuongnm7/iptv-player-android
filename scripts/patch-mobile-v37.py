@@ -314,3 +314,6 @@ runpy.run_path("scripts/patch-mobile-performance.py")
 # NM7 1.10.104: rollback unsafe v103 render/cache changes and apply conservative performance tuning.
 runpy.run_path("scripts/patch-mobile-v103.py")
 runpy.run_path("scripts/patch-mobile-v104.py")
+
+# NM7 1.10.105: targeted YouTube network/Browse/4K performance pass.
+runpy.run_path("scripts/patch-mobile-v105.py")
