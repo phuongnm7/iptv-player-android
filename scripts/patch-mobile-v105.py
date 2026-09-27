@@ -56,8 +56,8 @@ if anchor not in s:
     raise SystemExit("v105: Browse RecyclerView anchor missing")
 insert = """mGridView.setHasFixedSize(true);
 mGridView.setItemAnimator(null);
-androidx.recyclerview.widget.RecycledViewPool nm7Pool =
-        new androidx.recyclerview.widget.RecycledViewPool();
+androidx.recyclerview.widget.RecyclerView.RecycledViewPool nm7Pool =
+        new androidx.recyclerview.widget.RecyclerView.RecycledViewPool();
 nm7Pool.setMaxRecycledViews(0, 16);
 mGridView.setRecycledViewPool(nm7Pool);"""
 s = s.replace(anchor, insert, 1)
