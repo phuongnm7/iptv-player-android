@@ -63,7 +63,7 @@ jobs:
           PY
 
       - name: Patch SmartTube Mobile UI and playback lifecycle
-        run: python3 scripts/patch-mobile-v37.py
+        run: python3 scripts/patch-mobile-v106.py
 
       - name: Verify 1.10.106 build preserves the 1.10.102 user-confirmed behavior
         run: |
@@ -117,7 +117,9 @@ jobs:
           grep -q 'window.setDecorFitsSystemWindows(true);' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
 
       - name: Check Mobile lifecycle regression guards
-        run: python3 scripts/verify-mobile-lifecycle.py
+        run: |
+          mkdir -p dist/mobile-diagnostics
+          python3 scripts/verify-mobile-lifecycle.py
 
       - name: Upload generated lifecycle source evidence
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a0
