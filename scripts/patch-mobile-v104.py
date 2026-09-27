@@ -148,17 +148,19 @@ anchor = """            @Override public void onRenderedFirstFrame() {
 """
 if s.count(anchor) != 1:
     raise SystemExit("v104: first-frame observer anchor missing")
-replacement = """            @Override public void onRenderedFirstFrame() {
+replacement = """            @Override public void onVideoSizeChanged(int width, int height, int unappliedRotationDegrees, float pixelWidthHeightRatio) {
+                applyNm74kSmoothProfileIfNeeded(width, height);
+            }
+
+            @Override public void onRenderedFirstFrame() {
                 if (!isNm7CurrentEngine(observed)) return;
-                applyNm74kSmoothProfileIfNeeded();
 """
 s = s.replace(anchor, replacement, 1)
 
 anchor = "    private void ensureNm7PlaybackObserver() {\n"
-helper = """    private void applyNm74kSmoothProfileIfNeeded() {
-        if (mNm74kSmoothProfileApplied || mPlayer == null || mNm7TrackSelector == null) return;
-        com.google.android.exoplayer2.video.VideoSize size = mPlayer.getVideoSize();
-        if (size == null || (size.width < 3840 && size.height < 2160)) return;
+helper = """    private void applyNm74kSmoothProfileIfNeeded(int width, int height) {
+        if (mNm74kSmoothProfileApplied || mNm7TrackSelector == null) return;
+        if (width < 3840 && height < 2160) return;
         try {
             mNm7TrackSelector.setParameters(
                     mNm7TrackSelector.buildUponParameters()
@@ -167,7 +169,7 @@ helper = """    private void applyNm74kSmoothProfileIfNeeded() {
                             .setExceedVideoConstraintsIfNecessary(false));
             mNm74kSmoothProfileApplied = true;
             android.util.Log.i("NM7Playback",
-                    "4k_smooth_profile=30fps,max24Mbps width=" + size.width + " height=" + size.height);
+                    "4k_smooth_profile=30fps,max24Mbps width=" + width + " height=" + height);
         } catch (RuntimeException error) {
             android.util.Log.w("NM7Playback", "4k smooth profile failed", error);
         }
