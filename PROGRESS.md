@@ -1,3 +1,60 @@
+# 1.10.106 — GIỮ PLAYER KHI CHẠY NỀN + GIẢM RELOAD FORMAT YOUTUBE — 2026-09-27
+
+## Kết quả CI
+- Version: **1.10.106 / versionCode 122**
+- Branch: `fix/mobile-1.10.79-youtube-performance`
+- Commit CI: `8347399bb2a8c8937eb3c575e5932df876f5e035`
+- **NM7 Mobile Final Build #781 — SUCCESS**
+- Run ID: `36296325937`
+- Patch + 1.10.102 behavior verifier + lifecycle regression guards: **PASS**
+- Unit tests: **PASS**
+- APK upload: **PASS**
+- Artifact: `NM7-IPTV-Mobile-FINAL`
+- Artifact ID: `10923991428`
+- Artifact SHA-256: `03f084bf2f8bdc079fecaed3e66e902c1d91a33ef620fb1ddabc584613947e3c`
+
+## Vấn đề người dùng yêu cầu xử lý
+Người dùng tiếp tục xác nhận 3 nhóm lỗi:
+1. Mở video YouTube vẫn load chậm.
+2. Video/Browse còn giật, lag; đặc biệt 4K.
+3. Đang phát → chạy nền → mở lại app thì video phải load lại từ đầu.
+
+## Phân tích và thay đổi 1.10.106
+
+### A. Background playback / lifecycle
+Đường lifecycle trước đây có thể gọi `blockEngine(true)` và `mPlaybackPresenter.onViewPaused()` khi Activity mất foreground. Điều này có nguy cơ làm mất trạng thái pipeline playback hoặc dispose đường selected-video loading.
+
+1.10.106:
+- đánh dấu `mNm7Backgrounding`;
+- **không block ExoPlayer** trong HOME/background;
+- không gọi `mPlaybackPresenter.onViewPaused()` trong background transition thông thường;
+- khi resume, giữ nguyên player/MediaItem nếu không có mini/target restore thực sự;
+- chỉ bind lại PlayerView khi target không còn gắn đúng player.
+
+Mục tiêu: quay lại app phải tiếp tục cùng stream, position và buffer, thay vì resolve/load lại.
+
+### B. Format reuse
+- Reuse format-info process-local tăng từ **8s → 60s**.
+- Không persist signed stream URLs ra disk.
+- Đây là tối ưu cho trường hợp mở lại nhanh cùng video hoặc Activity/UI rebinding.
+
+### C. 4K
+Không tiếp tục áp đặt `30fps/24Mbps` hoặc fallback 1440p bằng phỏng đoán. Các thử nghiệm v103/v104 cho thấy các thay đổi này không đủ cơ sở để chốt. Nếu 4K vẫn lag, vòng tiếp theo phải lấy dữ liệu runtime: codec, độ phân giải, FPS, bitrate và droppedBufferCount.
+
+## Kết quả build
+CI #781 đã build thành công toàn bộ Mobile, gồm APK và unit-test artifact. Đây mới là **build PASS**, chưa phải runtime PASS.
+
+## Kế hoạch test 1.10.106
+- Test video YouTube mở mới.
+- Test Home/background → quay lại app.
+- Test Browse/swipe.
+- Test 4K.
+- Regression test avatar/status bar/spinner.
+
+Nếu 4K còn lag, không tiếp tục chỉnh ngẫu nhiên; phải truy đúng format/decoder đang được chọn và số frame bị drop.
+
+---
+
 # 1.10.95 — làm theo video mẫu: reset player về màn đen trước khi phát
 
 Ngày 2026-09-25.
