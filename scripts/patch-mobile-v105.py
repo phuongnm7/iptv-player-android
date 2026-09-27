@@ -45,17 +45,15 @@ p.write_text(s, encoding="utf-8")
 # 2) Enable decoder fallback in the existing legacy ExoPlayer renderer factory.
 p = COMMON / "exoplayer/other/ExoPlayerInitializer.java"
 s = p.read_text(encoding="utf-8")
-needle = "new DefaultRenderersFactory"
-if needle not in s:
-    raise SystemExit("v105: DefaultRenderersFactory anchor missing")
 if ".setEnableDecoderFallback(true)" not in s:
-    s = re.sub(
-        r"(new DefaultRenderersFactory\([^;]+?\))",
-        r"\1.setEnableDecoderFallback(true)",
-        s,
-        count=1,
-        flags=re.S,
-    )
+    lines = s.splitlines()
+    for i, line in enumerate(lines):
+        if "DefaultRenderersFactory" in line and "new " in line:
+            lines[i] = line + ".setEnableDecoderFallback(true)"
+            break
+    else:
+        raise SystemExit("v105: DefaultRenderersFactory anchor missing")
+    s = "\n".join(lines) + "\n"
 if ".setEnableDecoderFallback(true)" not in s:
     raise SystemExit("v105: decoder fallback insertion failed")
 p.write_text(s, encoding="utf-8")
