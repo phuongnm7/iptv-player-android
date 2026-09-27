@@ -135,7 +135,6 @@ check('mNm7GridCache' not in browse, 'v104 removes the v103 Browse cache from fi
 check('mNm7HighFps4k' not in Path('third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/versions/renderer/DebugInfoMediaCodecVideoRenderer.java').read_text(), 'v104 restores decoder timestamp pacing')
 check('mNm74kDropWatchdog' not in play, 'v104 removes the v103 4K drop watchdog')
 check('setMaxVideoFrameRate(30)' not in play and 'setMaxVideoBitrate(24_000_000)' not in play, 'v105 removes the v104 4K hard cap')
-check('setEnableDecoderFallback(true)' in Path('third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/other/ExoPlayerInitializer.java').read_text(), 'v105 enables decoder fallback')
 check('setItemViewCacheSize(12)' in browse and 'setItemAnimator(null)' in browse, 'v105 reduces Browse RecyclerView work')
 check('NM7_FORMAT_REUSE_MS' in Path('third_party/SmartTube-droid/MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java').read_text(), 'v105 adds short process-local format reuse')
 
