@@ -81,8 +81,8 @@ check('maxresdefault.jpg' in Path('scripts/patch-mobile-v73.py').read_text(), 'Y
 check('mqdefault.jpg' not in Path('scripts/patch-mobile-v73.py').read_text(), 'YouTube Browse optimization does not downgrade thumbnail quality')
 
 # Version.
-check('versionCode = 118' in gradle, 'Mobile versionCode is 118 for Mobile 1.10.102 build')
-check('versionName = "1.10.102"' in gradle, 'Mobile versionName is 1.10.102')
+check('versionCode = 119' in gradle, 'Mobile versionCode is 119 for Mobile 1.10.103 build')
+check('versionName = "1.10.103"' in gradle, 'Mobile versionName is 1.10.103')
 
 # Stable playback patches.
 for ver, needles, label in [
@@ -125,6 +125,11 @@ check('FLAG_ACTIVITY_NO_ANIMATION' in Path('scripts/patch-mobile-v91.py').read_t
 check('rendered >= mNm7PosterRenderedBaseline + 3' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 uses the tested +3 moving-frame threshold')
 check('elapsed >= 180L' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 requires the tested startup stability window')
 check('bufferForPlaybackMs = 250' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 baseline retains the 250ms startup buffer before v96 override')
+check('runpy.run_path("scripts/patch-mobile-v103.py")' in patch, 'v103 YouTube performance/4K patch is in the Mobile chain')
+check('mNm7GridCache' in Path('scripts/patch-mobile-v103.py').read_text(), 'v103 grid cache patch is present')
+check('mNm7HighFps4k' in Path('scripts/patch-mobile-v103.py').read_text(), 'v103 4K SurfaceView timing patch is present')
+check('mNm74kDropWatchdog' in Path('scripts/patch-mobile-v103.py').read_text(), 'v103 4K dropped-frame watchdog is present')
+
 
 Path('dist/mobile-diagnostics').mkdir(parents=True, exist_ok=True)
 Path('dist/mobile-diagnostics/lifecycle-source-proof.json').write_text(json.dumps({
