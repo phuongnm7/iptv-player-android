@@ -1,4 +1,4 @@
-# NM7 Mobile 1.10.104 — safe performance rollback + 4K smooth profile
+# NM7 Mobile 1.10.105 — safe performance rollback + 4K smooth profile
 name: NM7 Mobile Final Build
 
 "on":
@@ -65,11 +65,11 @@ jobs:
       - name: Patch SmartTube Mobile UI and playback lifecycle
         run: python3 scripts/patch-mobile-v37.py
 
-      - name: Verify 1.10.104 build preserves the 1.10.102 user-confirmed behavior
+      - name: Verify 1.10.105 build preserves the 1.10.102 user-confirmed behavior
         run: |
           set -euxo pipefail
-          test "$(grep -c 'versionName = \"1.10.104\"' app/build.gradle.kts)" -eq 1
-          test "$(grep -c 'versionCode = 120' app/build.gradle.kts)" -eq 1
+          test "$(grep -c 'versionName = \"1.10.105\"' app/build.gradle.kts)" -eq 1
+          test "$(grep -c 'versionCode = 121' app/build.gradle.kts)" -eq 1
           grep -q 'window.setDecorFitsSystemWindows(true);' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
           grep -q 'public void onRenderedFirstFrame()' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
           grep -q 'channelThumbnail.thumbnails\[0\].url' third_party/SmartTube-droid/MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/common/models/items/VideoItem.java
@@ -110,8 +110,11 @@ jobs:
           grep -q 'mProgressBar.setVisibility(View.GONE);' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
           ! grep -q 'mNm7HighFps4k' third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/versions/renderer/DebugInfoMediaCodecVideoRenderer.java
           ! grep -q 'mNm74kDropWatchdog' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-          grep -q 'setMaxVideoFrameRate(30)' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-          grep -q 'setMaxVideoBitrate(24_000_000)' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
+          ! grep -q 'setMaxVideoFrameRate(30)' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
+          ! grep -q 'setMaxVideoBitrate(24_000_000)' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
+          grep -q 'setEnableDecoderFallback(true)' third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/other/ExoPlayerInitializer.java
+          grep -q 'setItemAnimator(null)' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/browse/BrowseActivity.java
+          grep -q 'NM7_FORMAT_REUSE_MS' third_party/SmartTube-droid/MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java
           grep -q 'window.setDecorFitsSystemWindows(true);' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
 
       - name: Check Mobile lifecycle regression guards
