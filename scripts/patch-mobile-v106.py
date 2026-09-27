@@ -198,19 +198,16 @@ helper=r'''    private void applyNm74kPolicyIfNeeded() {
 if anchor not in s: raise SystemExit("v106: observer anchor missing")
 s=s.replace(anchor,helper+anchor,1)
 
-# Hook policy/watchdog into the existing first-frame callback without depending on
-# whitespace or the exact surrounding observer implementation.
-needle = re.compile(r'(onRenderedFirstFrame\\s*\\(\\)\\s*\\{)')
-match = needle.search(s)
-if not match:
-    raise SystemExit("v106: first-frame callback signature missing")
-brace_end = match.end()
-injection = '''
-                applyNm74kPolicyIfNeeded();
-                armNm74kRecoveryWatchdog();
+# Apply the 4K policy from the stable STATE_READY observer. This avoids depending
+# on the exact VideoListener declaration shape used by the pinned SmartTube source.
+needle = '''                    mNm7DecoderRecoveryAttempts = 0;
 '''
-if 'applyNm74kPolicyIfNeeded();' not in s[brace_end:brace_end+500]:
-    s = s[:brace_end] + injection + s[brace_end:]
+if s.count(needle) != 1:
+    raise SystemExit("v106: stable STATE_READY decoder-reset anchor missing")
+s = s.replace(needle, needle + '''
+                    applyNm74kPolicyIfNeeded();
+                    if (playWhenReady) armNm74kRecoveryWatchdog();
+''', 1)
 
 PLAY.write_text(s,encoding='utf-8')
 
