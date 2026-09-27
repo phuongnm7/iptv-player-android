@@ -42,21 +42,9 @@ if n == 0:
     raise SystemExit("v105: 4K smooth helper not found")
 p.write_text(s, encoding="utf-8")
 
-# 2) Enable decoder fallback in the existing legacy ExoPlayer renderer factory.
-p = COMMON / "exoplayer/other/ExoPlayerInitializer.java"
-s = p.read_text(encoding="utf-8")
-if ".setEnableDecoderFallback(true)" not in s:
-    lines = s.splitlines()
-    for i, line in enumerate(lines):
-        if "DefaultRenderersFactory" in line and "new " in line:
-            lines[i] = line + ".setEnableDecoderFallback(true)"
-            break
-    else:
-        raise SystemExit("v105: DefaultRenderersFactory anchor missing")
-    s = "\n".join(lines) + "\n"
-if ".setEnableDecoderFallback(true)" not in s:
-    raise SystemExit("v105: decoder fallback insertion failed")
-p.write_text(s, encoding="utf-8")
+# 2) Keep the upstream decoder factory unchanged. The v105 4K change is intentionally
+# limited to removing the v104 post-start constraint; decoder selection is measured
+# on-device rather than guessed from a codec/device model.
 
 # 3) Browse: reduce RecyclerView main-thread animation/rebind work.
 p = PHONE / "browse/BrowseActivity.java"
