@@ -169,10 +169,9 @@ p.write_text(s, encoding="utf-8")
 # Then cap video at 2560x1440 and clear a stale explicit video override.
 p = PHONE / "playback/PlaybackActivity.java"
 s = p.read_text(encoding="utf-8")
-anchor = """    private int mNm7RenderRecoveryAttempts;
+anchor = """    private boolean mNm7OwnsPlayback;
 """
-replacement = """    private int mNm7RenderRecoveryAttempts;
-    private DefaultTrackSelector mNm7TrackSelector;
+replacement = """    private boolean mNm7OwnsPlayback;
     private boolean mNm7HighResolutionVideo;
     private boolean mNm74kRecoveryApplied;
     private Runnable mNm74kDropWatchdog;
@@ -216,16 +215,10 @@ replacement = """        mNm7FrameObserver = new com.google.android.exoplayer2.v
 """
 s = once(s, anchor, replacement, "4K video-size observer")
 
-anchor = """                mNm7RenderRecoveryAttempts = 0;
-                mNm7DecoderRecoveryAttempts = 0;
-            }
-        };
+anchor = """                mNm7FirstFrameSeenAt = android.os.SystemClock.elapsedRealtime();
 """
-replacement = """                mNm7RenderRecoveryAttempts = 0;
-                mNm7DecoderRecoveryAttempts = 0;
+replacement = """                mNm7FirstFrameSeenAt = android.os.SystemClock.elapsedRealtime();
                 armNm74kDropWatchdog();
-            }
-        };
 """
 s = once(s, anchor, replacement, "4K watchdog arm")
 
