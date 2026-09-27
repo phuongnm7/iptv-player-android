@@ -68,7 +68,7 @@ jobs:
       - name: Verify 1.10.103 build preserves the 1.10.102 user-confirmed behavior
         run: |
           set -euxo pipefail
-          test "$(grep -c 'versionName = \"1.10.102\"' app/build.gradle.kts)" -eq 1
+          test "$(grep -c 'versionName = \"1.10.103\"' app/build.gradle.kts)" -eq 1
           test "$(grep -c 'versionCode = 119' app/build.gradle.kts)" -eq 1
           grep -q 'window.setDecorFitsSystemWindows(true);' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
           grep -q 'public void onRenderedFirstFrame()' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
@@ -100,7 +100,7 @@ jobs:
           grep -q 'mNm7FirstFramePositionMs' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
           grep -q 'BitmapDrawable' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/shared/VideoCardHolder.java
           grep -q 'decoder_playback_progress' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-          grep -q 'rendered >= mNm7PosterRenderedBaseline + 3' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
+          grep -q 'rendered >= mNm7PosterRenderedBaseline + 1' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
           grep -q 'playbackProgressMs >= 120L' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
           ! grep -q 'NM7 1.10.83: subtle phone-style player entrance' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
           ! grep -q 'delaySubscription(650' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/shared/VideoCardHolder.java
