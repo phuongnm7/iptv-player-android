@@ -81,8 +81,8 @@ check('maxresdefault.jpg' in Path('scripts/patch-mobile-v73.py').read_text(), 'Y
 check('mqdefault.jpg' not in Path('scripts/patch-mobile-v73.py').read_text(), 'YouTube Browse optimization does not downgrade thumbnail quality')
 
 # Version.
-check('versionCode = 120' in gradle, 'Mobile versionCode is 120 for Mobile 1.10.104 build')
-check('versionName = "1.10.104"' in gradle, 'Mobile versionName is 1.10.104')
+check('versionCode = 121' in gradle, 'Mobile versionCode is 120 for Mobile 1.10.104 build')
+check('versionName = "1.10.105"' in gradle, 'Mobile versionName is 1.10.104')
 
 # Stable playback patches.
 for ver, needles, label in [
@@ -127,14 +127,17 @@ check('elapsed >= 180L' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91
 check('bufferForPlaybackMs = 250' in Path('scripts/patch-mobile-v91.py').read_text(), 'v91 baseline retains the 250ms startup buffer before v96 override')
 check('runpy.run_path("scripts/patch-mobile-v103.py")' in patch, 'v103 source remains available in the Mobile chain')
 check('runpy.run_path("scripts/patch-mobile-v104.py")' in patch, 'v104 safe performance rollback is in the Mobile chain')
+check('runpy.run_path("scripts/patch-mobile-v105.py")' in patch, 'v105 targeted performance patch is in the Mobile chain')
 check('mNm7GridCache' in Path('scripts/patch-mobile-v103.py').read_text(), 'v103 grid cache source is retained only for rollback history')
 check('mNm7HighFps4k' in Path('scripts/patch-mobile-v103.py').read_text(), 'v103 4K SurfaceView source is retained only for rollback history')
 check('mNm74kDropWatchdog' in Path('scripts/patch-mobile-v103.py').read_text(), 'v103 4K watchdog source is retained only for rollback history')
 check('mNm7GridCache' not in browse, 'v104 removes the v103 Browse cache from final runtime')
 check('mNm7HighFps4k' not in Path('third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/versions/renderer/DebugInfoMediaCodecVideoRenderer.java').read_text(), 'v104 restores decoder timestamp pacing')
 check('mNm74kDropWatchdog' not in play, 'v104 removes the v103 4K drop watchdog')
-check('setMaxVideoFrameRate(30)' in play and 'setMaxVideoBitrate(24_000_000)' in play, 'v104 installs the conservative 4K smooth profile')
-check('setItemViewCacheSize(10)' in browse, 'v104 keeps only RecyclerView view reuse for Browse')
+check('setMaxVideoFrameRate(30)' not in play and 'setMaxVideoBitrate(24_000_000)' not in play, 'v105 removes the v104 4K hard cap')
+check('setEnableDecoderFallback(true)' in Path('third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/other/ExoPlayerInitializer.java').read_text(), 'v105 enables decoder fallback')
+check('setItemViewCacheSize(12)' in browse and 'setItemAnimator(null)' in browse, 'v105 reduces Browse RecyclerView work')
+check('NM7_FORMAT_REUSE_MS' in Path('third_party/SmartTube-droid/MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java').read_text(), 'v105 adds short process-local format reuse')
 
 
 Path('dist/mobile-diagnostics').mkdir(parents=True, exist_ok=True)
