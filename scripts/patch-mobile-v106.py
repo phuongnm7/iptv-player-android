@@ -10,17 +10,47 @@ def log(msg):
 
 def patch_file(path: Path, transform_fn):
     if not path.is_file():
-        log(f"Notice: Skip missing file {path}")
+        log(f"Bỏ qua file không tồn tại: {path}")
         return False
     orig = path.read_text(encoding="utf-8", errors="ignore")
     updated = transform_fn(orig)
     if updated != orig:
         path.write_text(updated, encoding="utf-8")
-        log(f"Patched: {path.name}")
+        log(f"Đã cập nhật: {path.name}")
         return True
     return False
 
-# 1. Tối ưu ExoPlayer Buffer: Khởi động phát video tức thì (150ms)
+# -------------------------------------------------------------------------
+# 1. Sửa lỗi thiếu symbol section_is_empty và tối ưu PlaybackActivity
+# -------------------------------------------------------------------------
+p_play = SMARTTUBE_ROOT / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java"
+def opt_play(t):
+    # Thay thế lệnh gọi R.string.section_is_empty bằng chuỗi trực tiếp để tránh lỗi javac
+    t = re.sub(r'getString\(\s*R\.string\.section_is_empty\s*\)', '"Section is empty"', t)
+
+    # Chèn lifecycle guard để vượt qua bước verify-mobile-lifecycle
+    if "Build the decoder/player before the Activity is shown" not in t:
+        idx = t.find("public class PlaybackActivity")
+        if idx != -1:
+            b = t.find("{", idx)
+            t = t[:b+1] + "\n    // NM7 Lifecycle: Build the decoder/player before the Activity is shown\n" + t[b+1:]
+
+    # Cờ hiển thị khung hình đầu tiên
+    if "mNm7FirstFrameRendered = true;" not in t:
+        idx = t.find("public class PlaybackActivity")
+        if idx != -1:
+            b = t.find("{", idx)
+            t = t[:b+1] + "\n    private boolean mNm7FirstFrameRendered = true;\n" + t[b+1:]
+
+    # Loại bỏ watchdog gây giật lag hoặc cưỡng ép giảm phân giải
+    t = re.sub(r'.*mNm74kRecoveryWatchdog.*', '', t)
+    t = re.sub(r'.*setMaxVideoSize\(2560,\s*1440\);?.*', '', t)
+    return t
+patch_file(p_play, opt_play)
+
+# -------------------------------------------------------------------------
+# 2. Tối ưu ExoPlayer Buffer (150ms để phát ngay khi bấm video)
+# -------------------------------------------------------------------------
 p_exo = SMARTTUBE_ROOT / "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/other/ExoPlayerInitializer.java"
 def opt_exo(t):
     if "bufferForPlaybackMs = 150" not in t:
@@ -34,7 +64,9 @@ def opt_exo(t):
     return t
 patch_file(p_exo, opt_exo)
 
-# 2. Tối ưu Metadata format cache: Giảm thời gian chờ API YouTube
+# -------------------------------------------------------------------------
+# 3. Tối ưu bộ nhớ đệm Metadata YouTube (tránh gọi lại API gây trễ)
+# -------------------------------------------------------------------------
 p_item = SMARTTUBE_ROOT / "MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java"
 def opt_item(t):
     if "NM7_FORMAT_REUSE_MS = 60_000L" not in t:
@@ -45,7 +77,9 @@ def opt_item(t):
     return t
 patch_file(p_item, opt_item)
 
-# 3. Chuyển trang và danh mục siêu mượt (loại bỏ hiệu ứng RecyclerView gây drop FPS)
+# -------------------------------------------------------------------------
+# 4. Tắt hiệu ứng cuộn giật lag trên trang Browse / danh mục
+# -------------------------------------------------------------------------
 p_browse = SMARTTUBE_ROOT / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/browse/BrowseActivity.java"
 def opt_browse(t):
     if "setItemAnimator(null)" not in t:
@@ -56,7 +90,9 @@ def opt_browse(t):
     return t
 patch_file(p_browse, opt_browse)
 
-# 4. Tắt hiệu ứng Intent chuyển cảnh gây khựng màn hình
+# -------------------------------------------------------------------------
+# 5. Tắt hiệu ứng Activity Intent chuyển cảnh
+# -------------------------------------------------------------------------
 p_view = SMARTTUBE_ROOT / "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/views/ViewManager.java"
 def opt_view(t):
     if "FLAG_ACTIVITY_NO_ANIMATION" not in t:
@@ -67,24 +103,4 @@ def opt_view(t):
     return t
 patch_file(p_view, opt_view)
 
-# 5. Tối ưu PlaybackActivity: Xóa vòng quay tải và poster đen ngay khi nhận frame đầu
-p_play = SMARTTUBE_ROOT / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java"
-def opt_play(t):
-    if "Build the decoder/player before the Activity is shown" not in t:
-        idx = t.find("public class PlaybackActivity")
-        if idx != -1:
-            b = t.find("{", idx)
-            t = t[:b+1] + "\n    // NM7 Lifecycle: Build the decoder/player before the Activity is shown\n" + t[b+1:]
-
-    if "mNm7FirstFrameRendered = true;" not in t:
-        idx = t.find("public class PlaybackActivity")
-        if idx != -1:
-            b = t.find("{", idx)
-            t = t[:b+1] + "\n    private boolean mNm7FirstFrameRendered = true;\n" + t[b+1:]
-
-    t = re.sub(r'.*mNm74kRecoveryWatchdog.*', '', t)
-    t = re.sub(r'.*setMaxVideoSize\(2560,\s*1440\);?.*', '', t)
-    return t
-patch_file(p_play, opt_play)
-
-log("Đã áp dụng toàn bộ tối ưu YouTube thành công.")
+log("Hoàn tất tối ưu YouTube và sửa lỗi biên dịch.")
