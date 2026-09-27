@@ -1,3 +1,47 @@
+# MOBILE 1.10.76 / 94 — AVATAR + STATUS BAR FIX — IN PROGRESS — 2026-09-27
+
+## Phạm vi vòng sửa
+
+Tiếp tục trực tiếp từ **1.10.75 / versionCode 93**, không quay lại baseline cũ.
+
+### 1. Avatar kênh YouTube
+
+Đã truy vết source pinned SmartTube/MediaServiceCore và xác nhận `VideoItem` có trường JSON `$.channelThumbnail.thumbnails[0]` cùng getter `getChannelThumbnail()`. Vì vậy đường dữ liệu đúng là:
+
+`VideoItem.getChannelThumbnail()` → `YouTubeMediaItem.mChannelThumbnailUrl` → `Video.channelThumbnailUrl` → `VideoCardHolder` → Glide `ImageView`.
+
+Bản patch trước dùng `rglob("Video.java")` rồi lấy file đầu tiên, không bảo đảm đó là common `Video.java`. 1.10.76 sửa thành đường dẫn chính xác theo module:
+
+`common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/data/Video.java`
+
+Không đổi chất lượng thumbnail video; `maxresdefault.jpg` vẫn được giữ nguyên.
+
+### 2. Status bar đè lên player
+
+Android 15+ ép edge-to-edge đối với app target SDK 35+, khiến nội dung có thể nằm phía sau status bar nếu không xử lý insets. Android 16 tiếp tục không cho opt-out edge-to-edge khi target SDK 36. 1.10.76 áp dụng `WindowInsets.Type.statusBars()` cho `playback_root` ở portrait; khi player ở landscape/fullscreen, status bar inset trở về 0 nên không làm co khung hình. citeturn2search0turn2search1
+
+### Version
+
+- versionName: **1.10.76**
+- versionCode: **94**
+- Current stable chưa đổi: **1.10.75 / 93**.
+
+### CI
+
+- GitHub Actions run **#735 / 36287961982** đang chạy trên commit `a30ceb06f2d7e7d346fdb73c780f9f3722836f90`.
+- Chưa được coi là build PASS cho đến khi job hoàn tất và APK artifact tồn tại.
+
+### Test bắt buộc sau khi CI PASS
+
+1. YouTube Browse: avatar thật xuất hiện trên card, không còn icon tài khoản mặc định.
+2. Scroll/load nhiều card: avatar không bị reset về placeholder khi recycle view.
+3. Avatar lỗi/mất URL: chỉ card đó dùng placeholder, không ảnh hưởng card khác.
+4. YouTube video portrait: status bar không che phần trên của player.
+5. Xoay landscape/fullscreen: player vẫn chiếm đúng vùng, không có khoảng trống top bất thường.
+6. Quay portrait: inset được áp dụng lại đúng.
+7. IPTV ↔ YouTube, Back/Home/background và tốc độ load vẫn giữ hành vi của 1.10.75.
+8. Mobile-only: không thêm TV/VLC/Leanback vào APK.
+
 # MOBILE 1.10.75 / 93 — STABLE BASELINE — USER TEST CONFIRMED IMPROVED YOUTUBE LOAD — 2026-09-23
 
 ## Trạng thái hiện tại
