@@ -3597,3 +3597,50 @@ Source đã cập nhật và CI sẽ build lại Mobile. Chưa đánh dấu lỗ
 - No changes to IPTV, live chat, avatar, status bar, navigation, or mini-player behavior.
 - Runtime behavior still requires device testing; CI verification only proves the patch is structurally applied.
 \n\n## 1.10.97 — hard-disable YouTube spinner (2026-09-25)\n- Built on the tested 1.10.91 playback/format path plus v94/v95/v96 handoff fixes.\n- Root cause of the persistent black spinner identified: SmartTube's `showProgressBar(boolean)` callback can re-enable `mProgressBar` after `setVideo()`.\n- v1.10.97 overrides that callback on Mobile so the indeterminate spinner is always hidden.\n- No TV changes and no speculative network/buffer changes.\n- Runtime device test remains required.\n
+
+
+# CẬP NHẬT TIẾN ĐỘ — 1.10.102 — 2026-09-27
+
+## Phản hồi test thực tế mới nhất của người dùng
+
+Người dùng đã cài bản build mới và xác nhận **các lỗi mục tiêu vẫn chưa được xử lý dứt điểm**:
+
+1. **Avatar video YouTube:** vẫn hiển thị icon mặc định thay vì ảnh avatar thực tế. Chưa coi pipeline avatar là PASS.
+2. **Status bar / player portrait:** Android status bar vẫn đè lên vùng player khi mở video. Người dùng xác nhận **1.10.97 trước đây đã xử lý đúng lỗi này**; các bản mới phải khôi phục đúng behavior đó, không tạo regression.
+3. **Tốc độ mở video:** YouTube video vẫn tải chậm.
+4. **Browse / vuốt chuyển tab:** trang YouTube vẫn lag/chậm khi vuốt chuyển tab.
+5. **Spinner:** vòng tròn đen/spinner vẫn xuất hiện khi mở video, dù v1.10.97 đã có cơ chế hard-disable.
+
+## Source hiện tại
+
+Branch: `fix/mobile-1.10.79-youtube-performance`
+
+Version:
+- versionName: **1.10.102**
+- versionCode: **118**
+
+Commit mới nhất:
+- `c676fec63965d6933fda6572ff827ce9466e1cbf`
+- `fix(mobile): final YouTube status avatar spinner and feed performance correction`
+
+Chuỗi Mobile hiện tại vẫn chạy patch v84 → v97 trước performance patch. Tuy nhiên test máy thật cho thấy source/verifier PASS không đồng nghĩa runtime PASS. Vòng tiếp theo phải kiểm tra **generated runtime source sau toàn bộ patch chain** và đối chiếu trực tiếp với behavior của 1.10.97.
+
+## Nguyên tắc vòng sửa tiếp theo
+
+- Không sửa đoán.
+- Dùng **1.10.97 làm behavioral reference** cho avatar, status bar/player portrait và spinner.
+- Không lấy 1.10.98/1.10.99 làm behavioral reference cho các phần này.
+- Không đưa lại các thay đổi v98/v99 đã gây regression.
+- Performance chỉ tập trung vào YouTube video load, Browse/tab loading, swipe responsiveness, network/data scheduling và RecyclerView/render workload.
+- Performance patch không được thay đổi avatar/status-bar/player layout.
+- Mỗi vòng phải kiểm tra source trước patch, generated source sau patch, verifier, CI build và artifact trước khi bàn giao APK.
+- Không đánh dấu lỗi PASS chỉ dựa trên build thành công; runtime device test là điều kiện bắt buộc.
+
+## Trạng thái
+
+**1.10.102: test máy thật FAIL đối với các mục tiêu avatar, status bar, spinner, video load và Browse/swipe performance.**
+
+Ưu tiên vòng sửa tiếp theo:
+**status bar → avatar → spinner → video load → Browse/swipe performance**.
+
+Bản **1.10.97** được giữ làm mốc behavior cho các lỗi UI đã từng được người dùng xác nhận là đã sửa.
