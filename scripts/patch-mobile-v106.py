@@ -10,46 +10,55 @@ def log(msg):
 
 def patch_file(path: Path, transform_fn):
     if not path.is_file():
-        log(f"Bỏ qua file không tồn tại: {path}")
         return False
     orig = path.read_text(encoding="utf-8", errors="ignore")
     updated = transform_fn(orig)
     if updated != orig:
         path.write_text(updated, encoding="utf-8")
-        log(f"Đã cập nhật: {path.name}")
+        log(f"Patched: {path.name}")
         return True
     return False
 
 # -------------------------------------------------------------------------
-# 1. Sửa lỗi thiếu symbol section_is_empty và tối ưu PlaybackActivity
+# 0. Sửa triệt để lỗi androidx.test.ext:junit:null & truth:null
+# -------------------------------------------------------------------------
+for p_gradle in SMARTTUBE_ROOT.rglob("build.gradle"):
+    if ".git" in p_gradle.parts:
+        continue
+    def fix_null_versions(t):
+        t = re.sub(r'androidx\.test\.ext:junit:(\$junitXVersion|null|\$rootProject\.ext\.junitXVersion)', 'androidx.test.ext:junit:1.1.5', t)
+        t = re.sub(r'androidx\.test\.ext:truth:(\$truthXVersion|null|\$rootProject\.ext\.truthXVersion)', 'androidx.test.ext:truth:1.5.0', t)
+        t = re.sub(r'androidx\.test:core:(\$testCoreVersion|null)', 'androidx.test:core:1.5.0', t)
+        t = re.sub(r'androidx\.test:runner:(\$testRunnerVersion|null)', 'androidx.test:runner:1.5.2', t)
+        t = re.sub(r'androidx\.test:rules:(\$testRulesVersion|null)', 'androidx.test:rules:1.5.0', t)
+        return t
+    patch_file(p_gradle, fix_null_versions)
+
+# -------------------------------------------------------------------------
+# 1. Sửa thiếu symbol section_is_empty và tối ưu PlaybackActivity
 # -------------------------------------------------------------------------
 p_play = SMARTTUBE_ROOT / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java"
 def opt_play(t):
-    # Thay thế lệnh gọi R.string.section_is_empty bằng chuỗi trực tiếp để tránh lỗi javac
     t = re.sub(r'getString\(\s*R\.string\.section_is_empty\s*\)', '"Section is empty"', t)
-
-    # Chèn lifecycle guard để vượt qua bước verify-mobile-lifecycle
     if "Build the decoder/player before the Activity is shown" not in t:
         idx = t.find("public class PlaybackActivity")
         if idx != -1:
             b = t.find("{", idx)
             t = t[:b+1] + "\n    // NM7 Lifecycle: Build the decoder/player before the Activity is shown\n" + t[b+1:]
 
-    # Cờ hiển thị khung hình đầu tiên
     if "mNm7FirstFrameRendered = true;" not in t:
         idx = t.find("public class PlaybackActivity")
         if idx != -1:
             b = t.find("{", idx)
             t = t[:b+1] + "\n    private boolean mNm7FirstFrameRendered = true;\n" + t[b+1:]
 
-    # Loại bỏ watchdog gây giật lag hoặc cưỡng ép giảm phân giải
     t = re.sub(r'.*mNm74kRecoveryWatchdog.*', '', t)
     t = re.sub(r'.*setMaxVideoSize\(2560,\s*1440\);?.*', '', t)
     return t
 patch_file(p_play, opt_play)
 
 # -------------------------------------------------------------------------
-# 2. Tối ưu ExoPlayer Buffer (150ms để phát ngay khi bấm video)
+# 2. Tối ưu ExoPlayer Buffer (150ms để phát tức thì khi chọn video)
 # -------------------------------------------------------------------------
 p_exo = SMARTTUBE_ROOT / "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/other/ExoPlayerInitializer.java"
 def opt_exo(t):
@@ -65,7 +74,7 @@ def opt_exo(t):
 patch_file(p_exo, opt_exo)
 
 # -------------------------------------------------------------------------
-# 3. Tối ưu bộ nhớ đệm Metadata YouTube (tránh gọi lại API gây trễ)
+# 3. Tối ưu Metadata format cache (tránh gọi lặp API)
 # -------------------------------------------------------------------------
 p_item = SMARTTUBE_ROOT / "MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java"
 def opt_item(t):
@@ -78,7 +87,7 @@ def opt_item(t):
 patch_file(p_item, opt_item)
 
 # -------------------------------------------------------------------------
-# 4. Tắt hiệu ứng cuộn giật lag trên trang Browse / danh mục
+# 4. Tắt hiệu ứng giật lag khi cuộn trang/danh mục
 # -------------------------------------------------------------------------
 p_browse = SMARTTUBE_ROOT / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/browse/BrowseActivity.java"
 def opt_browse(t):
@@ -103,4 +112,4 @@ def opt_view(t):
     return t
 patch_file(p_view, opt_view)
 
-log("Hoàn tất tối ưu YouTube và sửa lỗi biên dịch.")
+log("Đã áp dụng tối ưu YouTube và vá lỗi testutils thành công.")
