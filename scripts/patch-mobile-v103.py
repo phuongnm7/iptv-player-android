@@ -103,6 +103,17 @@ s = once(s, old, new, "grid cache store")
 p.write_text(s, encoding="utf-8")
 
 # ---------------------------------------------------------------------------
+# 1b) Faster startup handoff.
+# 1.10.102 is functionally correct here; only shorten the poster reveal gate.
+# The decoder still has to render a new frame before the poster is removed.
+p = PHONE / "playback/PlaybackActivity.java"
+s = p.read_text(encoding="utf-8")
+s = s.replace("rendered >= mNm7PosterRenderedBaseline + 3", "rendered >= mNm7PosterRenderedBaseline + 1")
+s = s.replace("elapsed >= 180L", "elapsed >= 100L")
+s = s.replace(">= 120L))", ">= 60L))")
+p.write_text(s, encoding="utf-8")
+
+# ---------------------------------------------------------------------------
 # 2) 4K/high-FPS SurfaceView timing correction.
 # ExoPlayer 2.10.x uses releaseOutputBuffer(timestamp) for SurfaceView. On
 # high-FPS 4K streams the Surface can become the pacing bottleneck. For only
