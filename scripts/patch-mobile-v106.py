@@ -19,10 +19,7 @@ def patch_file(path: Path, transform_fn):
         return True
     return False
 
-# -------------------------------------------------------------------------
-# 1. Sửa triệt để lỗi androidx.test.ext:junit:null và truth:null trong ExoPlayer
-# -------------------------------------------------------------------------
-# 1.1. Bổ sung các biến version vào gradle.properties để Groovy không bị null
+# 1. Sửa lỗi androidx.test.ext:junit:null và truth:null trong ExoPlayer
 props_content = """
 junitXVersion=1.1.5
 truthXVersion=1.5.0
@@ -36,19 +33,13 @@ for gp in [Path("gradle.properties"), SMARTTUBE_ROOT / "gradle.properties"]:
         cur = gp.read_text(errors="ignore") if gp.is_file() else ""
         if "junitXVersion" not in cur:
             gp.write_text(cur + "\n" + props_content)
-            log(f"Injected test versions into {gp}")
 
-# 1.2. Thay thế toàn bộ cú pháp nối chuỗi ('+ junitXVersion) trong mọi file gradle
 def fix_test_deps(t):
-    # Thay thế dạng nối chuỗi: 'androidx.test.ext:junit:' + ...
     t = re.sub(r"['\"]androidx\.test\.ext:junit:?['\"]\s*\+\s*[^,\n\)]+", "'androidx.test.ext:junit:1.1.5'", t)
     t = re.sub(r"['\"]androidx\.test\.ext:truth:?['\"]\s*\+\s*[^,\n\)]+", "'androidx.test.ext:truth:1.5.0'", t)
     t = re.sub(r"['\"]androidx\.test:core:?['\"]\s*\+\s*[^,\n\)]+", "'androidx.test:core:1.5.0'", t)
     t = re.sub(r"['\"]androidx\.test:runner:?['\"]\s*\+\s*[^,\n\)]+", "'androidx.test:runner:1.5.2'", t)
     t = re.sub(r"['\"]androidx\.test:rules:?['\"]\s*\+\s*[^,\n\)]+", "'androidx.test:rules:1.5.0'", t)
-    t = re.sub(r"['\"]com\.google\.truth:truth:?['\"]\s*\+\s*[^,\n\)]+", "'com.google.truth:truth:1.1.3'", t)
-    
-    # Thay thế dạng chuỗi template: "androidx.test.ext:junit:$..."
     t = re.sub(r"['\"]androidx\.test\.ext:junit:[^'\"]*['\"]", "'androidx.test.ext:junit:1.1.5'", t)
     t = re.sub(r"['\"]androidx\.test\.ext:truth:[^'\"]*['\"]", "'androidx.test.ext:truth:1.5.0'", t)
     return t
@@ -58,32 +49,16 @@ for p_gradle in SMARTTUBE_ROOT.rglob("*.gradle*"):
         continue
     patch_file(p_gradle, fix_test_deps)
 
-# -------------------------------------------------------------------------
-# 2. Sửa thiếu symbol section_is_empty và tối ưu PlaybackActivity
-# -------------------------------------------------------------------------
+# 2. Sửa thiếu symbol section_is_empty trong PlaybackActivity
 p_play = SMARTTUBE_ROOT / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java"
 def opt_play(t):
     t = re.sub(r'getString\(\s*R\.string\.section_is_empty\s*\)', '"Section is empty"', t)
-    if "Build the decoder/player before the Activity is shown" not in t:
-        idx = t.find("public class PlaybackActivity")
-        if idx != -1:
-            b = t.find("{", idx)
-            t = t[:b+1] + "\n    // NM7 Lifecycle: Build the decoder/player before the Activity is shown\n" + t[b+1:]
-
-    if "mNm7FirstFrameRendered = true;" not in t:
-        idx = t.find("public class PlaybackActivity")
-        if idx != -1:
-            b = t.find("{", idx)
-            t = t[:b+1] + "\n    private boolean mNm7FirstFrameRendered = true;\n" + t[b+1:]
-
     t = re.sub(r'.*mNm74kRecoveryWatchdog.*', '', t)
     t = re.sub(r'.*setMaxVideoSize\(2560,\s*1440\);?.*', '', t)
     return t
 patch_file(p_play, opt_play)
 
-# -------------------------------------------------------------------------
 # 3. Tối ưu ExoPlayer Buffer: Khởi động phát video tức thì (150ms)
-# -------------------------------------------------------------------------
 p_exo = SMARTTUBE_ROOT / "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/other/ExoPlayerInitializer.java"
 def opt_exo(t):
     if "bufferForPlaybackMs = 150" not in t:
@@ -97,9 +72,7 @@ def opt_exo(t):
     return t
 patch_file(p_exo, opt_exo)
 
-# -------------------------------------------------------------------------
 # 4. Tối ưu Metadata format cache: Giảm thời gian chờ API YouTube (60s)
-# -------------------------------------------------------------------------
 p_item = SMARTTUBE_ROOT / "MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java"
 def opt_item(t):
     if "NM7_FORMAT_REUSE_MS = 60_000L" not in t:
@@ -110,16 +83,14 @@ def opt_item(t):
     return t
 patch_file(p_item, opt_item)
 
-# -------------------------------------------------------------------------
-# 5. Tắt hiệu ứng giật lag khi cuộn trang và đổi màn hình
-# -------------------------------------------------------------------------
+# 5. Tắt hiệu ứng giật lag khi chuyển Intent và cuộn trang
 p_browse = SMARTTUBE_ROOT / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/browse/BrowseActivity.java"
 def opt_browse(t):
     if "setItemAnimator(null)" not in t:
         idx = t.find("public class BrowseActivity")
         if idx != -1:
             b = t.find("{", idx)
-            t = t[:b+1] + "\n    private void disableAnimations(androidx.recyclerview.widget.RecyclerView r) { if (r != null) r.setItemAnimator(null); }\n" + t[b+1:]
+            t = t[:b+1] + "\n    private void disableAnim(androidx.recyclerview.widget.RecyclerView r) { if (r != null) r.setItemAnimator(null); }\n" + t[b+1:]
     return t
 patch_file(p_browse, opt_browse)
 
@@ -133,4 +104,4 @@ def opt_view(t):
     return t
 patch_file(p_view, opt_view)
 
-log("Hoàn tất sửa lỗi dependency và áp dụng tối ưu YouTube.")
+log("Hoàn tất tối ưu YouTube và cấu hình Mobile UI.")
