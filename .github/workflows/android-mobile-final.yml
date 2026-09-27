@@ -72,6 +72,7 @@ jobs:
           test "$(grep -c 'versionCode = 122' app/build.gradle.kts)" -eq 1
           grep -q 'bufferForPlaybackMs = 150' third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/other/ExoPlayerInitializer.java
           grep -q 'NM7_FORMAT_REUSE_MS = 60_000L' third_party/SmartTube-droid/MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java
+          grep -q 'setItemAnimator(null)' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/browse/BrowseActivity.java
           grep -q 'FLAG_ACTIVITY_NO_ANIMATION' third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/views/ViewManager.java
 
       - name: Check Mobile lifecycle regression guards
