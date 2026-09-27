@@ -311,5 +311,6 @@ runpy.run_path("scripts/patch-mobile-v97.py")
 # NM7 1.10.101: performance-only improvements built on the user-confirmed 1.10.97 baseline.
 runpy.run_path("scripts/patch-mobile-performance.py")
 
-# NM7 1.10.103: targeted YouTube tab responsiveness + 4K playback recovery.
+# NM7 1.10.104: rollback unsafe v103 render/cache changes and apply conservative performance tuning.
 runpy.run_path("scripts/patch-mobile-v103.py")
+runpy.run_path("scripts/patch-mobile-v104.py")
