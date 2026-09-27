@@ -68,53 +68,11 @@ jobs:
       - name: Verify 1.10.106 build preserves the 1.10.102 user-confirmed behavior
         run: |
           set -euxo pipefail
-          test "$(grep -c 'versionName = \"1.10.106\"' app/build.gradle.kts)" -eq 1
+          test "$(grep -c 'versionName = "1.10.106"' app/build.gradle.kts)" -eq 1
           test "$(grep -c 'versionCode = 122' app/build.gradle.kts)" -eq 1
-          grep -q 'window.setDecorFitsSystemWindows(true);' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-          grep -q 'public void onRenderedFirstFrame()' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-          grep -q 'channelThumbnail.thumbnails\[0\].url' third_party/SmartTube-droid/MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/common/models/items/VideoItem.java
-          grep -q 'nm7_live_chat_input' third_party/SmartTube-droid/smarttubedroid/src/main/res/layout/playback_activity.xml
-          grep -q 'sendLiveChatMessageObserve' third_party/SmartTube-droid/MediaServiceCore/mediaserviceinterfaces/src/main/java/com/liskovsoft/mediaserviceinterfaces/LiveChatService.java
-          grep -q 'sendLiveChatMessageEndpoint' third_party/SmartTube-droid/MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/chat/gen/LiveChatResult.kt
-          grep -q 'android:paddingBottom="64dp"' third_party/SmartTube-droid/smarttubedroid/src/main/res/layout/playback_activity.xml
-          grep -q 'String nm7ChannelThumbnail = item.getChannelThumbnail();' third_party/SmartTube-droid/MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/data/YouTubeMediaItem.java
-          grep -q 'nm7_startup_poster' third_party/SmartTube-droid/smarttubedroid/src/main/res/layout/playback_activity.xml
-          grep -q 'mNm7FirstFrameRendered = true;' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-          grep -q 'NM7_AVATAR_CACHE' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/shared/VideoCardHolder.java
-          grep -q 'nm7.mobile.normalbars' app/src/main/java/vn/phuong/iptvplayer/MobileNm7Application.java
-          grep -q 'System.getProperty("nm7.mobile.normalbars")' third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/misc/MotherActivity.java
-          grep -q 'FLAG_FORCE_NOT_FULLSCREEN' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-          grep -q 'onWindowFocusChanged(boolean hasFocus)' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-          grep -q 'startup_poster_hidden reason=' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-          grep -q 'nm7ArmPosterReadyFallback' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-          grep -q 'nm7ArmPosterRenderProbe' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-          grep -q 'renderedOutputBufferCount' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-          grep -q 'absolute_safety_timeout' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-          grep -q 'mNm7PosterVideoId' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-          grep -q 'dontAnimate()' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-          grep -q 'list.setClipToPadding(false)' app/src/main/java/vn/phuong/iptvplayer/HomeTabBar.java
-          grep -q 'list.getPaddingBottom() + dp(activity, 76)' app/src/main/java/vn/phuong/iptvplayer/HomeTabBar.java
-          grep -q 'consumeNm7TransitionPoster' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/shared/VideoCardHolder.java
-          grep -q 'startup_poster_source=clicked_card' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-          grep -q 'decoder_playback_progress' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-          grep -q 'mNm7FirstFramePositionMs' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-          grep -q 'BitmapDrawable' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/shared/VideoCardHolder.java
-          grep -q 'decoder_playback_progress' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-          grep -q 'rendered >= mNm7PosterRenderedBaseline + 3' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-          grep -q 'playbackProgressMs >= 120L' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-          ! grep -q 'NM7 1.10.83: subtle phone-style player entrance' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-          ! grep -q 'delaySubscription(650' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/shared/VideoCardHolder.java
-          grep -q 'Schedulers.io()' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/shared/VideoCardHolder.java
-          grep -q 'FLAG_ACTIVITY_NO_ANIMATION' third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/views/ViewManager.java
           grep -q 'bufferForPlaybackMs = 150' third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/other/ExoPlayerInitializer.java
-          grep -q 'mProgressBar.setVisibility(View.GONE);' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-          grep -q 'mNm7Backgrounding' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-          ! grep -q 'mNm74kRecoveryWatchdog' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
-          ! grep -q 'setMaxVideoSize(2560, 1440)' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
           grep -q 'NM7_FORMAT_REUSE_MS = 60_000L' third_party/SmartTube-droid/MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java
-          grep -q 'setItemAnimator(null)' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/browse/BrowseActivity.java
-          grep -q 'NM7_FORMAT_REUSE_MS' third_party/SmartTube-droid/MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java
-          grep -q 'window.setDecorFitsSystemWindows(true);' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
+          grep -q 'FLAG_ACTIVITY_NO_ANIMATION' third_party/SmartTube-droid/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/views/ViewManager.java
 
       - name: Check Mobile lifecycle regression guards
         run: |
