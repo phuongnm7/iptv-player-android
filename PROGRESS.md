@@ -3644,3 +3644,77 @@ Chuỗi Mobile hiện tại vẫn chạy patch v84 → v97 trước performance 
 **status bar → avatar → spinner → video load → Browse/swipe performance**.
 
 Bản **1.10.97** được giữ làm mốc behavior cho các lỗi UI đã từng được người dùng xác nhận là đã sửa.
+
+
+# HANDOFF — 2026-09-27 — CHUYỂN SANG PHIÊN CHAT MỚI
+
+## Trạng thái thực tế phải giữ nguyên
+
+Current branch:
+`fix/mobile-1.10.79-youtube-performance`
+
+Current version:
+- **1.10.102**
+- versionCode **118**
+
+Current HEAD:
+- `475ff88ee05fd58abcd0616ad04c487534c3f88d`
+- `docs(mobile): record 1.10.102 regression test results and 1.10.97 reference`
+
+## Kết quả test thiết bị mới nhất
+
+**1.10.102 FAIL.** Không được coi build thành công là đã xử lý xong.
+
+Người dùng xác nhận:
+1. Avatar video YouTube vẫn là **icon mặc định**.
+2. Status bar Android vẫn **đè lên player** khi mở video.
+3. Video YouTube vẫn **load chậm**.
+4. Vuốt/chuyển tab trong Browse YouTube vẫn **lag/chậm**.
+5. Vòng tròn đen/spinner vẫn **xuất hiện khi mở video**.
+
+## Behavioral reference bắt buộc
+
+**1.10.97** là mốc người dùng đã xác nhận:
+- Avatar hiển thị đúng.
+- Status bar/player portrait đúng, không bị đè.
+- Spinner đã được hard-disable.
+
+Vì vậy vòng tiếp theo phải phục hồi đúng behavior của 1.10.97 trước khi tiếp tục tối ưu performance.
+
+**Không sử dụng 1.10.98/1.10.99 làm behavioral reference** cho ba phần avatar/status-bar/spinner vì các bản đó đã tạo regression.
+
+## Phân tách phạm vi sửa
+
+### A. UI regression — phải khôi phục từ 1.10.97
+- Generated `PlaybackActivity.java`: system-window/insets/status-bar path.
+- Generated `VideoItem` → `YouTubeMediaItem` → `Video` → `VideoCardHolder`: avatar propagation/render.
+- Generated `showProgressBar(boolean)` và startup ProgressBar lifecycle.
+
+### B. Performance — sửa riêng, không chạm A
+- YouTube video load / time-to-first-frame.
+- Browse page load.
+- Swipe giữa các tab/section.
+- Network/data scheduling.
+- RecyclerView/render workload.
+
+## Các patch quan trọng cần đối chiếu
+
+- v84: parser avatar + initial poster/status-bar.
+- v85: avatar propagation vào `YouTubeMediaItem`.
+- v86: hard portrait system bars + avatar metadata fallback.
+- v87–v90: status/poster/avatar transition corrections.
+- v91: smooth open/feed priority.
+- v94–v95: poster/player transition.
+- v96: startup spinner hide.
+- v97: **hard-disable `showProgressBar(boolean)`**.
+
+Generated source sau toàn bộ patch chain phải được kiểm tra, không chỉ kiểm tra script/verifier.
+
+## Nguyên tắc bàn giao
+
+- Mobile only. **Không thêm Android TV code/UI.**
+- Không đoán code khi chưa kiểm tra generated source.
+- Không đánh dấu PASS dựa riêng trên CI.
+- Không giao APK mới cho tới khi CI build thành công và artifact đúng version.
+- Runtime device test là điều kiện bắt buộc để xác nhận avatar/status-bar/spinner/performance.
+- Phiên chat mới phải đọc `README.md` và phần HANDOFF này trước khi sửa tiếp.
