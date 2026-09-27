@@ -25,9 +25,6 @@ s = s.replace(
 ''',
 '''    private boolean mNm7OwnsPlayback;
     private boolean mNm7Backgrounding;
-    private boolean mNm74kPolicyApplied;
-    private boolean mNm74kFallbackApplied;
-    private Runnable mNm74kRecoveryWatchdog;
 ''', 1)
 
 s = s.replace(
@@ -125,96 +122,13 @@ s=s.replace(old_leave,new_leave,1)
 # reset 4K policy when a new media item/player is created
 s=s.replace('''        mNm7FirstFrameRendered = false;
 ''','''        mNm7FirstFrameRendered = false;
-        mNm74kPolicyApplied = false;
-        mNm74kFallbackApplied = false;
 ''',1)
 
-# 2) Add measured 4K policy after the existing observer setup.
-anchor='''    private void ensureNm7PlaybackObserver() {
-'''
-helper=r'''    private void applyNm74kPolicyIfNeeded() {
-        if (mPlayer == null || mNm7TrackSelector == null || mNm74kPolicyApplied) return;
-        try {
-            com.google.android.exoplayer2.Format f = mPlayer.getVideoFormat();
-            if (f == null || (f.width < 3840 && f.height < 2160)) return;
-            float fps = f.frameRate;
-            if (fps >= 50f) {
-                // Keep 4K resolution but avoid asking a phone decoder to sustain 4K60.
-                mNm7TrackSelector.setParameters(
-                        mNm7TrackSelector.buildUponParameters()
-                                .setMaxVideoFrameRate(30)
-                                .setExceedVideoConstraintsIfNecessary(false));
-                android.util.Log.i("NM7Playback",
-                        "4k_policy=prefer_4k30 width=" + f.width + " height=" + f.height
-                                + " fps=" + fps + " mime=" + f.sampleMimeType);
-            } else {
-                android.util.Log.i("NM7Playback",
-                        "4k_policy=native width=" + f.width + " height=" + f.height
-                                + " fps=" + fps + " mime=" + f.sampleMimeType);
-            }
-            mNm74kPolicyApplied = true;
-        } catch (RuntimeException error) {
-            android.util.Log.w("NM7Playback", "4k policy failed", error);
-        }
-    }
+# 2) Keep 4K decoder/track selection untouched in this pass. The device's exact
+# codec/format/drop profile must be measured before applying a quality fallback.
+# No speculative 4K cap is installed here.
 
-    private void armNm74kRecoveryWatchdog() {
-        if (mPlayer == null || mNm7Stopped || mNm74kFallbackApplied) return;
-        if (mNm74kRecoveryWatchdog != null) mHandler.removeCallbacks(mNm74kRecoveryWatchdog);
-        final com.google.android.exoplayer2.SimpleExoPlayer observed = mPlayer;
-        final com.google.android.exoplayer2.DecoderCounters baseline = observed.getVideoDecoderCounters();
-        final int baselineDropped = baseline != null ? baseline.droppedBufferCount : 0;
-        mNm74kRecoveryWatchdog = () -> {
-            if (mPlayer != observed || mNm7Stopped || mNm74kFallbackApplied) return;
-            try {
-                com.google.android.exoplayer2.Format f = observed.getVideoFormat();
-                com.google.android.exoplayer2.DecoderCounters c = observed.getVideoDecoderCounters();
-                if (f != null && c != null && (f.width >= 3840 || f.height >= 2160)) {
-                    int dropped = Math.max(0, c.droppedBufferCount - baselineDropped);
-                    if (dropped >= 15 && observed.getPlayWhenReady()) {
-                        mNm74kFallbackApplied = true;
-                        long position = Math.max(0L, observed.getCurrentPosition());
-                        android.util.Log.w("NM7Playback",
-                                "4k_recovery=1440p dropped=" + dropped
-                                        + " position=" + position
-                                        + " width=" + f.width + " height=" + f.height);
-                        mNm7TrackSelector.setParameters(
-                                mNm7TrackSelector.buildUponParameters()
-                                        .setMaxVideoSize(2560, 1440)
-                                        .setMaxVideoFrameRate(30)
-                                        .setExceedVideoConstraintsIfNecessary(false));
-                        // No seek/restart: ExoPlayer changes the selected representation
-                        // while retaining the current timeline and playback position.
-                    }
-                }
-            } catch (RuntimeException error) {
-                android.util.Log.w("NM7Playback", "4k recovery watchdog failed", error);
-            }
-        };
-        mHandler.postDelayed(mNm74kRecoveryWatchdog, 3000L);
-    }
-
-'''
-if anchor not in s: raise SystemExit("v106: observer anchor missing")
-s=s.replace(anchor,helper+anchor,1)
-
-# Apply the 4K policy from the stable player-state observer. Match the method
-# generically because the pinned SmartTube source may qualify Player constants.
-method_match = re.search(r'public void onPlayerStateChanged\\s*\\([^)]*\\)\\s*\\{', s)
-if not method_match:
-    raise SystemExit("v106: onPlayerStateChanged observer missing")
-method_end = method_match.end()
-ready_match = re.search(r'if\\s*\\(\\s*playbackState\\s*==[^\\n\\{]+\\)\\s*\\{', s[method_end:])
-if not ready_match:
-    raise SystemExit("v106: STATE_READY branch missing")
-insert_at = method_end + ready_match.end()
-s = s[:insert_at] + '''
-                    applyNm74kPolicyIfNeeded();
-                    if (playWhenReady) armNm74kRecoveryWatchdog();''' + s[insert_at:]
-
-PLAY.write_text(s,encoding='utf-8')
-
-# 3) Increase only the short in-memory reuse window. Signed URLs remain memory-only.
+# 2) Increase only the short in-memory reuse window. Signed URLs remain memory-only.
 p=ROOT/"common/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java"
 s=p.read_text(encoding='utf-8')
 s=s.replace('private static final long NM7_FORMAT_REUSE_MS = 8_000L;', 'private static final long NM7_FORMAT_REUSE_MS = 60_000L;')
