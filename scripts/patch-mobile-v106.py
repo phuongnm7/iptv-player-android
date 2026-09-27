@@ -198,16 +198,19 @@ helper=r'''    private void applyNm74kPolicyIfNeeded() {
 if anchor not in s: raise SystemExit("v106: observer anchor missing")
 s=s.replace(anchor,helper+anchor,1)
 
-# Apply the 4K policy from the stable STATE_READY observer. This avoids depending
-# on the exact VideoListener declaration shape used by the pinned SmartTube source.
-needle = '''                    mNm7DecoderRecoveryAttempts = 0;
-'''
-if s.count(needle) != 1:
-    raise SystemExit("v106: stable STATE_READY decoder-reset anchor missing")
-s = s.replace(needle, needle + '''
+# Apply the 4K policy from the stable player-state observer. Match the method
+# generically because the pinned SmartTube source may qualify Player constants.
+method_match = re.search(r'public void onPlayerStateChanged\\s*\\([^)]*\\)\\s*\\{', s)
+if not method_match:
+    raise SystemExit("v106: onPlayerStateChanged observer missing")
+method_end = method_match.end()
+ready_match = re.search(r'if\\s*\\(\\s*playbackState\\s*==[^\\n\\{]+\\)\\s*\\{', s[method_end:])
+if not ready_match:
+    raise SystemExit("v106: STATE_READY branch missing")
+insert_at = method_end + ready_match.end()
+s = s[:insert_at] + '''
                     applyNm74kPolicyIfNeeded();
-                    if (playWhenReady) armNm74kRecoveryWatchdog();
-''', 1)
+                    if (playWhenReady) armNm74kRecoveryWatchdog();''' + s[insert_at:]
 
 PLAY.write_text(s,encoding='utf-8')
 
