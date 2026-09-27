@@ -198,21 +198,16 @@ helper=r'''    private void applyNm74kPolicyIfNeeded() {
 if anchor not in s: raise SystemExit("v106: observer anchor missing")
 s=s.replace(anchor,helper+anchor,1)
 
-# hook policy and watchdog after first frame
-needle='''            @Override public void onRenderedFirstFrame() {
-                mNm7LastFirstFrameMs = android.os.SystemClock.elapsedRealtime();
-                mNm7RenderRecoveryAttempts = 0;
-                mNm7DecoderRecoveryAttempts = 0;
-            }'''
-rep='''            @Override public void onRenderedFirstFrame() {
-                mNm7LastFirstFrameMs = android.os.SystemClock.elapsedRealtime();
-                mNm7RenderRecoveryAttempts = 0;
-                mNm7DecoderRecoveryAttempts = 0;
+# Hook policy/watchdog into the existing first-frame callback without depending on
+# whitespace or the exact surrounding observer implementation.
+needle = re.compile(r'(    @Override\\n    public void onRenderedFirstFrame\\(\\) \\{)')
+match = needle.search(s)
+if not match:
+    raise SystemExit("v106: first-frame callback signature missing")
+injection = match.group(1) + '''
                 applyNm74kPolicyIfNeeded();
-                armNm74kRecoveryWatchdog();
-            }'''
-if needle not in s: raise SystemExit("v106: first-frame hook missing")
-s=s.replace(needle,rep,1)
+                armNm74kRecoveryWatchdog();'''
+s = s[:match.start()] + injection + s[match.end():]
 
 PLAY.write_text(s,encoding='utf-8')
 
