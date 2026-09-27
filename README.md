@@ -1,15 +1,18 @@
 # NM7 IPTV Mobile — TRẠNG THÁI HIỆN TẠI — 2026-09-27
 
-> **1.10.102 đã BUILD THÀNH CÔNG trên GitHub Actions (NM7 Mobile Final Build #731). Build thành công không đồng nghĩa runtime đã PASS; bản này vẫn đang chờ người dùng test lại các lỗi trên thiết bị thật.**
+> **1.10.102 đã BUILD THÀNH CÔNG và người dùng xác nhận trên thiết bị thật: avatar, status bar/player portrait và spinner đen đã được xử lý. Các lỗi còn lại là YouTube video load chậm, Browse/swipe chậm và 4K playback lag.**
 
 ## Kết quả test mới nhất
 
-Các lỗi người dùng xác nhận vẫn còn:
-- **Avatar YouTube:** thẻ video vẫn hiện icon mặc định, chưa hiển thị đúng avatar kênh.
-- **Status bar:** thanh status bar Android vẫn đè lên player khi mở video. **1.10.97 là behavioral reference đã được người dùng xác nhận xử lý đúng lỗi này.**
+Người dùng xác nhận **1.10.102 đã xử lý được**:
+- **Avatar YouTube:** PASS trên thiết bị thật.
+- **Status bar/player portrait:** PASS, không còn đè lên player.
+- **Spinner đen:** PASS, không còn xuất hiện khi mở video.
+
+Các lỗi còn lại cần xử lý:
 - **YouTube video load:** vẫn chậm.
 - **YouTube Browse / vuốt chuyển tab:** vẫn lag/chậm.
-- **Spinner:** vòng tròn đen/spinner vẫn xuất hiện khi mở video, dù 1.10.97 đã có hard-disable.
+- **YouTube 4K:** video 4K bị lag/giật, có video gần như không xem được như video test người dùng gửi.
 
 ## Mốc bắt buộc cho vòng sửa tiếp theo
 
@@ -207,3 +210,35 @@ Workflow còn chạy `tools/android_smoke.py` trên emulator Android 15: mở ap
 - Media3 RTSP: https://developer.android.com/media/media3/exoplayer/rtsp
 
 Chỉ dùng playlist và nội dung bạn có quyền truy cập.
+
+
+# 1.10.103 — YouTube performance + 4K playback correction — 2026-09-27
+
+## Phạm vi
+1.10.103 tiếp tục trực tiếp trên branch `fix/mobile-1.10.79-youtube-performance` và giữ nguyên các behavior đã được người dùng xác nhận ở 1.10.102:
+- Avatar YouTube.
+- Status bar/player portrait.
+- Spinner đen hard-disable.
+- IPTV, navigation, mini-player và các chức năng Mobile khác.
+
+## Source changes
+- Giảm công việc lặp lại khi vuốt/chuyển section YouTube: section đã tải không chạy lại `BrowseProcessorManager` trên cache hit.
+- Thêm cache nhẹ cho grid **chỉ khi page đã hoàn tất**, tránh bỏ qua continuation page.
+- Rút ngắn poster/first-frame reveal gate để giảm thời gian cảm nhận khi mở video; vẫn chờ decoder render frame mới trước khi bỏ poster.
+- Với **4K high-FPS (>=50fps)**, renderer Mobile dùng đường release SurfaceView giảm hiện tượng timestamp pacing gây stutter.
+- Thêm watchdog 4K: chỉ khi video đã render ở 4K và decoder thực sự rơi frame liên tục mới hạ trần xuống 1440p để giữ playback usable. Không hạ chất lượng 4K trước khi phát hiện vấn đề.
+- Không sửa avatar/status-bar/spinner trong patch performance.
+
+## Version
+- versionName: **1.10.103**
+- versionCode: **119**
+- Branch: `fix/mobile-1.10.79-youtube-performance`
+- Source patch commit: `a799ece305f4559139c63e462957591254115843`
+- Version bump commit: `c8a659d8a68405c29856a63f56a9df64ffd4131e`
+- CI update commit: `ed4ea6f5cd7e1fc8c787e820719f1d2bbf13ec31`
+
+## Trạng thái
+Source 1.10.103 đã được đưa vào build chain. **Chưa đánh dấu PASS** cho đến khi GitHub Actions build thành công, kiểm tra generated source/verifier và người dùng test APK thật, đặc biệt với:
+1. thời gian mở video YouTube;
+2. vuốt/chuyển tab Browse liên tục;
+3. video 4K trong cùng điều kiện như video test đã gửi.
