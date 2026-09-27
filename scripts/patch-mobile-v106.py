@@ -129,7 +129,10 @@ s=s.replace('''        mNm7FirstFrameRendered = false;
 # No speculative 4K cap is installed here.
 
 # 2) Increase only the short in-memory reuse window. Signed URLs remain memory-only.
-p=ROOT/"common/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java"
+matches = list(ROOT.rglob("YouTubeMediaItemService.java"))
+if len(matches) != 1:
+    raise SystemExit(f"v106: expected one YouTubeMediaItemService.java, found {len(matches)}")
+p = matches[0]
 s=p.read_text(encoding='utf-8')
 s=s.replace('private static final long NM7_FORMAT_REUSE_MS = 8_000L;', 'private static final long NM7_FORMAT_REUSE_MS = 60_000L;')
 p.write_text(s,encoding='utf-8')
