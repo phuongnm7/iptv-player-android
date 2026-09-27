@@ -81,8 +81,8 @@ check('maxresdefault.jpg' in Path('scripts/patch-mobile-v73.py').read_text(), 'Y
 check('mqdefault.jpg' not in Path('scripts/patch-mobile-v73.py').read_text(), 'YouTube Browse optimization does not downgrade thumbnail quality')
 
 # Version.
-check('versionCode = 121' in gradle, 'Mobile versionCode is 120 for Mobile 1.10.104 build')
-check('versionName = "1.10.105"' in gradle, 'Mobile versionName is 1.10.104')
+check('versionCode = 122' in gradle, 'Mobile versionCode is 120 for Mobile 1.10.104 build')
+check('versionName = "1.10.106"' in gradle, 'Mobile versionName is 1.10.104')
 
 # Stable playback patches.
 for ver, needles, label in [
@@ -149,3 +149,12 @@ Path('dist/mobile-diagnostics/lifecycle-source-proof.json').write_text(json.dump
     'browse_sha256': hashlib.sha256(browse.encode()).hexdigest(),
 }, indent=2))
 print(f'{checks} structural checks passed; device runtime not verified')
+
+
+# v106 persistence/recovery guards
+check('runpy.run_path("scripts/patch-mobile-v106.py")' in patch, 'v106 playback persistence/recovery patch is in the Mobile chain')
+check('mNm7Backgrounding' in play, 'v106 tracks normal HOME/background transitions')
+check('Do not call onViewPaused during a normal background transition' in play, 'v106 keeps presenter alive across HOME/background')
+check('mNm74kRecoveryWatchdog' in play, 'v106 installs measured 4K decoder-drop watchdog')
+check('setMaxVideoSize(2560, 1440)' in play, 'v106 has measured 4K-to-1440p recovery')
+check('NM7_FORMAT_REUSE_MS = 60_000L' in Path('third_party/SmartTube-droid/MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java').read_text(), 'v106 extends in-memory format reuse for background reopen')
