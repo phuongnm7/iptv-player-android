@@ -1,52 +1,65 @@
 # NM7 IPTV Mobile — TRẠNG THÁI HIỆN TẠI — 2026-09-27
 
-> **1.10.102 đã BUILD THÀNH CÔNG và người dùng xác nhận trên thiết bị thật: avatar, status bar/player portrait và spinner đen đã được xử lý. Các lỗi còn lại là YouTube video load chậm, Browse/swipe chậm và 4K playback lag.**
+> **1.10.106 đã BUILD THÀNH CÔNG trên GitHub Actions #781.** Đây là bản xử lý trực tiếp 3 lỗi người dùng đang phản ánh: video YouTube mở còn chậm, quay lại app sau khi chạy nền phải tải lại video, và pipeline phát chưa mượt. 1.10.106 đã PASS patch, verifier, lifecycle regression checks, unit tests và APK upload. **Chưa đánh dấu runtime PASS** cho đến khi người dùng test thiết bị thật.
 
-## Kết quả test mới nhất
+## 1.10.106 — Kết quả CI mới nhất
 
-Người dùng xác nhận **1.10.102 đã xử lý được**:
-- **Avatar YouTube:** PASS trên thiết bị thật.
-- **Status bar/player portrait:** PASS, không còn đè lên player.
-- **Spinner đen:** PASS, không còn xuất hiện khi mở video.
-
-Các lỗi còn lại cần xử lý:
-- **YouTube video load:** vẫn chậm.
-- **YouTube Browse / vuốt chuyển tab:** vẫn lag/chậm.
-- **YouTube 4K:** video 4K bị lag/giật, có video gần như không xem được như video test người dùng gửi.
-
-## Mốc bắt buộc cho vòng sửa tiếp theo
-
-- Dùng **1.10.97** làm mốc hành vi cho **avatar + status bar/player portrait + spinner**.
-- **Không** dùng 1.10.98/1.10.99 làm behavioral reference cho các phần trên vì đã có regression.
-- Performance chỉ được tác động vào **video loading, Browse/tab loading, swipe responsiveness, data/network scheduling và RecyclerView/render workload**.
-- Không thay đổi IPTV, avatar, status-bar/player layout hoặc spinner khi chỉ đang tối ưu performance.
-- Không đánh dấu PASS chỉ vì CI build thành công; phải có test thực tế trên thiết bị.
-
-## Kết quả build 1.10.102
-
-- **GitHub Actions:** `NM7 Mobile Final Build #731` — **SUCCESS**
-- Commit build: `c676fec63965d6933fda6572ff827ce9466e1cbf`
-- Thời gian workflow: khoảng **10m 7s**
-- Artifacts: **3**
-- Artifact Mobile: `NM7-IPTV-Mobile-FINAL`
-- **Trạng thái:** build đã thành công; **chưa kết luận runtime PASS** cho avatar, status bar, spinner, video load hoặc Browse/swipe cho đến khi test trên thiết bị thật.
-
-## Phiên bản/source hiện tại
-
-- Version: **1.10.103**
-- versionCode: **119**
+- Version: **1.10.106**
+- versionCode: **122**
 - Branch: `fix/mobile-1.10.79-youtube-performance`
-- Current HEAD: `4c7cf9fd55c8b689e0cac0c9aaf5049599bf9e41`
-- Commit trước đó chứa source correction: `c676fec63965d6933fda6572ff827ce9466e1cbf`
+- Commit CI: `8347399bb2a8c8937eb3c575e5932df876f5e035`
+- GitHub Actions: **NM7 Mobile Final Build #781 — SUCCESS**
+- Run ID: `36296325937`
+- Build Mobile: **SUCCESS**
+- Unit tests upload: **SUCCESS**
+- APK upload: **SUCCESS**
+- Artifact: `NM7-IPTV-Mobile-FINAL`
+- Artifact ID: `10923991428`
+- Mobile artifact SHA-256: `03f084bf2f8bdc079fecaed3e66e902c1d91a33ef620fb1ddabc584613947e3c`
 
-## Hướng tiếp tục
+## Thay đổi 1.10.106
 
-1. Khôi phục chính xác generated/runtime behavior của **1.10.97** cho status bar, avatar và spinner.
-2. Sau khi các phần này được bảo toàn, tối ưu riêng video load và Browse/swipe.
-3. Build CI, kiểm tra generated source và artifact.
-4. Người dùng test APK thật; chỉ sau đó mới chốt baseline mới.
+### 1. Giữ nguyên player khi chạy nền
+- Khi bấm Home/chuyển ứng dụng, không block ExoPlayer.
+- Không gọi đường `onViewPaused()` của presenter trong background transition thông thường.
+- Khi quay lại app, ưu tiên sử dụng **cùng ExoPlayer + MediaItem + vị trí phát + buffer**, thay vì tạo lại phiên playback.
+- Chỉ thực hiện restore/bind đặc biệt khi thực sự có mini/target restore.
 
-Chi tiết đầy đủ nằm trong `PROGRESS.md`.
+### 2. Giảm việc tải lại format YouTube
+- Tăng thời gian reuse format-info trong RAM từ **8 giây → 60 giây**.
+- Đây chỉ là cache process-local; không ghi signed stream URL ra disk.
+- Mục tiêu là khi video vừa phát xong/đang phát rồi chuyển nền và quay lại, không phải thực hiện lại toàn bộ format-resolution path.
+
+### 3. 4K
+- **Không áp đặt giới hạn 4K/30fps hoặc bitrate một cách đoán mò.**
+- Không thêm fallback 1440p tự động ở bản này.
+- Nếu 4K vẫn giật sau test 1.10.106, bước tiếp theo phải đo codec, resolution, FPS, bitrate và decoder dropped frames của chính video test trước khi sửa.
+
+## Người dùng đã xác nhận trước khi 1.10.106
+
+Trên **1.10.102**, người dùng xác nhận:
+- **Avatar YouTube:** PASS.
+- **Status bar/player portrait:** PASS.
+- **Spinner đen:** PASS.
+
+Các lỗi còn lại người dùng báo:
+- YouTube video load vẫn chậm.
+- Browse/tab swipe vẫn chậm/lag.
+- 4K playback vẫn giật/lag.
+- Chạy nền rồi mở lại video phải load lại.
+
+Các phần trên phải tiếp tục được bảo vệ; không được làm regression avatar/status bar/spinner.
+
+## Điều kiện đánh giá 1.10.106
+
+CI PASS **không đồng nghĩa runtime PASS**. Người dùng cần kiểm tra tối thiểu:
+1. Mở một video YouTube → thời gian từ tap tới phát.
+2. Đang phát → Home/chuyển app → quay lại → **video phải tiếp tục tại vị trí cũ, không tải lại**.
+3. Vuốt/chuyển Browse YouTube nhiều lần.
+4. Phát video 4K, quan sát giật/rớt frame.
+5. Xác nhận avatar, status bar và spinner vẫn như 1.10.102.
+
+Chi tiết kỹ thuật và lịch sử nằm trong `PROGRESS.md`.
 
 ---
 
