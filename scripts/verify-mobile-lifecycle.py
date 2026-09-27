@@ -154,6 +154,6 @@ print(f'{checks} structural checks passed; device runtime not verified')
 # v106 persistence/recovery guards
 check('runpy.run_path("scripts/patch-mobile-v106.py")' in patch, 'v106 playback persistence/recovery patch is in the Mobile chain')
 check('mNm7Backgrounding' in play, 'v106 tracks normal HOME/background transitions')
-check('Do not call onViewPaused during a normal background transition' in play, 'v106 keeps presenter alive across HOME/background')
+check('if (!sNm7Mini && !mNm7Backgrounding) mPlaybackPresenter.onViewPaused();' in play, 'v106 keeps presenter alive across HOME/background')
 check('mNm74kRecoveryWatchdog' not in play, 'v106 does not install an unmeasured 4K fallback')
 check('NM7_FORMAT_REUSE_MS = 60_000L' in Path('third_party/SmartTube-droid/MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java').read_text(), 'v106 extends in-memory format reuse for background reopen')
