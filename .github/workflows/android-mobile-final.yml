@@ -1,4 +1,4 @@
-# NM7 Mobile 1.10.102 — rebuild from user-confirmed 1.10.97 baseline
+# NM7 Mobile 1.10.103 — YouTube performance / 4K playback correction
 name: NM7 Mobile Final Build
 
 "on":
@@ -65,11 +65,11 @@ jobs:
       - name: Patch SmartTube Mobile UI and playback lifecycle
         run: python3 scripts/patch-mobile-v37.py
 
-      - name: Verify 1.10.102 build preserves the 1.10.97 fixes
+      - name: Verify 1.10.103 build preserves the 1.10.102 user-confirmed behavior
         run: |
           set -euxo pipefail
           test "$(grep -c 'versionName = \"1.10.102\"' app/build.gradle.kts)" -eq 1
-          test "$(grep -c 'versionCode = 118' app/build.gradle.kts)" -eq 1
+          test "$(grep -c 'versionCode = 119' app/build.gradle.kts)" -eq 1
           grep -q 'window.setDecorFitsSystemWindows(true);' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
           grep -q 'public void onRenderedFirstFrame()' third_party/SmartTube-droid/smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java
           grep -q 'channelThumbnail.thumbnails\[0\].url' third_party/SmartTube-droid/MediaServiceCore/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/common/models/items/VideoItem.java
@@ -308,7 +308,7 @@ jobs:
 # CI retrigger: validate YouTube startup fix on Mobile.
 # Budget restored; run Mobile Final CI.
 
-# NM7 CI retrigger after mobile thumbnail regex fix
+# NM7 1.10.103: targeted YouTube performance and 4K playback correction
 
 # NM7 v74 rebuild trigger: corrected selected-video loader path and fullscreen tab handling.
 
