@@ -1,3 +1,71 @@
+# CẬP NHẬT BÀN GIAO — 2026-09-28 — PR #4 / NM7 IPTV Mobile 1.10.106
+
+## Trạng thái
+
+- PR **#4**: OPEN, chưa merge.
+- Branch: `fix/mobile-1.10.79-youtube-performance`
+- PR head: `224c0c88c9ceb134785b2387d3e600adfe5a23b0`
+- PR: **861 commits / 116 files changed**
+- PR đang lệch lịch sử với `main`; **không tự động merge hoặc force-update `main`**.
+- Mốc build 1.10.106: `8347399bb2a8c8937eb3c575e5932df876f5e035`
+
+## 1.10.106 — CI SUCCESS
+
+- Version: **1.10.106**, versionCode **122**
+- Workflow: **NM7 Mobile Final Build #781**
+- Run ID: `36296325937`
+- Build Mobile: **SUCCESS**
+- Unit tests upload: **SUCCESS**
+- APK upload: **SUCCESS**
+- Artifact: `NM7-IPTV-Mobile-FINAL`
+- Artifact ID: `10923991428`
+- SHA-256: `03f084bf2f8bdc079fecaed3e66e902c1d91a33ef620fb1ddabc584613947e3c`
+
+## Thay đổi 1.10.106
+
+### Background playback
+- Dùng `mNm7Backgrounding` để phân biệt background transition với pause thật.
+- Background transition thông thường không gọi `mPlaybackPresenter.onViewPaused()`.
+- Khi quay lại ưu tiên tái sử dụng player/MediaItem/vị trí/buffer hiện tại.
+
+### Format reuse
+- Process-local reuse tăng từ **8s → 60s**.
+- Không lưu signed stream URL ra disk.
+
+### 4K
+- Không hard-cap 4K/30fps hoặc bitrate.
+- Không thêm fallback 1440p tự động.
+- Nếu 4K còn giật: phải đo codec/resolution/FPS/bitrate/dropped frames trên video thực rồi mới sửa tiếp.
+
+## Compile fixes
+
+- `androidx.test.ext:junit:null` / `truth:null`
+- Thiếu symbol `section_is_empty`
+- Duplicate `NM7_FORMAT_REUSE_MS`
+- Private access `sNm7TransitionPoster`
+- Duplicate method trong `VideoCardHolder.java`
+
+## Chưa kết luận
+
+- **Chưa có runtime PASS trên thiết bị thật cho 1.10.106.**
+- Chưa xác nhận 4K hết giật bằng thiết bị thật.
+- Chưa xác nhận background → reopen giữ nguyên vị trí/buffer mà không reload.
+- PR #4 chưa merge vào `main`.
+
+## Test bắt buộc tiếp theo
+
+1. YouTube: tap → first frame.
+2. Đang phát → Home/chuyển app → quay lại; video tiếp tục đúng vị trí, không reload.
+3. Vuốt Browse/section liên tục.
+4. Mở đúng video 4K đang gây giật; ghi codec, resolution, FPS, bitrate, dropped frames.
+5. Kiểm tra avatar, status bar/player portrait và spinner không regression.
+
+## Quy tắc tiếp theo
+
+Không sửa đoán. Không đánh dấu PASS chỉ dựa trên CI. Không sửa Android TV trong vòng Mobile này. Dùng số liệu decoder/frame-drop thực tế làm cơ sở cho vòng 4K tiếp theo.
+
+---
+
 # GHI NHẬN LỖI MỚI — NM7 IPTV MOBILE 1.10.24: chưa tự tải lại playlist khi mở ứng dụng (2026-09-14)
 
 ## Trạng thái Mobile hiện tại
