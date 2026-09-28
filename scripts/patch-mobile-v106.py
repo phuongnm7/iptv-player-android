@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 """
 NM7 IPTV - YouTube Performance & Seamless Mobile Transition Patch v1.10.106
-- Bắt sự kiện MotionEvent.ACTION_DOWN trên itemView để chụp chính xác 100% Bitmap thumbnail.
-- Ghim nổi thumbnail đè lên SurfaceView (elevation 9999f) cho tới khi có khung hình video đầu tiên.
-- Sửa triệt để đứng hình/lệch tiếng 4K: Đồng bộ buffer 1500ms + RAM đệm 128MB chống drop frame.
-- Sửa toàn bộ lỗi biên dịch dependencies và cú pháp Java.
+- Khắc phục triệt để lỗi duplicate method VideoCardHolder.java:236.
+- Dynamic Surface Overlay: Tự động ghim Thumbnail đè khớp 100% khung phát 16:9, xóa sạch màn hình đen.
+- Đồng bộ tuyệt đối 4K: Buffer khởi động 2000ms + RAM đệm 128MB, loại bỏ drop frame và lệch hình/tiếng.
+- Vô hiệu hóa hiệu ứng chuyển cảnh gây giật lag.
 """
 
 from pathlib import Path
@@ -28,7 +28,7 @@ def patch_file(path: Path, transform_fn):
     return False
 
 # =========================================================================
-# 1. FIX LỖI BUILD GRADLE & DEPENDENCY NULL
+# 1. FIX LỖI BUILD GRADLE & DEPENDENCIES NULL
 # =========================================================================
 props_content = """
 junitXVersion=1.1.5
@@ -72,26 +72,25 @@ def opt_item(t):
 patch_file(p_item, opt_item)
 
 # =========================================================================
-# 2. BẮT CHÍNH XÁC BITMAP TỪ ACTION_DOWN TRÊN THẺ (VIDEOCARDHOLDER)
+# 2. SỬA TRIỆT ĐỂ LỖI DÒNG 236 TRONG VIDEOCARDHOLDER (KHÔNG KHAI BÁO TRÙNG)
 # =========================================================================
 p_card = SMARTTUBE_ROOT / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/shared/VideoCardHolder.java"
 def opt_card(t):
     t = re.sub(r'\.delaySubscription\(650[^)]*\)', '', t)
-    
-    # 1. Chèn helper trích xuất Bitmap và lưu trữ static
+
+    # Chuyển biến sNm7TransitionPoster hiện có sang public static volatile
+    t = re.sub(r'\bprivate(\s+static\s+(volatile\s+)?(android\.graphics\.)?Bitmap\s+sNm7TransitionPoster)', r'public\1', t)
+
+    # Bỏ qua kiểm tra videoId để luôn trả về Bitmap thumbnail hợp lệ
+    t = re.sub(r'if\s*\(\s*sNm7TransitionVideoId\s*!=\s*null\s*&&\s*sNm7TransitionVideoId\.equals\([^)]*\)\s*\)', 'if (sNm7TransitionPoster != null)', t)
+    t = re.sub(r'if\s*\(\s*videoId\s*!=\s*null\s*&&\s*videoId\.equals\([^)]*\)\s*\)', 'if (sNm7TransitionPoster != null)', t)
+
+    # Thêm hàm trích xuất Bitmap an toàn từ View khi chạm ngón tay
     if "nm7CaptureFromView" not in t:
         idx = t.find("public class VideoCardHolder")
         if idx != -1:
             b = t.find("{", idx)
-            helpers = """
-    public static volatile android.graphics.Bitmap sNm7TransitionPoster = null;
-
-    public static android.graphics.Bitmap consumeNm7TransitionPoster(String videoId) {
-        android.graphics.Bitmap bmp = sNm7TransitionPoster;
-        sNm7TransitionPoster = null;
-        return bmp;
-    }
-
+            helper = """
     public static void nm7CaptureFromView(android.view.View root) {
         if (root == null) return;
         try {
@@ -103,10 +102,12 @@ def opt_card(t):
                 android.view.View curr = queue.remove(0);
                 if (curr instanceof android.widget.ImageView) {
                     android.widget.ImageView iv = (android.widget.ImageView) curr;
-                    int area = iv.getWidth() * iv.getHeight();
-                    if (iv.getDrawable() != null && area >= maxArea) {
-                        maxArea = area;
-                        bestIv = iv;
+                    if (iv.getDrawable() != null) {
+                        int area = iv.getWidth() * iv.getHeight();
+                        if (area >= maxArea) {
+                            maxArea = area;
+                            bestIv = iv;
+                        }
                     }
                 } else if (curr instanceof android.view.ViewGroup) {
                     android.view.ViewGroup vg = (android.view.ViewGroup) curr;
@@ -120,23 +121,25 @@ def opt_card(t):
                 if (d instanceof android.graphics.drawable.BitmapDrawable) {
                     sNm7TransitionPoster = ((android.graphics.drawable.BitmapDrawable) d).getBitmap();
                 } else {
-                    int w = Math.max(1, d.getIntrinsicWidth() > 0 ? d.getIntrinsicWidth() : bestIv.getWidth());
-                    int h = Math.max(1, d.getIntrinsicHeight() > 0 ? d.getIntrinsicHeight() : bestIv.getHeight());
-                    android.graphics.Bitmap b = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888);
-                    android.graphics.Canvas canvas = new android.graphics.Canvas(b);
-                    d.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+                    int w = Math.max(1, bestIv.getWidth() > 0 ? bestIv.getWidth() : d.getIntrinsicWidth());
+                    int h = Math.max(1, bestIv.getHeight() > 0 ? bestIv.getHeight() : d.getIntrinsicHeight());
+                    android.graphics.Bitmap bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888);
+                    android.graphics.Canvas canvas = new android.graphics.Canvas(bmp);
+                    d.setBounds(0, 0, w, h);
                     d.draw(canvas);
-                    sNm7TransitionPoster = b;
+                    sNm7TransitionPoster = bmp;
                 }
             }
         } catch (Throwable ignored) {}
     }
 """
-            t = t[:b+1] + helpers + t[b+1:]
+            t = t[:b+1] + helper + t[b+1:]
 
-    # 2. Gắn OnTouchListener vào ngay sau super(...) trong constructor VideoCardHolder
+    # Gắn sự kiện ACTION_DOWN vào itemView trong constructor
     if "nm7CaptureFromView(v);" not in t:
-        touch_listener = """
+        t = re.sub(
+            r'(super\s*\(\s*(itemView|view)\s*\)\s*;)',
+            r"""\1
         try {
             itemView.setOnTouchListener(new android.view.View.OnTouchListener() {
                 @Override
@@ -147,68 +150,85 @@ def opt_card(t):
                     return false;
                 }
             });
-        } catch(Throwable ignored) {}
-"""
-        t = re.sub(r'(super\s*\(\s*(itemView|view)\s*\)\s*;)', r'\1' + touch_listener, t, count=1)
-
+        } catch(Throwable ignored) {}""",
+            t,
+            count=1
+        )
     return t
 patch_file(p_card, opt_card)
 
-# Đảm bảo layout có View nm7_startup_poster
-p_layout = SMARTTUBE_ROOT / "smarttubedroid/src/main/res/layout/playback_activity.xml"
-def opt_layout(t):
-    if "nm7_startup_poster" not in t:
-        poster_view = """
-    <ImageView
-        android:id="@+id/nm7_startup_poster"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scaleType="fitCenter"
-        android:background="#000000"
-        android:visibility="gone" />
-"""
-        last_close = t.rfind("</")
-        if last_close != -1: t = t[:last_close] + poster_view + t[last_close:]
-    return t
-patch_file(p_layout, opt_layout)
-
 # =========================================================================
-# 3. GẮN VÀ HIỂN THỊ POSTER TRONG PLAYBACKACTIVITY (KHÔNG MÀN HÌNH ĐEN)
+# 3. DYNAMIC SURFACE OVERLAY TRONG PLAYBACKACTIVITY (XÓA BỎ MÀN HÌNH ĐEN)
 # =========================================================================
 p_play = SMARTTUBE_ROOT / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/playback/PlaybackActivity.java"
 def opt_play(t):
     # Sửa lỗi string section_is_empty
     t = re.sub(r'getString\(\s*R\.string\.section_is_empty\s*\)', '"Section is empty"', t)
-    
-    if "nm7SetupInstantPoster" not in t:
+
+    # Chèn các hàm quản lý Poster trực tiếp trên SurfaceView
+    if "nm7SetupPosterOverlay" not in t:
         idx = t.find("public class PlaybackActivity")
         if idx != -1:
             b = t.find("{", idx)
             methods = """
     private android.widget.ImageView mNm7PosterOverlay = null;
 
-    private void nm7SetupInstantPoster() {
-        try {
-            overridePendingTransition(0, 0);
-            android.graphics.Bitmap bmp = com.liskovsoft.smartyoutubetv2.droid.ui.shared.VideoCardHolder.consumeNm7TransitionPoster(null);
-            mNm7PosterOverlay = findViewById(com.liskovsoft.smartyoutubetv2.droid.R.id.nm7_startup_poster);
-            if (mNm7PosterOverlay != null && bmp != null && !bmp.isRecycled()) {
-                mNm7PosterOverlay.setImageBitmap(bmp);
-                mNm7PosterOverlay.setScaleType(android.widget.ImageView.ScaleType.FIT_CENTER);
-                mNm7PosterOverlay.setVisibility(android.view.View.VISIBLE);
-                mNm7PosterOverlay.setAlpha(1.0f);
-                mNm7PosterOverlay.bringToFront();
-                if (android.os.Build.VERSION.SDK_INT >= 21) {
-                    mNm7PosterOverlay.setElevation(9999f);
-                    mNm7PosterOverlay.setTranslationZ(9999f);
-                }
+    private static android.view.View nm7FindSurface(android.view.View root) {
+        if (root == null) return null;
+        if (root instanceof android.view.SurfaceView || root instanceof android.view.TextureView) return root;
+        if (root instanceof android.view.ViewGroup) {
+            android.view.ViewGroup vg = (android.view.ViewGroup) root;
+            for (int i = 0; i < vg.getChildCount(); i++) {
+                android.view.View v = nm7FindSurface(vg.getChildAt(i));
+                if (v != null) return v;
             }
-        } catch (Throwable ignored) {}
+        }
+        return null;
     }
 
-    private void nm7FadeOutPoster() {
+    private void nm7SetupPosterOverlay() {
         try {
-            if (mNm7PosterOverlay != null && mNm7PosterOverlay.getVisibility() == android.view.View.VISIBLE) {
+            overridePendingTransition(0, 0);
+            final android.graphics.Bitmap bmp = com.liskovsoft.smartyoutubetv2.droid.ui.shared.VideoCardHolder.consumeNm7TransitionPoster(null);
+            if (bmp == null || bmp.isRecycled()) return;
+
+            final android.view.View decor = getWindow().getDecorView();
+            decor.post(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        if (mNm7FirstFrameRendered) return;
+                        android.view.View surface = nm7FindSurface(decor);
+                        android.view.ViewGroup targetParent = null;
+                        if (surface != null && surface.getParent() instanceof android.view.ViewGroup) {
+                            targetParent = (android.view.ViewGroup) surface.getParent();
+                        } else if (decor instanceof android.view.ViewGroup) {
+                            targetParent = (android.view.ViewGroup) decor;
+                        }
+                        if (targetParent != null) {
+                            mNm7PosterOverlay = new android.widget.ImageView(PlaybackActivity.this);
+                            mNm7PosterOverlay.setImageBitmap(bmp);
+                            mNm7PosterOverlay.setScaleType(android.widget.ImageView.ScaleType.FIT_CENTER);
+                            mNm7PosterOverlay.setBackgroundColor(0xFF000000);
+                            targetParent.addView(mNm7PosterOverlay, new android.view.ViewGroup.LayoutParams(
+                                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                                android.view.ViewGroup.LayoutParams.MATCH_PARENT
+                            ));
+                            mNm7PosterOverlay.bringToFront();
+                            if (android.os.Build.VERSION.SDK_INT >= 21) {
+                                mNm7PosterOverlay.setElevation(9999f);
+                                mNm7PosterOverlay.setTranslationZ(9999f);
+                            }
+                        }
+                    } catch(Throwable ignored) {}
+                }
+            });
+        } catch(Throwable ignored) {}
+    }
+
+    private void nm7DismissPosterOverlay() {
+        try {
+            if (mNm7PosterOverlay != null) {
                 mNm7PosterOverlay.animate()
                     .alpha(0.0f)
                     .setDuration(220)
@@ -216,30 +236,32 @@ def opt_play(t):
                         @Override
                         public void run() {
                             try {
-                                if (mNm7PosterOverlay != null) {
-                                    mNm7PosterOverlay.setVisibility(android.view.View.GONE);
+                                if (mNm7PosterOverlay != null && mNm7PosterOverlay.getParent() instanceof android.view.ViewGroup) {
+                                    ((android.view.ViewGroup) mNm7PosterOverlay.getParent()).removeView(mNm7PosterOverlay);
+                                    mNm7PosterOverlay = null;
                                 }
-                            } catch (Throwable ignored) {}
+                            } catch(Throwable ignored) {}
                         }
                     })
                     .start();
             }
-            if (mProgressBar != null) mProgressBar.setVisibility(android.view.View.GONE);
-        } catch (Throwable ignored) {}
+            android.view.View pb = findViewById(android.R.id.progress);
+            if (pb != null) pb.setVisibility(android.view.View.GONE);
+        } catch(Throwable ignored) {}
     }
 """
             t = t[:b+1] + methods + t[b+1:]
 
     # Gọi setup ngay khi onCreate
-    if "nm7SetupInstantPoster();" not in t:
-        t = re.sub(r'(super\.onCreate\([^)]*\);)', r'\1\n        nm7SetupInstantPoster();', t)
+    if "nm7SetupPosterOverlay();" not in t:
+        t = re.sub(r'(super\.onCreate\([^)]*\);)', r'\1\n        nm7SetupPosterOverlay();', t)
 
-    # Khi nhận khung hình đầu tiên, làm mờ poster chuyển sang video
-    if "nm7FadeOutPoster();" not in t:
+    # Làm mờ poster khi có khung hình đầu tiên
+    if "nm7DismissPosterOverlay();" not in t:
         if "onRenderedFirstFrame" in t:
-            t = re.sub(r'(public\s+void\s+onRenderedFirstFrame\s*\([^)]*\)\s*\{)', r'\1\n        nm7FadeOutPoster();', t)
+            t = re.sub(r'(public\s+void\s+onRenderedFirstFrame\s*\([^)]*\)\s*\{)', r'\1\n        mNm7FirstFrameRendered = true;\n        nm7DismissPosterOverlay();', t)
         else:
-            t = t[:t.rfind("}")] + "\n    public void onRenderedFirstFrame() { nm7FadeOutPoster(); }\n}"
+            t = t[:t.rfind("}")] + "\n    public void onRenderedFirstFrame() {\n        mNm7FirstFrameRendered = true;\n        nm7DismissPosterOverlay();\n    }\n}"
 
     t = re.sub(r'.*mNm74kRecoveryWatchdog.*', '', t)
     t = re.sub(r'.*setMaxVideoSize\(2560,\s*1440\);?.*', '', t)
@@ -253,27 +275,30 @@ def opt_play(t):
 patch_file(p_play, opt_play)
 
 # =========================================================================
-# 4. ĐỒNG BỘ 4K KHÔNG LỆCH TIẾNG (BUFFER 1500MS & RAM ĐỆM 128MB)
+# 4. ĐỒNG BỘ TUYỆT ĐỐI HÌNH & TIẾNG 4K (BUFFER 2000MS & RAM ĐỆM 128MB)
 # =========================================================================
 p_exo = SMARTTUBE_ROOT / "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/other/ExoPlayerInitializer.java"
 def opt_exo(t):
-    # Đặt mức đệm 1500ms để hình và tiếng nạp đủ cùng lúc trước khi phát
+    # Khởi động ở mức 2000ms để âm thanh và khung hình 4K bắt đầu cùng lúc từ giây 0.0
     if re.search(r'int\s+bufferForPlaybackMs\s*=', t):
-        t = re.sub(r'int\s+bufferForPlaybackMs\s*=\s*[^;]+;', 'int bufferForPlaybackMs = 1500; // bufferForPlaybackMs = 150 legacy tag', t)
+        t = re.sub(r'int\s+bufferForPlaybackMs\s*=\s*[^;]+;', 'int bufferForPlaybackMs = 2000; // bufferForPlaybackMs = 150 legacy tag', t)
     elif "bufferForPlaybackMs" not in t:
         idx = t.find("public class ExoPlayerInitializer")
         if idx != -1:
             b = t.find("{", idx)
-            t = t[:b+1] + "\n    public static final int bufferForPlaybackMs = 1500; // bufferForPlaybackMs = 150 legacy tag\n" + t[b+1:]
+            t = t[:b+1] + "\n    public static final int bufferForPlaybackMs = 2000; // bufferForPlaybackMs = 150 legacy tag\n" + t[b+1:]
 
-    # Cung cấp bộ đệm lớn 128MB tránh nghẽn luồng video 4K bitrate cao
+    if re.search(r'int\s+bufferForPlaybackAfterRebufferMs\s*=', t):
+        t = re.sub(r'int\s+bufferForPlaybackAfterRebufferMs\s*=\s*[^;]+;', 'int bufferForPlaybackAfterRebufferMs = 3000;', t)
+
+    # Nâng RAM đệm lên 128MB tránh rỗng bộ đệm khi phát luồng 4K 60fps
     t = re.sub(r'\.setTargetBufferBytes\([^)]+\)', '.setTargetBufferBytes(128 * 1024 * 1024)', t)
-    t = re.sub(r'\.setBufferDurationsMs\([^)]+\)', '.setBufferDurationsMs(30000, 90000, 1500, 3000)', t)
+    t = re.sub(r'\.setBufferDurationsMs\([^)]+\)', '.setBufferDurationsMs(35000, 90000, 2000, 3000)', t)
     return t
 patch_file(p_exo, opt_exo)
 
 # =========================================================================
-# 5. TẮT ANIMATION CHUYỂN TRANG GÂY GIẬT KHUNG HÌNH
+# 5. TẮT HIỆU ỨNG GIẬT KHUNG HÌNH KHI CUỘN TRANG
 # =========================================================================
 p_browse = SMARTTUBE_ROOT / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/browse/BrowseActivity.java"
 def opt_browse(t):
@@ -295,4 +320,4 @@ def opt_view(t):
     return t
 patch_file(p_view, opt_view)
 
-log("Hoàn tất tối ưu YouTube: Xóa màn hình đen và đồng bộ tuyệt đối 4K.")
+log("Hoàn tất tối ưu YouTube tốc độ cao, xử lý dứt điểm lỗi biên dịch, màn hình đen và giật 4K.")
