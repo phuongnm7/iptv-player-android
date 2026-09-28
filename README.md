@@ -1,3 +1,46 @@
+## Cập nhật mới nhất — 2026-09-28 — PR #4 / Mobile 1.10.106
+
+Nhánh `fix/mobile-1.10.79-youtube-performance` đã build **SUCCESS** bản **1.10.106 (versionCode 122)** trên GitHub Actions.
+
+- PR [#4](https://github.com/phuongnm7/iptv-player-android/pull/4): **OPEN, chưa merge**
+- PR head: `224c0c88c9ceb134785b2387d3e600adfe5a23b0`
+- Build commit: `8347399bb2a8c8937eb3c575e5932df876f5e035`
+- Workflow: **NM7 Mobile Final Build #781**
+- Run ID: `36296325937`
+- Artifact: `NM7-IPTV-Mobile-FINAL`, ID `10923991428`
+- Artifact SHA-256: `03f084bf2f8bdc079fecaed3e66e902c1d91a33ef620fb1ddabc584613947e3c`
+
+### 1.10.106 thay đổi gì?
+
+**Background playback**
+- Theo dõi background transition bằng `mNm7Backgrounding`.
+- Transition background thông thường không gọi `mPlaybackPresenter.onViewPaused()`.
+- Khi quay lại app ưu tiên giữ cùng ExoPlayer, MediaItem, vị trí phát và buffer.
+
+**YouTube format reuse**
+- Tăng process-local format-info reuse từ **8 giây lên 60 giây**.
+- Không ghi signed stream URL ra disk.
+
+**4K**
+- Không áp đặt cap 4K/30fps hoặc bitrate theo phỏng đoán.
+- Không thêm fallback 1440p tự động.
+- Nếu 4K còn giật, vòng tiếp theo phải đo codec, resolution, FPS, bitrate và decoder dropped frames trên video thực.
+
+### Compile fixes trong PR #4
+- `androidx.test.ext:junit:null` / `truth:null`
+- Thiếu symbol `section_is_empty`
+- Duplicate `NM7_FORMAT_REUSE_MS`
+- Private access `sNm7TransitionPoster`
+- Duplicate method trong `VideoCardHolder.java`
+
+### Trạng thái kiểm thử
+
+CI PASS chỉ xác nhận patch/verifier/unit test/build/upload. **Chưa có runtime PASS trên thiết bị thật cho 1.10.106**, đặc biệt chưa xác nhận 4K và background reopen trên thiết bị thật.
+
+Mobile-only trong vòng này; Android TV không thay đổi. Xem [PROGRESS.md](PROGRESS.md) và [HANDOVER.md](HANDOVER.md) để nối tiếp.
+
+---
+
 # iptv-player-android
 
 Nm7 IPTV 1.7 — ứng dụng Android tiếng Việt cho mobile và Android TV, không quảng cáo, không phân tích hành vi, không máy chủ trung gian. Màn hình chính có thanh nhóm kênh cuộn ngang; khi đang xem trên TV, phím Trái mở danh sách kênh nhanh phủ lên video mà không dừng phát.
