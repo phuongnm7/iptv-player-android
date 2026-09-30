@@ -12,7 +12,8 @@ public final class Channel {
     private final String name;
     private final String group;
     private final String url;
-    private final String logo;
+    private final String tvgLogo;
+    private final String logoUrl;
     private final String tvgId;
     private final Map<String, String> headers;
     private boolean selected = true;
@@ -21,10 +22,20 @@ public final class Channel {
 
     public Channel(String name, String group, String url, String logo, String tvgId,
                    Map<String, String> headers) {
+        this(name, group, url, logo, logo, tvgId, headers);
+    }
+
+    /**
+     * Super OK-style channel metadata: retain the original tvg-logo and the
+     * explicit logo attribute separately, then expose one effective URL.
+     */
+    public Channel(String name, String group, String url, String tvgLogo, String logoUrl,
+                   String tvgId, Map<String, String> headers) {
         this.name = clean(name, "Kênh không tên");
         this.group = clean(group, "Chưa phân nhóm");
         this.url = clean(url, "");
-        this.logo = clean(logo, "");
+        this.tvgLogo = clean(tvgLogo, "");
+        this.logoUrl = clean(logoUrl, "");
         this.tvgId = clean(tvgId, "");
         this.headers = Collections.unmodifiableMap(new LinkedHashMap<>(headers));
     }
@@ -37,7 +48,10 @@ public final class Channel {
     public String name() { return name; }
     public String group() { return group; }
     public String url() { return url; }
-    public String logo() { return logo; }
+    public String logo() { return tvgLogo; }
+    public String tvgLogo() { return tvgLogo; }
+    public String logoUrl() { return logoUrl; }
+    public String effectiveLogoUrl() { return !logoUrl.isEmpty() ? logoUrl : tvgLogo; }
     public String tvgId() { return tvgId; }
     public Map<String, String> headers() { return headers; }
     public boolean selected() { return selected; }
