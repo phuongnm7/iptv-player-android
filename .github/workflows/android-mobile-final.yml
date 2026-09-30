@@ -4,6 +4,7 @@ name: NM7 Mobile Final Build
   push:
     branches:
       - "fix/mobile-1.10.79-youtube-performance"
+      - "fix/mobile-1.10.108-superok-logo-rework"
       - "main"
   workflow_dispatch:
 
@@ -61,11 +62,11 @@ jobs:
           python3 scripts/patch-mobile-v37.py
           python3 scripts/patch-mobile-v106.py
 
-      - name: Verify 1.10.106 build configuration
+      - name: Verify 1.10.108 build configuration
         run: |
           set -euxo pipefail
-          test "$(grep -c 'versionName = "1.10.106"' app/build.gradle.kts)" -eq 1
-          test "$(grep -c 'versionCode = 122' app/build.gradle.kts)" -eq 1
+          test "$(grep -c 'versionName = "1.10.108"' app/build.gradle.kts)" -eq 1
+          test "$(grep -c 'versionCode = 124' app/build.gradle.kts)" -eq 1
 
       - name: Check Mobile lifecycle regression guards
         run: |
