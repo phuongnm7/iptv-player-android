@@ -10,8 +10,8 @@ android {
         applicationId = "vn.phuong.iptvplayer"
         minSdk = 23
         targetSdk = 36
-        versionCode = 122
-        versionName = "1.10.106"
+        versionCode = 124
+        versionName = "1.10.108"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["applicationClass"] = "vn.phuong.iptvplayer.MobileNm7Application"
@@ -76,6 +76,8 @@ dependencies {
     implementation("androidx.media3:media3-ui:$media3Version")
     implementation("androidx.media3:media3-datasource-okhttp:$media3Version")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    // Keep the logo loader on the same Glide line used by SmartTube/Super OK.
+    implementation("com.github.bumptech.glide:glide:4.11.0")
 
     // SmartTube's DroidApplication extends AndroidX MultiDexApplication.
     // Keep the dependency direct so the Mobile app compiler can resolve that superclass.
