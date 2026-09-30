@@ -263,7 +263,13 @@ public final class ChannelAdapter extends BaseAdapter {
 
         Bitmap cached = LOGO_CACHE.get(cacheKey);
         if (cached != null) {
-            if (holder != null) showLogo(holder, url, cached);
+            if (holder != null) {
+                synchronized (WAITERS_LOCK) {
+                    RESOLVED_LOGO_URLS.put(channelId, url);
+                    RESOLVED_LOGO_BITMAPS.put(channelId, cached);
+                }
+                showResolvedLogo(holder, channelId, cached);
+            }
             return;
         }
 
@@ -515,13 +521,6 @@ public final class ChannelAdapter extends BaseAdapter {
     private static boolean isRemoteLogo(String url) {
         return url != null
                 && (url.startsWith("http://") || url.startsWith("https://"));
-    }
-
-    private static void showLogo(Holder holder, String url, Bitmap bitmap) {
-        if (!url.equals(holder.logo.getTag())) return;
-        holder.logo.setImageBitmap(bitmap);
-        holder.logo.setVisibility(View.VISIBLE);
-        holder.badge.setVisibility(View.GONE);
     }
 
     private int dp(int value) {
