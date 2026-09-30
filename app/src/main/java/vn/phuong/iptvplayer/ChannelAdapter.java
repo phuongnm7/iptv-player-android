@@ -27,7 +27,6 @@ public final class ChannelAdapter extends BaseAdapter {
     private final LayoutInflater inflater;
     private final Context context;
     private final Listener listener;
-    private final ExecutorService logoIo = Executors.newFixedThreadPool(4);
     private List<Channel> channels = new ArrayList<>();
     private EpgStore.Guide guide;
     private String playingChannelId = "";
