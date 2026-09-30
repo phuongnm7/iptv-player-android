@@ -1,18 +1,20 @@
 package vn.phuong.iptvplayer;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
-import java.util.ArrayList;
-import java.util.List;
 
 public final class Channel {
     private final String name;
     private final String group;
     private final String url;
-    private final String logo;
+    private final String tvgLogo;
+    private final String logoUrl;
+    private final String iconUrl;
     private final String tvgId;
     private final Map<String, String> headers;
     private boolean selected = true;
@@ -21,10 +23,17 @@ public final class Channel {
 
     public Channel(String name, String group, String url, String logo, String tvgId,
                    Map<String, String> headers) {
+        this(name, group, url, logo, logo, "", tvgId, headers);
+    }
+
+    public Channel(String name, String group, String url, String tvgLogo, String logoUrl,
+                   String iconUrl, String tvgId, Map<String, String> headers) {
         this.name = clean(name, "Kênh không tên");
         this.group = clean(group, "Chưa phân nhóm");
         this.url = clean(url, "");
-        this.logo = clean(logo, "");
+        this.tvgLogo = clean(tvgLogo, "");
+        this.logoUrl = clean(logoUrl, "");
+        this.iconUrl = clean(iconUrl, "");
         this.tvgId = clean(tvgId, "");
         this.headers = Collections.unmodifiableMap(new LinkedHashMap<>(headers));
     }
@@ -37,7 +46,39 @@ public final class Channel {
     public String name() { return name; }
     public String group() { return group; }
     public String url() { return url; }
-    public String logo() { return logo; }
+
+    /** Original tvg-logo attribute from the playlist. */
+    public String logo() { return tvgLogo; }
+    public String tvgLogo() { return tvgLogo; }
+
+    /** Explicit logo/logo_url attribute when present. */
+    public String logoUrl() { return logoUrl; }
+
+    /** icon/icon_url is the final metadata fallback. */
+    public String iconUrl() { return iconUrl; }
+
+    /**
+     * Super OK-style effective logo resolution:
+     * explicit logo URL -> tvg-logo -> icon URL.
+     */
+    public String effectiveLogoUrl() {
+        if (!logoUrl.isEmpty()) return logoUrl;
+        if (!tvgLogo.isEmpty()) return tvgLogo;
+        return iconUrl;
+    }
+
+    /**
+     * Ordered unique candidates let the UI retry a secondary logo source without
+     * changing the channel's metadata.
+     */
+    public List<String> logoCandidates() {
+        LinkedHashMap<String, Boolean> unique = new LinkedHashMap<>();
+        if (!logoUrl.isEmpty()) unique.put(logoUrl, Boolean.TRUE);
+        if (!tvgLogo.isEmpty()) unique.put(tvgLogo, Boolean.TRUE);
+        if (!iconUrl.isEmpty()) unique.put(iconUrl, Boolean.TRUE);
+        return new ArrayList<>(unique.keySet());
+    }
+
     public String tvgId() { return tvgId; }
     public Map<String, String> headers() { return headers; }
     public boolean selected() { return selected; }
@@ -64,13 +105,10 @@ public final class Channel {
     }
 
     public String identityKey() {
-        // Paths, query tokens and header values are case-sensitive.
         Map<String, String> normalized = new TreeMap<>();
         for (Map.Entry<String, String> header : headers.entrySet()) {
             normalized.put(header.getKey().toLowerCase(java.util.Locale.ROOT), header.getValue());
         }
-        // Length-prefix each field: Map/List.toString() is ambiguous when
-        // values themselves contain commas, brackets or equals signs.
         StringBuilder key = new StringBuilder();
         appendKeyPart(key, url.trim());
         key.append(normalized.size()).append(':');
