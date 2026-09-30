@@ -41,7 +41,8 @@ public final class ChannelAdapter extends BaseAdapter {
     }
 
     private static final int MAX_LOGO_BYTES = 2 * 1024 * 1024;
-    private static final int LOGO_CACHE_KB = 32 * 1024;
+    private static final int LOGO_CACHE_KB = 64 * 1024;
+    private static final long FAILED_LOGO_TTL_MS = 30 * 60 * 1000L;
     private static final int CONNECT_TIMEOUT_MS = 4_000;
     private static final int READ_TIMEOUT_MS = 8_000;
     private static final int PREFETCH_COUNT = 18;
@@ -56,6 +57,8 @@ public final class ChannelAdapter extends BaseAdapter {
     private static final Object WAITERS_LOCK = new Object();
     private static final Map<String, List<WeakReference<LogoWaiter>>> LOGO_WAITERS = new HashMap<>();
     private static final Map<String, Boolean> LOGO_LOADING = new HashMap<>();
+    private static final Map<String, Long> LOGO_FAILED_UNTIL = new HashMap<>();
+    private static final Map<String, String> RESOLVED_LOGO_BY_CHANNEL = new HashMap<>();
 
     /*
      * One shared OkHttp client is deliberately used for every channel logo.
@@ -86,7 +89,7 @@ public final class ChannelAdapter extends BaseAdapter {
         this.context = context;
         this.inflater = LayoutInflater.from(context);
         this.listener = listener;
-        logoCacheDir = new File(context.getCacheDir(), "channel-logos-v3");
+        logoCacheDir = new File(context.getCacheDir(), "channel-logos-v4");
         if (!logoCacheDir.exists()) logoCacheDir.mkdirs();
     }
 
@@ -182,25 +185,45 @@ public final class ChannelAdapter extends BaseAdapter {
                 ? Collections.emptyList()
                 : normalizedCandidates(channel.logoCandidates());
 
-        holder.logo.setImageDrawable(null);
         holder.logo.setVisibility(View.GONE);
         holder.badge.setVisibility(View.VISIBLE);
 
-        if (candidates.isEmpty()) {
+        if (candidates.isEmpty() || channel == null) {
             holder.logo.setTag(null);
             return;
         }
 
+        String channelKey = channel.identityKey();
+        String resolved = resolvedLogo(channelKey);
+        if (resolved != null) {
+            int resolvedIndex = candidates.indexOf(resolved);
+            candidates = new ArrayList<>(candidates);
+            if (resolvedIndex >= 0) candidates.remove(resolvedIndex);
+            candidates.add(0, resolved);
+        }
+
+        // Serve a previously resolved logo synchronously from RAM. This makes
+        // VTV -> VTVCab -> VTV switching instant instead of restarting downloads.
+        for (String candidate : candidates) {
+            Bitmap cached = LOGO_CACHE.get(cacheKey(candidate, channel.headers()));
+            if (cached != null) {
+                holder.logo.setTag(candidate);
+                showLogo(holder, candidate, cached);
+                rememberResolved(channelKey, candidate);
+                return;
+            }
+        }
+
+        holder.logo.setImageDrawable(null);
         holder.logo.setTag(candidates.get(0));
-        requestLogo(holder, candidates,
-                channel == null ? Collections.emptyMap() : channel.headers(), 0);
+        requestLogo(holder, candidates, channel.headers(), 0, channelKey);
     }
 
     private void prefetch(Channel channel) {
         if (channel == null) return;
         List<String> candidates = normalizedCandidates(channel.logoCandidates());
         if (candidates.isEmpty()) return;
-        requestLogo(null, candidates, channel.headers(), 0);
+        requestLogo(null, candidates, channel.headers(), 0, channel.identityKey());
     }
 
     private List<String> normalizedCandidates(List<String> input) {
@@ -215,11 +238,15 @@ public final class ChannelAdapter extends BaseAdapter {
     }
 
     private void requestLogo(Holder holder, List<String> candidates,
-                             Map<String, String> headers, int index) {
+                             Map<String, String> headers, int index, String channelKey) {
         if (index >= candidates.size()) return;
 
         String url = candidates.get(index);
         String cacheKey = cacheKey(url, headers);
+        if (isLogoTemporarilyFailed(cacheKey)) {
+            requestLogo(holder, candidates, headers, index + 1, channelKey);
+            return;
+        }
         if (holder != null) holder.logo.setTag(url);
 
         Bitmap cached = LOGO_CACHE.get(cacheKey);
@@ -237,7 +264,7 @@ public final class ChannelAdapter extends BaseAdapter {
                     LOGO_WAITERS.put(cacheKey, waiters);
                 }
                 waiters.add(new WeakReference<>(
-                        new LogoWaiter(holder, candidates, headers, index, url)));
+                        new LogoWaiter(holder, candidates, headers, index, url, channelKey)));
             }
             if (!LOGO_LOADING.containsKey(cacheKey)) {
                 LOGO_LOADING.put(cacheKey, Boolean.TRUE);
@@ -258,12 +285,12 @@ public final class ChannelAdapter extends BaseAdapter {
 
             // Keep LOGO_LOADING=true while the network request is in flight so
             // subsequent binds join the same request instead of starting another.
-            startLogoNetwork(cacheKey, url, candidates, headers);
+            startLogoNetwork(cacheKey, url, candidates, headers, channelKey);
         });
     }
 
     private void startLogoNetwork(String cacheKey, String url, List<String> candidates,
-                                  Map<String, String> headers) {
+                                  Map<String, String> headers, String channelKey) {
         final String finalCacheKey = cacheKey;
         // Do not inherit the stream's User-Agent. IPTV stream UAs such as
         // Dalvik/cvmedia are often rejected by CDN image hosts. Super OK resolves
@@ -292,6 +319,7 @@ public final class ChannelAdapter extends BaseAdapter {
 
         LOGO_HTTP.newCall(requestBuilder.build()).enqueue(new Callback() {
             @Override public void onFailure(Call call, java.io.IOException e) {
+                markLogoFailed(finalCacheKey);
                 finishLogoLoad(finalCacheKey, null);
             }
 
@@ -313,6 +341,7 @@ public final class ChannelAdapter extends BaseAdapter {
                     Bitmap ready = bitmap;
                     diskIo.execute(() -> writeCachedLogo(finalCacheKey, ready));
                 }
+                if (bitmap == null) markLogoFailed(finalCacheKey); else rememberResolved(channelKey, url);
                 finishLogoLoad(finalCacheKey, bitmap);
             }
         });
@@ -336,9 +365,38 @@ public final class ChannelAdapter extends BaseAdapter {
                     showLogo(waiter.holder, waiter.url, ready);
                 } else {
                     requestLogo(waiter.holder, waiter.candidates,
-                            waiter.headers, waiter.index + 1);
+                            waiter.headers, waiter.index + 1, waiter.channelKey);
                 }
             });
+        }
+    }
+
+    private static boolean isLogoTemporarilyFailed(String key) {
+        synchronized (WAITERS_LOCK) {
+            Long until = LOGO_FAILED_UNTIL.get(key);
+            if (until == null) return false;
+            if (until > System.currentTimeMillis()) return true;
+            LOGO_FAILED_UNTIL.remove(key);
+            return false;
+        }
+    }
+
+    private static void markLogoFailed(String key) {
+        synchronized (WAITERS_LOCK) {
+            LOGO_FAILED_UNTIL.put(key, System.currentTimeMillis() + FAILED_LOGO_TTL_MS);
+        }
+    }
+
+    private static String resolvedLogo(String channelKey) {
+        synchronized (WAITERS_LOCK) {
+            return RESOLVED_LOGO_BY_CHANNEL.get(channelKey);
+        }
+    }
+
+    private static void rememberResolved(String channelKey, String url) {
+        if (channelKey == null || channelKey.isEmpty() || url == null || url.isEmpty()) return;
+        synchronized (WAITERS_LOCK) {
+            RESOLVED_LOGO_BY_CHANNEL.put(channelKey, url);
         }
     }
 
@@ -476,14 +534,16 @@ public final class ChannelAdapter extends BaseAdapter {
         final Map<String, String> headers;
         final int index;
         final String url;
+        final String channelKey;
 
         LogoWaiter(Holder holder, List<String> candidates, Map<String, String> headers,
-                   int index, String url) {
+                   int index, String url, String channelKey) {
             this.holder = holder;
             this.candidates = candidates;
             this.headers = headers;
             this.index = index;
             this.url = url;
+            this.channelKey = channelKey;
         }
     }
 
