@@ -164,20 +164,6 @@ jobs:
       - name: Install SDK packages
         run: sdkmanager "platforms;android-34" "platforms;android-36" "build-tools;36.0.0"
 
-      - name: Run IPTV parser unit tests
-        run: |
-          set -euxo pipefail
-          gradle --no-daemon --console=plain \
-            -PcompileSdkVersion=android-36 \
-            -PminSdkVersion=23 \
-            -PtargetSdkVersion=36 \
-            -PbuildToolsVersion=36.0.0 \
-            -PjunitXVersion=1.1.5 \
-            -PtruthXVersion=1.5.0 \
-            -PtestXSupportVersion=1.1.0 \
-            -PannotationXVersion=1.1.0 \
-            :app:testMobileDebugUnitTest --tests vn.phuong.iptvplayer.M3uParserTest
-
       - name: Verify SmartTube PlaybackActivity pitch overrides
         run: |
           python3 - <<'PY'
@@ -204,6 +190,20 @@ jobs:
                       lines[i-1] = ''
               p.write_text(''.join(lines))
           PY
+
+      - name: Run IPTV parser unit tests
+        run: |
+          set -euxo pipefail
+          gradle --no-daemon --console=plain \
+            -PcompileSdkVersion=android-36 \
+            -PminSdkVersion=23 \
+            -PtargetSdkVersion=36 \
+            -PbuildToolsVersion=36.0.0 \
+            -PjunitXVersion=1.1.5 \
+            -PtruthXVersion=1.5.0 \
+            -PtestXSupportVersion=1.1.0 \
+            -PannotationXVersion=1.1.0 \
+            :app:testMobileDebugUnitTest --tests vn.phuong.iptvplayer.M3uParserTest
 
       - name: Build Mobile only (current NM7 IPTV Mobile)
         run: |
