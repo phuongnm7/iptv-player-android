@@ -1,4 +1,5 @@
 name: NM7 Mobile Final Build
+# logo-rework validation trigger
 
 "on":
   push:
