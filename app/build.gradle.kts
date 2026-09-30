@@ -10,8 +10,8 @@ android {
         applicationId = "vn.phuong.iptvplayer"
         minSdk = 23
         targetSdk = 36
-        versionCode = 125
-        versionName = "1.10.109"
+        versionCode = 126
+        versionName = "1.10.110"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["applicationClass"] = "vn.phuong.iptvplayer.MobileNm7Application"
@@ -22,7 +22,7 @@ android {
 
     }
 
-    // This project branch is the Mobile product only.
+    // This project branch is the Mobile product only. CI validation run.
     // Do not create a TV flavor or package any TV-only implementation here.
     flavorDimensions += "device"
     productFlavors {
