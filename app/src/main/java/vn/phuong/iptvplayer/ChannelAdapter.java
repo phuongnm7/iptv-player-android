@@ -12,6 +12,11 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -115,11 +120,54 @@ public final class ChannelAdapter extends BaseAdapter {
         convertView.setMinimumHeight(dp(tv ? 78 : (compact ? 54 : 60)));
         int vertical = dp(tv ? 3 : 0);
         convertView.setPadding(0, vertical, 0, vertical);
-        loadLogo(h, c.logo());
+        loadLogo(h, c);
         return convertView;
     }
 
-    private void loadLogo(Holder holder, String url) {
+    /**
+     * Primary logo path: match Super OK's IPTV approach and let Glide own the
+     * request/cache/recycling lifecycle. The known-good 1.10.106 downloader
+     * remains as a fallback for hosts that Glide cannot decode/reach.
+     */
+    private void loadLogo(Holder holder, Channel channel) {
+        String url = channel == null ? "" : channel.effectiveLogoUrl();
+        holder.logo.setTag(url);
+        holder.logo.setImageDrawable(null);
+        holder.logo.setVisibility(View.GONE);
+        holder.badge.setVisibility(View.VISIBLE);
+
+        if (!isRemoteLogo(url)) return;
+
+        Glide.with(holder.logo.getContext())
+                .load(url)
+                .listener(new RequestListener<android.graphics.drawable.Drawable>() {
+                    @Override
+                    public boolean onLoadFailed(GlideException e, Object model,
+                                                 Target<android.graphics.drawable.Drawable> target,
+                                                 boolean isFirstResource) {
+                        if (url.equals(holder.logo.getTag())) {
+                            loadLogoLegacy(holder, url);
+                        }
+                        return false;
+                    }
+
+                    @Override
+                    public boolean onResourceReady(android.graphics.drawable.Drawable resource,
+                                                   Object model,
+                                                   Target<android.graphics.drawable.Drawable> target,
+                                                   com.bumptech.glide.load.DataSource dataSource,
+                                                   boolean isFirstResource) {
+                        if (url.equals(holder.logo.getTag())) {
+                            holder.logo.setVisibility(View.VISIBLE);
+                            holder.badge.setVisibility(View.GONE);
+                        }
+                        return false;
+                    }
+                })
+                .into(holder.logo);
+    }
+
+    private void loadLogoLegacy(Holder holder, String url) {
         Object previous = holder.logo.getTag();
         if (url != null && url.equals(previous) && holder.logo.getDrawable() != null) {
             holder.logo.setVisibility(View.VISIBLE);
