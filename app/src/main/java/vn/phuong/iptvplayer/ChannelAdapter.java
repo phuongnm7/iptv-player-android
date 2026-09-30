@@ -41,10 +41,10 @@ public final class ChannelAdapter extends BaseAdapter {
     }
 
     private static final int MAX_LOGO_BYTES = 2 * 1024 * 1024;
-    private static final int LOGO_CACHE_KB = 32 * 1024;
+    private static final int LOGO_CACHE_KB = 64 * 1024;
     private static final int CONNECT_TIMEOUT_MS = 4_000;
     private static final int READ_TIMEOUT_MS = 8_000;
-    private static final int PREFETCH_COUNT = 18;
+    private static final int PREFETCH_COUNT = 36;
 
     private static final LruCache<String, Bitmap> LOGO_CACHE =
             new LruCache<String, Bitmap>(LOGO_CACHE_KB) {
@@ -56,6 +56,17 @@ public final class ChannelAdapter extends BaseAdapter {
     private static final Object WAITERS_LOCK = new Object();
     private static final Map<String, List<WeakReference<LogoWaiter>>> LOGO_WAITERS = new HashMap<>();
     private static final Map<String, Boolean> LOGO_LOADING = new HashMap<>();
+
+    // A channel's resolved logo is independent of ListView/ViewHolder lifetime.
+    // This prevents a group switch from forcing an already-resolved logo through
+    // the network path again.
+    private static final Map<String, String> RESOLVED_LOGO_URLS = new HashMap<>();
+    private static final LruCache<String, Bitmap> RESOLVED_LOGO_BITMAPS =
+            new LruCache<String, Bitmap>(LOGO_CACHE_KB) {
+                @Override protected int sizeOf(String key, Bitmap bitmap) {
+                    return Math.max(1, bitmap.getAllocationByteCount() / 1024);
+                }
+            };
 
     /*
      * One shared OkHttp client is deliberately used for every channel logo.
@@ -178,29 +189,51 @@ public final class ChannelAdapter extends BaseAdapter {
      * 7) retry every candidate source before falling back to the letter badge.
      */
     private void loadLogo(Holder holder, Channel channel) {
-        List<String> candidates = channel == null
-                ? Collections.emptyList()
-                : normalizedCandidates(channel.logoCandidates());
+        if (channel == null) return;
 
+        String channelId = AppPreferences.id(channel);
+        List<String> candidates = normalizedCandidates(channel.logoCandidates());
+
+        // Tag with the channel identity, never the previous row's URL.
+        holder.logo.setTag(channelId);
+
+        Bitmap resolved = RESOLVED_LOGO_BITMAPS.get(channelId);
+        if (resolved != null) {
+            showResolvedLogo(holder, channelId, resolved);
+            return;
+        }
+
+        // Do not keep a recycled row's previous bitmap visible, but do not
+        // perform a network request when this channel was already resolved.
         holder.logo.setImageDrawable(null);
         holder.logo.setVisibility(View.GONE);
         holder.badge.setVisibility(View.VISIBLE);
 
         if (candidates.isEmpty()) {
-            holder.logo.setTag(null);
             return;
         }
 
-        holder.logo.setTag(candidates.get(0));
-        requestLogo(holder, candidates,
-                channel == null ? Collections.emptyMap() : channel.headers(), 0);
+        String resolvedUrl;
+        synchronized (WAITERS_LOCK) {
+            resolvedUrl = RESOLVED_LOGO_URLS.get(channelId);
+        }
+        if (resolvedUrl != null && !resolvedUrl.isEmpty()) {
+            List<String> resolvedOnly = new ArrayList<>();
+            resolvedOnly.add(resolvedUrl);
+            requestLogo(holder, channelId, resolvedOnly, channel.headers(), 0);
+            return;
+        }
+
+        requestLogo(holder, channelId, candidates, channel.headers(), 0);
     }
 
     private void prefetch(Channel channel) {
         if (channel == null) return;
+        String channelId = AppPreferences.id(channel);
+        if (RESOLVED_LOGO_BITMAPS.get(channelId) != null) return;
         List<String> candidates = normalizedCandidates(channel.logoCandidates());
         if (candidates.isEmpty()) return;
-        requestLogo(null, candidates, channel.headers(), 0);
+        requestLogo(null, channelId, candidates, channel.headers(), 0);
     }
 
     private List<String> normalizedCandidates(List<String> input) {
@@ -216,11 +249,17 @@ public final class ChannelAdapter extends BaseAdapter {
 
     private void requestLogo(Holder holder, List<String> candidates,
                              Map<String, String> headers, int index) {
+        requestLogo(holder, holder == null ? "" : String.valueOf(holder.logo.getTag()),
+                candidates, headers, index);
+    }
+
+    private void requestLogo(Holder holder, String channelId, List<String> candidates,
+                             Map<String, String> headers, int index) {
         if (index >= candidates.size()) return;
 
         String url = candidates.get(index);
         String cacheKey = cacheKey(url, headers);
-        if (holder != null) holder.logo.setTag(url);
+        if (holder != null) holder.logo.setTag(channelId);
 
         Bitmap cached = LOGO_CACHE.get(cacheKey);
         if (cached != null) {
@@ -237,7 +276,7 @@ public final class ChannelAdapter extends BaseAdapter {
                     LOGO_WAITERS.put(cacheKey, waiters);
                 }
                 waiters.add(new WeakReference<>(
-                        new LogoWaiter(holder, candidates, headers, index, url)));
+                        new LogoWaiter(holder, channelId, candidates, headers, index, url)));
             }
             if (!LOGO_LOADING.containsKey(cacheKey)) {
                 LOGO_LOADING.put(cacheKey, Boolean.TRUE);
@@ -330,16 +369,40 @@ public final class ChannelAdapter extends BaseAdapter {
         for (WeakReference<LogoWaiter> reference : waiters) {
             LogoWaiter waiter = reference.get();
             if (waiter == null) continue;
+
+            if (ready != null) {
+                synchronized (WAITERS_LOCK) {
+                    RESOLVED_LOGO_URLS.put(waiter.channelId, waiter.url);
+                    RESOLVED_LOGO_BITMAPS.put(waiter.channelId, ready);
+                }
+            }
+
+            if (waiter.holder == null) {
+                if (ready == null) {
+                    // Prefetches must walk the complete candidate chain too.
+                    requestLogo(null, waiter.channelId, waiter.candidates,
+                            waiter.headers, waiter.index + 1);
+                }
+                continue;
+            }
+
             waiter.holder.logo.post(() -> {
-                if (!waiter.url.equals(waiter.holder.logo.getTag())) return;
+                if (!waiter.channelId.equals(String.valueOf(waiter.holder.logo.getTag()))) return;
                 if (ready != null) {
-                    showLogo(waiter.holder, waiter.url, ready);
+                    showResolvedLogo(waiter.holder, waiter.channelId, ready);
                 } else {
-                    requestLogo(waiter.holder, waiter.candidates,
+                    requestLogo(waiter.holder, waiter.channelId, waiter.candidates,
                             waiter.headers, waiter.index + 1);
                 }
             });
         }
+    }
+
+    private static void showResolvedLogo(Holder holder, String channelId, Bitmap bitmap) {
+        if (!channelId.equals(String.valueOf(holder.logo.getTag()))) return;
+        holder.logo.setImageBitmap(bitmap);
+        holder.logo.setVisibility(View.VISIBLE);
+        holder.badge.setVisibility(View.GONE);
     }
 
     private Bitmap decodeLogo(byte[] data) {
@@ -426,14 +489,9 @@ public final class ChannelAdapter extends BaseAdapter {
     }
 
     private String cacheKey(String url, Map<String, String> headers) {
-        StringBuilder value = new StringBuilder(url);
-        for (Map.Entry<String, String> entry : headers.entrySet()) {
-            if ("Referer".equalsIgnoreCase(entry.getKey())
-                    || "Origin".equalsIgnoreCase(entry.getKey())) {
-                value.append('\n').append(entry.getKey()).append(':').append(entry.getValue());
-            }
-        }
-        return value.toString();
+        // Channel artwork is public and should have one cache entry per canonical
+        // image URL. Stream headers must not create duplicate logo caches.
+        return url == null ? "" : url.trim();
     }
 
     private File cacheFile(String value) {
@@ -472,14 +530,16 @@ public final class ChannelAdapter extends BaseAdapter {
 
     private static final class LogoWaiter {
         final Holder holder;
+        final String channelId;
         final List<String> candidates;
         final Map<String, String> headers;
         final int index;
         final String url;
 
-        LogoWaiter(Holder holder, List<String> candidates, Map<String, String> headers,
-                   int index, String url) {
+        LogoWaiter(Holder holder, String channelId, List<String> candidates,
+                   Map<String, String> headers, int index, String url) {
             this.holder = holder;
+            this.channelId = channelId == null ? "" : channelId;
             this.candidates = candidates;
             this.headers = headers;
             this.index = index;
