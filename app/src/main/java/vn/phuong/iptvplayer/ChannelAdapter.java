@@ -220,7 +220,6 @@ public final class ChannelAdapter extends BaseAdapter {
 
         String url = candidates.get(index);
         String cacheKey = cacheKey(url, headers);
-
         if (holder != null) holder.logo.setTag(url);
 
         Bitmap cached = LOGO_CACHE.get(cacheKey);
@@ -229,61 +228,38 @@ public final class ChannelAdapter extends BaseAdapter {
             return;
         }
 
-        boolean diskProbe = false;
+        boolean startLoad = false;
         synchronized (WAITERS_LOCK) {
-            // A negative entry prevents every RecyclerView/ListView rebind from
-            // launching another disk read while the first probe is in flight.
-            if (!LOGO_LOADING.containsKey("disk:" + cacheKey)) {
-                LOGO_LOADING.put("disk:" + cacheKey, Boolean.TRUE);
-                diskProbe = true;
-            }
-        }
-        if (diskProbe) {
-            diskIo.execute(() -> {
-                Bitmap disk = readCachedLogo(cacheKey);
-                if (disk != null) {
-                    LOGO_CACHE.put(cacheKey, disk);
-                    List<WeakReference<LogoWaiter>> waiters;
-                    synchronized (WAITERS_LOCK) {
-                        waiters = LOGO_WAITERS.remove(cacheKey);
-                        LOGO_LOADING.remove(cacheKey);
-                    }
-                    if (waiters != null) {
-                        for (WeakReference<LogoWaiter> reference : waiters) {
-                            LogoWaiter waiter = reference.get();
-                            if (waiter == null) continue;
-                            waiter.holder.logo.post(() -> {
-                                if (waiter.url.equals(waiter.holder.logo.getTag())) {
-                                    showLogo(waiter.holder, waiter.url, disk);
-                                }
-                            });
-                        }
-                    }
-                } else {
-                    synchronized (WAITERS_LOCK) {
-                        LOGO_LOADING.remove("disk:" + cacheKey);
-                    }
-                    startLogoNetwork(cacheKey, url, candidates, headers);
+            if (holder != null) {
+                List<WeakReference<LogoWaiter>> waiters = LOGO_WAITERS.get(cacheKey);
+                if (waiters == null) {
+                    waiters = new ArrayList<>();
+                    LOGO_WAITERS.put(cacheKey, waiters);
                 }
-            });
-        }
-        if (diskProbe) return;
-
-        if (LOGO_CACHE.get(cacheKey) == null) {
-            // The first disk probe owns this key. Other binders simply wait.
-            return;
-        }
-
-        boolean startNetwork = false;
-        synchronized (WAITERS_LOCK) {
+                waiters.add(new WeakReference<>(
+                        new LogoWaiter(holder, candidates, headers, index, url)));
+            }
             if (!LOGO_LOADING.containsKey(cacheKey)) {
                 LOGO_LOADING.put(cacheKey, Boolean.TRUE);
-                startNetwork = true;
+                startLoad = true;
             }
         }
-        if (startNetwork) {
+
+        if (!startLoad) return;
+
+        // Disk cache is probed off the UI thread. A hit avoids all network work.
+        diskIo.execute(() -> {
+            Bitmap disk = readCachedLogo(cacheKey);
+            if (disk != null) {
+                LOGO_CACHE.put(cacheKey, disk);
+                finishLogoLoad(cacheKey, disk);
+                return;
+            }
+
+            // Keep LOGO_LOADING=true while the network request is in flight so
+            // subsequent binds join the same request instead of starting another.
             startLogoNetwork(cacheKey, url, candidates, headers);
-        }
+        });
     }
 
     private void startLogoNetwork(String cacheKey, String url, List<String> candidates,
