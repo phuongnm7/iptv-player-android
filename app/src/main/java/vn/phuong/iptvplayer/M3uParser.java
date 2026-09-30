@@ -84,8 +84,10 @@ public final class M3uParser {
                 if (!isNetworkUrl(parsedUrl.url)) {
                     missingUrls++;
                 } else {
+                    String tvgLogo = resolveUrl(metadata.tvgLogo, baseUrl);
+                    String logoUrl = resolveUrl(metadata.logoUrl, baseUrl);
                     Channel channel = new Channel(name, metadata.group, parsedUrl.url,
-                            metadata.logo, metadata.tvgId, pendingHeaders);
+                            tvgLogo, logoUrl, metadata.tvgId, pendingHeaders);
                     channel.setOriginalExtInf(metadata.original);
                     channel.options().addAll(pendingOptions);
                     if (!seen.add(channel.identityKey())) duplicates++;
@@ -126,7 +128,13 @@ public final class M3uParser {
             String value = firstNonNull(matcher.group(2), matcher.group(3), matcher.group(4));
             switch (key) {
                 case "tvg-name": if (metadata.name.isEmpty()) metadata.name = value; break;
-                case "tvg-logo": metadata.logo = value; break;
+                case "tvg-logo":
+                    metadata.tvgLogo = value;
+                    if (metadata.logoUrl.isEmpty()) metadata.logoUrl = value;
+                    break;
+                case "logo":
+                    if (metadata.logoUrl.isEmpty()) metadata.logoUrl = value;
+                    break;
                 case "tvg-id": metadata.tvgId = value; break;
                 case "group-title": metadata.group = value; break;
                 default: break;
@@ -289,7 +297,8 @@ public final class M3uParser {
         String original = "";
         String name = "";
         String group = "";
-        String logo = "";
+        String tvgLogo = "";
+        String logoUrl = "";
         String tvgId = "";
     }
 
