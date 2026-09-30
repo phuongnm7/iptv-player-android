@@ -1,3 +1,25 @@
+# NM7 IPTV Mobile — EXACT 1.10.112 BASELINE
+
+> **Baseline bắt buộc:** bản 1.10.112 được lấy đúng từ workflow **NM7 IPTV Mobile 1.10.112 Final Build #15** mà người dùng đã cung cấp ảnh. Không thay bằng bất kỳ build 1.10.112 nào khác.
+
+- Workflow: `.github/workflows/nm7-mobile-112-final.yml`
+- Workflow run: **#15**
+- Branch khi build: `main`
+- Build commit: `2ee95f0f4906f0aaecc0748f1e13322b5531afa6`
+- Commit message: `ci: prepare 1.10.112 build`
+- Version: **1.10.112**
+- versionCode: **128**
+- Trạng thái theo ảnh người dùng: **SUCCESS**
+- Thời gian theo ảnh: **6m 4s**
+- Artifact count: **1**
+- Nhánh tiếp tục xử lý: `fix/mobile-1.10.112-logo`
+
+Workflow tại đúng commit trên cũng đã được kiểm tra và chứa bước xác nhận version 1.10.112/versionCode 128, unit test parser, `:app:assembleMobileDebug` và upload artifact `NM7-IPTV-Mobile-FINAL`.
+
+**Không lấy source từ các build 1.10.112 khác. Không tự suy diễn SHA-256 APK hoặc run ID khi chưa có dữ liệu artifact tương ứng.**
+
+---
+
 # NM7 IPTV Mobile — TRẠNG THÁI HIỆN TẠI — 2026-09-27
 
 > **1.10.106 đã BUILD THÀNH CÔNG trên GitHub Actions #781.** Đây là bản xử lý trực tiếp 3 lỗi người dùng đang phản ánh: video YouTube mở còn chậm, quay lại app sau khi chạy nền phải tải lại video, và pipeline phát chưa mượt. 1.10.106 đã PASS patch, verifier, lifecycle regression checks, unit tests và APK upload. **Chưa đánh dấu runtime PASS** cho đến khi người dùng test thiết bị thật.
