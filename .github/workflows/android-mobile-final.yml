@@ -7,6 +7,7 @@ name: NM7 Mobile Final Build
       - "fix/mobile-1.10.79-youtube-performance"
       - "fix/mobile-1.10.109-superok-logo-final"
       - "fix/mobile-1.10.110-logo-performance"
+      - "fix/mobile-1.10.111-logo-catalog"
       - "main"
   pull_request:
     branches:
@@ -34,14 +35,14 @@ jobs:
           rm -rf /tmp/nm7-marker
           git clone --depth 1 --branch main "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" /tmp/nm7-marker
           cd /tmp/nm7-marker
-          git checkout --orphan "ci/start-1.10.110-${GITHUB_SHA:0:7}"
+          git checkout --orphan "ci/start-1.10.111-${GITHUB_SHA:0:7}"
           git rm -rf . >/dev/null 2>&1 || true
           printf 'workflow started for %s
 ' "${GITHUB_SHA}" > CI-START.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add CI-START.txt
-          git commit -m "ci: start 1.10.110 validation"
+          git commit -m "ci: start 1.10.111 validation"
           git push origin HEAD
 
       - name: Restore pinned SmartTube phone source
@@ -85,11 +86,11 @@ jobs:
           python3 scripts/patch-mobile-v37.py
           python3 scripts/patch-mobile-v106.py
 
-      - name: Verify 1.10.110 build configuration
+      - name: Verify 1.10.111 build configuration
         run: |
           set -euxo pipefail
-          test "$(grep -c 'versionName = "1.10.110"' app/build.gradle.kts)" -eq 1
-          test "$(grep -c 'versionCode = 126' app/build.gradle.kts)" -eq 1
+          test "$(grep -c 'versionName = "1.10.111"' app/build.gradle.kts)" -eq 1
+          test "$(grep -c 'versionCode = 127' app/build.gradle.kts)" -eq 1
 
       - name: Check Mobile lifecycle regression guards
         run: |
