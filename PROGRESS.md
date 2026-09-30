@@ -1,3 +1,33 @@
+# STABLE BASELINE — NM7 IPTV Mobile 1.10.112 — 2026-09-30
+
+## Quyết định ổn định hiện tại
+
+**1.10.112 được chốt làm bản ổn định tạm thời tại thời điểm hiện tại.** Đây là mốc nền bắt buộc cho các bản Mobile tiếp theo.
+
+### Mốc build chính xác
+
+- Version: **1.10.112**
+- versionCode: **128**
+- Workflow: **NM7 IPTV Mobile 1.10.112 Final Build**
+- Workflow file: `.github/workflows/nm7-mobile-112-final.yml`
+- GitHub Actions: **Run #15 — SUCCESS**
+- Commit build: **`2ee95f0f4906f0aaecc0748f1e13322b5531afa6`**
+- Commit message: `ci: prepare 1.10.112 build`
+- Thời gian build: **6m 4s**
+- Artifacts: **1**
+- Artifact: **NM7-IPTV-Mobile-FINAL**
+- Stable branch: **`stable/mobile-1.10.112`**
+
+### Quy tắc từ mốc này
+
+1. Mọi build Mobile tiếp theo phải bắt đầu từ **`stable/mobile-1.10.112`**.
+2. Không sử dụng một build 1.10.112 khác làm nền.
+3. Không lấy `main` làm nền nếu `main` đã có commit sau mốc ổn định này.
+4. Không đánh dấu baseline mới chỉ vì CI build thành công; phải có test thực tế của người dùng.
+5. Khi một bản mới được xác nhận ổn định, cập nhật lại README/PROGRESS và tạo mốc stable mới.
+
+---
+
 # 1.10.106 — GIỮ PLAYER KHI CHẠY NỀN + GIẢM RELOAD FORMAT YOUTUBE — 2026-09-27
 
 ## Kết quả CI
