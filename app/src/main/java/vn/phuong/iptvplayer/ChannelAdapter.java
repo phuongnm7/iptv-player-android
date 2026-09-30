@@ -260,13 +260,12 @@ public final class ChannelAdapter extends BaseAdapter {
         boolean startLoad = false;
         synchronized (WAITERS_LOCK) {
             if (holder != null) {
-                List<WeakReference<LogoWaiter>> waiters = LOGO_WAITERS.get(cacheKey);
+                List<LogoWaiter> waiters = LOGO_WAITERS.get(cacheKey);
                 if (waiters == null) {
                     waiters = new ArrayList<>();
                     LOGO_WAITERS.put(cacheKey, waiters);
                 }
-                waiters.add(new WeakReference<>(
-                        new LogoWaiter(holder, candidates, headers, index, url, channelKey)));
+                waiters.add(new LogoWaiter(holder, candidates, headers, index, url, channelKey));
             }
             if (!LOGO_LOADING.containsKey(cacheKey)) {
                 LOGO_LOADING.put(cacheKey, Boolean.TRUE);
