@@ -1,3 +1,35 @@
+# NM7 IPTV Mobile — STABLE BASELINE 1.10.112 — 2026-09-30
+
+> **BẢN ỔN ĐỊNH HIỆN TẠI:** 1.10.112. Bản này được chốt làm mốc ổn định tạm thời tại thời điểm hiện tại. **Mọi bản Mobile/build tiếp theo phải lấy chính xác bản này làm nền**, không tự ý lấy một build 1.10.112 khác hoặc một baseline cũ hơn.
+
+## Mốc build ổn định được khóa
+
+- Version: **1.10.112**
+- versionCode: **128**
+- Workflow: **NM7 IPTV Mobile 1.10.112 Final Build**
+- Workflow file: `.github/workflows/nm7-mobile-112-final.yml`
+- GitHub Actions run: **#15**
+- Commit nguồn của build: **`2ee95f0f4906f0aaecc0748f1e13322b5531afa6`**
+- Commit message: `ci: prepare 1.10.112 build`
+- Kết quả: **SUCCESS**
+- Thời gian: **6m 4s**
+- Artifacts: **1**
+- Artifact name: **NM7-IPTV-Mobile-FINAL**
+- Nhánh khóa baseline: `stable/mobile-1.10.112`
+
+### Quy tắc phát triển từ 1.10.112
+
+1. Bản 1.10.112 ở commit **2ee95f0...** là baseline Mobile chính thức hiện tại.
+2. Các bản build sau phải phát triển trực tiếp từ `stable/mobile-1.10.112`.
+3. Không dùng một build 1.10.112 khác làm nền.
+4. Không lấy `main` hiện tại làm nền nếu `main` đã có các commit phát sinh sau mốc 1.10.112.
+5. Mỗi bản mới phải tăng version/versionCode phù hợp và phải được CI build/verify trước khi bàn giao.
+6. Chỉ khi người dùng test thực tế và xác nhận một bản mới ổn định thì mới thay đổi stable baseline.
+
+Chi tiết lịch sử kỹ thuật và các mốc trước đây được giữ nguyên bên dưới và trong [PROGRESS.md](PROGRESS.md).
+
+---
+
 # NM7 IPTV Mobile — TRẠNG THÁI HIỆN TẠI — 2026-09-27
 
 > **1.10.106 đã BUILD THÀNH CÔNG trên GitHub Actions #781.** Đây là bản xử lý trực tiếp 3 lỗi người dùng đang phản ánh: video YouTube mở còn chậm, quay lại app sau khi chạy nền phải tải lại video, và pipeline phát chưa mượt. 1.10.106 đã PASS patch, verifier, lifecycle regression checks, unit tests và APK upload. **Chưa đánh dấu runtime PASS** cho đến khi người dùng test thiết bị thật.
