@@ -492,9 +492,10 @@ public final class ChannelAdapter extends BaseAdapter {
         final Map<String, String> headers;
         final int index;
         final String url;
+        final String channelKey;
 
         LogoWaiter(Holder holder, List<String> candidates, Map<String, String> headers,
-                   int index, String url) {
+                   int index, String url, String channelKey) {
             this.holder = holder;
             this.candidates = candidates;
             this.headers = headers;
