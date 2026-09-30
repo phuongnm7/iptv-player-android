@@ -74,19 +74,18 @@ public final class Channel {
     public List<String> logoCandidates() {
         LinkedHashMap<String, Boolean> unique = new LinkedHashMap<>();
 
-        // Prefer the deterministic channel catalog for known VTV/VTVCab ids.
-        // This avoids waiting on a stale/broken playlist logo before reaching
-        // the same channel artwork that Super OK can resolve independently.
-        for (String fallback : logoCatalogFallbacks()) {
-            if (fallback != null && !fallback.isEmpty()) unique.put(fallback, Boolean.TRUE);
-        }
-
-        // Explicit playlist metadata remains a fallback for channels whose
-        // provider supplies a custom/current logo (ON Kids, ON Music, etc.).
+        // Keep provider-supplied metadata FIRST. The previous 1.10.111 build
+        // put speculative catalog URLs before these and could spend seconds
+        // timing out before reaching the real logo.
         if (!logoUrl.isEmpty()) unique.put(logoUrl, Boolean.TRUE);
         if (!tvgLogo.isEmpty()) unique.put(tvgLogo, Boolean.TRUE);
         if (!iconUrl.isEmpty()) unique.put(iconUrl, Boolean.TRUE);
 
+        // Verified fallbacks sourced from the same IPTV/Worker catalog used by
+        // NM7. These are only appended when the provider metadata fails.
+        for (String fallback : logoCatalogFallbacks()) {
+            if (fallback != null && !fallback.isEmpty()) unique.put(fallback, Boolean.TRUE);
+        }
         return new ArrayList<>(unique.keySet());
     }
 
@@ -96,69 +95,51 @@ public final class Channel {
         String normalizedName = name.toLowerCase(java.util.Locale.ROOT)
                 .replaceAll("[^a-z0-9]+", " ").trim();
 
-        // VTV catalog: stable public logo set used by multiple IPTV catalogs.
-        String vtv = null;
-        if (id.matches("vtv1hd") || normalizedName.matches("vtv 1( hd)?")) vtv = "1";
-        else if (id.matches("vtv2hd") || normalizedName.matches("vtv 2( hd)?")) vtv = "2";
-        else if (id.matches("vtv3hd") || normalizedName.matches("vtv 3( hd)?")) vtv = "3";
-        else if (id.matches("vtv4hd") || normalizedName.matches("vtv 4( hd)?")) vtv = "4";
-        else if (id.matches("vtv5hd") || normalizedName.matches("vtv 5( hd)?")) vtv = "5";
-        else if (id.matches("vtv6hd") || normalizedName.matches("vtv 6( hd)?")) vtv = "6";
-        else if (id.matches("vtv7hd") || normalizedName.matches("vtv 7( hd)?")) vtv = "7";
-        else if (id.matches("vtv8hd") || normalizedName.matches("vtv 8( hd)?")) vtv = "8";
-        else if (id.matches("vtv9hd") || normalizedName.matches("vtv 9( hd)?")) vtv = "9";
-        if (vtv != null) urls.put("https://cdn.hqth.me/logo/thumbs/" + vtv + ".png", Boolean.TRUE);
-
-        if (id.equals("vtv5hdtnb") || normalizedName.contains("vtv 5 tây nam bộ")) {
-            urls.put("https://cdn.hqth.me/logo/thumbs/6.png", Boolean.TRUE);
-            urls.put("https://i.imgur.com/mIUWkDx.png", Boolean.TRUE);
+        // VTV fallback catalog from the NM7 VTV logo Worker override.
+        if (id.equals("vtv2hd") || normalizedName.equals("vtv 2")) {
+            urls.put("https://r2.epg.io.vn/2026-09-17/2.png", Boolean.TRUE);
+        } else if (id.equals("vtv3hd") || normalizedName.equals("vtv 3")) {
+            urls.put("https://i.ytimg.com/vi/4jr8Y13NSME/maxresdefault.jpg", Boolean.TRUE);
+        } else if (id.equals("vtv4hd") || normalizedName.equals("vtv 4")) {
+            urls.put("https://raw.githubusercontent.com/vuminhthanh12/Logo/refs/heads/main/VTV4.jpg", Boolean.TRUE);
+        } else if (id.equals("vtv5hd") || normalizedName.equals("vtv 5")) {
+            urls.put("https://s12811.cdn.mytvnet.vn/vimages/b5/5c/cc/c2/22/29/b5cc2-pvtv5hd-channel-unkn.png", Boolean.TRUE);
+            urls.put("https://r2.epg.io.vn/2026-09-17/5.png", Boolean.TRUE);
+        } else if (id.equals("vtv5hdtnb") || normalizedName.equals("vtv 5 tay nam bo")) {
+            urls.put("https://r2.epg.io.vn/2026-09-17/6.png", Boolean.TRUE);
+            urls.put("https://raw.githubusercontent.com/vuminhthanh12/vuminhthanh12/refs/heads/main/maxresdefault.jpg", Boolean.TRUE);
+        } else if (id.equals("vtv5hdtn") || normalizedName.equals("vtv 5 tay nguyen")) {
+            urls.put("https://s7730.cdn.mytvnet.vn/vimages/d4/46/61/1c/cf/f6/d461c-pvtv5tynguynhd-channel-unkn.png", Boolean.TRUE);
+            urls.put("https://r2.epg.io.vn/2026-09-17/7.png", Boolean.TRUE);
+        } else if (id.equals("vtv6hd") || normalizedName.equals("vtv 6")) {
+            urls.put("https://raw.githubusercontent.com/vuminhthanh12/Logo/refs/heads/main/VTV6.png", Boolean.TRUE);
+        } else if (id.equals("vtv7hd") || normalizedName.equals("vtv 7")) {
+            urls.put("https://r2.epg.io.vn/2026-09-17/9.png", Boolean.TRUE);
+        } else if (id.equals("vtv8hd") || normalizedName.equals("vtv 8")) {
+            urls.put("https://raw.githubusercontent.com/vuminhthanh12/vuminhthanh12/refs/heads/main/vtv8.jpg", Boolean.TRUE);
+        } else if (id.equals("vtv9hd") || normalizedName.equals("vtv 9")) {
+            urls.put("https://raw.githubusercontent.com/vuminhthanh12/Logo/refs/heads/main/VTV9.png", Boolean.TRUE);
+        } else if (id.equals("vtv10hd") || normalizedName.equals("vtv 10")) {
+            urls.put("https://raw.githubusercontent.com/vuminhthanh12/vuminhthanh12/refs/heads/main/VTV10.png", Boolean.TRUE);
         }
-        if (id.equals("vtv5hdtn") || normalizedName.contains("vtv 5 tây nguyên")) {
-            urls.put("https://cdn.hqth.me/logo/thumbs/7.png", Boolean.TRUE);
-            urls.put("https://i.imgur.com/R8c2swd.png", Boolean.TRUE);
-        }
 
-        // VTVCab catalog. The four embedded sports channels currently have
-        // onsports*.VN ids and no tvg-logo, so name/id matching is intentional.
+        // Verified VTVCab artwork from NM7's unified sports source.
         if (id.equals("onsportsvn") || id.equals("vtvcab3hd")
-                || normalizedName.contains("vtvcab 3") || normalizedName.matches("on sports( hd)?")) {
-            urls.put("https://img.vnmedia.xyz/logo/on-sports.jpg", Boolean.TRUE);
-            urls.put("https://cdn.hqth.me/logo/thumbs/14.png", Boolean.TRUE);
+                || normalizedName.contains("vtvcab 3")) {
+            urls.put("https://freem3u.xyz/static/images/vtvcab/vtvcab3.png", Boolean.TRUE);
+        } else if (id.equals("onsportsplusvn") || id.equals("vtvcab6hd")
+                || normalizedName.contains("vtvcab 6")) {
+            urls.put("https://freem3u.xyz/static/images/vtvcab/vtvcab6.png", Boolean.TRUE);
+        } else if (id.equals("onfootballvn") || id.equals("vtvcab16hd")
+                || normalizedName.contains("vtvcab 16")) {
+            urls.put("https://freem3u.xyz/static/images/vtvcab/vtvcab16.png", Boolean.TRUE);
+        } else if (id.equals("onsportsnewsvn") || id.equals("vtvcab18hd")
+                || normalizedName.contains("vtvcab 18")) {
+            urls.put("https://freem3u.xyz/static/images/vtvcab/vtvcab18.png", Boolean.TRUE);
+        } else if (id.equals("ongolfvn") || id.equals("vtvcab23hd")
+                || normalizedName.contains("vtvcab 23")) {
+            urls.put("https://freem3u.xyz/static/images/vtvcab/vtvcab23.png", Boolean.TRUE);
         }
-        if (id.equals("onsportsplusvn") || id.equals("vtvcab6hd")
-                || normalizedName.contains("vtvcab 6") || normalizedName.startsWith("on sports+")) {
-            urls.put("https://img.vnmedia.xyz/logo/on-sportsplus.jpg", Boolean.TRUE);
-            urls.put("https://cdn.hqth.me/logo/thumbs/17.png", Boolean.TRUE);
-        }
-        if (id.equals("onfootballvn") || id.equals("vtvcab16hd")
-                || normalizedName.contains("vtvcab 16") || normalizedName.matches("on football.*")) {
-            urls.put("https://img.vnmedia.xyz/logo/on-football.jpg", Boolean.TRUE);
-            urls.put("https://cdn.hqth.me/logo/thumbs/24.png", Boolean.TRUE);
-        }
-        if (id.equals("onsportsnewsvn") || id.equals("vtvcab18hd")
-                || normalizedName.contains("vtvcab 18") || normalizedName.matches("on sports news.*")) {
-            urls.put("https://img.vnmedia.xyz/logo/on-sportsnews.jpg", Boolean.TRUE);
-            urls.put("https://cdn.hqth.me/logo/thumbs/26.png", Boolean.TRUE);
-        }
-
-        // Remaining numbered VTVCab catalog entries. These are deliberately
-        // secondary fallbacks; explicit playlist logos always remain first.
-        String cab = null;
-        if (id.equals("vtvcab1hd")) cab = "12";
-        else if (id.equals("vtvcab2hd")) cab = "13";
-        else if (id.equals("vtvcab5hd")) cab = "16";
-        else if (id.equals("vtvcab7hd")) cab = "18";
-        else if (id.equals("vtvcab8hd")) cab = "19";
-        else if (id.equals("vtvcab9hd")) cab = "20";
-        else if (id.equals("vtvcab10hd")) cab = "21";
-        else if (id.equals("vtvcab12hd")) cab = "22";
-        else if (id.equals("vtvcab15hd")) cab = "23";
-        else if (id.equals("vtvcab17hd")) cab = "25";
-        else if (id.equals("vtvcab19hd")) cab = "27";
-        else if (id.equals("vtvcab20hd")) cab = "28";
-        else if (id.equals("vtvcab21hd")) cab = "29";
-        else if (id.equals("vtvcab22hd")) cab = "30";
-        if (cab != null) urls.put("https://cdn.hqth.me/logo/thumbs/" + cab + ".png", Boolean.TRUE);
 
         return new ArrayList<>(urls.keySet());
     }
