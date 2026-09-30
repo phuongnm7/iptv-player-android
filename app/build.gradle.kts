@@ -22,7 +22,7 @@ android {
 
     }
 
-    // This project branch is the Mobile product only. Final 1.10.110 CI trigger.
+    // This project branch is the Mobile product only. Final 1.10.110 PR CI trigger.
     // Do not create a TV flavor or package any TV-only implementation here.
     flavorDimensions += "device"
     productFlavors {
