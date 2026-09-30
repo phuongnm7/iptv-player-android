@@ -273,7 +273,6 @@ public final class ChannelAdapter extends BaseAdapter {
                 .get()
                 .header("Accept",
                         "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
-                .header("Accept-Encoding", "identity")
                 .header("User-Agent",
                         "Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 "
                                 + "(KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36");
@@ -429,8 +428,7 @@ public final class ChannelAdapter extends BaseAdapter {
     private String cacheKey(String url, Map<String, String> headers) {
         StringBuilder value = new StringBuilder(url);
         for (Map.Entry<String, String> entry : headers.entrySet()) {
-            if ("User-Agent".equalsIgnoreCase(entry.getKey())
-                    || "Referer".equalsIgnoreCase(entry.getKey())
+            if ("Referer".equalsIgnoreCase(entry.getKey())
                     || "Origin".equalsIgnoreCase(entry.getKey())) {
                 value.append('\n').append(entry.getKey()).append(':').append(entry.getValue());
             }
