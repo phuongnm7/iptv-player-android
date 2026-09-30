@@ -168,7 +168,7 @@ public final class ChannelAdapter extends BaseAdapter {
     }
 
     /**
-     * Fast logo pipeline:
+     * Fast logo pipeline (1.10.110):
      * 1) normalize known GitHub/raw URL forms;
      * 2) memory cache;
      * 3) asynchronous disk cache (never on the UI thread);
