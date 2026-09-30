@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.util.LruCache;
+import android.content.SharedPreferences;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -80,6 +81,7 @@ public final class ChannelAdapter extends BaseAdapter {
     private final ExecutorService diskIo = Executors.newFixedThreadPool(2);
     private final File logoCacheDir;
     private final SharedPreferences resolvedLogoPrefs;
+    private final SharedPreferences resolvedLogoPrefs;
     private List<Channel> channels = new ArrayList<>();
     private EpgStore.Guide guide;
     private String playingChannelId = "";
@@ -89,6 +91,7 @@ public final class ChannelAdapter extends BaseAdapter {
         this.inflater = LayoutInflater.from(context);
         this.listener = listener;
         logoCacheDir = new File(context.getCacheDir(), "channel-logos-v3");
+        resolvedLogoPrefs = context.getSharedPreferences("channel-logo-resolution-v1", Context.MODE_PRIVATE);
         resolvedLogoPrefs = context.getApplicationContext().getSharedPreferences("channel-logo-resolution-v1", Context.MODE_PRIVATE);
         if (!logoCacheDir.exists()) logoCacheDir.mkdirs();
     }
@@ -188,6 +191,17 @@ public final class ChannelAdapter extends BaseAdapter {
         holder.logo.setImageDrawable(null);
         holder.logo.setVisibility(View.GONE);
         holder.badge.setVisibility(View.VISIBLE);
+
+        String channelKey = channel == null ? "" : channelLogoPrefsKey(channel);
+        if (!channelKey.isEmpty() && !candidates.isEmpty()) {
+            Bitmap identityCached = CHANNEL_LOGO_CACHE.get(channelKey);
+            if (identityCached != null) {
+                String displayUrl = candidates.get(0);
+                holder.logo.setTag(displayUrl);
+                showLogo(holder, displayUrl, identityCached);
+                return;
+            }
+        }
 
         if (candidates.isEmpty()) {
             holder.logo.setTag(null);
@@ -340,6 +354,14 @@ public final class ChannelAdapter extends BaseAdapter {
         if (waiters == null) return;
 
         final Bitmap ready = bitmap;
+        if (ready != null) {
+            for (WeakReference<LogoWaiter> reference : waiters) {
+                LogoWaiter waiter = reference.get();
+                if (waiter != null && !waiter.channelKey.isEmpty()) {
+                    CHANNEL_LOGO_CACHE.put(waiter.channelKey, ready);
+                }
+            }
+        }
         for (WeakReference<LogoWaiter> reference : waiters) {
             LogoWaiter waiter = reference.get();
             if (waiter == null) continue;
@@ -501,7 +523,7 @@ public final class ChannelAdapter extends BaseAdapter {
             this.headers = headers;
             this.index = index;
             this.url = url;
-            this.channelKey = channelKey;
+            this.channelKey = channelKey == null ? "" : channelKey;
         }
     }
 
