@@ -22,7 +22,7 @@ android {
 
     }
 
-    // This project branch is the Mobile product only.
+    // This project branch is the Mobile product only. CI validation commit.
     // Do not create a TV flavor or package any TV-only implementation here.
     flavorDimensions += "device"
     productFlavors {
