@@ -1,3 +1,44 @@
+# 1.10.112 — EXACT BASELINE FROM USER-PROVIDED WORKFLOW #15 — 2026-09-30
+
+## Mốc chuẩn bắt buộc cho vòng xử lý tiếp theo
+
+**Không dùng bất kỳ bản 1.10.112 nào khác.** Baseline được khóa đúng theo ảnh GitHub Actions người dùng cung cấp:
+
+- Workflow: `NM7 IPTV Mobile 1.10.112 Final Build`
+- Workflow file: `.github/workflows/nm7-mobile-112-final.yml`
+- Workflow run: **#15**
+- Trigger: push
+- Branch tại thời điểm build: **main**
+- Commit build: `2ee95f0f4906f0aaecc0748f1e13322b5531afa6`
+- Commit message: `ci: prepare 1.10.112 build`
+- Version: **1.10.112**
+- versionCode: **128**
+- CI result theo ảnh người dùng: **SUCCESS**
+- Duration theo ảnh: **6m 4s**
+- Artifact count theo ảnh: **1**
+
+### Khóa source baseline
+
+Nhánh tiếp tục công việc được tạo trực tiếp từ **đúng commit 2ee95f0f4906f0aaecc0748f1e13322b5531afa6**:
+
+`fix/mobile-1.10.112-logo`
+
+Nhánh này không được lấy source từ bản 1.10.106, 1.10.110, 1.10.111 hoặc một build 1.10.112 khác.
+
+### Workflow đã xác minh
+
+Workflow `.github/workflows/nm7-mobile-112-final.yml` tại commit trên có bước xác nhận:
+
+- `versionName = "1.10.112"`
+- `versionCode = 128`
+- chạy `:app:testMobileDebugUnitTest --tests vn.phuong.iptvplayer.M3uParserTest`
+- build `:app:assembleMobileDebug`
+- upload artifact `NM7-IPTV-Mobile-FINAL`
+
+**Lưu ý:** ảnh người dùng là nguồn xác nhận trạng thái run #15 = SUCCESS. Chưa tự suy diễn SHA-256 APK hoặc run ID khi chưa đọc được artifact tương ứng.
+
+---
+
 # 1.10.106 — GIỮ PLAYER KHI CHẠY NỀN + GIẢM RELOAD FORMAT YOUTUBE — 2026-09-27
 
 ## Kết quả CI
