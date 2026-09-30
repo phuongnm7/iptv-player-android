@@ -152,7 +152,9 @@ public class M3uParserTest {
                 + "#EXTINF:-1 tvg-logo=\"logos/vtv.png\" logo=\"https://cdn.example/vtv.png\",VTV1\n"
                 + "https://stream.example/vtv1.m3u8\n"
                 + "#EXTINF:-1 logo=\"logos/vtv2.png\",VTV2\n"
-                + "https://stream.example/vtv2.m3u8\n";
+                + "https://stream.example/vtv2.m3u8\n"
+                + "#EXTINF:-1 logo=\"https://cdn.example/vtv3.png\" tvg-logo=\"logos/vtv3.png\",VTV3\n"
+                + "https://stream.example/vtv3.m3u8\n";
 
         M3uParser.Result result = new M3uParser().parse(
                 input, "https://example.com/playlist/main.m3u");
@@ -160,14 +162,20 @@ public class M3uParserTest {
         assertEquals(2, result.channels.size());
         assertEquals("https://example.com/playlist/logos/vtv.png",
                 result.channels.get(0).tvgLogo());
-        assertEquals("https://cdn.example/vtv.png",
+        assertEquals("https://example.com/playlist/logos/vtv.png",
                 result.channels.get(0).logoUrl());
-        assertEquals("https://cdn.example/vtv.png",
+        assertEquals("https://example.com/playlist/logos/vtv.png",
                 result.channels.get(0).effectiveLogoUrl());
         assertEquals("https://example.com/playlist/logos/vtv2.png",
                 result.channels.get(1).logoUrl());
         assertEquals(result.channels.get(1).logoUrl(),
                 result.channels.get(1).effectiveLogoUrl());
+        assertEquals("https://cdn.example/vtv3.png",
+                result.channels.get(2).logoUrl());
+        assertEquals("https://cdn.example/vtv3.png",
+                result.channels.get(2).effectiveLogoUrl());
+        assertEquals("https://example.com/playlist/logos/vtv3.png",
+                result.channels.get(2).tvgLogo());
     }
 
 
