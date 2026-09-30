@@ -17,8 +17,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
@@ -27,6 +27,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 public final class ChannelAdapter extends BaseAdapter {
     interface Listener {
@@ -35,9 +41,10 @@ public final class ChannelAdapter extends BaseAdapter {
     }
 
     private static final int MAX_LOGO_BYTES = 2 * 1024 * 1024;
-    private static final int LOGO_CACHE_KB = 24 * 1024;
-    private static final int CONNECT_TIMEOUT_MS = 6_000;
-    private static final int READ_TIMEOUT_MS = 10_000;
+    private static final int LOGO_CACHE_KB = 32 * 1024;
+    private static final int CONNECT_TIMEOUT_MS = 4_000;
+    private static final int READ_TIMEOUT_MS = 8_000;
+    private static final int PREFETCH_COUNT = 18;
 
     private static final LruCache<String, Bitmap> LOGO_CACHE =
             new LruCache<String, Bitmap>(LOGO_CACHE_KB) {
@@ -48,11 +55,28 @@ public final class ChannelAdapter extends BaseAdapter {
 
     private static final Object WAITERS_LOCK = new Object();
     private static final Map<String, List<WeakReference<LogoWaiter>>> LOGO_WAITERS = new HashMap<>();
+    private static final Map<String, Boolean> LOGO_LOADING = new HashMap<>();
+
+    /*
+     * One shared OkHttp client is deliberately used for every channel logo.
+     * This gives us connection pooling, HTTP/2 multiplexing and transparent
+     * gzip handling instead of opening a new HttpURLConnection for each row.
+     */
+    private static final OkHttpClient LOGO_HTTP = new OkHttpClient.Builder()
+            .connectTimeout(CONNECT_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+            .readTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+            .callTimeout(READ_TIMEOUT_MS + CONNECT_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+            .followRedirects(true)
+            .followSslRedirects(true)
+            .retryOnConnectionFailure(true)
+            .dispatcher(new okhttp3.Dispatcher())
+            .connectionPool(new okhttp3.ConnectionPool(8, 5, TimeUnit.MINUTES))
+            .build();
 
     private final LayoutInflater inflater;
     private final Context context;
     private final Listener listener;
-    private final ExecutorService logoIo = Executors.newFixedThreadPool(4);
+    private final ExecutorService diskIo = Executors.newFixedThreadPool(2);
     private final File logoCacheDir;
     private List<Channel> channels = new ArrayList<>();
     private EpgStore.Guide guide;
@@ -69,6 +93,12 @@ public final class ChannelAdapter extends BaseAdapter {
     public void submit(List<Channel> channels) {
         this.channels = new ArrayList<>(channels);
         notifyDataSetChanged();
+
+        // Start logo resolution before the user scrolls to the first rows.
+        int count = Math.min(PREFETCH_COUNT, this.channels.size());
+        for (int i = 0; i < count; i++) {
+            prefetch(this.channels.get(i));
+        }
     }
 
     public void submitGuide(EpgStore.Guide guide) {
@@ -138,14 +168,19 @@ public final class ChannelAdapter extends BaseAdapter {
     }
 
     /**
-     * Super OK has a separate icon-URL resolution layer. NM7 mirrors that separation:
-     * resolve a channel's ordered logo candidates first, then fetch/cache the image without
-     * involving the IPTV player. Playlist request headers are forwarded to the image host.
+     * Fast logo pipeline:
+     * 1) normalize known GitHub/raw URL forms;
+     * 2) memory cache;
+     * 3) asynchronous disk cache (never on the UI thread);
+     * 4) one shared OkHttp connection pool;
+     * 5) deduplicated in-flight requests;
+     * 6) small decoded bitmaps suitable for the 58dp x 36dp thumbnail;
+     * 7) retry every candidate source before falling back to the letter badge.
      */
     private void loadLogo(Holder holder, Channel channel) {
         List<String> candidates = channel == null
-                ? java.util.Collections.emptyList()
-                : channel.logoCandidates();
+                ? Collections.emptyList()
+                : normalizedCandidates(channel.logoCandidates());
 
         holder.logo.setImageDrawable(null);
         holder.logo.setVisibility(View.GONE);
@@ -156,8 +191,27 @@ public final class ChannelAdapter extends BaseAdapter {
             return;
         }
 
+        holder.logo.setTag(candidates.get(0));
         requestLogo(holder, candidates,
-                channel == null ? java.util.Collections.emptyMap() : channel.headers(), 0);
+                channel == null ? Collections.emptyMap() : channel.headers(), 0);
+    }
+
+    private void prefetch(Channel channel) {
+        if (channel == null) return;
+        List<String> candidates = normalizedCandidates(channel.logoCandidates());
+        if (candidates.isEmpty()) return;
+        requestLogo(null, candidates, channel.headers(), 0);
+    }
+
+    private List<String> normalizedCandidates(List<String> input) {
+        LinkedHashMap<String, Boolean> unique = new LinkedHashMap<>();
+        for (String raw : input) {
+            String normalized = normalizeLogoUrl(raw);
+            if (!normalized.isEmpty() && isRemoteLogo(normalized)) {
+                unique.put(normalized, Boolean.TRUE);
+            }
+        }
+        return new ArrayList<>(unique.keySet());
     }
 
     private void requestLogo(Holder holder, List<String> candidates,
@@ -165,70 +219,167 @@ public final class ChannelAdapter extends BaseAdapter {
         if (index >= candidates.size()) return;
 
         String url = candidates.get(index);
-        if (!isRemoteLogo(url)) {
-            requestLogo(holder, candidates, headers, index + 1);
-            return;
-        }
-
-        holder.logo.setTag(url);
         String cacheKey = cacheKey(url, headers);
+
+        if (holder != null) holder.logo.setTag(url);
 
         Bitmap cached = LOGO_CACHE.get(cacheKey);
         if (cached != null) {
-            showLogo(holder, url, cached);
+            if (holder != null) showLogo(holder, url, cached);
             return;
         }
 
-        Bitmap disk = readCachedLogo(cacheKey);
-        if (disk != null) {
-            LOGO_CACHE.put(cacheKey, disk);
-            showLogo(holder, url, disk);
-            return;
-        }
-
-        boolean startLoad = false;
+        boolean diskProbe = false;
         synchronized (WAITERS_LOCK) {
-            List<WeakReference<LogoWaiter>> waiters = LOGO_WAITERS.get(cacheKey);
-            if (waiters == null) {
-                waiters = new ArrayList<>();
-                LOGO_WAITERS.put(cacheKey, waiters);
-                startLoad = true;
+            // A negative entry prevents every RecyclerView/ListView rebind from
+            // launching another disk read while the first probe is in flight.
+            if (!LOGO_LOADING.containsKey("disk:" + cacheKey)) {
+                LOGO_LOADING.put("disk:" + cacheKey, Boolean.TRUE);
+                diskProbe = true;
             }
-            waiters.add(new WeakReference<>(
-                    new LogoWaiter(holder, candidates, headers, index, url)));
+        }
+        if (diskProbe) {
+            diskIo.execute(() -> {
+                Bitmap disk = readCachedLogo(cacheKey);
+                if (disk != null) {
+                    LOGO_CACHE.put(cacheKey, disk);
+                    List<WeakReference<LogoWaiter>> waiters;
+                    synchronized (WAITERS_LOCK) {
+                        waiters = LOGO_WAITERS.remove(cacheKey);
+                        LOGO_LOADING.remove(cacheKey);
+                    }
+                    if (waiters != null) {
+                        for (WeakReference<LogoWaiter> reference : waiters) {
+                            LogoWaiter waiter = reference.get();
+                            if (waiter == null) continue;
+                            waiter.holder.logo.post(() -> {
+                                if (waiter.url.equals(waiter.holder.logo.getTag())) {
+                                    showLogo(waiter.holder, waiter.url, disk);
+                                }
+                            });
+                        }
+                    }
+                } else {
+                    synchronized (WAITERS_LOCK) {
+                        LOGO_LOADING.remove("disk:" + cacheKey);
+                    }
+                    startLogoNetwork(cacheKey, url, candidates, headers);
+                }
+            });
+        }
+        if (diskProbe) return;
+
+        if (LOGO_CACHE.get(cacheKey) == null) {
+            // The first disk probe owns this key. Other binders simply wait.
+            return;
         }
 
-        if (!startLoad) return;
+        boolean startNetwork = false;
+        synchronized (WAITERS_LOCK) {
+            if (!LOGO_LOADING.containsKey(cacheKey)) {
+                LOGO_LOADING.put(cacheKey, Boolean.TRUE);
+                startNetwork = true;
+            }
+        }
+        if (startNetwork) {
+            startLogoNetwork(cacheKey, url, candidates, headers);
+        }
+    }
 
-        logoIo.execute(() -> {
-            Bitmap bitmap = downloadLogo(url, headers);
-            if (bitmap != null) {
-                LOGO_CACHE.put(cacheKey, bitmap);
-                writeCachedLogo(cacheKey, bitmap);
+    private void startLogoNetwork(String cacheKey, String url, List<String> candidates,
+                                  Map<String, String> headers) {
+        final String finalCacheKey = cacheKey;
+        Request.Builder requestBuilder = new Request.Builder()
+                .url(url)
+                .get()
+                .header("Accept",
+                        "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
+                .header("User-Agent",
+                        headerOrDefault(headers, "User-Agent",
+                                "Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 "
+                                        + "(KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36"));
+
+        for (Map.Entry<String, String> entry : headers.entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+            if (key == null || value == null || value.isEmpty()
+                    || "User-Agent".equalsIgnoreCase(key)) continue;
+            if (key.matches("[!#$%&'*+.^_|~0-9A-Za-z-]+")
+                    && value.indexOf('\r') < 0 && value.indexOf('\n') < 0) {
+                requestBuilder.header(key, value);
+            }
+        }
+
+        LOGO_HTTP.newCall(requestBuilder.build()).enqueue(new Callback() {
+            @Override public void onFailure(Call call, java.io.IOException e) {
+                finishLogoLoad(finalCacheKey, null);
             }
 
-            List<WeakReference<LogoWaiter>> waiters;
-            synchronized (WAITERS_LOCK) {
-                waiters = LOGO_WAITERS.remove(cacheKey);
-            }
-            if (waiters == null) return;
-
-            final Bitmap ready = bitmap;
-            for (WeakReference<LogoWaiter> reference : waiters) {
-                LogoWaiter waiter = reference.get();
-                if (waiter == null) continue;
-
-                waiter.holder.logo.post(() -> {
-                    if (!url.equals(waiter.holder.logo.getTag())) return;
-                    if (ready != null) {
-                        showLogo(waiter.holder, url, ready);
-                    } else {
-                        requestLogo(waiter.holder, waiter.candidates,
-                                waiter.headers, waiter.index + 1);
+            @Override public void onResponse(Call call, Response response) {
+                Bitmap bitmap = null;
+                try (Response bodyResponse = response) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        long length = response.body().contentLength();
+                        if (length <= MAX_LOGO_BYTES) {
+                            byte[] data = response.body().bytes();
+                            if (data.length <= MAX_LOGO_BYTES) bitmap = decodeLogo(data);
+                        }
                     }
-                });
+                } catch (Exception ignored) {
+                    bitmap = null;
+                }
+                if (bitmap != null) {
+                    LOGO_CACHE.put(finalCacheKey, bitmap);
+                    Bitmap ready = bitmap;
+                    diskIo.execute(() -> writeCachedLogo(finalCacheKey, ready));
+                }
+                finishLogoLoad(finalCacheKey, bitmap);
             }
         });
+    }
+
+    private void finishLogoLoad(String cacheKey, Bitmap bitmap) {
+        List<WeakReference<LogoWaiter>> waiters;
+        synchronized (WAITERS_LOCK) {
+            waiters = LOGO_WAITERS.remove(cacheKey);
+            LOGO_LOADING.remove(cacheKey);
+        }
+        if (waiters == null) return;
+
+        final Bitmap ready = bitmap;
+        for (WeakReference<LogoWaiter> reference : waiters) {
+            LogoWaiter waiter = reference.get();
+            if (waiter == null) continue;
+            waiter.holder.logo.post(() -> {
+                if (!waiter.url.equals(waiter.holder.logo.getTag())) return;
+                if (ready != null) {
+                    showLogo(waiter.holder, waiter.url, ready);
+                } else {
+                    requestLogo(waiter.holder, waiter.candidates,
+                            waiter.headers, waiter.index + 1);
+                }
+            });
+        }
+    }
+
+    private Bitmap decodeLogo(byte[] data) {
+        BitmapFactory.Options bounds = new BitmapFactory.Options();
+        bounds.inJustDecodeBounds = true;
+        BitmapFactory.decodeByteArray(data, 0, data.length, bounds);
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null;
+
+        int target = Math.max(256,
+                Math.round(96 * context.getResources().getDisplayMetrics().density));
+        int sample = 1;
+        while (bounds.outWidth / (sample * 2) >= target
+                || bounds.outHeight / (sample * 2) >= target) {
+            sample *= 2;
+        }
+
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inSampleSize = sample;
+        options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+        return BitmapFactory.decodeByteArray(data, 0, data.length, options);
     }
 
     private Bitmap readCachedLogo(String cacheKey) {
@@ -243,10 +394,10 @@ public final class ChannelAdapter extends BaseAdapter {
         File target = cacheFile(cacheKey);
         File temp = new File(target.getAbsolutePath() + ".tmp");
         try (FileOutputStream output = new FileOutputStream(temp)) {
-            if (!bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)) return;
+            if (!bitmap.compress(Bitmap.CompressFormat.PNG, 90, output)) return;
             if (!temp.renameTo(target)) {
                 try (FileOutputStream copy = new FileOutputStream(target)) {
-                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, copy);
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 90, copy);
                 }
             }
         } catch (Exception ignored) {
@@ -254,65 +405,34 @@ public final class ChannelAdapter extends BaseAdapter {
         }
     }
 
-    private Bitmap downloadLogo(String url, Map<String, String> headers) {
-        for (int attempt = 0; attempt < 2; attempt++) {
-            HttpURLConnection connection = null;
-            try {
-                connection = (HttpURLConnection) new URL(url).openConnection();
-                connection.setConnectTimeout(CONNECT_TIMEOUT_MS);
-                connection.setReadTimeout(READ_TIMEOUT_MS);
-                connection.setInstanceFollowRedirects(true);
-                connection.setUseCaches(true);
-                connection.setRequestMethod("GET");
-                connection.setRequestProperty("Accept",
-                        "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8");
-                connection.setRequestProperty("User-Agent",
-                        headerOrDefault(headers, "User-Agent",
-                                "Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 "
-                                        + "(KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36"));
+    private String normalizeLogoUrl(String value) {
+        if (value == null) return "";
+        String url = value.trim();
+        if (url.isEmpty()) return "";
 
-                for (Map.Entry<String, String> entry : headers.entrySet()) {
-                    String key = entry.getKey();
-                    String value = entry.getValue();
-                    if (key == null || value == null || value.isEmpty()) continue;
-                    if ("User-Agent".equalsIgnoreCase(key)) continue;
-                    if (key.matches("[!#$%&'*+.^_|~0-9A-Za-z-]+")
-                            && value.indexOf('\r') < 0 && value.indexOf('\n') < 0) {
-                        connection.setRequestProperty(key, value);
-                    }
-                }
+        // GitHub's browser-style raw URL is valid, but the direct raw form avoids
+        // an extra redirect and is noticeably faster on repeated channel loads.
+        url = url.replace("/raw.githubusercontent.com/", "/raw.githubusercontent.com/");
+        url = url.replace("https://github.com/", "https://raw.githubusercontent.com/");
+        url = url.replace("http://github.com/", "https://raw.githubusercontent.com/");
+        int blob = url.indexOf("/blob/");
+        if (blob > 0 && url.startsWith("https://raw.githubusercontent.com/")) {
+            url = url.substring(0, blob) + "/" + url.substring(blob + 6);
+        }
 
-                int status = connection.getResponseCode();
-                if (status < 200 || status >= 300) continue;
-
-                int advertised = connection.getContentLength();
-                if (advertised > MAX_LOGO_BYTES) return null;
-
-                ByteArrayOutputStream output = new ByteArrayOutputStream(
-                        Math.min(Math.max(advertised, 4096), MAX_LOGO_BYTES));
-                try (InputStream input = connection.getInputStream()) {
-                    byte[] buffer = new byte[16 * 1024];
-                    int total = 0;
-                    int count;
-                    while ((count = input.read(buffer)) != -1) {
-                        total += count;
-                        if (total > MAX_LOGO_BYTES) return null;
-                        output.write(buffer, 0, count);
-                    }
-                }
-
-                byte[] data = output.toByteArray();
-                BitmapFactory.Options options = new BitmapFactory.Options();
-                options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-                Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length, options);
-                if (bitmap != null) return bitmap;
-            } catch (Exception ignored) {
-                // Retry once for transient CDN/redirect failures.
-            } finally {
-                if (connection != null) connection.disconnect();
+        // Normalize /refs/heads/<branch>/ into the direct raw path.
+        int refs = url.indexOf("/refs/heads/");
+        if (refs > 0 && url.startsWith("https://raw.githubusercontent.com/")) {
+            String prefix = url.substring(0, refs);
+            String rest = url.substring(refs + "/refs/heads/".length());
+            int slash = rest.indexOf('/');
+            if (slash > 0) {
+                String branch = rest.substring(0, slash);
+                String path = rest.substring(slash + 1);
+                url = prefix + "/" + branch + "/" + path;
             }
         }
-        return null;
+        return url;
     }
 
     private String headerOrDefault(Map<String, String> headers, String name, String fallback) {
