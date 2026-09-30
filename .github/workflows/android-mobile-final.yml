@@ -7,6 +7,9 @@ name: NM7 Mobile Final Build
       - "fix/mobile-1.10.79-youtube-performance"
       - "fix/mobile-1.10.109-superok-logo-final"
       - "main"
+  pull_request:
+    branches:
+      - "fix/mobile-1.10.109-superok-logo-final"
   workflow_dispatch:
 
 permissions: { contents: read }
