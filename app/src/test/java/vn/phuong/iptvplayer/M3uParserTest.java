@@ -140,6 +140,36 @@ public class M3uParserTest {
         assertEquals("Kênh B2", r.channels.get(2).name());
     }
 
+    @Test public void parsesSuperOkLogoAttributesAndRelativeUrls() {
+        String input = "#EXTM3U\n"
+                + "#EXTINF:-1 tvg-id=\"v1\" tvg-logo=\"logos/vtv1.webp\" logo=\"https://cdn.example/vtv1.png\",VTV1\n"
+                + "https://stream.example/vtv1.m3u8\n"
+                + "#EXTINF:-1 tvg-id=\"v2\" tvg-logo=\"https://cdn.example/vtv2.png\",VTV2\n"
+                + "https://stream.example/vtv2.m3u8\n"
+                + "#EXTINF:-1 tvg-id=\"v3\" icon_url=\"icons/vtv3.png\",VTV3\n"
+                + "https://stream.example/vtv3.m3u8\n";
+
+        M3uParser.Result result = new M3uParser().parse(
+                input, "https://example.com/playlist/main.m3u");
+
+        assertEquals(3, result.channels.size());
+
+        assertEquals("https://example.com/playlist/logos/vtv1.webp",
+                result.channels.get(0).tvgLogo());
+        assertEquals("https://cdn.example/vtv1.png",
+                result.channels.get(0).logoUrl());
+        assertEquals("https://cdn.example/vtv1.png",
+                result.channels.get(0).effectiveLogoUrl());
+
+        assertEquals("https://cdn.example/vtv2.png",
+                result.channels.get(1).effectiveLogoUrl());
+
+        assertEquals("https://example.com/playlist/icons/vtv3.png",
+                result.channels.get(2).iconUrl());
+        assertEquals("https://example.com/playlist/icons/vtv3.png",
+                result.channels.get(2).effectiveLogoUrl());
+    }
+
     @Test public void readsXmlTvUrlFromPlaylistHeader() {
         M3uParser.Result r = new M3uParser().parse("#EXTM3U url-tvg=\"guide/epg.xml.gz\"\n"
                 + "#EXTINF:-1 tvg-id=\"vtv1.vn\",VTV1 HD\nhttps://example.test/live/vtv1.m3u8\n",
