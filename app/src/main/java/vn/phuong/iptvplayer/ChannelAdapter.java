@@ -41,11 +41,11 @@ public final class ChannelAdapter extends BaseAdapter {
     }
 
     private static final int MAX_LOGO_BYTES = 2 * 1024 * 1024;
-    private static final int LOGO_CACHE_KB = 64 * 1024;
+    private static final int LOGO_CACHE_KB = 128 * 1024;
     private static final long FAILED_LOGO_TTL_MS = 30 * 60 * 1000L;
     private static final int CONNECT_TIMEOUT_MS = 4_000;
     private static final int READ_TIMEOUT_MS = 8_000;
-    private static final int PREFETCH_COUNT = 18;
+    private static final int PREFETCH_COUNT = 100;
 
     private static final LruCache<String, Bitmap> LOGO_CACHE =
             new LruCache<String, Bitmap>(LOGO_CACHE_KB) {
@@ -97,7 +97,10 @@ public final class ChannelAdapter extends BaseAdapter {
         this.channels = new ArrayList<>(channels);
         notifyDataSetChanged();
 
-        // Start logo resolution before the user scrolls to the first rows.
+        // Prefetch the whole selected group, bounded to keep very large
+        // playlists from creating an excessive number of requests. The VTV and
+        // VTVCab groups are normally well below this bound, so switching away
+        // and back can reuse RAM cache immediately.
         int count = Math.min(PREFETCH_COUNT, this.channels.size());
         for (int i = 0; i < count; i++) {
             prefetch(this.channels.get(i));
