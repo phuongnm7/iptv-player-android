@@ -28,7 +28,7 @@ public final class M3uParser {
             if (baseUrl == null || !(baseUrl.startsWith("http://") || baseUrl.startsWith("https://"))) {
                 throw new IllegalArgumentException("Đây là manifest HLS. Hãy nhập URL gốc của luồng để phát.");
             }
-            Channel hls = new Channel("Luồng HLS", "Phát trực tiếp", baseUrl, "", "", Collections.emptyMap());
+            Channel hls = new Channel("Luồng HLS", "Phát trực tiếp", baseUrl, "", "", "", "", Collections.emptyMap());
             hls.options().add("#KODIPROP:inputstream.adaptive.manifest_type=hls");
             return new Result(Collections.singletonList(hls), 0, 0);
         }
@@ -85,7 +85,8 @@ public final class M3uParser {
                     missingUrls++;
                 } else {
                     Channel channel = new Channel(name, metadata.group, parsedUrl.url,
-                            metadata.logo, metadata.tvgId, pendingHeaders);
+                            metadata.tvgLogo, metadata.logoUrl, metadata.iconUrl,
+                            metadata.tvgId, pendingHeaders);
                     channel.setOriginalExtInf(metadata.original);
                     channel.options().addAll(pendingOptions);
                     if (!seen.add(channel.identityKey())) duplicates++;
@@ -125,11 +126,30 @@ public final class M3uParser {
             String key = matcher.group(1).toLowerCase(Locale.ROOT);
             String value = firstNonNull(matcher.group(2), matcher.group(3), matcher.group(4));
             switch (key) {
-                case "tvg-name": if (metadata.name.isEmpty()) metadata.name = value; break;
-                case "tvg-logo": metadata.logo = value; break;
-                case "tvg-id": metadata.tvgId = value; break;
-                case "group-title": metadata.group = value; break;
-                default: break;
+                case "tvg-name":
+                    if (metadata.name.isEmpty()) metadata.name = value;
+                    break;
+                case "tvg-logo":
+                    metadata.tvgLogo = value;
+                    break;
+                case "logo":
+                case "logo-url":
+                case "logo_url":
+                    metadata.logoUrl = value;
+                    break;
+                case "icon":
+                case "icon-url":
+                case "icon_url":
+                    metadata.iconUrl = value;
+                    break;
+                case "tvg-id":
+                    metadata.tvgId = value;
+                    break;
+                case "group-title":
+                    metadata.group = value;
+                    break;
+                default:
+                    break;
             }
         }
         return metadata;
@@ -236,7 +256,14 @@ public final class M3uParser {
             } else {
                 output.append("#EXTINF:-1");
                 appendAttribute(output, "tvg-id", channel.tvgId());
-                appendAttribute(output, "tvg-logo", channel.logo());
+                appendAttribute(output, "tvg-logo", channel.tvgLogo());
+                if (!channel.logoUrl().isEmpty() && !channel.logoUrl().equals(channel.tvgLogo())) {
+                    appendAttribute(output, "logo", channel.logoUrl());
+                }
+                if (!channel.iconUrl().isEmpty() && !channel.iconUrl().equals(channel.tvgLogo())
+                        && !channel.iconUrl().equals(channel.logoUrl())) {
+                    appendAttribute(output, "icon", channel.iconUrl());
+                }
                 appendAttribute(output, "group-title", channel.group());
                 output.append(',').append(singleLine(channel.name())).append('\n');
             }
@@ -289,7 +316,9 @@ public final class M3uParser {
         String original = "";
         String name = "";
         String group = "";
-        String logo = "";
+        String tvgLogo = "";
+        String logoUrl = "";
+        String iconUrl = "";
         String tvgId = "";
     }
 
