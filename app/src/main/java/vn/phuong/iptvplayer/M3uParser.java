@@ -129,10 +129,10 @@ public final class M3uParser {
             switch (key) {
                 case "tvg-name": if (metadata.name.isEmpty()) metadata.name = value; break;
                 case "tvg-logo":
-                    // Match Super OK's M3uSource model: tvg-logo and logo
-                    // are stored independently; effectiveLogoUrl() applies
-                    // logoUrl first, then tvgLogo as fallback.
+                    // Super OK stores tvg-logo separately and initializes
+                    // logoUrl from it only when no explicit logoUrl exists.
                     metadata.tvgLogo = value;
+                    if (metadata.logoUrl.isEmpty()) metadata.logoUrl = value;
                     break;
                 case "logo":
                     if (metadata.logoUrl.isEmpty()) metadata.logoUrl = value;
