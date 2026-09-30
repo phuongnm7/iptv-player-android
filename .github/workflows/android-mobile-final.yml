@@ -74,6 +74,20 @@ jobs:
           mkdir -p dist/mobile-diagnostics
           python3 scripts/verify-mobile-lifecycle.py || true
 
+      - name: Run IPTV parser unit tests
+        run: |
+          set -euxo pipefail
+          gradle --no-daemon --console=plain \
+            -PcompileSdkVersion=android-36 \
+            -PminSdkVersion=23 \
+            -PtargetSdkVersion=36 \
+            -PbuildToolsVersion=36.0.0 \
+            -PjunitXVersion=1.1.5 \
+            -PtruthXVersion=1.5.0 \
+            -PtestXSupportVersion=1.1.0 \
+            -PannotationXVersion=1.1.0 \
+            :app:testMobileDebugUnitTest --tests vn.phuong.iptvplayer.M3uParserTest
+
       - name: Patch SmartTube show_buffering resource collision
         run: |
           set -euxo pipefail
