@@ -73,13 +73,15 @@ final class SessionStore {
         AtomicFile file = file(context);
         if (!file.getBaseFile().exists()) return null;
         JSONObject obj = new JSONObject(new String(file.readFully(), StandardCharsets.UTF_8));
-        M3uParser.Result result = new M3uParser().parse(obj.getString("playlist"), "");
+        String source = obj.optString("source", "");
+        String sourceUrl = PlaylistSourceStore.sourceUrl(source);
+        M3uParser.Result result = new M3uParser().parse(obj.getString("playlist"), sourceUrl);
         Set<String> unchecked = new HashSet<>();
         JSONArray arr = obj.optJSONArray("unchecked");
         if (arr != null) for (int i = 0; i < arr.length(); i++) unchecked.add(arr.getString(i));
         for (Channel channel : result.channels) channel.setSelected(!unchecked.contains(channel.identityKey()));
         return new State(new M3uParser.Result(result.channels, obj.optInt("duplicates"), obj.optInt("missing"), obj.optString("epg_url", "")),
-                obj.optString("source", ""));
+                source);
     }
 
     private static AtomicFile file(Context context) {
