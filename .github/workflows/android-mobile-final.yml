@@ -6,13 +6,17 @@ name: NM7 Mobile Final Build
     branches:
       - "fix/mobile-1.10.79-youtube-performance"
       - "fix/mobile-1.10.109-superok-logo-final"
+      - "fix/mobile-1.10.110-logo-performance"
+      - "main"
+  pull_request:
+    branches:
       - "main"
   pull_request:
     branches:
       - "fix/mobile-1.10.109-superok-logo-final"
   workflow_dispatch:
 
-permissions: { contents: read }
+permissions: { contents: write }
 
 jobs:
   build:
@@ -24,6 +28,24 @@ jobs:
         with:
           persist-credentials: false
           submodules: false
+
+      - name: CI start marker
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          rm -rf /tmp/nm7-marker
+          git clone --depth 1 --branch main "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" /tmp/nm7-marker
+          cd /tmp/nm7-marker
+          git checkout --orphan "ci/start-1.10.110-${GITHUB_SHA:0:7}"
+          git rm -rf . >/dev/null 2>&1 || true
+          printf 'workflow started for %s
+' "${GITHUB_SHA}" > CI-START.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CI-START.txt
+          git commit -m "ci: start 1.10.110 validation"
+          git push origin HEAD
 
       - name: Restore pinned SmartTube phone source
         run: |
@@ -233,3 +255,25 @@ jobs:
           path: dist/mobile/
           retention-days: 30
           if-no-files-found: error
+
+      - name: Export APK to temporary CI branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          apk="$(find dist/mobile -maxdepth 1 -name '*.apk' -type f | head -n 1)"
+          rm -rf /tmp/nm7-export
+          mkdir -p /tmp/nm7-export
+          split -b 80m -d -a 2 "$apk" /tmp/nm7-export/NM7-APK.part-
+          rm -rf /tmp/nm7-export-repo
+          git clone --depth 1 --branch main "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" /tmp/nm7-export-repo
+          cd /tmp/nm7-export-repo
+          git checkout --orphan "ci/apk-1.10.110-${GITHUB_SHA:0:7}"
+          git rm -rf . >/dev/null 2>&1 || true
+          cp /tmp/nm7-export/NM7-APK.part-* .
+          sha256sum NM7-APK.part-* > SHA256SUMS.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add NM7-APK.part-* SHA256SUMS.txt
+          git commit -m "ci: export NM7 Mobile 1.10.110 APK"
+          git push origin HEAD
