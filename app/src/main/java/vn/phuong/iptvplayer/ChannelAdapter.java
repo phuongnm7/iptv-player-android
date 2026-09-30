@@ -266,7 +266,6 @@ public final class ChannelAdapter extends BaseAdapter {
                 connection.setRequestMethod("GET");
                 connection.setRequestProperty("Accept",
                         "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8");
-                connection.setRequestProperty("Accept-Encoding", "gzip");
                 connection.setRequestProperty("User-Agent",
                         headerOrDefault(headers, "User-Agent",
                                 "Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 "
