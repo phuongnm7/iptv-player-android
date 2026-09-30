@@ -73,17 +73,20 @@ public final class Channel {
      */
     public List<String> logoCandidates() {
         LinkedHashMap<String, Boolean> unique = new LinkedHashMap<>();
+
+        // Prefer the deterministic channel catalog for known VTV/VTVCab ids.
+        // This avoids waiting on a stale/broken playlist logo before reaching
+        // the same channel artwork that Super OK can resolve independently.
+        for (String fallback : logoCatalogFallbacks()) {
+            if (fallback != null && !fallback.isEmpty()) unique.put(fallback, Boolean.TRUE);
+        }
+
+        // Explicit playlist metadata remains a fallback for channels whose
+        // provider supplies a custom/current logo (ON Kids, ON Music, etc.).
         if (!logoUrl.isEmpty()) unique.put(logoUrl, Boolean.TRUE);
         if (!tvgLogo.isEmpty()) unique.put(tvgLogo, Boolean.TRUE);
         if (!iconUrl.isEmpty()) unique.put(iconUrl, Boolean.TRUE);
 
-        // Super OK does not depend exclusively on tvg-logo. Some playlists,
-        // including NM7's embedded VTVCab sports entries, carry a channel id
-        // but no logo attribute. Add deterministic catalog fallbacks so the
-        // UI can still resolve the real channel artwork.
-        for (String fallback : logoCatalogFallbacks()) {
-            if (fallback != null && !fallback.isEmpty()) unique.put(fallback, Boolean.TRUE);
-        }
         return new ArrayList<>(unique.keySet());
     }
 
