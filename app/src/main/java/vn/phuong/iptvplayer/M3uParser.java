@@ -84,8 +84,11 @@ public final class M3uParser {
                 if (!isNetworkUrl(parsedUrl.url)) {
                     missingUrls++;
                 } else {
+                    String tvgLogo = resolveUrl(metadata.tvgLogo, baseUrl);
+                    String logoUrl = resolveUrl(metadata.logoUrl, baseUrl);
+                    String iconUrl = resolveUrl(metadata.iconUrl, baseUrl);
                     Channel channel = new Channel(name, metadata.group, parsedUrl.url,
-                            metadata.tvgLogo, metadata.logoUrl, metadata.iconUrl,
+                            tvgLogo, logoUrl, iconUrl,
                             metadata.tvgId, pendingHeaders);
                     channel.setOriginalExtInf(metadata.original);
                     channel.options().addAll(pendingOptions);
