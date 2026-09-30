@@ -42,7 +42,7 @@ public final class ChannelAdapter extends BaseAdapter {
     }
 
     private static final int MAX_LOGO_BYTES = 2 * 1024 * 1024;
-    private static final int LOGO_CACHE_KB = 32 * 1024;
+    private static final int LOGO_CACHE_KB = 64 * 1024;
     private static final int CONNECT_TIMEOUT_MS = 4_000;
     private static final int READ_TIMEOUT_MS = 8_000;
     private static final int PREFETCH_COUNT = 18;
