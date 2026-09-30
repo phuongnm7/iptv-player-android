@@ -107,7 +107,21 @@ public final class Channel {
         else if (id.matches("vtv7hd") || normalizedName.matches("vtv 7( hd)?")) vtv = "7";
         else if (id.matches("vtv8hd") || normalizedName.matches("vtv 8( hd)?")) vtv = "8";
         else if (id.matches("vtv9hd") || normalizedName.matches("vtv 9( hd)?")) vtv = "9";
-        if (vtv != null) urls.put("https://cdn.hqth.me/logo/thumbs/" + vtv + ".png", Boolean.TRUE);
+        if (vtv != null) {
+            String[] vtvLogos = {
+                    "https://i.imgur.com/nfkmvAY.png",
+                    "https://i.imgur.com/BVwi3K3.png",
+                    "https://i.imgur.com/7rLCvgS.png",
+                    "https://i.imgur.com/9zVTtsA.png",
+                    "https://i.imgur.com/7qPKNFU.png",
+                    "https://raw.githubusercontent.com/ntd249/logochannel/refs/heads/main/VTV6.png",
+                    "https://i.imgur.com/AgamSNe.png",
+                    "https://i.imgur.com/lpcltL9.png",
+                    "https://i.imgur.com/Ex1VkGQ.png"
+            };
+            int index = Integer.parseInt(vtv) - 1;
+            if (index >= 0 && index < vtvLogos.length) urls.put(vtvLogos[index], Boolean.TRUE);
+        }
 
         if (id.equals("vtv5hdtnb") || normalizedName.contains("vtv 5 tây nam bộ")) {
             urls.put("https://cdn.hqth.me/logo/thumbs/6.png", Boolean.TRUE);
