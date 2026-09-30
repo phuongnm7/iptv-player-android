@@ -16,7 +16,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.nio.charset.StandardCharsets;
@@ -55,7 +54,7 @@ public final class ChannelAdapter extends BaseAdapter {
             };
 
     private static final Object WAITERS_LOCK = new Object();
-    private static final Map<String, List<WeakReference<LogoWaiter>>> LOGO_WAITERS = new HashMap<>();
+    private static final Map<String, List<LogoWaiter>> LOGO_WAITERS = new HashMap<>();
     private static final Map<String, Boolean> LOGO_LOADING = new HashMap<>();
     private static final Map<String, Long> LOGO_FAILED_UNTIL = new HashMap<>();
     private static final Map<String, String> RESOLVED_LOGO_BY_CHANNEL = new HashMap<>();
@@ -351,7 +350,7 @@ public final class ChannelAdapter extends BaseAdapter {
     }
 
     private void finishLogoLoad(String cacheKey, Bitmap bitmap) {
-        List<WeakReference<LogoWaiter>> waiters;
+        List<LogoWaiter> waiters;
         synchronized (WAITERS_LOCK) {
             waiters = LOGO_WAITERS.remove(cacheKey);
             LOGO_LOADING.remove(cacheKey);
@@ -359,9 +358,7 @@ public final class ChannelAdapter extends BaseAdapter {
         if (waiters == null) return;
 
         final Bitmap ready = bitmap;
-        for (WeakReference<LogoWaiter> reference : waiters) {
-            LogoWaiter waiter = reference.get();
-            if (waiter == null) continue;
+        for (LogoWaiter waiter : waiters) {
             waiter.holder.logo.post(() -> {
                 if (!waiter.url.equals(waiter.holder.logo.getTag())) return;
                 if (ready != null) {
