@@ -265,21 +265,26 @@ public final class ChannelAdapter extends BaseAdapter {
     private void startLogoNetwork(String cacheKey, String url, List<String> candidates,
                                   Map<String, String> headers) {
         final String finalCacheKey = cacheKey;
+        // Do not inherit the stream's User-Agent. IPTV stream UAs such as
+        // Dalvik/cvmedia are often rejected by CDN image hosts. Super OK resolves
+        // the icon independently, so the first logo request uses a browser-like UA.
         Request.Builder requestBuilder = new Request.Builder()
                 .url(url)
                 .get()
                 .header("Accept",
                         "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
+                .header("Accept-Encoding", "identity")
                 .header("User-Agent",
-                        headerOrDefault(headers, "User-Agent",
-                                "Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 "
-                                        + "(KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36"));
+                        "Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 "
+                                + "(KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36");
 
         for (Map.Entry<String, String> entry : headers.entrySet()) {
             String key = entry.getKey();
             String value = entry.getValue();
             if (key == null || value == null || value.isEmpty()
-                    || "User-Agent".equalsIgnoreCase(key)) continue;
+                    || "User-Agent".equalsIgnoreCase(key)
+                    || "Cookie".equalsIgnoreCase(key)
+                    || "Authorization".equalsIgnoreCase(key)) continue;
             if (key.matches("[!#$%&'*+.^_|~0-9A-Za-z-]+")
                     && value.indexOf('\r') < 0 && value.indexOf('\n') < 0) {
                 requestBuilder.header(key, value);
