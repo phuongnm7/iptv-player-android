@@ -159,7 +159,7 @@ public class M3uParserTest {
         M3uParser.Result result = new M3uParser().parse(
                 input, "https://example.com/playlist/main.m3u");
 
-        assertEquals(2, result.channels.size());
+        assertEquals(3, result.channels.size());
         assertEquals("https://example.com/playlist/logos/vtv.png",
                 result.channels.get(0).tvgLogo());
         assertEquals("https://example.com/playlist/logos/vtv.png",
