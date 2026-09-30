@@ -22,7 +22,7 @@ final class SessionStore {
     static List<Channel> snapshot(List<Channel> channels) {
         List<Channel> copy = new ArrayList<>();
         for (Channel c : channels) {
-            Channel n = new Channel(c.name(), c.group(), c.url(), c.logo(), c.tvgId(), c.headers());
+            Channel n = new Channel(c.name(), c.group(), c.url(), c.tvgLogo(), c.logoUrl(), c.iconUrl(), c.tvgId(), c.headers());
             n.setSelected(c.selected());
             n.setOriginalExtInf(c.originalExtInf());
             n.options().addAll(c.options());
