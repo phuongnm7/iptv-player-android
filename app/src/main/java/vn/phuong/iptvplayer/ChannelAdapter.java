@@ -4,11 +4,9 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.util.LruCache;
-import android.content.SharedPreferences;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.content.SharedPreferences;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -44,6 +42,14 @@ public final class ChannelAdapter extends BaseAdapter {
 
     private static final int MAX_LOGO_BYTES = 2 * 1024 * 1024;
     private static final int LOGO_CACHE_KB = 64 * 1024;
+    private static final int CHANNEL_CACHE_LIMIT = 512;
+    private static final Map<String, Bitmap> CHANNEL_LOGO_CACHE =
+            Collections.synchronizedMap(new LinkedHashMap<String, Bitmap>(
+                    CHANNEL_CACHE_LIMIT, 0.75f, true) {
+                @Override protected boolean removeEldestEntry(Map.Entry<String, Bitmap> e) {
+                    return size() > CHANNEL_CACHE_LIMIT;
+                }
+            });
     private static final int CONNECT_TIMEOUT_MS = 4_000;
     private static final int READ_TIMEOUT_MS = 8_000;
     private static final int PREFETCH_COUNT = 18;
@@ -80,8 +86,6 @@ public final class ChannelAdapter extends BaseAdapter {
     private final Listener listener;
     private final ExecutorService diskIo = Executors.newFixedThreadPool(2);
     private final File logoCacheDir;
-    private final SharedPreferences resolvedLogoPrefs;
-    private final SharedPreferences resolvedLogoPrefs;
     private List<Channel> channels = new ArrayList<>();
     private EpgStore.Guide guide;
     private String playingChannelId = "";
@@ -91,8 +95,6 @@ public final class ChannelAdapter extends BaseAdapter {
         this.inflater = LayoutInflater.from(context);
         this.listener = listener;
         logoCacheDir = new File(context.getCacheDir(), "channel-logos-v3");
-        resolvedLogoPrefs = context.getSharedPreferences("channel-logo-resolution-v1", Context.MODE_PRIVATE);
-        resolvedLogoPrefs = context.getApplicationContext().getSharedPreferences("channel-logo-resolution-v1", Context.MODE_PRIVATE);
         if (!logoCacheDir.exists()) logoCacheDir.mkdirs();
     }
 
@@ -184,49 +186,80 @@ public final class ChannelAdapter extends BaseAdapter {
      * 7) retry every candidate source before falling back to the letter badge.
      */
     private void loadLogo(Holder holder, Channel channel) {
-        List<String> candidates = channel == null
-                ? Collections.emptyList()
-                : normalizedCandidates(channel.logoCandidates());
-
+        List<String> candidates = logoCandidates(channel);
         holder.logo.setImageDrawable(null);
         holder.logo.setVisibility(View.GONE);
         holder.badge.setVisibility(View.VISIBLE);
-
-        String channelKey = channel == null ? "" : channelLogoPrefsKey(channel);
-        if (!channelKey.isEmpty() && !candidates.isEmpty()) {
-            Bitmap identityCached = CHANNEL_LOGO_CACHE.get(channelKey);
-            if (identityCached != null) {
-                String displayUrl = candidates.get(0);
-                holder.logo.setTag(displayUrl);
-                showLogo(holder, displayUrl, identityCached);
-                return;
-            }
+        String identity = AppPreferences.id(channel);
+        Bitmap cachedByChannel = CHANNEL_LOGO_CACHE.get(identity);
+        if (cachedByChannel != null && !candidates.isEmpty()) {
+            holder.logo.setTag(candidates.get(0));
+            showLogo(holder, candidates.get(0), cachedByChannel);
+            return;
         }
-
         if (candidates.isEmpty()) {
             holder.logo.setTag(null);
             return;
         }
-
-        String resolved = channel == null ? "" : resolvedLogoPrefs.getString(
-                channelLogoPrefsKey(channel), "");
-        if (!resolved.isEmpty()) {
-            candidates = prioritizeCandidate(candidates, resolved);
-        }
-
         holder.logo.setTag(candidates.get(0));
-        requestLogo(holder, candidates,
-                channel == null ? Collections.emptyMap() : channel.headers(), 0,
-                channel == null ? "" : channelLogoPrefsKey(channel));
+        requestLogo(holder, candidates, channel.headers(), 0, identity);
+    }
+
+    private List<String> logoCandidates(Channel channel) {
+        LinkedHashMap<String, Boolean> unique = new LinkedHashMap<>();
+        if (channel == null) return new ArrayList<>();
+        String explicit = normalizeLogoUrl(channel.logo());
+        if (!explicit.isEmpty()) unique.put(explicit, Boolean.TRUE);
+
+        String id = channel.tvgId().toLowerCase(java.util.Locale.ROOT)
+                .replaceAll("[^a-z0-9]+", "");
+        String name = channel.name().toLowerCase(java.util.Locale.ROOT)
+                .replaceAll("[^a-z0-9]+", " ").trim();
+
+        String[] vtv = {
+                "https://i.imgur.com/nfkmvAY.png",
+                "https://i.imgur.com/BVwi3K3.png",
+                "https://i.imgur.com/7rLCvgS.png",
+                "https://i.imgur.com/9zVTtsA.png",
+                "https://i.imgur.com/7qPKNFU.png",
+                "https://raw.githubusercontent.com/ntd249/logochannel/refs/heads/main/VTV6.png",
+                "https://i.imgur.com/AgamSNe.png",
+                "https://i.imgur.com/lpcltL9.png",
+                "https://i.imgur.com/Ex1VkGQ.png"
+        };
+        for (int n = 1; n <= 9; n++) {
+            if (id.equals("vtv" + n + "hd") || name.equals("vtv " + n)
+                    || name.equals("vtv " + n + " hd")) {
+                unique.put(vtv[n - 1], Boolean.TRUE);
+                break;
+            }
+        }
+        if (id.equals("vtv5hdtnb") || name.contains("vtv 5 tây nam bộ"))
+            unique.put("https://i.imgur.com/mIUWkDx.png", Boolean.TRUE);
+        if (id.equals("vtv5hdtn") || name.contains("vtv 5 tây nguyên"))
+            unique.put("https://i.imgur.com/R8c2swd.png", Boolean.TRUE);
+
+        if (id.equals("onsportsvn") || name.contains("vtvcab 3")
+                || name.equals("on sports") || name.equals("on sports hd"))
+            unique.put("https://assets-vtvcab.gviet.vn/images/hq/posters/Logo_ONSport1.jpg", Boolean.TRUE);
+        if (id.equals("onsportsplusvn") || name.contains("vtvcab 6")
+                || name.startsWith("on sports+"))
+            unique.put("https://assets-vtvcab.gviet.vn/images/hq/posters/Logo_ONSport1.jpg", Boolean.TRUE);
+        if (id.equals("onfootballvn") || name.contains("vtvcab 16")
+                || name.startsWith("on football"))
+            unique.put("https://assets-vtvcab.gviet.vn/images/hq/tvshows/CBG2/BONGDA_HD_M.jpg", Boolean.TRUE);
+        if (id.equals("onsportsnewsvn") || name.contains("vtvcab 18")
+                || name.startsWith("on sports news"))
+            unique.put("https://assets-vtvcab.gviet.vn/images/hq/tvshows/CBG2/THETHAO_TINTUC_HD_M.jpg", Boolean.TRUE);
+
+        return new ArrayList<>(unique.keySet());
     }
 
     private void prefetch(Channel channel) {
         if (channel == null) return;
         List<String> candidates = normalizedCandidates(channel.logoCandidates());
         if (candidates.isEmpty()) return;
-        String resolved = resolvedLogoPrefs.getString(channelLogoPrefsKey(channel), "");
-        if (!resolved.isEmpty()) candidates = prioritizeCandidate(candidates, resolved);
-        requestLogo(null, candidates, channel.headers(), 0, channelLogoPrefsKey(channel));
+        requestLogo(null, candidates, channel.headers(), 0, AppPreferences.id(channel));
     }
 
     private List<String> normalizedCandidates(List<String> input) {
@@ -241,8 +274,7 @@ public final class ChannelAdapter extends BaseAdapter {
     }
 
     private void requestLogo(Holder holder, List<String> candidates,
-                             Map<String, String> headers, int index,
-                             String channelKey) {
+                             Map<String, String> headers, int index, String identity) {
         if (index >= candidates.size()) return;
 
         String url = candidates.get(index);
@@ -264,7 +296,7 @@ public final class ChannelAdapter extends BaseAdapter {
                     LOGO_WAITERS.put(cacheKey, waiters);
                 }
                 waiters.add(new WeakReference<>(
-                        new LogoWaiter(holder, candidates, headers, index, url, channelKey)));
+                        new LogoWaiter(holder, candidates, headers, index, url, identity)));
             }
             if (!LOGO_LOADING.containsKey(cacheKey)) {
                 LOGO_LOADING.put(cacheKey, Boolean.TRUE);
@@ -300,6 +332,7 @@ public final class ChannelAdapter extends BaseAdapter {
                 .get()
                 .header("Accept",
                         "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
+                .header("Accept-Encoding", "identity")
                 .header("User-Agent",
                         "Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 "
                                 + "(KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36");
@@ -354,27 +387,17 @@ public final class ChannelAdapter extends BaseAdapter {
         if (waiters == null) return;
 
         final Bitmap ready = bitmap;
-        if (ready != null) {
-            for (WeakReference<LogoWaiter> reference : waiters) {
-                LogoWaiter waiter = reference.get();
-                if (waiter != null && !waiter.channelKey.isEmpty()) {
-                    CHANNEL_LOGO_CACHE.put(waiter.channelKey, ready);
-                }
-            }
-        }
+        if (ready != null) for (WeakReference<LogoWaiter> reference : waiters) { LogoWaiter w=reference.get(); if(w!=null && !w.identity.isEmpty()) CHANNEL_LOGO_CACHE.put(w.identity, ready); }
         for (WeakReference<LogoWaiter> reference : waiters) {
             LogoWaiter waiter = reference.get();
             if (waiter == null) continue;
-            if (ready != null && !waiter.channelKey.isEmpty()) {
-                resolvedLogoPrefs.edit().putString(waiter.channelKey, waiter.url).apply();
-            }
             waiter.holder.logo.post(() -> {
                 if (!waiter.url.equals(waiter.holder.logo.getTag())) return;
                 if (ready != null) {
                     showLogo(waiter.holder, waiter.url, ready);
                 } else {
                     requestLogo(waiter.holder, waiter.candidates,
-                            waiter.headers, waiter.index + 1, waiter.channelKey);
+                            waiter.headers, waiter.index + 1, waiter.identity);
                 }
             });
         }
@@ -466,7 +489,8 @@ public final class ChannelAdapter extends BaseAdapter {
     private String cacheKey(String url, Map<String, String> headers) {
         StringBuilder value = new StringBuilder(url);
         for (Map.Entry<String, String> entry : headers.entrySet()) {
-            if ("Referer".equalsIgnoreCase(entry.getKey())
+            if ("User-Agent".equalsIgnoreCase(entry.getKey())
+                    || "Referer".equalsIgnoreCase(entry.getKey())
                     || "Origin".equalsIgnoreCase(entry.getKey())) {
                 value.append('\n').append(entry.getKey()).append(':').append(entry.getValue());
             }
@@ -509,35 +533,11 @@ public final class ChannelAdapter extends BaseAdapter {
     }
 
     private static final class LogoWaiter {
-        final Holder holder;
-        final List<String> candidates;
-        final Map<String, String> headers;
-        final int index;
-        final String url;
-        final String channelKey;
-
-        LogoWaiter(Holder holder, List<String> candidates, Map<String, String> headers,
-                   int index, String url, String channelKey) {
-            this.holder = holder;
-            this.candidates = candidates;
-            this.headers = headers;
-            this.index = index;
-            this.url = url;
-            this.channelKey = channelKey == null ? "" : channelKey;
+        final Holder holder; final List<String> candidates; final Map<String,String> headers;
+        final int index; final String url; final String identity;
+        LogoWaiter(Holder holder,List<String> candidates,Map<String,String> headers,int index,String url,String identity){
+            this.holder=holder; this.candidates=candidates; this.headers=headers; this.index=index; this.url=url; this.identity=identity==null?"":identity;
         }
-    }
-
-    private List<String> prioritizeCandidate(List<String> candidates, String resolved) {
-        ArrayList<String> ordered = new ArrayList<>(candidates.size());
-        if (candidates.contains(resolved)) ordered.add(resolved);
-        for (String candidate : candidates) {
-            if (!candidate.equals(resolved)) ordered.add(candidate);
-        }
-        return ordered;
-    }
-
-    private String channelLogoPrefsKey(Channel channel) {
-        return sha256(channel.identityKey());
     }
 
     private static final class Holder {
