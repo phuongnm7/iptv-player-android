@@ -126,7 +126,7 @@ public final class Channel {
             urls.put("https://cdn.hqth.me/logo/thumbs/14.png", Boolean.TRUE);
         }
         if (id.equals("onsportsplusvn") || id.equals("vtvcab6hd")
-                || normalizedName.contains("vtvcab 6") || normalizedName.matches("on sports\+.*")) {
+                || normalizedName.contains("vtvcab 6") || normalizedName.startsWith("on sports+")) {
             urls.put("https://img.vnmedia.xyz/logo/on-sportsplus.jpg", Boolean.TRUE);
             urls.put("https://cdn.hqth.me/logo/thumbs/17.png", Boolean.TRUE);
         }
