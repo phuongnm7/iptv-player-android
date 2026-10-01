@@ -368,6 +368,7 @@ jobs:
 
 
       - name: Upload Mobile APK
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: NM7-IPTV-Mobile-1.10.116-MOVIE-E2E
