@@ -218,7 +218,7 @@ public final class MovieJsRuntime {
         @JavascriptInterface
         public String httpGet(String url, String headersJson) {
             try {
-                return MovieHttp.get(url, parseHeaders(headersJson));
+                return MovieHttp.get(url, bridgeHeaders(url, headersJson));
             } catch (Exception e) {
                 return "";
             }
@@ -227,7 +227,7 @@ public final class MovieJsRuntime {
         @JavascriptInterface
         public String httpPost(String url, String headersJson, String body) {
             try {
-                return MovieHttp.postText(url, parseHeaders(headersJson), body == null ? "" : body);
+                return MovieHttp.postText(url, bridgeHeaders(url, headersJson), body == null ? "" : body);
             } catch (Exception e) {
                 return "";
             }
