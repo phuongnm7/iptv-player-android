@@ -79,14 +79,23 @@ public final class MovieHttp {
         return base + "/";
     }
 
+    private static String decodeUtf8(String value) {
+        if (value == null) return "";
+        try {
+            return URLDecoder.decode(value, StandardCharsets.UTF_8.name());
+        } catch (Exception e) {
+            return value;
+        }
+    }
+
     private static String queryValue(String query, String wanted) {
         if (query == null || query.isEmpty()) return null;
         for (String part : query.split("&")) {
             int p = part.indexOf('=');
             if (p < 0) continue;
-            String key = URLDecoder.decode(part.substring(0, p), StandardCharsets.UTF_8.name());
+            String key = decodeUtf8(part.substring(0, p));
             if (!wanted.equals(key)) continue;
-            return URLDecoder.decode(part.substring(p + 1), StandardCharsets.UTF_8.name());
+            return decodeUtf8(part.substring(p + 1));
         }
         return null;
     }
