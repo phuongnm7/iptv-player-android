@@ -1,8 +1,8 @@
 package vn.phuong.iptvplayer.movie;
 
-import android.webkit.JavascriptInterface;
 import android.os.Handler;
 import android.os.Looper;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -26,13 +26,14 @@ public final class MovieJsRuntime {
     private final Queue<Runnable> pending = new ArrayDeque<>();
     private final Map<String, Callback> callbacks = new ConcurrentHashMap<>();
     private final AtomicLong sequence = new AtomicLong();
+
+    private Callback bootstrapCallback;
     private boolean ready;
     private boolean destroyed;
     private String initError;
 
     public MovieJsRuntime(android.content.Context context, String pluginScript) {
-        android.content.Context visualContext = context;
-        webView = new WebView(visualContext);
+        webView = new WebView(context);
 
         WebSettings s = webView.getSettings();
         s.setJavaScriptEnabled(true);
@@ -46,22 +47,30 @@ public final class MovieJsRuntime {
         webView.addJavascriptInterface(new Bridge(), "NM7Bridge");
         webView.setWebViewClient(new WebViewClient() {
             @Override public void onPageFinished(WebView view, String url) {
+                bootstrapCallback = new Callback() {
+                    @Override public void done(String ignored) {
+                        ready = true;
+                        initError = null;
+                        while (!pending.isEmpty()) pending.remove().run();
+                    }
+
+                    @Override public void error(String message) {
+                        ready = false;
+                        initError = message;
+                        while (!pending.isEmpty()) pending.remove().run();
+                    }
+                };
+
+                String script = pluginScript == null ? "" : pluginScript;
                 evalRaw(
                         "(function(){try{" +
-                                pluginScript +
+                                script +
                                 "\n;NM7Bridge.scriptReady('');" +
-                                "}catch(e){NM7Bridge.scriptError(String(e && e.stack ? e.stack : e));}})();",
+                                "}catch(e){NM7Bridge.scriptError(String(e&&e.stack?e.stack:e));}})();",
                         new Callback() {
-                            @Override public void done(String ignored) {
-                                ready = true;
-                                initError = null;
-                                while (!pending.isEmpty()) pending.remove().run();
-                            }
-
+                            @Override public void done(String ignored) {}
                             @Override public void error(String message) {
-                                ready = false;
-                                initError = message;
-                                while (!pending.isEmpty()) pending.remove().run();
+                                if (bootstrapCallback != null) bootstrapCallback.error(message);
                             }
                         }
                 );
@@ -70,6 +79,11 @@ public final class MovieJsRuntime {
             @Override public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
                 initError = "WebView: " + description;
                 ready = false;
+                if (bootstrapCallback != null) {
+                    Callback cb = bootstrapCallback;
+                    bootstrapCallback = null;
+                    cb.error(initError);
+                }
             }
         });
 
@@ -88,7 +102,6 @@ public final class MovieJsRuntime {
             if (ready) {
                 r.run();
             } else if (initError != null) {
-                // Keep the failure deterministic instead of silently queueing forever.
                 r.run();
             } else {
                 pending.add(r);
@@ -103,7 +116,8 @@ public final class MovieJsRuntime {
                 return;
             }
             if (!ready) {
-                cb.error("Không khởi tạo được plugin JS: " + (initError == null ? "không rõ lỗi" : initError));
+                cb.error("Không khởi tạo được plugin JS: " +
+                        (initError == null ? "không rõ lỗi" : initError));
                 return;
             }
 
@@ -121,7 +135,9 @@ public final class MovieJsRuntime {
                             "var id=" + quote(id) + ";" +
                             "try{" +
                             "if(typeof " + function + " !== 'function')" +
-                            "{NM7Bridge.callbackError(id,'Plugin không có hàm " + escapeJs(function) + "');return;}" +
+                            "{NM7Bridge.callbackError(id," +
+                            quote("Plugin không có hàm " + escapeJs(function)) +
+                            ");return;}" +
                             "var r=" + function + "(" + args + ");" +
                             "Promise.resolve(r).then(function(v){" +
                             "NM7Bridge.callbackDone(id,v==null?'':String(v));" +
@@ -142,12 +158,7 @@ public final class MovieJsRuntime {
                 return;
             }
             webView.evaluateJavascript(expr, value -> {
-                // The bridge is authoritative for plugin bootstrap and async calls.
-                if (value == null || "null".equals(value)) {
-                    // Bootstrap signals through NM7Bridge; ordinary eval can legitimately return null.
-                    if (ready) cb.done("");
-                    return;
-                }
+                if (value == null || "null".equals(value)) return;
                 try {
                     Object decoded = new JSONTokener(value).nextValue();
                     cb.done(decoded == null ? "" : String.valueOf(decoded));
@@ -163,8 +174,15 @@ public final class MovieJsRuntime {
         public void scriptReady(String ignored) {
             main.post(() -> {
                 if (destroyed) return;
-                ready = true;
-                initError = null;
+                if (bootstrapCallback != null) {
+                    Callback cb = bootstrapCallback;
+                    bootstrapCallback = null;
+                    cb.done("");
+                } else {
+                    ready = true;
+                    initError = null;
+                    while (!pending.isEmpty()) pending.remove().run();
+                }
             });
         }
 
@@ -174,7 +192,13 @@ public final class MovieJsRuntime {
                 if (destroyed) return;
                 ready = false;
                 initError = message == null ? "Plugin JS lỗi" : message;
-                while (!pending.isEmpty()) pending.remove().run();
+                if (bootstrapCallback != null) {
+                    Callback cb = bootstrapCallback;
+                    bootstrapCallback = null;
+                    cb.error(initError);
+                } else {
+                    while (!pending.isEmpty()) pending.remove().run();
+                }
             });
         }
 
@@ -212,7 +236,7 @@ public final class MovieJsRuntime {
         try {
             return org.json.JSONObject.quote(s);
         } catch (Exception e) {
-            return """";
+            return "\"\"";
         }
     }
 
@@ -220,6 +244,7 @@ public final class MovieJsRuntime {
         main.post(() -> {
             destroyed = true;
             ready = false;
+            bootstrapCallback = null;
             pending.clear();
             for (Callback cb : callbacks.values()) {
                 try { cb.error("JS runtime đã đóng"); } catch (Exception ignored) {}
