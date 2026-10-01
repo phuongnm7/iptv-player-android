@@ -63,10 +63,15 @@ public final class MovieJsRuntime {
                 };
 
                 String script = pluginScript == null ? "" : pluginScript;
+                // Load the compatibility bridge first, then evaluate the plugin in the
+                // page's global scope. Evaluating the plugin inside this callback's IIFE
+                // would keep function declarations (getManifest/getUrlSearch/...) local,
+                // making every plugin call appear undefined to the runtime.
                 evalRaw(
                         "(function(){try{" +
-                                script +
-                                "\n;NM7Bridge.scriptReady('');" +
+                                pluginCompatibilityLayer() +
+                                "\nwindow.eval(" + quote(script) + ");" +
+                                "\nNM7Bridge.scriptReady('');" +
                                 "}catch(e){NM7Bridge.scriptError(String(e&&e.stack?e.stack:e));}})();",
                         new Callback() {
                             @Override public void done(String ignored) {}
