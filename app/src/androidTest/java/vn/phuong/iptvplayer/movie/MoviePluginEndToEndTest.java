@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import vn.phuong.iptvplayer.PlayerActivity;
 import vn.phuong.iptvplayer.movie.MovieModels.MovieDetail;
@@ -256,7 +257,8 @@ public class MoviePluginEndToEndTest {
                 || x.contains("cloudflare")
                 || x.contains("just a moment")
                 || x.contains("no activity")
-                || x.contains("xác minh cloudflare");
+                || x.contains("xác minh cloudflare")
+                || x.contains("không có activity");
     }
 
     private static final class NovaAccessBlockedException extends Exception {
@@ -417,24 +419,30 @@ public class MoviePluginEndToEndTest {
 
         long deadline = System.currentTimeMillis() + seconds * 1000L;
         while (System.currentTimeMillis() < deadline) {
+            final AtomicInteger state = new AtomicInteger(androidx.media3.common.Player.STATE_IDLE);
+            final AtomicReference<androidx.media3.common.PlaybackException> error =
+                    new AtomicReference<>();
             final AtomicReference<Object> playerRef = new AtomicReference<>();
             InstrumentationRegistry.getInstrumentation().runOnMainSync(
                     () -> {
                         try {
-                            playerRef.set(field.get(activity));
+                            Object value = field.get(activity);
+                            playerRef.set(value);
+                            if (value instanceof androidx.media3.common.Player) {
+                                androidx.media3.common.Player player =
+                                        (androidx.media3.common.Player) value;
+                                // Media3 Player is Main-thread confined: all reads happen
+                                // inside the UI thread block, not on the instrumentation thread.
+                                state.set(player.getPlaybackState());
+                                error.set(player.getPlayerError());
+                            }
                         } catch (Exception ignored) {}
                     });
-            Object value = playerRef.get();
-            if (value instanceof androidx.media3.common.Player) {
-                androidx.media3.common.Player player =
-                        (androidx.media3.common.Player) value;
-                if (player.getPlaybackState() == androidx.media3.common.Player.STATE_READY) {
-                    return true;
-                }
-                if (player.getPlaybackState() == androidx.media3.common.Player.STATE_IDLE
-                        && player.getPlayerError() != null) {
-                    return false;
-                }
+            if (state.get() == androidx.media3.common.Player.STATE_READY) {
+                return true;
+            }
+            if (state.get() == androidx.media3.common.Player.STATE_IDLE && error.get() != null) {
+                return false;
             }
             Thread.sleep(250L);
         }
