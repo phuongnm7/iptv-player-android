@@ -10,8 +10,8 @@ android {
         applicationId = "vn.phuong.iptvplayer"
         minSdk = 23
         targetSdk = 36
-        versionCode = 131
-        versionName = "1.10.115"
+        versionCode = 132
+        versionName = "1.10.116"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["applicationClass"] = "vn.phuong.iptvplayer.MobileNm7Application"
@@ -85,6 +85,7 @@ dependencies {
     // Keep TV/VLC implementation completely out of the Mobile dependency graph.
     add("mobileImplementation", project(":smarttube"))
 
+    androidTestImplementation("androidx.test:runner:1.6.2")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.14.1")
     testImplementation("org.json:json:20240303")
