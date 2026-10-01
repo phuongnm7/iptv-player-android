@@ -1,8 +1,11 @@
 package vn.phuong.iptvplayer.movie;
 
 import static org.junit.Assert.*;
+
 import java.util.List;
+
 import org.junit.Test;
+
 import vn.phuong.iptvplayer.movie.MovieModels.MovieDetail;
 import vn.phuong.iptvplayer.movie.MovieModels.MovieItem;
 
@@ -15,6 +18,15 @@ public class MovieJsonTest {
         assertEquals("movie/101",items.get(0).id);
         assertTrue(items.get(0).posterUrl.endsWith("/p.jpg"));
         assertFalse(items.get(0).show);
+        assertTrue(items.get(0).detailUrl.endsWith("/api/title/101"));
+    }
+
+    @Test public void parseLocalizedObjectFieldsUsesVietnameseValue() {
+        String json="{\"items\":[{\"id\":\"bet\",\"title\":{\"en\":\"Bet\",\"vi\":\"Học viện đồ đen\"},\"posterUrl\":{\"vi\":\"https://cdn.example/p.jpg\",\"en\":\"https://cdn.example/p-en.jpg\"},\"type\":\"movie\"}]}";
+        List<MovieItem> items=MovieJson.parseList(json,"https://example.com","demo");
+        assertEquals(1,items.size());
+        assertEquals("Học viện đồ đen",items.get(0).title);
+        assertEquals("https://cdn.example/p.jpg",items.get(0).posterUrl);
     }
 
     @Test public void parseNovaDetailCreatesEpisodes() {
@@ -37,5 +49,10 @@ public class MovieJsonTest {
         assertEquals("https://example.com/",p.headers.get("Referer"));
         assertEquals(1,p.subtitles.size());
         assertEquals("vi",p.subtitles.get(0).lang);
+    }
+
+    @Test public void parsePlaybackReturnsNullWhenNoStreamExists() {
+        MovieModels.Playback p=MovieJson.parsePlayback("{\"status\":\"ok\"}","https://novahd.cc/watch/abc","https://novahd.cc");
+        assertNull(p);
     }
 }
