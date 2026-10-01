@@ -4,9 +4,13 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public final class MovieHttp {
     private MovieHttp() {}
@@ -25,6 +29,66 @@ public final class MovieHttp {
 
     public static String postText(String url, Map<String, String> headers, String body) throws Exception {
         return request("POST_TEXT", url, headers, body);
+    }
+
+    public static Map<String, String> novaHeaders(String url) {
+        return novaHeaders(url, NOVA_VISITOR);
+    }
+
+    public static Map<String, String> novaHeaders(String url, String visitorId) {
+        LinkedHashMap<String, String> h = new LinkedHashMap<>();
+        String base = "https://novahd.cc";
+        String visitor = visitorId == null || visitorId.isEmpty()
+                ? NOVA_VISITOR : visitorId;
+
+        h.put("Accept", url != null && url.contains("/api/sources")
+                ? "application/x-ndjson" : "*/*");
+        h.put("Accept-Language", "en-US,en;q=0.9");
+        h.put("Origin", base);
+        h.put("x-nova-visitor", visitor);
+        h.put("DNT", "1");
+        h.put("Sec-GPC", "1");
+        h.put("Sec-Fetch-Dest", "empty");
+        h.put("Sec-Fetch-Mode", "cors");
+        h.put("Sec-Fetch-Site", "same-origin");
+        h.put("Referer", novaReferer(url, base));
+        return h;
+    }
+
+    private static final String NOVA_VISITOR = UUID.randomUUID().toString();
+
+    private static String novaReferer(String url, String base) {
+        if (url == null || url.isEmpty()) return base + "/";
+        try {
+            URI u = new URI(url);
+            String path = u.getPath() == null ? "" : u.getPath();
+            String query = u.getRawQuery() == null ? "" : u.getRawQuery();
+            if (path.startsWith("/api/sources")) {
+                String type = queryValue(query, "type");
+                String tmdbId = queryValue(query, "tmdbId");
+                if ("show".equalsIgnoreCase(type) && tmdbId != null) {
+                    String season = queryValue(query, "season");
+                    String episode = queryValue(query, "episode");
+                    return base + "/watch/s/" + tmdbId + "/" +
+                            (season == null || season.isEmpty() ? "1" : season) + "/" +
+                            (episode == null || episode.isEmpty() ? "1" : episode);
+                }
+                if (tmdbId != null) return base + "/watch/m/" + tmdbId;
+            }
+        } catch (Exception ignored) {}
+        return base + "/";
+    }
+
+    private static String queryValue(String query, String wanted) {
+        if (query == null || query.isEmpty()) return null;
+        for (String part : query.split("&")) {
+            int p = part.indexOf('=');
+            if (p < 0) continue;
+            String key = URLDecoder.decode(part.substring(0, p), StandardCharsets.UTF_8);
+            if (!wanted.equals(key)) continue;
+            return URLDecoder.decode(part.substring(p + 1), StandardCharsets.UTF_8);
+        }
+        return null;
     }
 
     private static String request(String method, String url, Map<String, String> headers, String body) throws Exception {
