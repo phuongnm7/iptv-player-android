@@ -64,7 +64,6 @@ public final class MovieActivity extends Activity {
         super.onCreate(b);
         buildUi();
         rebuildSources();
-        if(!entries.isEmpty())selectSource(0);
     }
 
     private void buildUi(){
