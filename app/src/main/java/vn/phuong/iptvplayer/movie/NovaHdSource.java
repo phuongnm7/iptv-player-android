@@ -121,7 +121,7 @@ public final class NovaHdSource implements MovieSource {
                 Exception last = null;
                 for (StreamCandidate c : candidates) {
                     try {
-                        if (!verifyStream(c.url)) continue;
+                        if (!verifyStream(c.url, refererFor(episode))) continue;
                         Map<String,String> h = headers(requestUrl);
                         h.put("Referer", refererFor(episode));
                         h.put("Origin", BASE);
@@ -138,15 +138,17 @@ public final class NovaHdSource implements MovieSource {
         });
     }
 
-    private boolean verifyStream(String url) throws Exception {
-        String body = MovieHttp.get(url, headers(url));
+    private boolean verifyStream(String url, String referer) throws Exception {
+        Map<String,String> h = headers(url);
+        if (referer != null && !referer.isEmpty()) h.put("Referer", referer);
+        h.put("Origin", BASE);
+        String body = MovieHttp.get(url, h);
         String t = body == null ? "" : body.trim();
         if (t.startsWith("#EXTM3U") || t.contains("<MPD")) return true;
         throw new Exception("CDN không trả playlist hợp lệ");
     }
 
     private String refererFor(MovieEpisode ep) {
-        String id = MovieJson.stripPrefix(ep.id == null ? "" : ep.id);
         try {
             java.net.URI u = new java.net.URI(ep.id);
             String qs = u.getQuery();
