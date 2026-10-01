@@ -150,7 +150,12 @@ public final class MovieJsRuntime {
             if (headers != null) {
                 for (Map.Entry<String, String> e : headers.entrySet()) {
                     if (e.getKey() != null && e.getValue() != null) {
-                        jsonHeaders.put(e.getKey(), e.getValue());
+                        try {
+                            jsonHeaders.put(e.getKey(), e.getValue());
+                        } catch (org.json.JSONException ignored) {
+                            // Ignore an invalid header entry; the browser supplies its own
+                            // restricted request headers (Origin/Referer/User-Agent/etc.).
+                        }
                     }
                 }
             }
