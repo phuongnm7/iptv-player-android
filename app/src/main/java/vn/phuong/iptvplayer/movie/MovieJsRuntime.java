@@ -72,7 +72,7 @@ public final class MovieJsRuntime {
 
     public static String quote(String s){
         if(s==null)return "null";
-        try{return org.json.JSONObject.quote(s);}catch(Exception e){return """";}
+        try{return org.json.JSONObject.quote(s);}catch(Exception e){return "\\"\\"";}
     }
 
     public void destroy(){main.post(()->{destroyed=true;ready=false;pending.clear();webView.stopLoading();webView.destroy();});}
