@@ -1,10 +1,10 @@
-name: NM7 IPTV Mobile 1.10.113 Movie Build
+name: NM7 IPTV Mobile 1.10.114 Movie Fix Build
 # movie validation build — isolated from 1.10.112 stable workflow
 
 "on":
   push:
     branches:
-      - "feature/mobile-1.10.113-movie"
+      - "feature/mobile-1.10.114-movie"
   workflow_dispatch:
 
 jobs:
@@ -59,11 +59,11 @@ jobs:
           python3 scripts/patch-mobile-v37.py
           python3 scripts/patch-mobile-v106.py
 
-      - name: Verify 1.10.113 Movie build configuration
+      - name: Verify 1.10.114 Movie build configuration
         run: |
           set -euxo pipefail
-          test "$(grep -c 'versionName = "1.10.113"' app/build.gradle.kts)" -eq 1
-          test "$(grep -c 'versionCode = 129' app/build.gradle.kts)" -eq 1
+          test "$(grep -c 'versionName = "1.10.114"' app/build.gradle.kts)" -eq 1
+          test "$(grep -c 'versionCode = 130' app/build.gradle.kts)" -eq 1
 
       - name: Check Mobile lifecycle regression guards
         run: |
@@ -223,7 +223,7 @@ jobs:
       - name: Upload Mobile APK
         uses: actions/upload-artifact@v4
         with:
-          name: NM7-IPTV-Mobile-1.10.113-MOVIE
+          name: NM7-IPTV-Mobile-1.10.114-MOVIE-FIX
           path: dist/mobile/
           retention-days: 30
           if-no-files-found: error
