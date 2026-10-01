@@ -170,8 +170,8 @@ public final class NovaHdSource implements MovieSource {
         for (String part : q.split("&")) {
             int p = part.indexOf('=');
             if (p < 0) continue;
-            if (wanted.equals(java.net.URLDecoder.decode(part.substring(0, p), StandardCharsets.UTF_8.name()))) {
-                return java.net.URLDecoder.decode(part.substring(p + 1), StandardCharsets.UTF_8.name());
+            if (wanted.equals(decodeUtf8(part.substring(0, p)))) {
+                return decodeUtf8(part.substring(p + 1));
             }
         }
         return null;
@@ -378,6 +378,15 @@ public final class NovaHdSource implements MovieSource {
             }
         }
         return null;
+    }
+
+    private static String decodeUtf8(String value) {
+        if (value == null) return "";
+        try {
+            return java.net.URLDecoder.decode(value, StandardCharsets.UTF_8.name());
+        } catch (Exception e) {
+            return value;
+        }
     }
 
     private static String textValue(Object v, String fallback) {
