@@ -237,6 +237,14 @@ jobs:
           cd dist/mobile && sha256sum *.apk > SHA256SUMS.txt
 
 
+      - name: Upload Mobile APK (build artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: NM7-IPTV-Mobile-1.10.116-BUILD
+          path: dist/mobile/
+          retention-days: 30
+          if-no-files-found: error
+
       - name: Enable KVM for Android emulator
         run: |
           set -euxo pipefail
@@ -296,18 +304,21 @@ jobs:
             > "$RUNNER_TEMP/nm7-emulator.log" 2>&1 &
           EMULATOR_PID=$!
 
-          cleanup() {
+          adb -s emulator-5554 logcat -c || true
+
+          collect_diagnostics() {
             set +e
-            echo "===== E2E CRASH LOGCAT ====="
-            adb -s emulator-5554 logcat -d -t 5000 2>/dev/null \
-              | grep -E "FATAL EXCEPTION|AndroidRuntime|Process: vn\.phuong\.iptvplayer|chromium|WebView|SIGSEGV|signal 11|CRASH" \
-              | tail -250 || true
-            echo "===== EMULATOR LOG ====="
-            cat "$RUNNER_TEMP/nm7-emulator.log" || true
-            adb -s emulator-5554 emu kill >/dev/null 2>&1 || true
-            kill "$EMULATOR_PID" >/dev/null 2>&1 || true
+            echo "===== E2E CRASH BUFFER ====="
+            adb -s emulator-5554 logcat -b crash -d 2>/dev/null | tail -400 || true
+            echo "===== E2E LOGCAT APP/WEBVIEW/MEDIA ====="
+            adb -s emulator-5554 logcat -d -t 12000 2>/dev/null \
+              | grep -E "FATAL EXCEPTION|AndroidRuntime|Process: vn\.phuong\.iptvplayer|chromium|WebView|MediaCodec|CCodec|Codec2|NuPlayer|ExoPlayer|SIGSEGV|SIGABRT|signal 6|signal 11|Abort message|Fatal signal|CRASH" \
+              | tail -600 || true
+            echo "===== E2E TOP ACTIVITY ====="
+            adb -s emulator-5554 shell dumpsys activity activities 2>/dev/null | tail -160 || true
+            echo "===== E2E EMULATOR LOG ====="
+            tail -300 "$RUNNER_TEMP/nm7-emulator.log" 2>/dev/null || true
           }
-          trap cleanup EXIT
 
           booted=0
           for i in $(seq 1 180); do
@@ -337,6 +348,7 @@ jobs:
           adb -s emulator-5554 shell settings put global transition_animation_scale 0
           adb -s emulator-5554 shell settings put global animator_duration_scale 0
 
+          set +e
           gradle --no-daemon --console=plain \
             -PcompileSdkVersion=android-36 \
             -PminSdkVersion=23 \
@@ -348,6 +360,11 @@ jobs:
             -PannotationXVersion=1.1.0 \
             :app:connectedMobileDebugAndroidTest \
             -Pandroid.testInstrumentationRunnerArguments.class=vn.phuong.iptvplayer.movie.MoviePluginEndToEndTest
+          E2E_RC=$?
+          if [ "$E2E_RC" -ne 0 ]; then collect_diagnostics; fi
+          adb -s emulator-5554 emu kill >/dev/null 2>&1 || true
+          kill "$EMULATOR_PID" >/dev/null 2>&1 || true
+          exit "$E2E_RC"
 
       - name: Dump Movie unit-test reports on failure
         if: failure()
