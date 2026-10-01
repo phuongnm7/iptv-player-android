@@ -69,6 +69,7 @@ public final class HomeTabBar {
                 list.setPadding(list.getPaddingLeft(), list.getPaddingTop(),
                         list.getPaddingRight(), list.getPaddingBottom() + dp(activity, 76));
             }
+        }
     }
 
     public static void setVisible(Activity activity, boolean visible) {
