@@ -33,6 +33,7 @@ import java.util.concurrent.Executors;
 import vn.phuong.iptvplayer.movie.Film4kSource;
 import vn.phuong.iptvplayer.movie.MovieHttp;
 import vn.phuong.iptvplayer.movie.MovieJsSource;
+import vn.phuong.iptvplayer.movie.NovaHdSource;
 import vn.phuong.iptvplayer.movie.MovieModels.MovieDetail;
 import vn.phuong.iptvplayer.movie.MovieModels.MovieEpisode;
 import vn.phuong.iptvplayer.movie.MovieModels.MovieItem;
@@ -87,7 +88,7 @@ public final class MovieActivity extends Activity {
     }
 
     private void rebuildSources(){
-        entries.clear();entries.add(new SourceEntry("Film4k",null));
+        entries.clear();entries.add(new SourceEntry("NovaHD",new FileRef(null)));entries.add(new SourceEntry("Film4k",null));
         for(java.io.File f:MoviePluginStore.list(this))entries.add(new SourceEntry(f.getName(),new FileRef(f)));
         ArrayAdapter<String> a=new ArrayAdapter<String>(this,android.R.layout.simple_spinner_item){@Override public View getView(int p,android.view.View v,android.view.ViewGroup g){TextView t=(TextView)super.getView(p,v,g);t.setTextColor(getColor(R.color.text_primary));return t;}};
         for(SourceEntry e:entries)a.add(e.label);a.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);sourceSpinner.setAdapter(a);
@@ -98,7 +99,7 @@ public final class MovieActivity extends Activity {
         if(pos<0||pos>=entries.size())return;if(source!=null)source.close();
         SourceEntry e=entries.get(pos);
         try{
-            source=e.file==null?new Film4kSource():new MovieJsSource(this,e.file.file.getName(),MoviePluginStore.read(e.file.file));
+            source=e.label.equals("NovaHD")?new NovaHdSource():e.file==null?new Film4kSource():new MovieJsSource(this,e.file.file.getName(),MoviePluginStore.read(e.file.file));
             showingDetail=false;loadHome();
         }catch(Exception ex){showError("Không mở được nguồn phim: "+ex.getMessage());}
     }
@@ -165,7 +166,7 @@ public final class MovieActivity extends Activity {
 
     private void loadImage(final String url,final ImageView target){
         if(url==null||url.isEmpty())return;Bitmap cached; synchronized(bitmapCache){cached=bitmapCache.get(url);}if(cached!=null){target.setImageBitmap(cached);return;}
-        imageIo.execute(()->{HttpURLConnection c=null;try{c=(HttpURLConnection)new URL(url).openConnection();c.setConnectTimeout(10000);c.setReadTimeout(15000);c.setInstanceFollowRedirects(true);c.setUseCaches(true);c.setRequestProperty("User-Agent","NM7-Movie/1.10.113");try(InputStream in=c.getInputStream()){Bitmap b=BitmapFactory.decodeStream(in);if(b!=null){synchronized(bitmapCache){bitmapCache.put(url,b);}runOnUiThread(()->target.setImageBitmap(b));}}}catch(Exception ignored){}finally{if(c!=null)c.disconnect();}});
+        imageIo.execute(()->{HttpURLConnection c=null;try{c=(HttpURLConnection)new URL(url).openConnection();c.setConnectTimeout(10000);c.setReadTimeout(15000);c.setInstanceFollowRedirects(true);c.setUseCaches(true);c.setRequestProperty("User-Agent","NM7-Movie/1.10.115");try(InputStream in=c.getInputStream()){Bitmap b=BitmapFactory.decodeStream(in);if(b!=null){synchronized(bitmapCache){bitmapCache.put(url,b);}runOnUiThread(()->target.setImageBitmap(b));}}}catch(Exception ignored){}finally{if(c!=null)c.disconnect();}});
     }
 
     private void openPluginPicker(){Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("*/*");startActivityForResult(i,OPEN_PLUGIN);}
