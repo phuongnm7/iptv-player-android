@@ -579,16 +579,24 @@ function parseDetailResponse(jsonStr, url) {
         }
 
         var streamUrl = "";
+        var preferredUrl = "";
+        var preferredQuality = -1;
         for (var s = 0; s < sources.length; s++) {
             var candidate = textValue(sources[s].url || sources[s].src || sources[s].file);
             if (!candidate) continue;
             if (!streamUrl) streamUrl = candidate;
             var q = textValue(sources[s].quality || sources[s].resolution || sources[s].format).toLowerCase();
-            if (q.indexOf("2160") !== -1 || q.indexOf("4k") !== -1 || q.indexOf("1440") !== -1 || q.indexOf("1080") !== -1) {
-                streamUrl = candidate;
-                if (q.indexOf("2160") !== -1 || q.indexOf("4k") !== -1 || q.indexOf("1080") !== -1) break;
+            var qn = 0;
+            var qm = q.match(/(\d{3,4})/);
+            if (qm) qn = parseInt(qm[1], 10) || 0;
+            if (q.indexOf("4k") !== -1) qn = 2160;
+            if (qn > 0 && qn <= 1080 && qn > preferredQuality) {
+                preferredQuality = qn;
+                preferredUrl = candidate;
             }
         }
+
+        if (preferredUrl) streamUrl = preferredUrl;
 
         var subtitles = [];
         var querySource = reqUrl.indexOf("/api/sources") !== -1 ? reqUrl : "";
