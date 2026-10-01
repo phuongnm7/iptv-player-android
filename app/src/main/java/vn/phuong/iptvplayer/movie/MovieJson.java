@@ -51,7 +51,11 @@ public final class MovieJson {
                             ? id : (show ? "show/" : "movie/") + id;
                     String detail = firstDetailUrl(o);
                     if (detail == null) {
-                        detail = base + "/api/title/" + enc(cleanId);
+                        if ("novahd".equalsIgnoreCase(sourceId)) {
+                            detail = base + (show ? "/api/shows/" : "/api/movies/") + enc(cleanId);
+                        } else {
+                            detail = base + "/api/title/" + enc(cleanId);
+                        }
                     }
                     out.add(new MovieItem(
                             normalizedId,
