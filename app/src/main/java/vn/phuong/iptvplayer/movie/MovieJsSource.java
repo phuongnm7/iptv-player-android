@@ -26,6 +26,7 @@ public final class MovieJsSource implements MovieSource {
     private final String name;
     private final MovieJsRuntime js;
     private final ExecutorService io = Executors.newFixedThreadPool(3);
+    private final boolean useBrowserTransport;
 
     public MovieJsSource(Context context, String fileName, String script) {
         String stableName = fileName == null ? "movie-plugin.js" : fileName;
@@ -33,7 +34,10 @@ public final class MovieJsSource implements MovieSource {
         this.name = stableName.endsWith(".js")
                 ? stableName.substring(0, stableName.length() - 3)
                 : stableName;
-        this.js = new MovieJsRuntime(context, script == null ? "" : script);
+        this.useBrowserTransport = "novahd_plugin.js".equalsIgnoreCase(stableName)
+                || "novahd".equalsIgnoreCase(this.name);
+        String origin = useBrowserTransport ? "https://novahd.cc/" : "https://nm7.local/";
+        this.js = new MovieJsRuntime(context, script == null ? "" : script, origin);
     }
 
     @Override public String id() { return sourceId; }
@@ -131,9 +135,8 @@ public final class MovieJsSource implements MovieSource {
             return;
         }
 
-        io.execute(() -> {
-            try {
-                String body = MovieHttp.get(requestUrl, pluginHeaders(requestUrl));
+        fetchBody(requestUrl, pluginHeaders(requestUrl), new MovieJsRuntime.Callback() {
+            @Override public void done(String body) {
                 js.call(parser, new MovieJsRuntime.Callback() {
                     @Override public void done(String parsed) {
                         List<MovieItem> items = parseItems(parsed, requestUrl);
@@ -155,17 +158,18 @@ public final class MovieJsSource implements MovieSource {
                     }
                 }, MovieJsRuntime.quote(normalizeJsonBody(body)),
                         MovieJsRuntime.quote(requestUrl));
-            } catch (Exception e) {
-                cb.onError("Plugin HTTP danh sách: " + safe(e));
+            }
+
+            @Override public void error(String message) {
+                cb.onError("Plugin HTTP danh sách: " + message);
             }
         });
     }
 
     private void fetchDetailUrl(String url, MovieItem item,
                                 Callback<MovieDetail> cb) {
-        io.execute(() -> {
-            try {
-                String body = MovieHttp.get(url, pluginHeaders(url));
+        fetchBody(url, pluginHeaders(url), new MovieJsRuntime.Callback() {
+            @Override public void done(String body) {
                 final String normalizedBody = normalizeJsonBody(body);
 
                 js.call("parseMovieDetail", new MovieJsRuntime.Callback() {
@@ -196,8 +200,10 @@ public final class MovieJsSource implements MovieSource {
                     }
                 }, MovieJsRuntime.quote(normalizedBody),
                         MovieJsRuntime.quote(url));
-            } catch (Exception e) {
-                cb.onError("Plugin HTTP chi tiết: " + safe(e));
+            }
+
+            @Override public void error(String message) {
+                cb.onError("Plugin HTTP chi tiết: " + message);
             }
         });
     }
@@ -237,14 +243,35 @@ public final class MovieJsSource implements MovieSource {
 
     private void resolvePlaybackFromUrl(String url, int hop,
                                         Callback<Playback> cb) {
-        io.execute(() -> {
-            try {
-                String body = MovieHttp.get(url, pluginHeaders(url));
+        fetchBody(url, pluginHeaders(url), new MovieJsRuntime.Callback() {
+            @Override public void done(String body) {
                 parsePlaybackResponse(body, url, hop, cb);
-            } catch (Exception e) {
-                cb.onError("Plugin HTTP luồng phát: " + safe(e));
+            }
+
+            @Override public void error(String message) {
+                cb.onError("Plugin HTTP luồng phát: " + message);
             }
         });
+    }
+
+    private void fetchBody(String url, Map<String, String> headers,
+                             MovieJsRuntime.Callback cb) {
+        if (useBrowserTransport && isNovaUrl(url)) {
+            js.webGet(url, headers, cb);
+            return;
+        }
+
+        io.execute(() -> {
+            try {
+                cb.done(MovieHttp.get(url, headers));
+            } catch (Exception e) {
+                cb.error(safe(e));
+            }
+        });
+    }
+
+    private static boolean isNovaUrl(String url) {
+        return url != null && url.toLowerCase().contains("novahd.cc");
     }
 
     private void parsePlaybackResponse(String body, String sourceUrl, int hop,
