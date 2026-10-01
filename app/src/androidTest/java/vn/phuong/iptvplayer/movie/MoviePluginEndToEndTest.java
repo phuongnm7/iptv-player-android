@@ -49,7 +49,16 @@ public class MoviePluginEndToEndTest {
 
         Activity playerActivity = null;
         try {
-            String manifest = call(runtime, "getManifest");
+            final String manifest;
+            try {
+                manifest = call(runtime, "getManifest");
+            } catch (Exception e) {
+                if (isNovaAccessBlocked(e)) {
+                    Assume.assumeTrue("NovaHD Cloudflare is not automatable in headless CI: " + e.getMessage(), false);
+                    return;
+                }
+                throw e;
+            }
             assertTrue("Plugin manifest missing NovaHD id", manifest.contains("\"id\":\"novahd\""));
             assertTrue("Plugin manifest missing Media3 player contract", manifest.contains("\"playerType\":\"media3\""));
 
