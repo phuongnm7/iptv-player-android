@@ -34,9 +34,23 @@ Bản này tiếp tục trực tiếp từ commit đã build của **1.10.113**,
 - Stable baseline vẫn là: `stable/mobile-1.10.112`
 - Điều kiện chốt stable mới: phải có CI PASS và người dùng xác nhận runtime trên thiết bị thật.
 
-## Trạng thái
+## Kết quả CI / bàn giao
 
-Source đã được đẩy lên GitHub. CI 1.10.114 đang được chạy/kiểm tra. Chưa đánh dấu runtime PASS khi chưa có test thiết bị thật.
+- GitHub Actions workflow: **NM7 IPTV Mobile 1.10.114 Movie Fix Build**
+- Run ID: **36808469061 — SUCCESS**
+- Commit build: **`5f9fc48ea6eb9ab136030a461787b6998db47ae6`**
+- Unit test target: **`M3uParserTest` + `MovieJsonTest` — SUCCESS**
+- Build Mobile: **SUCCESS**
+- Upload APK: **SUCCESS**
+- Artifact: **`NM7-IPTV-Mobile-1.10.114-MOVIE-FIX`**
+- Artifact ID: **11139430038**
+- APK SHA-256: **`966e6656ac27a455994068f63cec167fd50fe69f3a5e63e88214d950baf3542f`**
+
+APK đã được tải xuống, giải nén và đối chiếu SHA-256 với file `SHA256SUMS.txt`; khớp chính xác.
+
+### Giới hạn xác nhận
+
+Đây là **CI/build PASS + parser/runtime-source fix**, chưa phải xác nhận runtime trên thiết bị thật. Video người dùng đã cung cấp được dùng để truy đúng lỗi; việc nguồn Film4k/Novahd tại thời điểm người dùng cài có trả HTTP 503 hay không vẫn phụ thuộc trạng thái máy chủ bên ngoài app.
 
 ---
 
