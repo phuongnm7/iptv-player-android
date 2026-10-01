@@ -33,7 +33,6 @@ import java.util.concurrent.Executors;
 import vn.phuong.iptvplayer.movie.Film4kSource;
 import vn.phuong.iptvplayer.movie.MovieHttp;
 import vn.phuong.iptvplayer.movie.MovieJsSource;
-import vn.phuong.iptvplayer.movie.NovaHdSource;
 import vn.phuong.iptvplayer.movie.MovieModels.MovieDetail;
 import vn.phuong.iptvplayer.movie.MovieModels.MovieEpisode;
 import vn.phuong.iptvplayer.movie.MovieModels.MovieItem;
@@ -99,7 +98,7 @@ public final class MovieActivity extends Activity {
         if(pos<0||pos>=entries.size())return;if(source!=null)source.close();
         SourceEntry e=entries.get(pos);
         try{
-            source=e.label.equals("NovaHD")?new NovaHdSource():e.file==null?new Film4kSource():new MovieJsSource(this,e.file.file.getName(),MoviePluginStore.read(e.file.file));
+            source=e.label.equals("NovaHD")?new MovieJsSource(this,"novahd_plugin.js",readAssetPlugin("movie-plugins/novahd_plugin.js")):e.file==null?new Film4kSource():new MovieJsSource(this,e.file.file.getName(),MoviePluginStore.read(e.file.file));
             showingDetail=false;loadHome();
         }catch(Exception ex){showError("Không mở được nguồn phim: "+ex.getMessage());}
     }
@@ -167,6 +166,21 @@ public final class MovieActivity extends Activity {
     private void loadImage(final String url,final ImageView target){
         if(url==null||url.isEmpty())return;Bitmap cached; synchronized(bitmapCache){cached=bitmapCache.get(url);}if(cached!=null){target.setImageBitmap(cached);return;}
         imageIo.execute(()->{HttpURLConnection c=null;try{c=(HttpURLConnection)new URL(url).openConnection();c.setConnectTimeout(10000);c.setReadTimeout(15000);c.setInstanceFollowRedirects(true);c.setUseCaches(true);c.setRequestProperty("User-Agent","NM7-Movie/1.10.115");try(InputStream in=c.getInputStream()){Bitmap b=BitmapFactory.decodeStream(in);if(b!=null){synchronized(bitmapCache){bitmapCache.put(url,b);}runOnUiThread(()->target.setImageBitmap(b));}}}catch(Exception ignored){}finally{if(c!=null)c.disconnect();}});
+    }
+
+    private String readAssetPlugin(String assetPath) throws Exception {
+        try (InputStream in = getAssets().open(assetPath);
+             java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+            byte[] buffer = new byte[8192];
+            int n;
+            int total = 0;
+            while ((n = in.read(buffer)) != -1) {
+                total += n;
+                if (total > 1024 * 1024) throw new Exception("Plugin quá lớn");
+                out.write(buffer, 0, n);
+            }
+            return out.toString("UTF-8");
+        }
     }
 
     private void openPluginPicker(){Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("*/*");startActivityForResult(i,OPEN_PLUGIN);}
