@@ -298,9 +298,14 @@ jobs:
 
           cleanup() {
             set +e
+            echo "===== E2E CRASH LOGCAT ====="
+            adb -s emulator-5554 logcat -d -t 5000 2>/dev/null \
+              | grep -E "FATAL EXCEPTION|AndroidRuntime|Process: vn\.phuong\.iptvplayer|chromium|WebView|SIGSEGV|signal 11|CRASH" \
+              | tail -250 || true
+            echo "===== EMULATOR LOG ====="
+            cat "$RUNNER_TEMP/nm7-emulator.log" || true
             adb -s emulator-5554 emu kill >/dev/null 2>&1 || true
             kill "$EMULATOR_PID" >/dev/null 2>&1 || true
-            cat "$RUNNER_TEMP/nm7-emulator.log" || true
           }
           trap cleanup EXIT
 
