@@ -37,7 +37,7 @@ public final class MovieJsRuntime {
 
     public void whenReady(Runnable r){main.post(()->{if(ready)r.run();else readyAction=r;});}
 
-    public void call(String function,String... jsArgs,Callback cb){
+    public void call(String function, Callback cb, String... jsArgs){
         whenReady(()->{
             StringBuilder b=new StringBuilder("(typeof ").append(function).append("==='function')?").append(function).append("(");
             for(int i=0;i<jsArgs.length;i++){if(i>0)b.append(",");b.append(jsArgs[i]);}
