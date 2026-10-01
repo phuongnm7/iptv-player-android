@@ -1,11 +1,22 @@
 package vn.phuong.iptvplayer.movie;
 
+import android.app.Activity;
+import android.app.Dialog;
+import android.content.Context;
+import android.graphics.Color;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.Gravity;
+import android.view.ViewGroup;
+import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
+import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import org.json.JSONTokener;
 import org.json.JSONObject;
@@ -23,6 +34,7 @@ public final class MovieJsRuntime {
     }
 
     private final Handler main = new Handler(Looper.getMainLooper());
+    private final Context context;
     private final WebView webView;
     private final String pluginScript;
     private final String originUrl;
@@ -35,22 +47,34 @@ public final class MovieJsRuntime {
     private boolean destroyed;
     private String initError;
 
+    private Dialog cloudflareDialog;
+    private WebView cloudflareWebView;
+    private Runnable cloudflarePoller;
+    private final java.util.ArrayDeque<Callback> cloudflareWaiters = new java.util.ArrayDeque<>();
+
     public MovieJsRuntime(android.content.Context context, String pluginScript) {
         this(context, pluginScript, "https://nm7.local/");
     }
 
     public MovieJsRuntime(android.content.Context context, String pluginScript, String originUrl) {
+        this.context = context;
         this.pluginScript = pluginScript == null ? "" : pluginScript;
         this.originUrl = originUrl == null ? "" : originUrl.trim();
         webView = new WebView(context);
 
         WebSettings s = webView.getSettings();
         s.setJavaScriptEnabled(true);
-        s.setDomStorageEnabled(false);
+        s.setDomStorageEnabled(true);
+        s.setDatabaseEnabled(true);
         s.setAllowFileAccess(false);
         s.setAllowContentAccess(false);
         s.setJavaScriptCanOpenWindowsAutomatically(false);
         s.setSupportMultipleWindows(false);
+        s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+        s.setUserAgentString("Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36");
+        CookieManager.getInstance().setAcceptCookie(true);
+        CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
+        CookieManager.getInstance().flush();
         webView.setVisibility(android.view.View.GONE);
 
         webView.addJavascriptInterface(new Bridge(), "NM7Bridge");
@@ -124,14 +148,18 @@ public final class MovieJsRuntime {
                 challenge = o.optBoolean("challenge", false);
             } catch (Exception ignored) {}
 
-            if (challenge && attempt < 20) {
-                main.postDelayed(() -> waitForBrowserChallenge(attempt + 1), 1500L);
-                return;
-            }
             if (challenge) {
-                if (bootstrapCallback != null) {
-                    bootstrapCallback.error("NovaHD Cloudflare challenge chưa hoàn tất");
-                }
+                // The hidden WebView is deliberately not used to solve the challenge.
+                // Cloudflare may require a visible browser context and user interaction.
+                solveNovaCloudflare(new Callback() {
+                    @Override public void done(String ignored) {
+                        if (!destroyed) bootstrapPlugin();
+                    }
+
+                    @Override public void error(String message) {
+                        if (bootstrapCallback != null) bootstrapCallback.error(message);
+                    }
+                });
                 return;
             }
             bootstrapPlugin();
@@ -156,6 +184,164 @@ public final class MovieJsRuntime {
                     }
                 }
         );
+    }
+
+    /**
+     * Opens a visible browser challenge for NovaHD. The user completes any
+     * Cloudflare verification; CookieManager then shares the resulting
+     * session with the hidden plugin WebView.
+     */
+    public void solveNovaCloudflare(Callback cb) {
+        main.post(() -> {
+            if (destroyed) {
+                cb.error("JS runtime đã đóng");
+                return;
+            }
+
+            if (!(context instanceof Activity)) {
+                cb.error("NovaHD đang yêu cầu xác minh Cloudflare; môi trường hiện tại không có Activity để mở trang xác minh.");
+                return;
+            }
+
+            Activity activity = (Activity) context;
+            if (activity.isFinishing() || activity.isDestroyed()) {
+                cb.error("Không thể mở xác minh NovaHD vì Activity đã đóng.");
+                return;
+            }
+
+            cloudflareWaiters.add(cb);
+            if (cloudflareDialog != null && cloudflareDialog.isShowing()) {
+                return;
+            }
+
+            final long startedAt = System.currentTimeMillis();
+            LinearLayout root = new LinearLayout(activity);
+            root.setOrientation(LinearLayout.VERTICAL);
+            root.setPadding(24, 18, 24, 12);
+            root.setBackgroundColor(Color.rgb(20, 20, 31));
+
+            TextView title = new TextView(activity);
+            title.setText("Xác minh NovaHD");
+            title.setTextColor(Color.WHITE);
+            title.setTextSize(19f);
+            title.setGravity(Gravity.CENTER);
+            title.setPadding(0, 0, 0, 8);
+            root.addView(title, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            TextView info = new TextView(activity);
+            info.setText("Hoàn tất xác minh Cloudflare nếu được yêu cầu. Cửa sổ sẽ tự đóng sau khi nhận được phiên xác minh.");
+            info.setTextColor(Color.LTGRAY);
+            info.setTextSize(13f);
+            info.setGravity(Gravity.CENTER);
+            info.setPadding(0, 0, 0, 10);
+            root.addView(info, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            ProgressBar progress = new ProgressBar(activity);
+            root.addView(progress, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, 6));
+
+            WebView browser = new WebView(activity);
+            WebSettings bs = browser.getSettings();
+            bs.setJavaScriptEnabled(true);
+            bs.setDomStorageEnabled(true);
+            bs.setDatabaseEnabled(true);
+            bs.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+            bs.setJavaScriptCanOpenWindowsAutomatically(true);
+            bs.setSupportMultipleWindows(false);
+            bs.setUserAgentString("Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36");
+            CookieManager cm = CookieManager.getInstance();
+            cm.setAcceptCookie(true);
+            cm.setAcceptThirdPartyCookies(browser, true);
+            cm.flush();
+            browser.setWebChromeClient(new WebChromeClient());
+            browser.setWebViewClient(new WebViewClient() {});
+            cloudflareWebView = browser;
+
+            root.addView(browser, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+
+            Dialog dialog = new Dialog(activity);
+            dialog.setTitle("NovaHD");
+            dialog.setContentView(root);
+            dialog.setOnDismissListener(d -> {
+                if (cloudflarePoller != null) {
+                    main.removeCallbacks(cloudflarePoller);
+                    cloudflarePoller = null;
+                }
+                if (cloudflareWebView != null) {
+                    cloudflareWebView.stopLoading();
+                    cloudflareWebView.destroy();
+                    cloudflareWebView = null;
+                }
+                cloudflareDialog = null;
+            });
+            cloudflareDialog = dialog;
+
+            dialog.setOnCancelListener(d -> finishCloudflare(false, "NovaHD Cloudflare chưa được xác minh."));
+            dialog.show();
+
+            if (dialog.getWindow() != null) {
+                dialog.getWindow().setLayout(
+                        (int)(activity.getResources().getDisplayMetrics().widthPixels * 0.94f),
+                        (int)(activity.getResources().getDisplayMetrics().heightPixels * 0.82f));
+            }
+
+            CookieManager.getInstance().removeExpiredCookie();
+            browser.loadUrl("https://novahd.cc/");
+
+            cloudflarePoller = new Runnable() {
+                @Override public void run() {
+                    if (destroyed) {
+                        finishCloudflare(false, "JS runtime đã đóng");
+                        return;
+                    }
+
+                    CookieManager.getInstance().flush();
+                    String cookies = CookieManager.getInstance().getCookie("https://novahd.cc/");
+                    if (cookies != null && cookies.contains("cf_clearance")) {
+                        info.setText("Đã xác minh NovaHD. Đang tiếp tục tải phim…");
+                        finishCloudflare(true, "");
+                        return;
+                    }
+
+                    if (System.currentTimeMillis() - startedAt >= 120000L) {
+                        finishCloudflare(false, "Xác minh NovaHD hết thời gian.");
+                        return;
+                    }
+
+                    main.postDelayed(this, 1000L);
+                }
+            };
+            main.post(cloudflarePoller);
+        });
+    }
+
+    private void finishCloudflare(boolean success, String error) {
+        main.post(() -> {
+            if (cloudflarePoller != null) {
+                main.removeCallbacks(cloudflarePoller);
+                cloudflarePoller = null;
+            }
+            Dialog d = cloudflareDialog;
+            cloudflareDialog = null;
+            WebView w = cloudflareWebView;
+            cloudflareWebView = null;
+            if (w != null) {
+                w.stopLoading();
+                w.destroy();
+            }
+            if (d != null && d.isShowing()) d.dismiss();
+
+            while (!cloudflareWaiters.isEmpty()) {
+                Callback waiter = cloudflareWaiters.remove();
+                try {
+                    if (success) waiter.done("");
+                    else waiter.error(error == null ? "NovaHD Cloudflare chưa được xác minh." : error);
+                } catch (Exception ignored) {}
+            }
+        });
     }
 
     public void whenReady(Runnable r) {
@@ -441,6 +627,22 @@ public final class MovieJsRuntime {
                 try { cb.error("JS runtime đã đóng"); } catch (Exception ignored) {}
             }
             callbacks.clear();
+            if (cloudflarePoller != null) {
+                main.removeCallbacks(cloudflarePoller);
+                cloudflarePoller = null;
+            }
+            if (cloudflareWebView != null) {
+                cloudflareWebView.stopLoading();
+                cloudflareWebView.destroy();
+                cloudflareWebView = null;
+            }
+            if (cloudflareDialog != null && cloudflareDialog.isShowing()) {
+                cloudflareDialog.dismiss();
+            }
+            cloudflareDialog = null;
+            while (!cloudflareWaiters.isEmpty()) {
+                try { cloudflareWaiters.remove().error("JS runtime đã đóng"); } catch (Exception ignored) {}
+            }
             webView.stopLoading();
             webView.removeJavascriptInterface("NM7Bridge");
             webView.destroy();
