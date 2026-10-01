@@ -257,7 +257,7 @@ public final class MovieJsSource implements MovieSource {
     private void fetchBody(String url, Map<String, String> headers,
                              MovieJsRuntime.Callback cb) {
         if (useBrowserTransport && isNovaUrl(url)) {
-            js.webGet(url, headers, cb);
+            fetchNovaBodyWithChallenge(url, headers, cb, false);
             return;
         }
 
@@ -268,6 +268,41 @@ public final class MovieJsSource implements MovieSource {
                 cb.error(safe(e));
             }
         });
+    }
+
+    private void fetchNovaBodyWithChallenge(String url, Map<String, String> headers,
+                                            MovieJsRuntime.Callback cb,
+                                            boolean challengeAttempted) {
+        js.webGet(url, headers, new MovieJsRuntime.Callback() {
+            @Override public void done(String value) {
+                cb.done(value);
+            }
+
+            @Override public void error(String message) {
+                if (!challengeAttempted && isCloudflareError(message)) {
+                    js.solveNovaCloudflare(new MovieJsRuntime.Callback() {
+                        @Override public void done(String ignored) {
+                            fetchNovaBodyWithChallenge(url, headers, cb, true);
+                        }
+
+                        @Override public void error(String challengeError) {
+                            cb.error("NovaHD cần xác minh Cloudflare: " + challengeError);
+                        }
+                    });
+                } else {
+                    cb.error(message);
+                }
+            }
+        });
+    }
+
+    private static boolean isCloudflareError(String message) {
+        String x = message == null ? "" : message.toLowerCase();
+        return x.contains("http 403")
+                || x.contains("http 503")
+                || x.contains("cloudflare")
+                || x.contains("just a moment")
+                || x.contains("cf-mitigated");
     }
 
     private static boolean isNovaUrl(String url) {
