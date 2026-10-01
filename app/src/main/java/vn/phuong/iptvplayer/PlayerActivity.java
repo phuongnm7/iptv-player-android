@@ -59,11 +59,14 @@ public final class PlayerActivity extends Activity {
     public static final String EXTRA_NAME = "name", EXTRA_URL = "url";
     public static final String EXTRA_USER_AGENT = "user_agent", EXTRA_REFERER = "referer", EXTRA_ORIGIN = "origin";
     public static final String EXTRA_HEADERS = "headers", EXTRA_MIME = "mime", EXTRA_OPTIONS = "options";
+    public static final String EXTRA_CONTENT_TYPE = "content_type", EXTRA_SUBTITLES = "subtitles";
+    public static final String CONTENT_MOVIE = "movie";
     private ExoPlayer player;
     private PlayerView playerView;
     private TextView status;
     private TextView fpsView;
     private String url, name, mime;
+    private boolean moviePlayback;
     private String drmSystem = "", drmLicense = "";
     private ArrayList<String> options = new ArrayList<>();
     private Bundle currentHeaders = new Bundle();
@@ -133,7 +136,7 @@ public final class PlayerActivity extends Activity {
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
         setContentView(R.layout.activity_player);
         Insets.apply(findViewById(R.id.playerRoot));
-        url = value(EXTRA_URL); name = value(EXTRA_NAME); mime = value(EXTRA_MIME);
+        url = value(EXTRA_URL); name = value(EXTRA_NAME); mime = value(EXTRA_MIME); moviePlayback = CONTENT_MOVIE.equals(value(EXTRA_CONTENT_TYPE));
         if (url.isEmpty()) {
             SharedPlaybackSession.State saved = SharedPlaybackSession.loadIptv(this);
             if (saved != null) {
@@ -162,6 +165,7 @@ public final class PlayerActivity extends Activity {
         quickChannelList.setOnItemClickListener((parent, view, p, id) -> switchChannel(quickAdapter.getItem(p)));
         fpsView.setVisibility(AppPreferences.showFps(this) ? View.VISIBLE : View.GONE); clockView.setVisibility(AppPreferences.showClock(this) ? View.VISIBLE : View.GONE);
         playerView.setResizeMode(resizeMode); ((TextView) findViewById(R.id.txtPlayerTitle)).setText(name);
+        java.util.ArrayList<Bundle> subtitleBundles = getIntent().getParcelableArrayListExtra(EXTRA_SUBTITLES);
         TextView source = findViewById(R.id.txtPlayerUrl); source.setText(url); source.setVisibility(AppPreferences.showPlayerSource(this) ? View.VISIBLE : View.GONE); source.setOnClickListener(v -> showSource());
         playerView.setControllerVisibilityListener((PlayerView.ControllerVisibilityListener) visibility -> findViewById(R.id.playerHeader).setVisibility(visibility));
         findViewById(R.id.btnBack).setOnClickListener(v -> finish()); findViewById(R.id.btnQuality).setOnClickListener(v -> chooseQuality());
@@ -172,7 +176,7 @@ public final class PlayerActivity extends Activity {
     @Override protected void onStart() { super.onStart(); activityStarted = true; boolean youtubeTab = SharedPlaybackSession.TAB_YOUTUBE.equals(SharedPlaybackSession.tab(this)); keepPlayerForTabSwitch = isYoutubeHandoffPending() || youtubeTab; if(!youtubeTab) stopService(new android.content.Intent(this,BackgroundPlaybackService.class)); backgroundPlaybackActive=false; fpsHandler.post(fpsUpdate); clockHandler.post(clockUpdate); if(!keepPlayerForTabSwitch) startPlayer(); }
     @Override protected void onResume(){super.onResume();if(player!=null)player.setWakeMode(C.WAKE_MODE_NONE);}
     @Override protected void onPause(){if(!keepPlayerForTabSwitch&&!isYoutubeHandoffPending()&&!MobileNm7Application.isTabSwitchPending()&&shouldUseBackgroundPlayback()&&!isFinishing()&&player!=null){backgroundPlaybackActive=true;player.setWakeMode(C.WAKE_MODE_NETWORK);android.content.Intent service=new android.content.Intent(this,BackgroundPlaybackService.class).putExtra(BackgroundPlaybackService.EXTRA_CHANNEL_NAME,name);if(android.os.Build.VERSION.SDK_INT>=26)startForegroundService(service);else startService(service);}super.onPause();}
-    private boolean shouldUseBackgroundPlayback(){return !AppPreferences.isTvInterface(this)&&AppPreferences.backgroundPlayback(this);}
+    private boolean shouldUseBackgroundPlayback(){return !moviePlayback && !AppPreferences.isTvInterface(this)&&AppPreferences.backgroundPlayback(this);}
     private boolean playbackContextActive(){return activityStarted||backgroundPlaybackActive;}
     private static DefaultLoadControl stableLoadControl(){return new DefaultLoadControl.Builder().setBufferDurationsMs(15_000,60_000,500,1_500).setBackBuffer(10_000,true).setPrioritizeTimeOverSizeThresholds(true).build();}
     private void startPlayer() {
@@ -183,7 +187,20 @@ public final class PlayerActivity extends Activity {
             String ua=headers.containsKey("User-Agent")?headers.get("User-Agent"):"Nm7-IPTV/1.10.8 Android";
             DefaultHttpDataSource.Factory http=new DefaultHttpDataSource.Factory().setUserAgent(ua).setConnectTimeoutMs(20_000).setReadTimeoutMs(35_000).setAllowCrossProtocolRedirects(true).setDefaultRequestProperties(headers);
             DefaultDataSource.Factory data=new DefaultDataSource.Factory(this,http); DefaultMediaSourceFactory mediaFactory=new DefaultMediaSourceFactory(data).setLoadErrorHandlingPolicy(new DefaultLoadErrorHandlingPolicy(6));
-            MediaItem.Builder builder=new MediaItem.Builder().setUri(url); String inferred=mime.isEmpty()?StreamSpec.inferMime(url,options):mime; if(inferred!=null&&!inferred.isEmpty()) builder.setMimeType(inferred);
+            MediaItem.Builder builder=new MediaItem.Builder().setUri(url); 
+            if (subtitleBundles != null) {
+                java.util.ArrayList<MediaItem.SubtitleConfiguration> tracks = new java.util.ArrayList<>();
+                for (Bundle s : subtitleBundles) {
+                    String su=s.getString("url",""); if(su.isEmpty()) continue;
+                    String lang=s.getString("lang",""); String label=s.getString("label","Subtitle");
+                    MediaItem.SubtitleConfiguration track = new MediaItem.SubtitleConfiguration.Builder(Uri.parse(su))
+                            .setMimeType(MimeTypes.TEXT_VTT).setLanguage(lang).setLabel(label)
+                            .setSelectionFlags("vi".equalsIgnoreCase(lang) ? C.SELECTION_FLAG_DEFAULT : 0).build();
+                    tracks.add(track);
+                }
+                if(!tracks.isEmpty()) builder.setSubtitleConfigurations(tracks);
+            }
+            String inferred=mime.isEmpty()?StreamSpec.inferMime(url,options):mime; if(inferred!=null&&!inferred.isEmpty()) builder.setMimeType(inferred);
             DrmSpec drm=DrmSpec.create(drmSystem,drmLicense); findViewById(R.id.btnDrm).setVisibility(drm.hasDrm()?View.VISIBLE:View.GONE); if(drm.remoteClearKey()){resolveRemoteClearKey(drm,headers);return;} DrmPlayback.configure(drm,builder,mediaFactory);
             player=new ExoPlayer.Builder(this,new DefaultRenderersFactory(this).setEnableDecoderFallback(true)).setLoadControl(stableLoadControl()).setMediaSourceFactory(mediaFactory).build();
             player.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),false); player.setVolume(0f); player.setHandleAudioBecomingNoisy(true); playerView.setPlayer(player);
@@ -333,7 +350,7 @@ public final class PlayerActivity extends Activity {
             position=player.isCurrentMediaItemLive()?0:player.getCurrentPosition();
             resumePlayback=player.getPlayWhenReady();
         }
-        if(url!=null&&!url.isEmpty()){
+        if(!moviePlayback && url!=null&&!url.isEmpty()){
             SharedPlaybackSession.saveIptv(this,name,url,mime,currentHeaders,options,position,resumePlayback);
         }
     }
