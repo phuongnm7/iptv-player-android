@@ -52,8 +52,8 @@ public class MovieJsonTest {
     }
 
     @Test public void parsePlaybackAcceptsNdjsonSources() {
-        String ndjson = "{\\"sources\\":[{\\"quality\\":\\"720p\\",\\"url\\":\\"https://cdn.example/a.m3u8\\"}]}\\n"
-                + "{\\"sources\\":[{\\"quality\\":\\"1080p\\",\\"url\\":\\"https://cdn.example/b.m3u8\\"}]}";
+        String ndjson = "{\"sources\":[{\"quality\":\"720p\",\"url\":\"https://cdn.example/a.m3u8\"}]}\n"
+                + "{\"sources\":[{\"quality\":\"1080p\",\"url\":\"https://cdn.example/b.m3u8\"}]}";
         MovieModels.Playback p = MovieJson.parsePlayback(
                 ndjson, "https://novahd.cc/api/sources?type=movie&tmdbId=101", "https://novahd.cc");
         assertNotNull(p);
