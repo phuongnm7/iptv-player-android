@@ -10,4 +10,7 @@
     <string name="export_clean">Xuất M3U sạch</string>
     <string name="all_groups">Tất cả nhóm</string>
     <string name="source_none">Nguồn: chưa mở playlist</string>
+    <string name="movie_tab">Movie</string>
+    <string name="movie_search_hint">Tìm phim…</string>
+    <string name="movie_add_source">＋ Nguồn</string>
 </resources>
