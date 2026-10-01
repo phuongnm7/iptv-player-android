@@ -233,6 +233,16 @@ public final class MovieJsRuntime {
             }
         }
 
+        private Map<String,String> bridgeHeaders(String url, String json) {
+            Map<String,String> out = parseHeaders(json);
+            if (url != null && url.contains("novahd.cc")) {
+                Map<String,String> defaults = MovieHttp.novaHeaders(url);
+                defaults.putAll(out);
+                return defaults;
+            }
+            return out;
+        }
+
         private Map<String,String> parseHeaders(String json) {
             Map<String,String> out = new java.util.LinkedHashMap<>();
             if (json == null || json.trim().isEmpty()) return out;
