@@ -6,17 +6,19 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import org.json.JSONTokener;
+import java.util.ArrayDeque;
+import java.util.Queue;
 
 public final class MovieJsRuntime {
     public interface Callback { void done(String value); void error(String message); }
     private final Handler main=new Handler(Looper.getMainLooper());
     private final WebView webView;
+    private final Queue<Runnable> pending=new ArrayDeque<>();
     private boolean ready;
-    private String script;
-    private Runnable readyAction;
+    private boolean destroyed;
 
     public MovieJsRuntime(android.content.Context context,String pluginScript){
-        webView=new WebView(context);
+        webView=new WebView(context.getApplicationContext());
         WebSettings s=webView.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(false);
@@ -26,16 +28,25 @@ public final class MovieJsRuntime {
         webView.setWebViewClient(new WebViewClient(){
             @Override public void onPageFinished(WebView view,String url){
                 eval(pluginScript+"\n;void(0);",new Callback(){
-                    @Override public void done(String value){ready=true;if(readyAction!=null){Runnable r=readyAction;readyAction=null;r.run();}}
-                    @Override public void error(String message){}
+                    @Override public void done(String value){
+                        ready=true;
+                        while(!pending.isEmpty()) pending.remove().run();
+                    }
+                    @Override public void error(String message){
+                        while(!pending.isEmpty()) pending.remove().run();
+                    }
                 });
             }
         });
         main.post(()->webView.loadDataWithBaseURL("https://nm7.local/","<html><body></body></html>","text/html","UTF-8",null));
-        script=pluginScript;
     }
 
-    public void whenReady(Runnable r){main.post(()->{if(ready)r.run();else readyAction=r;});}
+    public void whenReady(Runnable r){
+        main.post(()->{
+            if(destroyed)return;
+            if(ready)r.run();else pending.add(r);
+        });
+    }
 
     public void call(String function, Callback cb, String... jsArgs){
         whenReady(()->{
@@ -47,13 +58,16 @@ public final class MovieJsRuntime {
     }
 
     private void eval(String expr,Callback cb){
-        main.post(()->webView.evaluateJavascript(expr,value->{
-            try{
-                if(value==null||"null".equals(value)){cb.error("JS trả về null");return;}
-                Object decoded=new JSONTokener(value).nextValue();
-                cb.done(decoded==null? "":String.valueOf(decoded));
-            }catch(Exception e){cb.error("JS parse: "+e.getMessage());}
-        }));
+        main.post(()->{
+            if(destroyed){cb.error("JS runtime đã đóng");return;}
+            webView.evaluateJavascript(expr,value->{
+                try{
+                    if(value==null||"null".equals(value)){cb.error("JS trả về null");return;}
+                    Object decoded=new JSONTokener(value).nextValue();
+                    cb.done(decoded==null?"":String.valueOf(decoded));
+                }catch(Exception e){cb.error("JS parse: "+e.getMessage());}
+            });
+        });
     }
 
     public static String quote(String s){
@@ -61,5 +75,5 @@ public final class MovieJsRuntime {
         try{return org.json.JSONObject.quote(s);}catch(Exception e){return """";}
     }
 
-    public void destroy(){main.post(()->{ready=false;webView.stopLoading();webView.destroy();});}
+    public void destroy(){main.post(()->{destroyed=true;ready=false;pending.clear();webView.stopLoading();webView.destroy();});}
 }
