@@ -43,8 +43,10 @@ public final class MovieJson {
                 String key=sourceId+":"+id;
                 if (seen.add(key) && out.size()<80) {
                     String detail=firstHttp(o,"detailUrl","detail_url","url","href");
-                    if (detail==null) detail=base+"/api/title/"+enc(id);
-                    out.add(new MovieItem(id,title,resolveImage(base,poster),resolveImage(base,backdrop==null?poster:backdrop),
+                    boolean show=isShow(o);
+                    String normalizedId=(id.startsWith("movie/")||id.startsWith("show/"))?id:(show?"show/":"movie/")+id;
+                    if (detail==null) detail=base+"/api/"+(show?"shows/":"movies/")+enc(id);
+                    out.add(new MovieItem(normalizedId,title,resolveImage(base,poster),resolveImage(base,backdrop==null?poster:backdrop),
                             first(o,"quality","resolution","format"), year(o), sourceId, show, detail));
                 }
             }
@@ -98,11 +100,11 @@ public final class MovieJson {
                 out.add(new MovieEpisode(id==null?slug:id,name==null?"Tập "+e:"Tập "+e+(name.startsWith("Tập ")?": "+name.substring(5):": "+name),
                         "s"+s+"-e"+e,s,e, isHttp(id)&&looksPlayable(id)?id:null));
             }
+            int currentSeason = s > 0 ? s : season;
             JSONArray names=o.names();
             if(names!=null) for(int i=0;i<names.length();i++) {
                 String k=names.optString(i); Object v=o.opt(k);
-                int nextSeason=(k.toLowerCase().contains("season")?Math.max(s,season):season);
-                collectEpisodes(v,nextSeason,out,base,slug);
+                collectEpisodes(v,currentSeason,out,base,slug);
             }
         } else if(node instanceof JSONArray) {
             JSONArray a=(JSONArray)node;
