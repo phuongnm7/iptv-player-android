@@ -341,7 +341,8 @@ jobs:
             -PtruthXVersion=1.5.0 \
             -PtestXSupportVersion=1.1.0 \
             -PannotationXVersion=1.1.0 \
-            :app:connectedMobileDebugAndroidTest --tests vn.phuong.iptvplayer.movie.MoviePluginEndToEndTest
+            :app:connectedMobileDebugAndroidTest \
+            -Pandroid.testInstrumentationRunnerArguments.class=vn.phuong.iptvplayer.movie.MoviePluginEndToEndTest
 
       - name: Dump Movie unit-test reports on failure
         if: failure()
