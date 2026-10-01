@@ -39,7 +39,6 @@ public final class MovieJson {
             String poster=first(o,"posterUrl","poster","poster_path","posterPath","image","imageUrl","thumbnail","thumbnailUrl");
             String backdrop=first(o,"backdropUrl","backdrop","backdrop_path","backdropPath","cover","coverUrl");
             if (title!=null && id!=null) {
-                boolean show=isShow(o);
                 String key=sourceId+":"+id;
                 if (seen.add(key) && out.size()<80) {
                     String detail=firstHttp(o,"detailUrl","detail_url","url","href");
