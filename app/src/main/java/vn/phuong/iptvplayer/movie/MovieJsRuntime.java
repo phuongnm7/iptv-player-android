@@ -140,7 +140,8 @@ public final class MovieJsRuntime {
                             ");return;}" +
                             "var r=" + function + "(" + args + ");" +
                             "Promise.resolve(r).then(function(v){" +
-                            "NM7Bridge.callbackDone(id,v==null?'':String(v));" +
+                            "var out=(v==null)?'':((typeof v==='string'||typeof v==='number'||typeof v==='boolean')?String(v):JSON.stringify(v));" +
+                            "NM7Bridge.callbackDone(id,out);" +
                             "},function(e){" +
                             "NM7Bridge.callbackError(id,String(e&&e.stack?e.stack:e));" +
                             "});" +
