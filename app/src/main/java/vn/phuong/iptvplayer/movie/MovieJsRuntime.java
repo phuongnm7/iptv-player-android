@@ -34,6 +34,10 @@ public final class MovieJsRuntime {
     private String initError;
 
     public MovieJsRuntime(android.content.Context context, String pluginScript) {
+        this(context, pluginScript, "https://nm7.local/");
+    }
+
+    public MovieJsRuntime(android.content.Context context, String pluginScript, String originUrl) {
         webView = new WebView(context);
 
         WebSettings s = webView.getSettings();
@@ -93,13 +97,20 @@ public final class MovieJsRuntime {
             }
         });
 
-        main.post(() -> webView.loadDataWithBaseURL(
-                "https://nm7.local/",
-                "<html><body></body></html>",
-                "text/html",
-                "UTF-8",
-                null
-        ));
+        main.post(() -> {
+            String origin = originUrl == null ? "" : originUrl.trim();
+            if (origin.startsWith("http://") || origin.startsWith("https://")) {
+                webView.loadUrl(origin);
+            } else {
+                webView.loadDataWithBaseURL(
+                        "https://nm7.local/",
+                        "<html><body></body></html>",
+                        "text/html",
+                        "UTF-8",
+                        null
+                );
+            }
+        });
     }
 
     public void whenReady(Runnable r) {
@@ -112,6 +123,74 @@ public final class MovieJsRuntime {
             } else {
                 pending.add(r);
             }
+        });
+    }
+
+    /**
+     * Fetches a URL from the WebView's real browser context. This is used for
+     * Cloudflare-protected movie APIs such as NovaHD so requests carry the
+     * WebView cookies/browser fingerprint instead of Java HttpURLConnection.
+     */
+    public void webGet(String url, Map<String, String> headers, Callback cb) {
+        whenReady(() -> {
+            if (destroyed) {
+                cb.error("JS runtime đã đóng");
+                return;
+            }
+            if (!ready) {
+                cb.error("Không khởi tạo được WebView: " +
+                        (initError == null ? "không rõ lỗi" : initError));
+                return;
+            }
+
+            String id = "w" + sequence.incrementAndGet();
+            callbacks.put(id, cb);
+
+            org.json.JSONObject jsonHeaders = new org.json.JSONObject();
+            if (headers != null) {
+                for (Map.Entry<String, String> e : headers.entrySet()) {
+                    if (e.getKey() != null && e.getValue() != null) {
+                        jsonHeaders.put(e.getKey(), e.getValue());
+                    }
+                }
+            }
+
+            String expression =
+                    "(async function(){" +
+                            "var id=" + quote(id) + ";" +
+                            "var url=" + quote(url) + ";" +
+                            "var supplied=JSON.parse(" + quote(jsonHeaders.toString()) + ");" +
+                            "var h={};" +
+                            "Object.keys(supplied).forEach(function(k){" +
+                                "if(!/^(origin|referer|user-agent|sec-)/i.test(k)) h[k]=supplied[k];" +
+                            "});" +
+                            "for(var attempt=0;attempt<4;attempt++){" +
+                                "try{" +
+                                    "var r=await window.fetch(url,{" +
+                                        "method:'GET',headers:h,credentials:'include'," +
+                                        "cache:'no-store',redirect:'follow'" +
+                                    "});" +
+                                    "var body=await r.text();" +
+                                    "if(r.status>=200 && r.status<300){" +
+                                        "NM7Bridge.callbackDone(id,body);return;" +
+                                    "}" +
+                                    "if(r.status!==403 || attempt>=3){" +
+                                        "var detail=String(body||'').replace(/\\s+/g,' ').trim();" +
+                                        "if(detail.length>500) detail=detail.substring(0,500);" +
+                                        "NM7Bridge.callbackError(id,'HTTP '+r.status+' — '+detail);return;" +
+                                    "}" +
+                                    "await new Promise(function(resolve){setTimeout(resolve,1200);});" +
+                                "}catch(e){" +
+                                    "if(attempt>=3){" +
+                                        "NM7Bridge.callbackError(id,String(e&&e.stack?e.stack:e));return;" +
+                                    "}" +
+                                    "await new Promise(function(resolve){setTimeout(resolve,800);});" +
+                                "}" +
+                            "}" +
+                            "NM7Bridge.callbackError(id,'WebView fetch thất bại');" +
+                    "})();";
+
+            webView.evaluateJavascript(expression, ignored -> {});
         });
     }
 
