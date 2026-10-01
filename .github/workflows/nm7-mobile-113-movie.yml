@@ -4,7 +4,7 @@ name: NM7 IPTV Mobile 1.10.114 Movie Fix Build
 "on":
   push:
     branches:
-      - "feature/mobile-1.10.114-movie"
+      - "feature/mobile-1.10.114-movie-fix"
   workflow_dispatch:
 
 jobs:
