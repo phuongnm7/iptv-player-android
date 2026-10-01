@@ -84,9 +84,9 @@ public final class MovieHttp {
         for (String part : query.split("&")) {
             int p = part.indexOf('=');
             if (p < 0) continue;
-            String key = URLDecoder.decode(part.substring(0, p), StandardCharsets.UTF_8);
+            String key = URLDecoder.decode(part.substring(0, p), StandardCharsets.UTF_8.name());
             if (!wanted.equals(key)) continue;
-            return URLDecoder.decode(part.substring(p + 1), StandardCharsets.UTF_8);
+            return URLDecoder.decode(part.substring(p + 1), StandardCharsets.UTF_8.name());
         }
         return null;
     }
