@@ -25,7 +25,8 @@ public class MovieJsonTest {
         assertEquals(2,d.episodes.size());
         assertEquals(1,d.episodes.get(0).season);
         assertEquals(2,d.episodes.get(1).episode);
-        assertNotNull(d.episodes.get(0).id);\n        assertFalse(d.episodes.get(0).id.isEmpty());
+        assertNotNull(d.episodes.get(0).id);
+        assertFalse(d.episodes.get(0).id.isEmpty());
     }
 
     @Test public void parsePlaybackFindsHlsAndHeaders() {
