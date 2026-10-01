@@ -113,7 +113,7 @@ public final class MovieJson {
             );
 
             List<MovieEpisode> eps = new ArrayList<>();
-            collectEpisodes(o, 0, eps, base, stripPrefix(seed.id));
+            collectEpisodes(o, 0, eps, base, stripPrefix(seed.id), seed.show);
             if (eps.isEmpty()) {
                 String direct = findPlayable(o);
                 if (direct != null) {
@@ -148,7 +148,7 @@ public final class MovieJson {
     }
 
     private static void collectEpisodes(Object node, int season, List<MovieEpisode> out,
-                                        String base, String slug) {
+                                        String base, String slug, boolean show) {
         if (node instanceof JSONObject) {
             JSONObject o = (JSONObject) node;
             int s = integer(o, "seasonNumber", "season", "season_no");
@@ -167,7 +167,7 @@ public final class MovieJson {
                 }
                 if (id == null && slug != null && !slug.isEmpty()) {
                     if (base != null && base.contains("novahd.cc")) {
-                        String type = seedIsShow(base, slug) ? "show" : "movie";
+                        String type = show ? "show" : "movie";
                         if ("show".equals(type)) {
                             id = base + "/api/sources?type=show&tmdbId=" + enc(slug)
                                     + "&season=" + (s > 0 ? s : 1)
@@ -202,13 +202,13 @@ public final class MovieJson {
             JSONArray names = o.names();
             if (names != null) {
                 for (int i = 0; i < names.length(); i++) {
-                    collectEpisodes(o.opt(names.optString(i)), currentSeason, out, base, slug);
+                    collectEpisodes(o.opt(names.optString(i)), currentSeason, out, base, slug, show);
                 }
             }
         } else if (node instanceof JSONArray) {
             JSONArray a = (JSONArray) node;
             for (int i = 0; i < a.length(); i++) {
-                collectEpisodes(a.opt(i), season, out, base, slug);
+                collectEpisodes(a.opt(i), season, out, base, slug, show);
             }
         }
     }
@@ -454,10 +454,6 @@ public final class MovieJson {
                 || "series".equalsIgnoreCase(t)))
                 || o.has("seasons") || o.has("episodes")
                 || o.has("firstAirDate") || o.has("first_air_date");
-    }
-
-    private static boolean seedIsShow(String base, String slug) {
-        return false;
     }
 
     private static boolean isHttp(String s) {
