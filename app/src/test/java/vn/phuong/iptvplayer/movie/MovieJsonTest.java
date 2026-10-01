@@ -18,7 +18,7 @@ public class MovieJsonTest {
         assertEquals("movie/101",items.get(0).id);
         assertTrue(items.get(0).posterUrl.endsWith("/p.jpg"));
         assertFalse(items.get(0).show);
-        assertTrue(items.get(0).detailUrl.endsWith("/api/title/101"));
+        assertTrue(items.get(0).detailUrl.endsWith("/api/movies/101"));
     }
 
     @Test public void parseLocalizedObjectFieldsUsesVietnameseValue() {
