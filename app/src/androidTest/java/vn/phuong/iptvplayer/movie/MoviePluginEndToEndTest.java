@@ -41,7 +41,7 @@ public class MoviePluginEndToEndTest {
 
         final AtomicReference<MovieJsRuntime> runtimeRef = new AtomicReference<>();
         InstrumentationRegistry.getInstrumentation().runOnMainSync(
-                () -> runtimeRef.set(new MovieJsRuntime(context, script)));
+                () -> runtimeRef.set(new MovieJsRuntime(context, script, BASE + "/")));
         MovieJsRuntime runtime = runtimeRef.get();
         assertNotNull(runtime);
 
@@ -57,7 +57,7 @@ public class MoviePluginEndToEndTest {
             assertTrue("Plugin search URL is wrong: " + searchUrl,
                     searchUrl.startsWith(BASE + "/api/search?search="));
 
-            String searchBody = MovieHttp.get(searchUrl, MovieHttp.novaHeaders(searchUrl));
+            String searchBody = fetchWeb(runtime, searchUrl, MovieHttp.novaHeaders(searchUrl));
             assertFalse("NovaHD search API returned an empty body", searchBody.trim().isEmpty());
 
             String pluginSearch = call(runtime, "parseSearchResponse",
@@ -121,6 +121,31 @@ public class MoviePluginEndToEndTest {
         }
     }
 
+    private static String fetchWeb(MovieJsRuntime runtime, String url,
+                                   Map<String, String> headers) throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<String> result = new AtomicReference<>();
+        AtomicReference<String> error = new AtomicReference<>();
+
+        runtime.webGet(url, headers, new MovieJsRuntime.Callback() {
+            @Override public void done(String value) {
+                result.set(value);
+                latch.countDown();
+            }
+
+            @Override public void error(String message) {
+                error.set(message);
+                latch.countDown();
+            }
+        });
+
+        if (!latch.await(CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+            throw new Exception("Timed out fetching " + url);
+        }
+        if (error.get() != null) throw new Exception(error.get());
+        return result.get() == null ? "" : result.get();
+    }
+
     private static StreamResult resolveFirstPlayable(
             Context context, MovieJsRuntime runtime, List<MovieItem> items) throws Exception {
         Exception last = null;
@@ -132,8 +157,8 @@ public class MoviePluginEndToEndTest {
                 String detailUrl = call(runtime, "getUrlDetail", MovieJsRuntime.quote(item.id));
                 assertTrue("Plugin detail URL is not HTTP: " + detailUrl, isHttp(detailUrl));
 
-                String detailBody = MovieHttp.get(
-                        detailUrl, MovieHttp.novaHeaders(detailUrl));
+                String detailBody = fetchWeb(
+                        runtime, detailUrl, MovieHttp.novaHeaders(detailUrl));
                 String parsedDetail = call(
                         runtime, "parseMovieDetail",
                         MovieJsRuntime.quote(normalize(detailBody)),
@@ -152,8 +177,8 @@ public class MoviePluginEndToEndTest {
                         continue;
                     }
 
-                    String sourceBody = MovieHttp.get(
-                            sourceUrl, MovieHttp.novaHeaders(sourceUrl));
+                    String sourceBody = fetchWeb(
+                            runtime, sourceUrl, MovieHttp.novaHeaders(sourceUrl));
                     String parsedPlayback = call(
                             runtime, "parseDetailResponse",
                             MovieJsRuntime.quote(normalize(sourceBody)),
