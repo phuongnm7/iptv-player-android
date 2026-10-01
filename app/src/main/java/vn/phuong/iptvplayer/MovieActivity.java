@@ -84,7 +84,7 @@ public final class MovieActivity extends Activity {
         ScrollView scroll=new ScrollView(this);content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);scroll.addView(content,new ScrollView.LayoutParams(-1,-2));root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
         setContentView(root);
         search.setOnEditorActionListener((v,a,e)->{doSearch();return true;});
-        SharedPlaybackSession.setTab(this,SharedPlaybackSession.TAB_IPTV);
+        SharedPlaybackSession.setTab(this,SharedPlaybackSession.TAB_MOVIE);
     }
 
     private void rebuildSources(){
