@@ -116,7 +116,14 @@ public final class MovieJson {
             collectEpisodes(o, 0, eps, base, stripPrefix(seed.id));
             if (eps.isEmpty()) {
                 String direct = findPlayable(o);
-                eps.add(new MovieEpisode(movie.id, "▶ Xem phim", "full", 0, 0, direct));
+                if (direct != null) {
+                    eps.add(new MovieEpisode(direct, "▶ Xem phim", "full", 0, 0, direct));
+                } else if (base != null && base.contains("novahd.cc")) {
+                    String tmdbId = stripPrefix(movie.id);
+                    eps.add(new MovieEpisode(
+                            base + "/api/sources?type=movie&tmdbId=" + enc(tmdbId),
+                            "▶ Xem phim", "full", 0, 0, null));
+                }
             }
 
             return new MovieDetail(
@@ -159,7 +166,18 @@ public final class MovieJson {
                     }
                 }
                 if (id == null && slug != null && !slug.isEmpty()) {
-                    id = base + "/api/watch/" + enc(slug) + "/" + e + "?fromStart=false";
+                    if (base != null && base.contains("novahd.cc")) {
+                        String type = seedIsShow(base, slug) ? "show" : "movie";
+                        if ("show".equals(type)) {
+                            id = base + "/api/sources?type=show&tmdbId=" + enc(slug)
+                                    + "&season=" + (s > 0 ? s : 1)
+                                    + "&episode=" + e;
+                        } else {
+                            id = base + "/api/sources?type=movie&tmdbId=" + enc(slug);
+                        }
+                    } else {
+                        id = base + "/api/watch/" + enc(slug) + "/" + e + "?fromStart=false";
+                    }
                 }
 
                 String label;
@@ -436,6 +454,10 @@ public final class MovieJson {
                 || "series".equalsIgnoreCase(t)))
                 || o.has("seasons") || o.has("episodes")
                 || o.has("firstAirDate") || o.has("first_air_date");
+    }
+
+    private static boolean seedIsShow(String base, String slug) {
+        return false;
     }
 
     private static boolean isHttp(String s) {
