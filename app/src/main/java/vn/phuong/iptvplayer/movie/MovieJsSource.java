@@ -61,6 +61,13 @@ public final class MovieJsSource implements MovieSource {
         }, MovieJsRuntime.quote(query), MovieJsRuntime.quote("{\"page\":1}"));
     }
 
+    private Map<String, String> pluginHeaders(String url) {
+        if (url != null && url.contains("novahd.cc")) {
+            return MovieHttp.novaHeaders(url);
+        }
+        return Collections.emptyMap();
+    }
+
     private void fetchListAndParse(String url, String parser, Callback<List<MovieItem>> cb) {
         final String requestUrl = cleanResult(url);
         if (!isHttp(requestUrl)) {
@@ -69,7 +76,7 @@ public final class MovieJsSource implements MovieSource {
         }
         io.execute(() -> {
             try {
-                String body = MovieHttp.get(requestUrl, Collections.emptyMap());
+                String body = MovieHttp.get(requestUrl, pluginHeaders(requestUrl));
                 js.call(parser, new MovieJsRuntime.Callback() {
                     @Override public void done(String parsed) {
                         List<MovieItem> items = parseItems(parsed);
@@ -104,7 +111,7 @@ public final class MovieJsSource implements MovieSource {
             @Override public void error(String m) {
                 fallbackDetail(item, cb, m);
             }
-        }, MovieJsRuntime.quote(cleanId));
+        }, MovieJsRuntime.quote(item.id));
     }
 
     private void fallbackDetail(MovieItem item, Callback<MovieDetail> cb, String reason) {
@@ -118,7 +125,7 @@ public final class MovieJsSource implements MovieSource {
     private void fetchDetailUrl(String url, MovieItem item, Callback<MovieDetail> cb) {
         io.execute(() -> {
             try {
-                String body = MovieHttp.get(url, Collections.emptyMap());
+                String body = MovieHttp.get(url, pluginHeaders(url));
                 js.call("parseMovieDetail", new MovieJsRuntime.Callback() {
                     @Override public void done(String parsed) {
                         MovieDetail d = parseDetail(parsed, item);
@@ -183,7 +190,7 @@ public final class MovieJsSource implements MovieSource {
     private void resolvePlaybackFromUrl(String url, int hop, Callback<Playback> cb) {
         io.execute(() -> {
             try {
-                String body = MovieHttp.get(url, Collections.emptyMap());
+                String body = MovieHttp.get(url, pluginHeaders(url));
                 parsePlaybackResponse(body, url, hop, cb);
             } catch (Exception e) {
                 cb.onError("Plugin HTTP luồng phát: " + safe(e));
