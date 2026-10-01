@@ -268,14 +268,14 @@ public class MoviePluginEndToEndTest {
     @Test
     public void media3PlayerSmokeWithKnownPublicHls() throws Exception {
         final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        final String stream =
-                "https://storage.googleapis.com/shaka-demo-assets/angel-one-hls/hls.m3u8";
+        // The CI workflow serves a deterministic local H.264 MP4 via the emulator host alias.
+        final String stream = "http://10.0.2.2:8765/movie-smoke.mp4";
 
         Intent intent = new Intent(context, PlayerActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         intent.putExtra(PlayerActivity.EXTRA_NAME, "Player Smoke Test");
         intent.putExtra(PlayerActivity.EXTRA_URL, stream);
-        intent.putExtra(PlayerActivity.EXTRA_MIME, "application/x-mpegURL");
+        intent.putExtra(PlayerActivity.EXTRA_MIME, "video/mp4");
         intent.putExtra(PlayerActivity.EXTRA_CONTENT_TYPE, PlayerActivity.CONTENT_MOVIE);
 
         Activity activity = null;
@@ -283,7 +283,7 @@ public class MoviePluginEndToEndTest {
             activity = InstrumentationRegistry.getInstrumentation().startActivitySync(intent);
             assertNotNull(activity);
             assertTrue(
-                    "Media3 PlayerActivity did not reach STATE_READY for public HLS asset",
+                    "Media3 PlayerActivity did not reach STATE_READY for deterministic local H.264 asset",
                     waitForPlayerReady(activity, PLAYER_TIMEOUT_SECONDS)
             );
         } finally {
