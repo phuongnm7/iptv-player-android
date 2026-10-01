@@ -220,6 +220,20 @@ public final class MovieJson {
     private static Object parseJsonOrNdjson(String json) {
         String text = json == null ? "" : json.trim();
         if (text.isEmpty()) return new JSONObject();
+
+        // NovaHD /api/sources can be NDJSON: one complete JSON object per line.
+        // Prefer line-wise parsing when there are multiple complete JSON records,
+        // but keep ordinary pretty-printed JSON working as before.
+        if (text.indexOf('\n') >= 0) {
+            JSONArray rows = new JSONArray();
+            for (String line : text.split("\\r?\\n")) {
+                String trimmed = line.trim();
+                if (trimmed.isEmpty() || ":".equals(trimmed)) continue;
+                try { rows.put(new JSONTokener(trimmed).nextValue()); } catch (Exception ignoredLine) {}
+            }
+            if (rows.length() > 1) return rows;
+        }
+
         try {
             return new JSONTokener(text).nextValue();
         } catch (Exception ignored) {
@@ -237,23 +251,19 @@ public final class MovieJson {
         try {
             Object root = parseJsonOrNdjson(json);
             String url = null;
+            int bestQuality = -1;
 
-            if (root instanceof JSONObject) {
-                JSONObject obj = (JSONObject) root;
-                JSONArray sources = obj.optJSONArray("sources");
-                if (sources != null) {
-                    for (int i = 0; i < sources.length(); i++) {
-                        JSONObject src = sources.optJSONObject(i);
-                        if (src == null) continue;
-                        String u = findPlayable(src);
-                        if (u == null) continue;
-                        if (url == null) url = u;
-                        String q = first(src, "quality", "resolution", "format");
-                        if (isHighQuality(q)) {
-                            url = u;
-                            break;
-                        }
-                    }
+            List<JSONObject> sourceObjects = new ArrayList<>();
+            collectSourceObjects(root, sourceObjects);
+
+            for (JSONObject src : sourceObjects) {
+                String u = findPlayable(src);
+                if (u == null) continue;
+
+                int quality = qualityScore(first(src, "quality", "resolution", "format"));
+                if (url == null || quality > bestQuality) {
+                    url = u;
+                    bestQuality = quality;
                 }
             }
 
@@ -273,6 +283,43 @@ public final class MovieJson {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private static void collectSourceObjects(Object node, List<JSONObject> out) {
+        if (node instanceof JSONObject) {
+            JSONObject o = (JSONObject) node;
+            JSONArray sources = o.optJSONArray("sources");
+            if (sources != null) {
+                for (int i = 0; i < sources.length(); i++) {
+                    JSONObject src = sources.optJSONObject(i);
+                    if (src != null) out.add(src);
+                }
+            }
+            JSONArray names = o.names();
+            if (names != null) {
+                for (int i = 0; i < names.length(); i++) {
+                    collectSourceObjects(o.opt(names.optString(i)), out);
+                }
+            }
+        } else if (node instanceof JSONArray) {
+            JSONArray a = (JSONArray) node;
+            for (int i = 0; i < a.length(); i++) {
+                collectSourceObjects(a.opt(i), out);
+            }
+        }
+    }
+
+    private static int qualityScore(String q) {
+        if (q == null) return 0;
+        String x = q.toLowerCase().replaceAll("[^0-9k]", "");
+        if (x.contains("4k")) return 2160;
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("(\\d{3,4})").matcher(x);
+        if (m.find()) {
+            try { return Integer.parseInt(m.group(1)); } catch (Exception ignored) {}
+        }
+        if (x.contains("fhd")) return 1080;
+        if (x.contains("hd")) return 720;
+        return 0;
     }
 
     public static String findTicket(Object root) {
