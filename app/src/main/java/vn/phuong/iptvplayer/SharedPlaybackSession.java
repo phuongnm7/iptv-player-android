@@ -13,6 +13,7 @@ import android.os.Bundle;
 public final class SharedPlaybackSession {
     public static final String TAB_IPTV = "iptv";
     public static final String TAB_YOUTUBE = "youtube";
+    public static final String TAB_MOVIE = "movie";
 
     private static final String PREFS = "nm7_shared_playback";
     private static final String KEY_TAB = "tab";
