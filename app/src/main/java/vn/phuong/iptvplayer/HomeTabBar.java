@@ -69,11 +69,6 @@ public final class HomeTabBar {
                 list.setPadding(list.getPaddingLeft(), list.getPaddingTop(),
                         list.getPaddingRight(), list.getPaddingBottom() + dp(activity, 76));
             }
-        } else if (activity instanceof MovieActivity) {
-            View root = activity.findViewById(android.R.id.content);
-            if (root != null && root.getPaddingBottom() < dp(activity,64))
-                root.setPadding(root.getPaddingLeft(),root.getPaddingTop(),root.getPaddingRight(),dp(activity,76));
-        }
     }
 
     public static void setVisible(Activity activity, boolean visible) {
