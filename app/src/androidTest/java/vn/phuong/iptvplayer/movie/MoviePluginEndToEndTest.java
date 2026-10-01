@@ -89,6 +89,10 @@ public class MoviePluginEndToEndTest {
             }
             assertNotNull("Could not resolve a playable NovaHD result", selected);
             assertNotNull(selected.playback);
+            System.out.println("E2E_PHASE=stream-resolved");
+            System.out.println("E2E_STREAM_URL=" + selected.playback.url);
+            System.out.println("E2E_STREAM_MIME=" + selected.playback.mime);
+            System.out.println("E2E_STREAM_HEADERS=" + selected.playback.headers.keySet());
             assertTrue("Resolved stream URL is not HTTP(S)",
                     selected.playback.url.startsWith("http://")
                             || selected.playback.url.startsWith("https://"));
@@ -116,9 +120,12 @@ public class MoviePluginEndToEndTest {
             }
             intent.putParcelableArrayListExtra(PlayerActivity.EXTRA_SUBTITLES, subtitles);
 
+            System.out.println("E2E_PHASE=starting-player-activity");
             playerActivity = InstrumentationRegistry.getInstrumentation().startActivitySync(intent);
+            System.out.println("E2E_PHASE=player-activity-started");
             assertNotNull(playerActivity);
 
+            System.out.println("E2E_PHASE=waiting-player-ready");
             boolean ready = waitForPlayerReady(playerActivity, PLAYER_TIMEOUT_SECONDS);
             assertTrue(
                     "Movie PlayerActivity did not reach STATE_READY. stream="
