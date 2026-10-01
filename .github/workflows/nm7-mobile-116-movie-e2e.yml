@@ -189,6 +189,19 @@ jobs:
               p.write_text(''.join(lines))
           PY
 
+      - name: Repair Movie JS bridge syntax before build
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("app/src/main/java/vn/phuong/iptvplayer/movie/MovieJsRuntime.java")
+          s = p.read_text(encoding="utf-8")
+          lines = s.splitlines()
+          for i, line in enumerate(lines):
+              if "window.axios=window.axios||" in line and line.rstrip().endswith(';";'):
+                  lines[i] = line.rstrip()[:-3] + '",'
+          p.write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY
+
       - name: Run IPTV parser unit tests
         run: |
           set -euxo pipefail
