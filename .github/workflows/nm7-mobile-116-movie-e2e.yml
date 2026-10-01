@@ -9,7 +9,7 @@ name: NM7 IPTV Mobile 1.10.116 Movie E2E Build
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     timeout-minutes: 60
     steps:
       - name: Checkout source and submodules
@@ -253,14 +253,13 @@ jobs:
           heap-size: 768M
           cores: 4
           force-avd-creation: true
-          wipe-data: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -no-snapshot-save -camera-back none -camera-front none
           disable-animations: true
           emulator-boot-timeout: 1200
+          pre-emulator-launch-script: |
+            adb kill-server || true
           script: |
             set -e
-            adb kill-server || true
-            adb start-server
             adb wait-for-device
             adb devices
             gradle --no-daemon --console=plain \
