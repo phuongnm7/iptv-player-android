@@ -51,7 +51,9 @@ public class MoviePluginEndToEndTest {
             assertTrue("Plugin manifest missing NovaHD id", manifest.contains("\"id\":\"novahd\""));
             assertTrue("Plugin manifest missing Media3 player contract", manifest.contains("\"playerType\":\"media3\""));
 
-            String searchUrl = call(runtime, "getUrlSearch", "Avatar", "{\"page\":1}");
+            String searchUrl = call(runtime, "getUrlSearch",
+                    MovieJsRuntime.quote("Avatar"),
+                    MovieJsRuntime.quote("{\"page\":1}"));
             assertTrue("Plugin search URL is wrong: " + searchUrl,
                     searchUrl.startsWith(BASE + "/api/search?search="));
 
@@ -59,7 +61,8 @@ public class MoviePluginEndToEndTest {
             assertFalse("NovaHD search API returned an empty body", searchBody.trim().isEmpty());
 
             String pluginSearch = call(runtime, "parseSearchResponse",
-                    normalize(searchBody), searchUrl);
+                    MovieJsRuntime.quote(normalize(searchBody)),
+                    MovieJsRuntime.quote(searchUrl));
             List<MovieItem> items = MovieJson.parseList(
                     normalize(searchBody), BASE, "novahd");
             if (items.isEmpty()) {
@@ -126,13 +129,15 @@ public class MoviePluginEndToEndTest {
         for (int i = 0; i < limit; i++) {
             MovieItem item = items.get(i);
             try {
-                String detailUrl = call(runtime, "getUrlDetail", item.id);
+                String detailUrl = call(runtime, "getUrlDetail", MovieJsRuntime.quote(item.id));
                 assertTrue("Plugin detail URL is not HTTP: " + detailUrl, isHttp(detailUrl));
 
                 String detailBody = MovieHttp.get(
                         detailUrl, MovieHttp.novaHeaders(detailUrl));
                 String parsedDetail = call(
-                        runtime, "parseMovieDetail", normalize(detailBody), detailUrl);
+                        runtime, "parseMovieDetail",
+                        MovieJsRuntime.quote(normalize(detailBody)),
+                        MovieJsRuntime.quote(detailUrl));
 
                 MovieDetail detail = parseDetailForTest(parsedDetail, item);
                 if (detail == null || detail.episodes.isEmpty()) continue;
@@ -151,7 +156,8 @@ public class MoviePluginEndToEndTest {
                             sourceUrl, MovieHttp.novaHeaders(sourceUrl));
                     String parsedPlayback = call(
                             runtime, "parseDetailResponse",
-                            normalize(sourceBody), sourceUrl);
+                            MovieJsRuntime.quote(normalize(sourceBody)),
+                            MovieJsRuntime.quote(sourceUrl));
 
                     Playback playback = parsePluginPlayback(parsedPlayback, sourceUrl);
                     if (playback == null) {
