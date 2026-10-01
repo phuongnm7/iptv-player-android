@@ -1,3 +1,45 @@
+# MOBILE 1.10.114 — MOVIE TAB RUNTIME FIX FROM USER VIDEO — 2026-10-01
+
+## Phân tích video người dùng
+
+Đã xem trực tiếp video `video_2026-10-01_09-48-34.mp4` và đối chiếu với source của 1.10.113.
+
+Video cho thấy:
+- Tab Movie **đã gọi được danh sách phim** và hiển thị khoảng 80 mục.
+- Tên phim xuất hiện dưới dạng object đa ngôn ngữ, ví dụ kiểu `{"en":"...","vi":"..."}`, thay vì tên tiếng Việt.
+- Ảnh poster/backdrop bị rỗng hoặc không được resolve đúng.
+- Khi mở chi tiết phim, app báo **HTTP 503**.
+- Khi import `novahd_plugin.js`, danh sách vẫn tải được nhưng lỗi dữ liệu/chi tiết tiếp tục xuất hiện.
+- Đường playback của plugin chưa tuân theo đầy đủ luồng `getUrlDetail() -> fetch -> parseDetailResponse()`, nên episode dạng slug/URL trung gian không thể resolve ổn định.
+
+## 1.10.114 — thay đổi xử lý
+
+Bản này tiếp tục trực tiếp từ commit đã build của **1.10.113**, không sửa `stable/mobile-1.10.112`.
+
+Đã sửa:
+1. Chuẩn hóa trường dữ liệu JSON/localized object: ưu tiên `vi/vn`, sau đó `name/title/original/en`.
+2. Chuẩn hóa poster/backdrop và ID `movie/` / `show/`.
+3. Không còn tự chốt detail URL sai dạng `/api/movies` / `/api/shows`; ưu tiên detail URL từ source và fallback `/api/title/<id>`.
+4. Film4k thử nhiều base + nhiều endpoint cho home/search/detail/playback.
+5. HTTP Movie có retry cho 429/502/503/504 và hỗ trợ POST text cho embed.
+6. Plugin JS hỗ trợ hàm async/Promise, trả lỗi deterministic thay vì treo.
+7. Plugin playback được sửa theo chuỗi resolve: episode id -> `getUrlDetail()` -> fetch -> `parseDetailResponse()`, đồng thời hỗ trợ recursive `parseEmbedResponse()` tối đa 3 cấp, `postBody`, `mimeType`, headers và subtitles.
+8. Bổ sung test cho localized title/poster và trường hợp không có stream.
+
+## Phiên bản / nhánh
+
+- Version: **1.10.114**
+- versionCode: **130**
+- Branch: `feature/mobile-1.10.114-movie-fix`
+- Stable baseline vẫn là: `stable/mobile-1.10.112`
+- Điều kiện chốt stable mới: phải có CI PASS và người dùng xác nhận runtime trên thiết bị thật.
+
+## Trạng thái
+
+Source đã được đẩy lên GitHub. CI 1.10.114 đang được chạy/kiểm tra. Chưa đánh dấu runtime PASS khi chưa có test thiết bị thật.
+
+---
+
 # STABLE BASELINE — NM7 IPTV Mobile 1.10.112 — 2026-09-30
 
 ## Quyết định ổn định hiện tại
