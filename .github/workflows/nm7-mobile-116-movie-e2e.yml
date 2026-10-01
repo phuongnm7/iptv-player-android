@@ -350,6 +350,16 @@ jobs:
           set +e
           find app/build/test-results -type f -name '*.xml' -print -exec sh -c 'echo "===== $1 ====="; cat "$1"' _ {} \; 2>/dev/null || true
           find app/build/reports -type f \( -name '*.html' -o -name '*.txt' \) -maxdepth 8 -print 2>/dev/null | head -50 || true
+          if command -v adb >/dev/null 2>&1; then
+            echo "===== ADB DEVICES ====="
+            adb devices || true
+            echo "===== LOGCAT CRASH SUMMARY ====="
+            adb -s emulator-5554 logcat -d -t 5000 2>/dev/null \
+              | grep -E "FATAL EXCEPTION|AndroidRuntime|Process: vn\.phuong\.iptvplayer|chromium|WebView|SIGSEGV|signal 11|CRASH" \
+              | tail -250 || true
+            echo "===== TOP ACTIVITY ====="
+            adb -s emulator-5554 shell dumpsys activity activities 2>/dev/null | tail -100 || true
+          fi
 
 
       - name: Upload Mobile APK
