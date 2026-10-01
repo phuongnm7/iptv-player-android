@@ -149,6 +149,7 @@ public final class NovaHdSource implements MovieSource {
     }
 
     private String refererFor(MovieEpisode ep) {
+        String id = MovieJson.stripPrefix(ep.id == null ? "" : ep.id);
         try {
             java.net.URI u = new java.net.URI(ep.id);
             String qs = u.getQuery();
