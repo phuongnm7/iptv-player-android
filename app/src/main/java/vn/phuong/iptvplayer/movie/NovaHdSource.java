@@ -169,8 +169,8 @@ public final class NovaHdSource implements MovieSource {
         for (String part : q.split("&")) {
             int p = part.indexOf('=');
             if (p < 0) continue;
-            if (wanted.equals(java.net.URLDecoder.decode(part.substring(0, p), StandardCharsets.UTF_8))) {
-                return java.net.URLDecoder.decode(part.substring(p + 1), StandardCharsets.UTF_8);
+            if (wanted.equals(java.net.URLDecoder.decode(part.substring(0, p), StandardCharsets.UTF_8.name()))) {
+                return java.net.URLDecoder.decode(part.substring(p + 1), StandardCharsets.UTF_8.name());
             }
         }
         return null;
