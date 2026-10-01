@@ -159,6 +159,9 @@ public class MoviePluginEndToEndTest {
                                 normalize(sourceBody), sourceUrl, BASE);
                     }
                     if (playback == null || !isHttp(playback.url)) continue;
+                    if (playback.url.contains("/api/sources")) {
+                        throw new Exception("Plugin returned source API URL instead of a playable stream: " + playback.url);
+                    }
 
                     return new StreamResult(episode.name, playback);
                 }
