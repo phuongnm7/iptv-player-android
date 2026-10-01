@@ -114,7 +114,9 @@ public final class MovieHttp {
                 c.setReadTimeout(25000);
                 c.setRequestMethod("POST_TEXT".equals(method) || "POST".equals(method) ? "POST" : "GET");
                 c.setRequestProperty("User-Agent", UA);
-                c.setRequestProperty("Accept", "application/json,text/plain,text/html,*/*");
+                c.setRequestProperty("Accept", url != null && url.contains("/api/sources")
+                        ? "application/json, application/x-ndjson, text/plain, */*"
+                        : "application/json,text/plain,text/html,*/*");
                 c.setRequestProperty("Accept-Language", "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7");
                 c.setRequestProperty("Cache-Control", "no-cache");
                 c.setRequestProperty("Pragma", "no-cache");
