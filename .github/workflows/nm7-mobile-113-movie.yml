@@ -59,7 +59,7 @@ jobs:
           python3 scripts/patch-mobile-v37.py
           python3 scripts/patch-mobile-v106.py
 
-      - name: Verify 1.10.112 build configuration
+      - name: Verify 1.10.113 Movie build configuration
         run: |
           set -euxo pipefail
           test "$(grep -c 'versionName = "1.10.113"' app/build.gradle.kts)" -eq 1
@@ -202,7 +202,7 @@ jobs:
             -PannotationXVersion=1.1.0 \
             :app:testMobileDebugUnitTest --tests vn.phuong.iptvplayer.M3uParserTest --tests vn.phuong.iptvplayer.movie.MovieJsonTest
 
-      - name: Build Mobile only (current NM7 IPTV Mobile)
+      - name: Build Mobile only (NM7 IPTV Mobile + Movie)
         run: |
           set -o pipefail
           gradle --no-daemon --console=plain \
