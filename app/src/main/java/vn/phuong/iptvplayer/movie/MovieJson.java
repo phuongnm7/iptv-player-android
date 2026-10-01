@@ -217,9 +217,25 @@ public final class MovieJson {
         }
     }
 
+    private static Object parseJsonOrNdjson(String json) {
+        String text = json == null ? "" : json.trim();
+        if (text.isEmpty()) return new JSONObject();
+        try {
+            return new JSONTokener(text).nextValue();
+        } catch (Exception ignored) {
+            JSONArray rows = new JSONArray();
+            for (String line : text.split("\\r?\\n")) {
+                String trimmed = line.trim();
+                if (trimmed.isEmpty() || ":".equals(trimmed)) continue;
+                try { rows.put(new JSONTokener(trimmed).nextValue()); } catch (Exception ignoredLine) {}
+            }
+            return rows;
+        }
+    }
+
     public static Playback parsePlayback(String json, String requestedUrl, String base) {
         try {
-            Object root = new JSONTokener(json == null || json.isEmpty() ? "{}" : json).nextValue();
+            Object root = parseJsonOrNdjson(json);
             String url = null;
 
             if (root instanceof JSONObject) {
