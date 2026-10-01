@@ -230,45 +230,111 @@ function getUrlYears() { return ""; }
 
 // ===== PARSE LIST RESPONSE =====
 
+function textValue(v) {
+    if (v == null) return "";
+    if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") return String(v).trim();
+    if (Array.isArray(v)) {
+        var arr = [];
+        for (var i = 0; i < v.length; i++) {
+            var x = textValue(v[i]);
+            if (x) arr.push(x);
+        }
+        return arr.join(", ");
+    }
+    if (typeof v === "object") {
+        var keys = ["vi", "vn", "name", "title", "originalTitle", "original_title", "en", "original", "url", "src", "file", "path", "value"];
+        for (var i = 0; i < keys.length; i++) {
+            if (v[keys[i]] != null) {
+                var x = textValue(v[keys[i]]);
+                if (x) return x;
+            }
+        }
+        for (var k in v) {
+            if (v.hasOwnProperty(k)) {
+                var y = textValue(v[k]);
+                if (y) return y;
+            }
+        }
+    }
+    return "";
+}
+
+function imageValue(v, base) {
+    var x = textValue(v);
+    if (!x) return "";
+    if (x.indexOf("http://") === 0 || x.indexOf("https://") === 0) return x;
+    if (x.indexOf("//") === 0) return "https:" + x;
+    return base + (x.indexOf("/") === 0 ? x : "/" + x);
+}
+
+function payloadObject(data) {
+    if (!data || typeof data !== "object") return {};
+    if (data.data && typeof data.data === "object" && !Array.isArray(data.data)) {
+        return data.data;
+    }
+    return data;
+}
+
 function parseListResponse(jsonStr, url) {
     try {
         if (!jsonStr) return JSON.stringify({ items: [], pagination: { currentPage: 1, totalPages: 1, hasNext: false } });
 
-        var data = typeof jsonStr === "object" ? jsonStr : JSON.parse(jsonStr);
+        var data = typeof jsonStr === "object" ? jsonStr : JSON.parse(String(jsonStr));
+        data = payloadObject(data);
         var rawList = [];
 
         if (Array.isArray(data)) {
             rawList = data;
-        } else if (data.results && Array.isArray(data.results)) {
+        } else if (Array.isArray(data.results)) {
             rawList = data.results;
+        } else if (Array.isArray(data.movies)) {
+            rawList = data.movies;
+        } else if (Array.isArray(data.shows)) {
+            rawList = data.shows;
+        } else if (Array.isArray(data.items)) {
+            rawList = data.items;
         }
 
         var items = [];
-        for (var i = 0; i < rawList.length; i++) {
+        for (var i = 0; i < rawList.length && items.length < 80; i++) {
             var item = rawList[i];
             if (!item) continue;
 
-            var tmdbId = item.tmdbId || item.id;
+            var tmdbId = textValue(item.tmdbId != null ? item.tmdbId :
+                    (item.tmdb_id != null ? item.tmdb_id : item.id));
             if (!tmdbId) continue;
 
-            var isShow = (item.type === "show" || item.type === "tv" || item.firstAirDate != null || item.seasons != null);
+            var rawType = textValue(item.type || item.mediaType || item.media_type).toLowerCase();
+            var isShow = rawType === "show" || rawType === "tv" || rawType === "series"
+                    || item.firstAirDate != null || item.first_air_date != null
+                    || item.seasons != null || item.episodes != null;
             var itemType = isShow ? "show" : "movie";
-            var id = itemType + "/" + tmdbId;
+            var id = itemType + "/" + tmdbId.replace(/^(movie|show)\//, "");
 
-            var title = (item.title || item.name || "").trim();
+            var title = textValue(item.title != null ? item.title : item.name);
+            if (!title) title = textValue(item.originalTitle || item.original_title);
             if (!title) continue;
 
-            var poster = item.posterPath ? (TMDB_IMG_POSTER + item.posterPath) : "";
-            var backdrop = item.backdropPath ? (TMDB_IMG_BACKDROP + item.backdropPath) : poster;
+            var poster = imageValue(
+                    item.posterUrl != null ? item.posterUrl :
+                    (item.poster != null ? item.poster : (item.posterPath != null ? item.posterPath : item.poster_path)),
+                    TMDB_IMG_POSTER);
+            var backdrop = imageValue(
+                    item.backdropUrl != null ? item.backdropUrl :
+                    (item.backdrop != null ? item.backdrop : (item.backdropPath != null ? item.backdropPath : item.backdrop_path)),
+                    TMDB_IMG_BACKDROP);
+            if (!backdrop) backdrop = poster;
 
-            var ratingNum = typeof item.voteAverage === "number" ? item.voteAverage : parseFloat(item.voteAverage || "0");
-            var quality = ratingNum > 0 ? (ratingNum.toFixed(1) + " ★") : "FHD";
+            var ratingText = textValue(item.voteAverage != null ? item.voteAverage :
+                    (item.vote_average != null ? item.vote_average : item.rating));
+            var ratingNum = parseFloat(ratingText || "0");
+            var quality = ratingNum > 0 ? (ratingNum.toFixed(1) + " ★") : textValue(item.quality || item.resolution) || "FHD";
 
-            var yearStr = "";
-            if (item.releaseDate) yearStr = String(item.releaseDate).substring(0, 4);
-            else if (item.firstAirDate) yearStr = String(item.firstAirDate).substring(0, 4);
-
-            var episodeCurrent = isShow ? (yearStr ? ("TV Series · " + yearStr) : "TV Series") : (yearStr ? (yearStr + " · Movie") : "Movie");
+            var dateText = textValue(item.releaseDate || item.release_date || item.firstAirDate || item.first_air_date || item.year);
+            var yearStr = dateText ? (String(dateText).match(/\d{4}/) || [""])[0] : "";
+            var episodeCurrent = isShow
+                    ? (yearStr ? ("TV Series · " + yearStr) : "TV Series")
+                    : (yearStr ? (yearStr + " · Movie") : "Movie");
 
             items.push({
                 "id": id,
@@ -280,11 +346,9 @@ function parseListResponse(jsonStr, url) {
             });
         }
 
-        var currentPage = 1;
-        var totalPages = 1;
-        if (data.page) currentPage = parseInt(data.page, 10) || 1;
-        if (data.totalPages) totalPages = parseInt(data.totalPages, 10) || 1;
-        else if (url && url.indexOf("trending") !== -1) totalPages = 5;
+        var currentPage = parseInt(textValue(data.page || data.currentPage || 1), 10) || 1;
+        var totalPages = parseInt(textValue(data.totalPages || data.total_pages || 1), 10) || 1;
+        if (url && url.indexOf("trending") !== -1 && totalPages < 2) totalPages = 5;
 
         return JSON.stringify({
             "items": items,
@@ -433,188 +497,180 @@ function parseDetail(html, url) { return parseMovieDetail(html, url); }
 
 // ===== PARSE STREAM PLAYER =====
 
+function parseNovaJsonOrNdjson(value) {
+    if (value == null) return null;
+    if (typeof value === "object") return value;
+    var text = String(value).trim();
+    if (!text) return null;
+    try { return JSON.parse(text); } catch(e) {}
+
+    var rows = [];
+    var lines = text.split(/\\r?\\n/);
+    for (var i = 0; i < lines.length; i++) {
+        var line = lines[i].trim();
+        if (!line || line === ":") continue;
+        try { rows.push(JSON.parse(line)); } catch(e) {}
+    }
+    if (rows.length === 1) return rows[0];
+    return rows.length > 0 ? rows : null;
+}
+
+function collectNovaSources(node, out) {
+    if (node == null) return;
+    if (Array.isArray(node)) {
+        for (var i = 0; i < node.length; i++) collectNovaSources(node[i], out);
+        return;
+    }
+    if (typeof node !== "object") return;
+
+    if (Array.isArray(node.sources)) {
+        for (var j = 0; j < node.sources.length; j++) {
+            var src = node.sources[j];
+            if (src && typeof src === "object" && src.url) out.push(src);
+        }
+    }
+    if (node.data && node.data !== node) collectNovaSources(node.data, out);
+}
+
 function parseDetailResponse(jsonStr, url) {
     try {
         var reqUrl = url ? String(url) : "";
-        var data = null;
+        var data = parseNovaJsonOrNdjson(jsonStr);
 
-        if (jsonStr) {
-            try {
-                data = typeof jsonStr === "object" ? jsonStr : JSON.parse(jsonStr);
-            } catch(e) {}
-        }
-
-        // Nếu reqUrl đã là link .m3u8 hoặc .mp4 trực tiếp
-        if (reqUrl.indexOf(".m3u8") !== -1 || reqUrl.indexOf(".mp4") !== -1) {
+        if (reqUrl.indexOf(".m3u8") !== -1 || reqUrl.indexOf(".mp4") !== -1 || reqUrl.indexOf(".mpd") !== -1) {
             return JSON.stringify({
                 "url": reqUrl,
                 "isEmbed": false,
+                "mimeType": reqUrl.indexOf(".mpd") !== -1 ? "application/dash+xml" : "application/x-mpegURL",
                 "headers": {
                     "Referer": BASEURL + "/",
                     "Origin": BASEURL,
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                    "User-Agent": "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 Chrome/131.0 Mobile Safari/537.36"
                 },
                 "subtitles": []
             });
         }
 
-        // Nếu data chưa có field sources (ví dụ app truyền detailHtml vào), phải fetch từ endpoint /api/sources
-        if (!data || !data.sources || !Array.isArray(data.sources) || data.sources.length === 0) {
-            var targetFetchUrl = "";
+        var sources = [];
+        collectNovaSources(data, sources);
 
+        if (sources.length === 0) {
+            var targetFetchUrl = "";
             if (reqUrl.indexOf("/api/sources") !== -1) {
                 targetFetchUrl = reqUrl;
             } else if (data && data.tmdbId) {
-                var isShow = (reqUrl.indexOf("shows") !== -1 || data.seasons != null || data.firstAirDate != null);
-                targetFetchUrl = BASEURL + "/api/sources?type=" + (isShow ? "show" : "movie") + "&tmdbId=" + data.tmdbId;
+                var showFromData = reqUrl.indexOf("/shows/") !== -1 || data.seasons != null || data.firstAirDate != null;
+                targetFetchUrl = BASEURL + "/api/sources?type=" + (showFromData ? "show" : "movie")
+                        + "&tmdbId=" + encodeURIComponent(String(data.tmdbId));
             } else if (reqUrl.indexOf("http") === 0) {
                 targetFetchUrl = reqUrl;
             }
 
             if (targetFetchUrl) {
                 var fetched = httpGet(targetFetchUrl, {
+                    "Accept": "application/x-ndjson, application/json, text/plain, */*",
                     "Referer": BASEURL + "/",
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                    "User-Agent": "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 Chrome/131.0 Mobile Safari/537.36"
                 });
-                if (fetched) {
-                    try { data = JSON.parse(fetched); } catch(e) {}
-                }
+                data = parseNovaJsonOrNdjson(fetched);
+                sources = [];
+                collectNovaSources(data, sources);
             }
         }
 
         var streamUrl = "";
-        var subtitles = [];
-
-        if (data && data.sources && Array.isArray(data.sources) && data.sources.length > 0) {
-            var firstSrc = data.sources[0];
-            streamUrl = firstSrc.url || "";
-
-            for (var s = 0; s < data.sources.length; s++) {
-                var src = data.sources[s];
-                if (src.quality === "1080p" || src.quality === "4k") {
-                    streamUrl = src.url;
-                    break;
-                }
+        for (var s = 0; s < sources.length; s++) {
+            var candidate = textValue(sources[s].url || sources[s].src || sources[s].file);
+            if (!candidate) continue;
+            if (!streamUrl) streamUrl = candidate;
+            var q = textValue(sources[s].quality || sources[s].resolution || sources[s].format).toLowerCase();
+            if (q.indexOf("2160") !== -1 || q.indexOf("4k") !== -1 || q.indexOf("1440") !== -1 || q.indexOf("1080") !== -1) {
+                streamUrl = candidate;
+                if (q.indexOf("2160") !== -1 || q.indexOf("4k") !== -1 || q.indexOf("1080") !== -1) break;
             }
         }
 
-        // Trích xuất Subtitles từ /api/subs-status
-        var subsUrl = "";
+        var subtitles = [];
         var querySource = reqUrl.indexOf("/api/sources") !== -1 ? reqUrl : "";
-
+        var subsUrl = "";
         if (querySource) {
             subsUrl = querySource.replace("/api/sources", "/api/subs-status");
         } else if (data && data.tmdbId) {
-            var isShowForSubs = (reqUrl.indexOf("shows") !== -1 || data.seasons != null || data.firstAirDate != null);
-            subsUrl = BASEURL + "/api/subs-status?type=" + (isShowForSubs ? "show" : "movie") + "&tmdbId=" + data.tmdbId;
+            var showForSubs = reqUrl.indexOf("/shows/") !== -1 || data.seasons != null || data.firstAirDate != null;
+            subsUrl = BASEURL + "/api/subs-status?type=" + (showForSubs ? "show" : "movie")
+                    + "&tmdbId=" + encodeURIComponent(String(data.tmdbId));
         }
 
         if (subsUrl) {
             var subsResp = httpGet(subsUrl, {
+                "Accept": "application/json, text/plain, */*",
                 "Referer": BASEURL + "/",
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                "User-Agent": "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 Chrome/131.0 Mobile Safari/537.36"
             });
-            if (subsResp) {
-                try {
-                    var subsJson = JSON.parse(subsResp);
-                    if (subsJson && subsJson.subtitles && Array.isArray(subsJson.subtitles)) {
-                        for (var i = 0; i < subsJson.subtitles.length; i++) {
-                            var sItem = subsJson.subtitles[i];
-                            if (sItem && sItem.url) {
-                                var sFullUrl = sItem.url.indexOf("http") === 0 ? sItem.url : (BASEURL + (sItem.url.indexOf("/") === 0 ? "" : "/") + sItem.url);
-                                var sLang = sItem.lang || sItem.language || "en";
-                                var sLabel = sItem.label || sLang.toUpperCase();
-                                if (sLang === "vi") sLabel = "Tiếng Việt (VI)";
-                                else if (sLang === "en") sLabel = "Tiếng Anh (EN)";
-                                else if (sLang === "es") sLabel = "Tây Ban Nha (ES)";
-                                else if (sLang === "pt") sLabel = "Bồ Đào Nha (PT)";
-                                else if (sLang === "fr") sLabel = "Tiếng Pháp (FR)";
-
-                                subtitles.push({
-                                    url: sFullUrl,
-                                    lang: sLang,
-                                    label: sLabel
-                                });
-                            }
-                        }
-                    }
-                } catch(se) {}
-            }
-        }
-
-        // Fallback subtitles có sẵn trong data.subtitles
-        if (subtitles.length === 0 && data && data.subtitles && Array.isArray(data.subtitles)) {
-            for (var subIdx = 0; subIdx < data.subtitles.length; subIdx++) {
-                var sub = data.subtitles[subIdx];
-                if (sub && sub.url) {
-                    var fullSubUrl = sub.url.indexOf("http") === 0 ? sub.url : (BASEURL + (sub.url.indexOf("/") === 0 ? "" : "/") + sub.url);
-                    subtitles.push({
-                        url: fullSubUrl,
-                        lang: sub.language || sub.lang || "en",
-                        label: sub.label || "Subtitle"
-                    });
+            var subsJson = parseNovaJsonOrNdjson(subsResp);
+            var subNodes = [];
+            if (Array.isArray(subsJson)) subNodes = subsJson;
+            else if (subsJson) subNodes = [subsJson];
+            for (var ni = 0; ni < subNodes.length; ni++) {
+                var sn = subNodes[ni];
+                if (!sn || !Array.isArray(sn.subtitles)) continue;
+                for (var si = 0; si < sn.subtitles.length; si++) {
+                    var sItem = sn.subtitles[si];
+                    if (!sItem || !sItem.url) continue;
+                    var sFullUrl = String(sItem.url).indexOf("http") === 0
+                            ? String(sItem.url)
+                            : BASEURL + (String(sItem.url).indexOf("/") === 0 ? "" : "/") + String(sItem.url);
+                    var sLang = textValue(sItem.lang || sItem.language) || "en";
+                    var sLabel = textValue(sItem.label || sItem.name) || sLang.toUpperCase();
+                    if (sLang === "vi") sLabel = "Tiếng Việt (VI)";
+                    else if (sLang === "en") sLabel = "Tiếng Anh (EN)";
+                    subtitles.push({"url": sFullUrl, "lang": sLang, "label": sLabel});
                 }
             }
         }
 
-        if (!streamUrl) {
+        if (subtitles.length === 0 && data && data.subtitles && Array.isArray(data.subtitles)) {
+            for (var si2 = 0; si2 < data.subtitles.length; si2++) {
+                var sub = data.subtitles[si2];
+                if (!sub || !sub.url) continue;
+                subtitles.push({
+                    "url": String(sub.url).indexOf("http") === 0 ? String(sub.url) : BASEURL + "/" + String(sub.url).replace(/^\//, ""),
+                    "lang": textValue(sub.language || sub.lang) || "en",
+                    "label": textValue(sub.label || sub.name) || "Subtitle"
+                });
+            }
+        }
+
+        if (!streamUrl && reqUrl.indexOf("/api/sources") === -1 && reqUrl.indexOf(".m3u8") !== -1) {
             streamUrl = reqUrl;
         }
+        if (!streamUrl) throw new Error("NovaHD không trả URL HLS/DASH từ /api/sources");
 
-        // Gắn danh sách tất cả các track phụ đề qua #sub= cho ExoPlayer (Media3)
-        if (subtitles.length > 0 && streamUrl.indexOf("#sub=") === -1) {
-            var subParts = [];
-            for (var k = 0; k < subtitles.length; k++) {
-                subParts.push(subtitles[k].url + "|" + subtitles[k].lang + "|" + subtitles[k].label);
-            }
-            var subParam = subParts.join(";");
-            streamUrl += "#sub=" + encodeURIComponent(subParam);
-        }
-
-        // Tạo custom JS để tự động gắn các track phụ đề vào phần tử <video> khi WebPlayer khởi chạy
-        var customSubJs = "";
-        if (subtitles.length > 0) {
-            customSubJs = "(function(){" +
-                "function addTracks(){" +
-                "  var v = document.getElementById('video') || document.querySelector('video');" +
-                "  if(!v){ setTimeout(addTracks, 300); return; }" +
-                "  var subs = " + JSON.stringify(subtitles) + ";" +
-                "  for(var i=0; i<subs.length; i++){" +
-                "    var tr = document.createElement('track');" +
-                "    tr.kind = 'subtitles';" +
-                "    tr.label = subs[i].label;" +
-                "    tr.srclang = subs[i].lang;" +
-                "    tr.src = subs[i].url;" +
-                "    if(subs[i].lang === 'vi' || i === 0) tr.default = true;" +
-                "    v.appendChild(tr);" +
-                "  }" +
-                "}" +
-                "addTracks();" +
-            "})();";
-        }
+        var lower = streamUrl.toLowerCase();
+        var mime = lower.indexOf(".mpd") !== -1 ? "application/dash+xml"
+                : (lower.indexOf(".m3u8") !== -1 ? "application/x-mpegURL" : "video/mp4");
 
         var resHeaders = {
             "Referer": BASEURL + "/",
             "Origin": BASEURL,
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            "User-Agent": "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 Chrome/131.0 Mobile Safari/537.36"
         };
-        if (customSubJs) {
-            resHeaders["Custom-Js"] = customSubJs;
-        }
 
         return JSON.stringify({
             "url": String(streamUrl),
             "isEmbed": false,
+            "mimeType": mime,
             "headers": resHeaders,
             "subtitles": subtitles
         });
     } catch(e) {
         log("parseDetailResponse error: " + e);
         return JSON.stringify({
-            "url": url ? String(url) : "",
+            "url": "",
             "isEmbed": false,
-            "headers": { "Referer": BASEURL + "/" },
-            "subtitles": []
+            "headers": {"Referer": BASEURL + "/", "Origin": BASEURL},
+            "subtitles": [],
+            "error": String(e && e.message ? e.message : e)
         });
     }
 }
