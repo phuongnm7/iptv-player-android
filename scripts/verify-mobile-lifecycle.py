@@ -2,7 +2,7 @@
 
 Runtime playback is still device-tested separately. This verifier checks that the
 Mobile build no longer installs or preserves an embedded YouTube mini-player and
-that the normal YouTube/IPTV bottom navigation remains intact.
+that the normal YouTube/IPTV/Movie bottom navigation remains intact.
 """
 from pathlib import Path
 import re
@@ -59,10 +59,11 @@ check('mNm7LeavingForMini = false;' in final_delta and 'sNm7Mini = false;' in fi
 check('startActivity(intent);' in final_delta and 'finish();' in final_delta, 'Mobile playback Back patch returns to Browse')
 
 # Bottom navigation.
-check('"YouTube"' in tabs and '"IPTV"' in tabs, 'Bottom navigation contains YouTube and IPTV')
+check('"YouTube"' in tabs and '"IPTV"' in tabs and '"Movie"' in tabs, 'Bottom navigation contains YouTube, IPTV and Movie')
 check('"Thư viện"' not in tabs and '"Cài đặt"' not in tabs, 'Bottom navigation has no extra YouTube tabs')
 check('addItem(activity, bar, R.drawable.nm7_nav_youtube' in tabs, 'YouTube tab is present')
 check('addItem(activity, bar, R.drawable.nm7_nav_iptv' in tabs, 'IPTV tab is present')
+check('addItem(activity, bar, R.drawable.nm7_nav_movie' in tabs, 'Movie tab is present')
 check('stopYoutubeForIptv();' not in tabs, 'IPTV tab does not close the YouTube owner')
 check('SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_IPTV);' in tabs, 'IPTV tab switches the shared product tab')
 check('SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_YOUTUBE);' in tabs, 'YouTube tab switches the shared product tab')
@@ -70,7 +71,8 @@ check(tabs.count('addItem(activity, bar,') == 2, 'Exactly two bottom navigation 
 
 # Browse/loading.
 check('HomeTabBar.attach(activity, true);' in application, 'YouTube Browse receives the bottom tab bar')
-check('HomeTabBar.attach(activity, false);' in application, 'IPTV MainActivity receives the bottom tab bar')
+check('HomeTabBar.attach(activity, HomeTabBar.TAB_IPTV);' in application, 'IPTV MainActivity receives the bottom tab bar')
+check('HomeTabBar.attach(activity, HomeTabBar.TAB_MOVIE);' in application, 'Movie Activity receives the bottom tab bar')
 check('GRID_COLUMNS = 1' in browse, 'YouTube recommendations remain single-column')
 check('getCardImageUrl()' in Path('scripts/patch-mobile-ui.py').read_text(), 'YouTube thumbnail card image loading remains enabled')
 check('patch-mobile-v73.py' in patch and 'runpy.run_path("scripts/patch-mobile-v73.py")' in patch, 'YouTube loading optimization patch is part of the Mobile build chain')
@@ -81,8 +83,8 @@ check('maxresdefault.jpg' in Path('scripts/patch-mobile-v73.py').read_text(), 'Y
 check('mqdefault.jpg' not in Path('scripts/patch-mobile-v73.py').read_text(), 'YouTube Browse optimization does not downgrade thumbnail quality')
 
 # Version.
-check('versionCode = 122' in gradle, 'Mobile versionCode is 120 for Mobile 1.10.104 build')
-check('versionName = "1.10.106"' in gradle, 'Mobile versionName is 1.10.104')
+check('versionCode = 129' in gradle, 'Movie build versionCode is 129')
+check('versionName = "1.10.113"' in gradle, 'Movie build versionName is 1.10.113')
 
 # Stable playback patches.
 for ver, needles, label in [
