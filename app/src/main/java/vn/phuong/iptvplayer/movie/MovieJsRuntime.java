@@ -24,6 +24,8 @@ public final class MovieJsRuntime {
 
     private final Handler main = new Handler(Looper.getMainLooper());
     private final WebView webView;
+    private final String pluginScript;
+    private final String originUrl;
     private final Queue<Runnable> pending = new ArrayDeque<>();
     private final Map<String, Callback> callbacks = new ConcurrentHashMap<>();
     private final AtomicLong sequence = new AtomicLong();
@@ -38,6 +40,8 @@ public final class MovieJsRuntime {
     }
 
     public MovieJsRuntime(android.content.Context context, String pluginScript, String originUrl) {
+        this.pluginScript = pluginScript == null ? "" : pluginScript;
+        this.originUrl = originUrl == null ? "" : originUrl.trim();
         webView = new WebView(context);
 
         WebSettings s = webView.getSettings();
@@ -66,24 +70,11 @@ public final class MovieJsRuntime {
                     }
                 };
 
-                String script = pluginScript == null ? "" : pluginScript;
-                // Load the compatibility bridge first, then evaluate the plugin in the
-                // page's global scope. Evaluating the plugin inside this callback's IIFE
-                // would keep function declarations (getManifest/getUrlSearch/...) local,
-                // making every plugin call appear undefined to the runtime.
-                evalRaw(
-                        "(function(){try{" +
-                                pluginCompatibilityLayer() +
-                                "\nwindow.eval(" + quote(script) + ");" +
-                                "\nNM7Bridge.scriptReady('');" +
-                                "}catch(e){NM7Bridge.scriptError(String(e&&e.stack?e.stack:e));}})();",
-                        new Callback() {
-                            @Override public void done(String ignored) {}
-                            @Override public void error(String message) {
-                                if (bootstrapCallback != null) bootstrapCallback.error(message);
-                            }
-                        }
-                );
+                if (originUrl.toLowerCase().contains("novahd.cc")) {
+                    waitForBrowserChallenge(0);
+                } else {
+                    bootstrapPlugin();
+                }
             }
 
             @Override public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
@@ -111,6 +102,60 @@ public final class MovieJsRuntime {
                 );
             }
         });
+    }
+
+    private void waitForBrowserChallenge(int attempt) {
+        if (destroyed) return;
+        String probe =
+                "(function(){" +
+                        "var t=(document.title||'').toLowerCase();" +
+                        "var b=(document.body?document.body.innerText:'').toLowerCase();" +
+                        "var s=t+' '+b;" +
+                        "return JSON.stringify({" +
+                            "challenge:/just a moment|attention required|cloudflare/.test(s)," +
+                            "title:document.title||'',href:location.href||''" +
+                        "});" +
+                "})()";
+        webView.evaluateJavascript(probe, value -> {
+            boolean challenge = false;
+            try {
+                String json = String.valueOf(new JSONTokener(value).nextValue());
+                JSONObject o = new JSONObject(json);
+                challenge = o.optBoolean("challenge", false);
+            } catch (Exception ignored) {}
+
+            if (challenge && attempt < 20) {
+                main.postDelayed(() -> waitForBrowserChallenge(attempt + 1), 1500L);
+                return;
+            }
+            if (challenge) {
+                if (bootstrapCallback != null) {
+                    bootstrapCallback.error("NovaHD Cloudflare challenge chưa hoàn tất");
+                }
+                return;
+            }
+            bootstrapPlugin();
+        });
+    }
+
+    private void bootstrapPlugin() {
+        String script = pluginScript;
+        // Load the compatibility bridge first, then evaluate the plugin in the
+        // page's global scope. Top-level plugin functions must remain global so
+        // getManifest/getUrlSearch/getUrlDetail/... can be called later.
+        evalRaw(
+                "(function(){try{" +
+                        pluginCompatibilityLayer() +
+                        "\nwindow.eval(" + quote(script) + ");" +
+                        "\nNM7Bridge.scriptReady('');" +
+                        "}catch(e){NM7Bridge.scriptError(String(e&&e.stack?e.stack:e));}})();",
+                new Callback() {
+                    @Override public void done(String ignored) {}
+                    @Override public void error(String message) {
+                        if (bootstrapCallback != null) bootstrapCallback.error(message);
+                    }
+                }
+        );
     }
 
     public void whenReady(Runnable r) {
