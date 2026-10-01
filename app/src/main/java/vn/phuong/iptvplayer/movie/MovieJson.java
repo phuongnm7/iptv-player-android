@@ -113,8 +113,26 @@ public final class MovieJson {
     public static Playback parsePlayback(String json, String requestedUrl, String base) {
         try {
             Object root=new JSONTokener(json==null||json.isEmpty()? "{}":json).nextValue();
-            String url=findPlayable(root);
-            if(url==null && isHttp(requestedUrl) && looksPlayable(requestedUrl)) url=requestedUrl;
+            String url="";
+            if(root instanceof JSONObject){
+                JSONObject obj=(JSONObject)root;
+                JSONArray sources=obj.optJSONArray("sources");
+                if(sources!=null){
+                    for(int i=0;i<sources.length();i++){
+                        JSONObject src=sources.optJSONObject(i);
+                        if(src==null)continue;
+                        String u=findPlayable(src);
+                        if(u==null)continue;
+                        if(url.isEmpty())url=u;
+                        String q=first(src,"quality","resolution","format");
+                        if(q!=null && (q.equalsIgnoreCase("1080p")||q.equalsIgnoreCase("4k")||q.contains("2160"))){
+                            url=u; break;
+                        }
+                    }
+                }
+            }
+            if(url.isEmpty()) url=findPlayable(root);
+            if((url==null||url.isEmpty()) && isHttp(requestedUrl) && looksPlayable(requestedUrl)) url=requestedUrl;
             Map<String,String> headers=collectHeaders(root);
             List<Subtitle> subs=collectSubs(root,base);
             if(url==null) return null;
