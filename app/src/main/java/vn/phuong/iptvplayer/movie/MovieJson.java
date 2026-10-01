@@ -38,7 +38,7 @@ public final class MovieJson {
             String id=first(o,"slug","id","tmdbId","tmdb_id","movieId","showId");
             String poster=first(o,"posterUrl","poster","poster_path","posterPath","image","imageUrl","thumbnail","thumbnailUrl");
             String backdrop=first(o,"backdropUrl","backdrop","backdrop_path","backdropPath","cover","coverUrl");
-            if (title!=null && id!=null && poster!=null) {
+            if (title!=null && id!=null) {
                 boolean show=isShow(o);
                 String key=sourceId+":"+id;
                 if (seen.add(key) && out.size()<80) {
@@ -76,7 +76,8 @@ public final class MovieJson {
                 eps.add(new MovieEpisode(seed.id,"▶ Xem phim", "full",0,0,direct));
             }
             return new MovieDetail(movie,first(o,"overview","description","plot","summary","content"),
-                    simpleText(o.opt("genres"),"Phim"),simpleText(o.opt("cast","casts"),""),
+                    simpleText(o.has("genres") ? o.opt("genres") : o.opt("genre"),"Phim"),
+                    simpleText(o.has("cast") ? o.opt("cast") : o.opt("casts"),""),
                     first(o,"director","directors"),first(o,"rating","voteAverage","vote_average","imdbRating"),eps);
         } catch (Exception e) {
             return new MovieDetail(seed, "Không lấy được thông tin chi tiết phim.", "Phim", "", "", "",
