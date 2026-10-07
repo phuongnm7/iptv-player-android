@@ -1,8 +1,8 @@
-name: NM7 IPTV Mobile 1.10.115 CricHDai UI Build
+name: NM7 IPTV Mobile 1.10.112 CricHDai UI Build
 # logo-rework validation trigger
 
 concurrency:
-  group: nm7-mobile-crichdai-ui-115
+  group: nm7-mobile-crichdai-ui-112
   cancel-in-progress: true
 
 "on":
@@ -10,7 +10,7 @@ concurrency:
     branches:
       - "feature/mobile-crichdai-ui-112"
     paths-ignore:
-      - "CI-NM7-115-LAST.txt"
+      - "CI-NM7-112-LAST.txt"
   pull_request:
     branches:
       - "main"
@@ -71,7 +71,7 @@ jobs:
       - name: Verify 1.10.112 build configuration
         run: |
           set -euxo pipefail
-          test "$(grep -c 'versionName = "1.10.115"' app/build.gradle.kts)" -eq 1
+          test "$(grep -c 'versionName = "1.10.112"' app/build.gradle.kts)" -eq 1
           test "$(grep -c 'versionCode = 131' app/build.gradle.kts)" -eq 1
 
       - name: Check Mobile lifecycle regression guards
@@ -233,7 +233,7 @@ jobs:
       - name: Upload Mobile APK
         uses: actions/upload-artifact@v4
         with:
-          name: NM7-IPTV-Mobile-1.10.115-UI
+          name: NM7-IPTV-Mobile-1.10.112-ReferenceUI
           path: dist/mobile/
           retention-days: 30
           if-no-files-found: error
@@ -259,7 +259,7 @@ jobs:
           rm -rf /tmp/nm7-status
           git clone --depth 1 --branch "feature/mobile-crichdai-ui-112" "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git" /tmp/nm7-status
           cd /tmp/nm7-status
-          cat > CI-NM7-115-LAST.txt <<EOF
+          cat > CI-NM7-112-LAST.txt <<EOF
 run_id=$GITHUB_RUN_ID
 run_number=$GITHUB_RUN_NUMBER
 commit=$GITHUB_SHA
@@ -271,6 +271,6 @@ attempt=$GITHUB_RUN_ATTEMPT
 EOF
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add CI-NM7-115-LAST.txt
-          git commit -m "ci: publish 1.10.115 build metadata [skip ci]" || true
+          git add CI-NM7-112-LAST.txt
+          git commit -m "ci: publish 1.10.112 build metadata [skip ci]" || true
           git push origin HEAD:feature/mobile-crichdai-ui-112
