@@ -3974,3 +3974,13 @@ Các run 741–745 đều dừng ở bước **Patch SmartTube Mobile UI and pla
 - Hiện đang ở bước **Build Mobile only**; chưa có APK cho đến khi bước này hoàn tất.
 
 Đây là lần đầu vòng 1.10.103 vượt qua toàn bộ patch/verifier và đi vào Gradle build. Chưa đánh dấu PASS cho đến khi build + artifact hoàn tất và người dùng test máy thật.
+
+
+## 2026-10-07 — 1.10.114 startup-crash fix
+- Investigated user launch recording 222932.mp4: Android shows NM7 splash, then returns to launcher before the MainActivity UI appears.
+- Root cause identified in the reference-video UI integration: activity_main.xml changed mainRoot from LinearLayout to FrameLayout, while MobileInlinePlayerProviderV2.attach() still performed a direct LinearLayout cast during Activity resume. This caused a ClassCastException on startup.
+- Fixed player attachment to accept a ViewGroup shell and resolve the actual vertical content host inside the FrameLayout; the stable LinearLayout hierarchy remains supported.
+- Added a JVM/Robolectric startup regression test for layout inflation and FrameLayout host resolution.
+- Bumped corrected build to Mobile 1.10.114 (versionCode 130).
+- CI run #40 (ID 37567940293) PASS: parser tests, startup regression test, Mobile build, and APK upload all succeeded.
+- Final APK SHA-256: 9f718061620381c492eafcacdeaa95767429dd1987c45415843ec9142fbfa3bd.
