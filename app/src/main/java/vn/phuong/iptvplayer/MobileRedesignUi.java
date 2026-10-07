@@ -230,23 +230,70 @@ final class MobileRedesignUi {
     }
 
     private boolean isEvent(Channel c) {
-        String n = (c.name() + " " + c.group()).toLowerCase(Locale.ROOT);
+        String n = c.name() == null ? "" : c.name().trim().toLowerCase(Locale.ROOT);
         if (n.contains("http://") || n.contains("https://")) return false;
-        String[] words = {
-                " vs ", " vs.", " v ", " @ ", "live:", "live ", "on air",
-                "match", "fixture", "football", "soccer", "cricket", "basketball",
-                "baseball", "wwe", "wrestling", "ufc", "sports", "sport", "olympic",
-                "premier league", "champions league", "cup", "final", "qualif"
-        };
-        for (String word : words) if (n.contains(word)) return true;
-        return false;
+
+        boolean matchDelimiter = n.matches("(?s).*\\s(vs\\.?|v|@)\\s.*");
+        boolean hasDate = n.matches("(?s).*\\b[0-3]?\\d[/-][01]?\\d[/-](?:20)?\\d{2}\\b.*");
+        boolean hasTime = n.matches("(?s).*\\b(?:[01]?\\d|2[0-3]):[0-5]\\d\\b.*");
+        boolean explicitLive = n.startsWith("live ") || n.startsWith("live:") || n.contains(" on air");
+        boolean competition = n.contains("match") || n.contains("fixture") || n.contains("qualif")
+                || n.contains("league") || n.contains("championship") || n.contains("world cup")
+                || n.contains("cup ") || n.contains("final") || n.contains("test series")
+                || n.contains(" olympic");
+        // A generic TV channel such as "ON Sports HD" is not an event. Prefer
+        // match/date/time signals from the playlist itself.
+        return matchDelimiter || (hasDate && hasTime) || (explicitLive && (hasTime || competition))
+                || (competition && hasDate);
     }
 
     private int eventState(Channel c) {
-        String n = c.name().toLowerCase(Locale.ROOT);
+        String n = c.name() == null ? "" : c.name().toLowerCase(Locale.ROOT);
+        if (n.contains("ended") || n.contains("finished") || n.contains(" full time")) return 3;
+        java.util.Date start = parseEventStart(c.name());
+        if (start != null) {
+            long delta = start.getTime() - System.currentTimeMillis();
+            if (delta > 0) return 2;
+            // Match entries without explicit duration are considered live for
+            // three hours after their scheduled start.
+            if (-delta <= 3L * 60L * 60L * 1000L) return 1;
+            return 3;
+        }
         if (n.contains("live") || n.contains("on air") || n.contains("now")) return 1;
-        if (n.contains("end") || n.contains("ended") || n.contains("finished")) return 3;
         return 2;
+    }
+
+    private java.util.Date parseEventStart(String name) {
+        if (name == null) return null;
+        java.util.regex.Matcher date = java.util.regex.Pattern
+                .compile("\\b([0-3]?\\d)[/-]([01]?\\d)[/-](20?\\d{2})\\b")
+                .matcher(name);
+        java.util.regex.Matcher time = java.util.regex.Pattern
+                .compile("\\b([01]?\\d|2[0-3]):([0-5]\\d)\\s*(AM|PM)?\\b", java.util.regex.Pattern.CASE_INSENSITIVE)
+                .matcher(name);
+        if (!time.find()) return null;
+
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        if (date.find()) {
+            int year = Integer.parseInt(date.group(3));
+            if (year < 100) year += 2000;
+            cal.set(java.util.Calendar.YEAR, year);
+            cal.set(java.util.Calendar.MONTH, Integer.parseInt(date.group(2)) - 1);
+            cal.set(java.util.Calendar.DAY_OF_MONTH, Integer.parseInt(date.group(1)));
+        }
+        int hour = Integer.parseInt(time.group(1));
+        int minute = Integer.parseInt(time.group(2));
+        String ampm = time.group(3);
+        if (ampm != null) {
+            boolean pm = ampm.equalsIgnoreCase("PM");
+            hour %= 12;
+            if (pm) hour += 12;
+        }
+        cal.set(java.util.Calendar.HOUR_OF_DAY, hour);
+        cal.set(java.util.Calendar.MINUTE, minute);
+        cal.set(java.util.Calendar.SECOND, 0);
+        cal.set(java.util.Calendar.MILLISECOND, 0);
+        return cal.getTime();
     }
 
     private List<String> eventGroups() {
@@ -275,7 +322,7 @@ final class MobileRedesignUi {
             else if (state == 2) upcoming.add(c);
             else end.add(c);
         }
-        int next24 = upcoming.size();
+        int next24 = 0;\n        long now = System.currentTimeMillis();\n        for (Channel c : upcoming) { java.util.Date start = parseEventStart(c.name()); if (start != null && start.getTime() - now <= 24L * 60L * 60L * 1000L) next24++; }
         addStatusChip(statuses, "✓ All (" + all.size() + ")", 0);
         addStatusChip(statuses, "Live (" + live.size() + ")", 1);
         addStatusChip(statuses, "Upcoming (" + upcoming.size() + ")", 2);
@@ -894,8 +941,8 @@ final class MobileRedesignUi {
             middle.addView(right, lp(0, dp(92), 1f));
             card.addView(middle);
 
-            TextView status = text(eventState(c) == 1 ? "● LIVE" :
-                    eventState(c) == 3 ? "Ended" : "Starts soon", 11,
+            String statusText = eventState(c) == 1 ? "● LIVE" : eventState(c) == 3 ? "Ended" : startsText(c);
+            TextView status = text(statusText, 11,
                     eventState(c) == 1 ? 0xffff4f72 : R.color.text_secondary);
             status.setGravity(Gravity.CENTER);
             card.addView(status, new LinearLayout.LayoutParams(-1, dp(28)));
@@ -935,6 +982,19 @@ final class MobileRedesignUi {
                     .compile("\\b([01]?\\d|2[0-3]):[0-5]\\d\\b")
                     .matcher(c.name());
             return m.find() ? m.group() : (eventState(c) == 1 ? "LIVE" : "TBD");
+        }
+
+        private String startsText(Channel c) {
+            java.util.Date start = parseEventStart(c.name());
+            if (start == null) return "Starts soon";
+            long delta = start.getTime() - System.currentTimeMillis();
+            if (delta <= 0) return "Started";
+            long hours = java.util.concurrent.TimeUnit.MILLISECONDS.toHours(delta);
+            long days = hours / 24;
+            if (days > 0) return "Starts in " + days + (days == 1 ? " day" : " days");
+            if (hours > 0) return "Starts in " + hours + (hours == 1 ? " hour" : " hours");
+            long minutes = Math.max(1, java.util.concurrent.TimeUnit.MILLISECONDS.toMinutes(delta));
+            return "Starts in " + minutes + " min";
         }
     }
 
