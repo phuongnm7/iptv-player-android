@@ -11,6 +11,9 @@ concurrency:
       - "feature/mobile-crichdai-ui-112"
     paths-ignore:
       - "CI-NM7-115-LAST.txt"
+  pull_request:
+    branches:
+      - "main"
   workflow_dispatch:
 
 jobs:
