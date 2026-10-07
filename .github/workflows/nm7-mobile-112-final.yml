@@ -9,6 +9,8 @@ concurrency:
   push:
     branches:
       - "feature/mobile-crichdai-ui-112"
+    paths-ignore:
+      - "CI-NM7-115-LAST.txt"
   workflow_dispatch:
 
 jobs:
@@ -232,3 +234,40 @@ jobs:
           path: dist/mobile/
           retention-days: 30
           if-no-files-found: error
+
+      - name: Publish build metadata for handoff
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ steps.upload_apk.outputs.artifact-id }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          set -u
+          apk=""
+          apk_sha=""
+          apk_size=""
+          if [ -d dist/mobile ]; then
+            apk="$(find dist/mobile -maxdepth 1 -name '*.apk' -type f | head -n 1 || true)"
+            if [ -n "$apk" ] && [ -f "$apk" ]; then
+              apk_sha="$(sha256sum "$apk" | awk '{print $1}')"
+              apk_size="$(stat -c '%s' "$apk")"
+            fi
+          fi
+          rm -rf /tmp/nm7-status
+          git clone --depth 1 --branch "feature/mobile-crichdai-ui-112" "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git" /tmp/nm7-status
+          cd /tmp/nm7-status
+          cat > CI-NM7-115-LAST.txt <<EOF
+run_id=$GITHUB_RUN_ID
+run_number=$GITHUB_RUN_NUMBER
+commit=$GITHUB_SHA
+status=$JOB_STATUS
+artifact_id=$ARTIFACT_ID
+apk_sha256=$apk_sha
+apk_size=$apk_size
+attempt=$GITHUB_RUN_ATTEMPT
+EOF
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CI-NM7-115-LAST.txt
+          git commit -m "ci: publish 1.10.115 build metadata [skip ci]" || true
+          git push origin HEAD:feature/mobile-crichdai-ui-112
