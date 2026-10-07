@@ -1,4 +1,4 @@
-name: NM7 IPTV Mobile 1.10.113 CricHDai UI Build
+name: NM7 IPTV Mobile 1.10.114 CricHDai UI Build
 # logo-rework validation trigger
 
 concurrency:
@@ -66,8 +66,8 @@ jobs:
       - name: Verify 1.10.112 build configuration
         run: |
           set -euxo pipefail
-          test "$(grep -c 'versionName = "1.10.113"' app/build.gradle.kts)" -eq 1
-          test "$(grep -c 'versionCode = 129' app/build.gradle.kts)" -eq 1
+          test "$(grep -c 'versionName = "1.10.114"' app/build.gradle.kts)" -eq 1
+          test "$(grep -c 'versionCode = 130' app/build.gradle.kts)" -eq 1
 
       - name: Check Mobile lifecycle regression guards
         run: |
@@ -228,7 +228,7 @@ jobs:
       - name: Upload Mobile APK
         uses: actions/upload-artifact@v4
         with:
-          name: NM7-IPTV-Mobile-1.10.113-UI
+          name: NM7-IPTV-Mobile-1.10.114-UI
           path: dist/mobile/
           retention-days: 30
           if-no-files-found: error
