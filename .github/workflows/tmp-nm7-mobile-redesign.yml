@@ -1,0 +1,144 @@
+name: NM7 Mobile redesign validation (temporary)
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nm7-mobile-redesign-validation-${{ github.event.pull_request.number || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          submodules: false
+
+      - name: Restore pinned SmartTube source
+        run: |
+          set -euxo pipefail
+          git clone --no-checkout https://github.com/systematiq-one/SmartTube-droid.git third_party/SmartTube-droid
+          git -C third_party/SmartTube-droid checkout --detach 4825d6aa8b6f1d3181927f9e96c7d89cab13d510
+          git -C third_party/SmartTube-droid submodule update --init --recursive
+
+      - name: Patch SmartTube for AGP and Mobile build
+        run: |
+          set -euxo pipefail
+          python3 scripts/patch-mobile-v37.py
+          python3 scripts/patch-mobile-v106.py
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, shutil
+          root=Path('third_party/SmartTube-droid')
+          for p in root.rglob('build.gradle'):
+              if '.git' in p.parts: continue
+              t=p.read_text(errors='ignore'); orig=t
+              manifest=p.parent/'src/main/AndroidManifest.xml'
+              pkg=None
+              if manifest.is_file():
+                  m=re.search(r'\bpackage\s*=\s*["\']([^"\']+)["\']',manifest.read_text(errors='ignore'))
+                  if m: pkg=m.group(1)
+              if 'android {' in t:
+                  if pkg and not re.search(r'\bnamespace\s',t):
+                      t=re.sub(r'(android\s*\{)',r'\1\n    namespace "'+pkg+'"',t,1)
+                  if not re.search(r'compileSdkVersion|compileSdk\s*[= ]',t):
+                      t=re.sub(r'(android\s*\{)',r'\1\n    compileSdkVersion 36',t,1)
+                  if 'flavorDimensions' not in t:
+                      t=re.sub(r'(android\s*\{)',r'\1\n    flavorDimensions "device"',t,1)
+                  if not re.search(r'\bmobile\s*\{\s*dimension\s+["\']device["\']',t,re.S):
+                      t=re.sub(r'(android\s*\{)',r'\1\n    productFlavors { mobile { dimension "device" } }',t,1)
+                  t=re.sub(r'(?m)^(\s*)classifier\s+["\']([^"\']+)["\']\s*$',r"\1archiveClassifier.set('\2')",t)
+                  t=re.sub(r'(?m)^(\s*)classifier\s*=\s*["\']([^"\']+)["\']\s*$',r"\1archiveClassifier.set('\2')",t)
+              if t!=orig: p.write_text(t)
+          ui=root/'exoplayer-amzn-2.10.6/library/ui'
+          res=ui/'src/main/res/layout'
+          player=ui/'src/main/java/com/google/android/exoplayer2/ui/PlayerView.java'
+          if (res/'exo_player_view.xml').is_file():
+              shutil.copy2(res/'exo_player_view.xml',res/'st_exo_player_view.xml')
+          if (res/'exo_simple_player_view.xml').is_file():
+              shutil.copy2(res/'exo_simple_player_view.xml',res/'st_exo_simple_player_view.xml')
+          if (res/'st_exo_player_view.xml').is_file():
+              (res/'st_exo_player_view.xml').write_text((res/'st_exo_player_view.xml').read_text().replace('@layout/exo_simple_player_view','@layout/st_exo_simple_player_view'))
+          if player.is_file():
+              player.write_text(player.read_text().replace('R.layout.exo_player_view','R.layout.st_exo_player_view'))
+          PY
+
+      - name: Configure Java and Gradle
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.13'
+      - uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: '12266719'
+          packages: platform-tools
+
+      - name: Install Android SDK
+        run: sdkmanager "platforms;android-34" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Verify version and launcher UI
+        run: |
+          set -euxo pipefail
+          grep -q 'versionName = "1.10.112"' app/build.gradle.kts
+          grep -q 'versionCode = 128' app/build.gradle.kts
+          grep -q 'R.id.btnYoutube' app/src/main/java/vn/phuong/iptvplayer/MobileRedesignUi.java
+          grep -q 'R.id.btnPlaylist' app/src/main/java/vn/phuong/iptvplayer/MobileRedesignUi.java
+          test -f app/src/main/res/drawable/ic_menu_reference.xml
+          test -f app/src/main/res/drawable/ic_search_reference.xml
+
+      - name: Run focused tests
+        run: |
+          set -euxo pipefail
+          gradle --no-daemon --console=plain \
+            -PcompileSdkVersion=android-36 \
+            -PminSdkVersion=23 \
+            -PtargetSdkVersion=36 \
+            -PbuildToolsVersion=36.0.0 \
+            -PjunitXVersion=1.1.5 \
+            -PtruthXVersion=1.5.0 \
+            -PtestXSupportVersion=1.1.0 \
+            -PannotationXVersion=1.1.0 \
+            :app:testMobileDebugUnitTest \
+            --tests vn.phuong.iptvplayer.M3uParserTest \
+            --tests vn.phuong.iptvplayer.MainActivityStartupTest
+
+      - name: Build APK
+        run: |
+          set -euxo pipefail
+          gradle --no-daemon --console=plain \
+            -PcompileSdkVersion=android-36 \
+            -PminSdkVersion=23 \
+            -PtargetSdkVersion=36 \
+            -PbuildToolsVersion=36.0.0 \
+            -PjunitXVersion=1.1.5 \
+            -PtruthXVersion=1.5.0 \
+            -PtestXSupportVersion=1.1.0 \
+            -PannotationXVersion=1.1.0 \
+            :app:assembleMobileDebug
+          mkdir -p dist/mobile
+          cp app/build/outputs/apk/mobile/debug/*.apk dist/mobile/
+          cd dist/mobile
+          sha256sum *.apk > SHA256SUMS.txt
+
+      - name: Upload redesign APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: NM7-IPTV-Mobile-1.10.112-ReferenceUI
+          path: dist/mobile/
+          retention-days: 7
+          if-no-files-found: error
