@@ -7,36 +7,39 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#101014"
+    android:background="#FFFFFF"
     android:paddingBottom="64dp">
 
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/browse_app_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#101014">
+        android:background="#FFFFFF">
 
+        <!-- Match the original YouTube-style phone header: white surface, compact
+             NM7 brand, search, microphone and account actions in their native positions. -->
         <LinearLayout
-            android:layout_width="match_parent" android:layout_height="64dp"
-            android:paddingStart="12dp" android:paddingEnd="8dp"
+            android:layout_width="match_parent" android:layout_height="60dp"
+            android:paddingStart="8dp" android:paddingEnd="4dp"
             android:gravity="center_vertical" android:orientation="horizontal">
-            <ImageView android:layout_width="28dp" android:layout_height="32dp"
+            <ImageView android:layout_width="30dp" android:layout_height="34dp"
                 android:src="@drawable/nm7_tube_logo" android:importantForAccessibility="no" />
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:layout_marginStart="6dp" android:layout_marginEnd="12dp"
-                android:text="SmartTube" android:textColor="#FFFFFF" android:textSize="16sp"
+                android:layout_marginStart="6dp" android:layout_marginEnd="8dp"
+                android:text="NM7" android:textColor="#202124" android:textSize="18sp"
                 android:fontFamily="sans-serif-medium" />
             <Space android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
-            <ImageButton android:id="@+id/nm7_search" android:layout_width="48dp"
+            <ImageButton android:id="@+id/nm7_search" android:layout_width="44dp"
                 android:layout_height="48dp" android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/browse_ic_search" android:tint="#333333"
+                android:src="@drawable/browse_ic_search" android:tint="#5F6368"
                 android:contentDescription="Tìm kiếm" />
             <ImageButton android:id="@+id/nm7_voice" android:layout_width="40dp"
                 android:layout_height="48dp" android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/nm7_mic" android:contentDescription="Tìm kiếm bằng giọng nói" />
-            <ImageButton android:id="@+id/nm7_account" android:layout_width="48dp"
+                android:src="@drawable/nm7_mic" android:tint="#5F6368"
+                android:contentDescription="Tìm kiếm bằng giọng nói" />
+            <ImageButton android:id="@+id/nm7_account" android:layout_width="44dp"
                 android:layout_height="48dp" android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/browse_ic_account" android:tint="#FF7A00"
+                android:src="@drawable/browse_ic_account" android:tint="#5F6368"
                 android:contentDescription="@string/dialog_account_list" />
         </LinearLayout>
         <!-- Keep the original menu and refresh action accessible from the search long press. -->
