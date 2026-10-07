@@ -86,6 +86,20 @@ public final class MainActivity extends Activity {
         findViewById(R.id.btnLoadUrl).setOnClickListener(v->loadFromUrl()); findViewById(R.id.btnSources).setOnClickListener(v->showPlaylistSources()); findViewById(R.id.btnReloadUrl).setOnClickListener(v->reloadPlaylistUrl()); findViewById(R.id.btnOpenFile).setOnClickListener(v->openFilePicker());
         findViewById(R.id.btnPlayUrl).setOnClickListener(v->playDirect()); findViewById(R.id.btnWallpaper).setOnClickListener(v->showSettings());
         findViewById(R.id.btnAllChannels).setOnClickListener(v->selectSection(0)); findViewById(R.id.btnFavorites).setOnClickListener(v->selectSection(1)); findViewById(R.id.btnRecent).setOnClickListener(v->selectSection(2)); findViewById(R.id.btnClearFilters).setOnClickListener(v->{inputSearch.setText("");selectedGroup="";updateGroupButtons();filter();});
+        findViewById(R.id.btnMenu).setOnClickListener(v->setDrawerVisible(true));
+        findViewById(R.id.drawerScrim).setOnClickListener(v->setDrawerVisible(false));
+        findViewById(R.id.btnSearch).setOnClickListener(v->{
+            boolean show=inputSearch.getVisibility()!=View.VISIBLE;
+            inputSearch.setVisibility(show?View.VISIBLE:View.GONE);
+            findViewById(R.id.btnClearFilters).setVisibility(show?View.VISIBLE:View.GONE);
+            if(show){inputSearch.requestFocus();((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).showSoftInput(inputSearch,android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);}
+        });
+        findViewById(R.id.btnProfile).setOnClickListener(v->showSettings());
+        findViewById(R.id.btnLiveEvents).setOnClickListener(v->selectSection(0));
+        findViewById(R.id.btnChannel).setOnClickListener(v->selectSection(0));
+        findViewById(R.id.btnTvMode).setOnClickListener(v->chooseInterfaceMode());
+        findViewById(R.id.btnHighlights).setOnClickListener(v->selectSection(2));
+        findViewById(R.id.btnPlaylist).setOnClickListener(v->showPlaylistSources());
         inputSearch.addTextChangedListener(new TextWatcher(){@Override public void beforeTextChanged(CharSequence s,int st,int c,int a){}@Override public void onTextChanged(CharSequence s,int st,int b,int c){filter();}@Override public void afterTextChanged(Editable e){}});
         rebuildGroups(); setImportExpanded(allChannels.isEmpty()); updateSectionButtons(); applyInterfaceMode(list);
     }
@@ -209,13 +223,48 @@ public final class MainActivity extends Activity {
     }
 
     private void rebuildGroups(){Set<String> u=new LinkedHashSet<>();for(Channel c:allChannels)u.add(c.group());List<String> groups=new ArrayList<>(u);if(!selectedGroup.isEmpty()&&!u.contains(selectedGroup))selectedGroup="";groupRow.removeAllViews();addGroupButton(getString(R.string.all_groups),"");for(String g:groups)addGroupButton(g,g);updateGroupButtons();}
-    private void addGroupButton(String label,String value){Button b=new Button(this);b.setTag(value);b.setText(label);b.setTextSize(13);b.setAllCaps(false);b.setSingleLine(true);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,dp(46));p.setMarginEnd(dp(8));groupRow.addView(b,p);b.setOnClickListener(v->{selectedGroup=(String)v.getTag();updateGroupButtons();filter();findViewById(R.id.listChannels).requestFocus();});}
-    private void updateGroupButtons(){if(groupRow==null)return;for(int i=0;i<groupRow.getChildCount();i++){View c=groupRow.getChildAt(i);boolean active=selectedGroup.equals(c.getTag());c.setSelected(active);c.setBackgroundResource(active?R.drawable.button_primary:R.drawable.button_secondary);if(c instanceof Button)((Button)c).setTextColor(getColor(active?R.color.navy:R.color.text_primary));}}
+    private void addGroupButton(String label,String value){
+        Button b=new Button(this);
+        b.setTag(value); b.setText(label); b.setTextSize(10); b.setAllCaps(false); b.setSingleLine(true);
+        b.setGravity(17); b.setPadding(2,2,2,2); b.setMinWidth(0); b.setMinHeight(0);
+        b.setBackgroundResource(R.drawable.category_circle);
+        LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(dp(82),dp(82)); p.setMarginEnd(dp(8)); groupRow.addView(b,p);
+        b.setOnClickListener(v->{selectedGroup=(String)v.getTag();updateGroupButtons();filter();findViewById(R.id.listChannels).requestFocus();});
+    }
+    private void updateGroupButtons(){
+        if(groupRow==null)return;
+        for(int i=0;i<groupRow.getChildCount();i++){
+            View c=groupRow.getChildAt(i); boolean active=selectedGroup.equals(c.getTag()); c.setSelected(active);
+            if(c instanceof Button)((Button)c).setTextColor(getColor(active?R.color.navy:R.color.text_primary));
+        }
+    }
     private void filter(){if(adapter==null)return;String q=inputSearch.getText().toString().trim().toLowerCase(Locale.ROOT);List<Channel> f=new ArrayList<>();for(Channel c:allChannels){boolean gm=selectedGroup.isEmpty()||c.group().equals(selectedGroup),sm=activeSection==0||(activeSection==1&&AppPreferences.isFavorite(this,c))||(activeSection==2&&AppPreferences.isRecent(this,c)),qm=q.isEmpty()||c.name().toLowerCase(Locale.ROOT).contains(q)||c.group().toLowerCase(Locale.ROOT).contains(q)||c.url().toLowerCase(Locale.ROOT).contains(q);if(gm&&sm&&qm)f.add(c);}if(activeSection==2)f.sort((a,b)->Integer.compare(AppPreferences.recentRank(this,a),AppPreferences.recentRank(this,b)));adapter.submit(f);updateSummary();}
     private void updateSummary(){}
     private void play(Channel c){SharedPlaybackSession.setTab(this,SharedPlaybackSession.TAB_IPTV);PlayerActivity.cancelYoutubeHandoff();AppPreferences.recordRecent(this,c);Intent i=new Intent(this,PlayerActivity.class);i.putExtra(PlayerActivity.EXTRA_NAME,c.name());i.putExtra(PlayerActivity.EXTRA_URL,c.url());Bundle h=new Bundle();for(java.util.Map.Entry<String,String> e:c.headers().entrySet())h.putString(e.getKey(),e.getValue());i.putExtra(PlayerActivity.EXTRA_HEADERS,h);i.putExtra(PlayerActivity.EXTRA_MIME,c.mimeHint());i.putStringArrayListExtra(PlayerActivity.EXTRA_OPTIONS,new ArrayList<>(c.options()));startActivity(i);}
     private void selectSection(int s){activeSection=s;updateSectionButtons();filter();}
     private void updateSectionButtons(){int[] ids={R.id.btnAllChannels,R.id.btnFavorites,R.id.btnRecent};for(int i=0;i<ids.length;i++){View b=findViewById(ids[i]);b.setAlpha(i==activeSection?1f:.62f);b.setSelected(i==activeSection);}if(txtEmpty!=null)txtEmpty.setText(activeSection==1?"Chưa có kênh yêu thích":activeSection==2?"Chưa có kênh đã xem":"Không tìm thấy kênh");}
+    private void setDrawerVisible(boolean visible){
+        View panel=findViewById(R.id.drawerPanel), scrim=findViewById(R.id.drawerScrim);
+        if(panel==null||scrim==null)return;
+        panel.setVisibility(visible?View.VISIBLE:View.GONE); scrim.setVisibility(visible?View.VISIBLE:View.GONE);
+        if(visible) panel.bringToFront(); else { scrim.setVisibility(View.GONE); panel.setVisibility(View.GONE); }
+    }
+    private void closeDrawer(){setDrawerVisible(false);}
+    public void drawerNetworkStream(View v){closeDrawer();showImportTools();playDirect();}
+    public void drawerPlaylists(View v){closeDrawer();showPlaylistSources();}
+    public void drawerCricScore(View v){closeDrawer();toast("Cric Score được giữ ở dạng tiện ích giao diện; dữ liệu điểm số không thuộc engine 1.10.112.");}
+    public void drawerFootScore(View v){closeDrawer();toast("Foot Score được giữ ở dạng tiện ích giao diện; dữ liệu điểm số không thuộc engine 1.10.112.");}
+    public void drawerFloatingPlayer(View v){closeDrawer();toast("Floating Player dùng cơ chế phát nền hiện có của NM7.");showPlayerSettings();}
+    public void drawerLowQuality(View v){closeDrawer();toast("Tùy chọn chất lượng được điều khiển bởi player hiện tại.");}
+    public void drawerCopyright(View v){closeDrawer();showAbout();}
+    public void drawerTelegram(View v){closeDrawer();toast("Telegram chưa được cấu hình trong bản NM7 này.");}
+    public void drawerContact(View v){closeDrawer();toast("Contact chưa được cấu hình trong bản NM7 này.");}
+    public void drawerShare(View v){
+        closeDrawer(); Intent share=new Intent(Intent.ACTION_SEND); share.setType("text/plain");
+        share.putExtra(Intent.EXTRA_TEXT,"NM7 IPTV"); startActivity(Intent.createChooser(share,"Chia sẻ NM7 IPTV"));
+    }
+    public void drawerUpdate(View v){closeDrawer();toast("Kiểm tra cập nhật qua bản phát hành NM7 IPTV.");}
+    public void drawerExit(View v){closeDrawer();finishAffinity();}
     private void saveSession(){try{SessionStore.save(getApplicationContext(),SessionStore.snapshot(allChannels),currentSource,epgUrl,duplicateCount,missingUrlCount);}catch(Exception ignored){}}
     private void setLoading(boolean v){loading=v;if(progress!=null)progress.setVisibility(v?View.VISIBLE:View.GONE);}
     private void setImportExpanded(boolean expanded){importExpanded=expanded;View section=findViewById(R.id.importPanel);if(section!=null)section.setVisibility(expanded?View.VISIBLE:View.GONE);}
