@@ -473,7 +473,6 @@ final class MobileRedesignUi {
 
         body.addView(sectionTitle("OWNER PLAYLISTS", "Managed by Phuongnm7 IPTV"));
         body.addView(ownerCard("NM7 IPTV", "Official • Owner playlist", true));
-        body.addView(ownerCard("NM7 Sports / Live Events", "Official • Owner playlist", true));
 
         body.addView(sectionTitle("MY PLAYLISTS", "Added on this device"));
         List<PlaylistSourceStore.Source> urls = PlaylistSourceStore.load(activity);
