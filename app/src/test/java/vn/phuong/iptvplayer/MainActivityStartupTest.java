@@ -52,7 +52,8 @@ public class MainActivityStartupTest {
         root.addView(playerHost);
 
         assertSame(playerHost, MobileInlinePlayerProviderV2.resolveLayoutHost(root));
-        assertSame(root, MobileInlinePlayerProviderV2.resolveLayoutHost(root));
+        LinearLayout plain = new LinearLayout(context);
+        assertSame(plain, MobileInlinePlayerProviderV2.resolveLayoutHost(plain));
     }
 
     @Test
