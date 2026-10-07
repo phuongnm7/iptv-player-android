@@ -231,6 +231,7 @@ jobs:
           cd dist/mobile && sha256sum *.apk > SHA256SUMS.txt
 
       - name: Upload Mobile APK
+        id: upload_apk
         uses: actions/upload-artifact@v4
         with:
           name: NM7-IPTV-Mobile-1.10.112-ReferenceUI
