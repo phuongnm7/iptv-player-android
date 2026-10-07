@@ -332,3 +332,104 @@ Source 1.10.103 đã được đưa vào build chain. **Chưa đánh dấu PASS*
 
 ### 1.10.114 startup-crash fix (2026-10-07)
 The 1.10.113 reference-video UI build was found to crash immediately after the Android splash. The cause was a ClassCastException in the existing inline IPTV player lifecycle code: the new reference UI uses a FrameLayout mainRoot, but the provider still cast mainRoot directly to LinearLayout during Activity resume. Version 1.10.114 fixes the provider to resolve the vertical content host safely while keeping the 1.10.112 player pipeline intact. A Robolectric regression test now covers the reference layout and host resolution. CI run #40 completed successfully and produced the corrected APK.
+
+# HANDOFF — 2026-10-07 — NM7 IPTV Mobile Reference-Video UI
+
+## 0. Kết luận quan trọng
+KHÔNG ĐƯỢC COI NHÁNH NÀY ĐÃ HOÀN THÀNH. Người dùng đã cài/test APK và phản hồi rằng ứng dụng vẫn chưa mở được / chưa đạt yêu cầu. CI xanh chỉ xác nhận source có thể compile/package; chưa xác nhận runtime trên thiết bị thật.
+Bản 1.10.114 chỉ là attempt sửa startup crash, không phải bản đã được người dùng xác nhận PASS.
+
+## 1. Mục tiêu
+Repo: phuongnm7/iptv-player-android
+Branch: feature/mobile-crichdai-ui-112
+Baseline: stable/mobile-1.10.112
+Baseline commit: 6aea2d995280017c1e7c00310bcca0c9937b50bb
+Phạm vi: Mobile UI, không sửa Android TV.
+Yêu cầu: giữ engine/tính năng 1.10.112 và tái tạo giao diện/luồng thao tác theo video 222927.mp4.
+
+## 2. Video tham chiếu 222927.mp4
+- Header: hamburger, logo/tên app, search, profile.
+- Status row: All / Live / Upcoming / Next 24h / End.
+- Category row: icon thể thao dạng tròn có badge.
+- Event cards lớn, nền navy, border theo trạng thái, logo đội, thời gian/live indicator.
+- Bottom navigation 5 mục: Live Events / Channel / TV Mode / Highlights / Playlist.
+- Drawer: Network Stream, Playlists, Cric Score, Foot Score, Floating Player, Low Quality, Copyright, Telegram, Contact, Share, Update App, Exit.
+- Playlist: OWNER PLAYLISTS, MY PLAYLISTS, card playlist, M3U URL, edit/delete và nút +.
+- Network Stream dialog: Stream URL / Advance Options / CANCEL / PLAY.
+Hiện tại mới tái tạo cấu trúc launcher/drawer/playlist ở mức code; chưa được người dùng xác nhận giống video đầy đủ.
+
+## 3. Các thay đổi đã làm
+- activity_main.xml: launcher shell FrameLayout, header/status/category/bottom navigation/drawer; giữ import controls 1.10.112 ở trạng thái hidden.
+- item_channel.xml: event-card proportions, logo lớn hơn, EPG/progress, ẩn URL.
+- Thêm category_circle.xml.
+- MainActivity: hook header, drawer, search, profile, bottom navigation và drawer actions.
+- Network Stream đã chuyển thành dialog URL → PLAY.
+- MobileInlinePlayerProviderV2: sửa giả định mainRoot luôn là LinearLayout.
+- Thêm MainActivityStartupTest.java để test layout inflation và FrameLayout host resolution.
+
+## 4. Commit quan trọng
+- UI attempt cuối 1.10.113: d2076374a713037c869a9cd1e2dcd4dd9eb619d2.
+- Startup provider fix: 43998c8777d204debd0ce9f41061b86b8eafb5e5.
+- Version bump: ba0cdf1e78267e8719a13fb377799976e3e43049 → 1.10.114 / versionCode 130.
+- CI workflow isolation: 3cc9508bd4d874860635ce6a3ffac777726e4131.
+- Latest docs HEAD: 890140189c82a4c0551420704a046770e478b18e.
+
+## 5. CI / APK
+- Workflow: NM7 IPTV Mobile 1.10.114 CricHDai UI Build.
+- Run #42, ID 37568452225: SUCCESS.
+- Parser/unit tests: PASS.
+- Mobile build: PASS.
+- APK upload: PASS.
+- Artifact: NM7-IPTV-Mobile-1.10.114-UI.
+- Artifact ID: 11459897174.
+- Artifact SHA-256: 78f907941c6092a1c0fc4d5f81763fbf1ad1c194b8b2f8d9de9d0c3c20ed5964.
+- APK size: 170,433,256 bytes.
+- APK SHA-256 thực tế: b21470a91951d941f84bd8aa9fe9f8f15dc5d6019f81a059eff1fb762acb10c5.
+- Lưu ý: một entry cũ từng ghi SHA 9f7180...; SHA đó sai, không sử dụng.
+
+## 6. Lỗi hiện tại — PHẢI TIẾP TỤC TỪ ĐÂY
+Người dùng đã phản hồi sau bản sửa: Chưa được. Vì vậy startup fix ở trên chưa được coi là thành công.
+Video lỗi startup: 222932.mp4.
+Hiện tượng: app hiện splash NM7 nhưng không vào được màn hình chính / quay lại launcher.
+
+### Việc cần làm ngay
+1. Chạy APK 1.10.114 trên thiết bị thật.
+2. Thu adb logcat từ trước khi mở app đến lúc app thoát.
+3. Tìm exception đầu tiên của process vn.phuong.iptvplayer, không chỉ exception cuối.
+4. Kiểm tra MainActivity.onCreate, onResume, setContentView, findViewById, listener XML android:onClick, provider registration và các provider chạy ngay khi resume.
+5. Kiểm tra MobileInlinePlayerProviderV2.attach() trên generated/packaged source.
+6. Nếu crash không nằm ở provider, cô lập từng phần UI/lifecycle để tìm chính xác callback hoặc view gây crash.
+7. Không tiếp tục đoán; không đánh dấu PASS chỉ vì CI xanh.
+8. Sau khi tìm được exception thật, thêm regression test cho đúng path rồi build lại.
+
+## 7. Rủi ro UI còn tồn tại
+- Event card chưa có đầy đủ dữ liệu event/sport như app tham chiếu.
+- Category icons mới là UI selector/placeholder, chưa chắc đúng icon/badge thực tế.
+- Bottom navigation dùng text/symbol đơn giản, chưa chắc khớp icon/spacing/active state.
+- Cric Score, Foot Score, Telegram, Contact, Low Quality, Update chưa có đầy đủ backend/behavior tương ứng.
+- Playlist screen đang dùng source store hiện có, chưa phải đầy đủ owner-playlist data model của app tham chiếu.
+
+## 8. Tính năng 1.10.112 phải bảo vệ
+- IPTV/M3U parser.
+- Media3 playback và DRM.
+- EPG.
+- Favorites / Recent.
+- Direct URL playback.
+- Playlist source store.
+- Wallpaper/background playback.
+- Sleep timer.
+- YouTube/SmartTube integration và player pipeline.
+- Mobile lifecycle/background playback.
+
+## 9. Quy tắc cho người tiếp quản
+- Không sửa stable/mobile-1.10.112.
+- Tiếp tục trên feature/mobile-crichdai-ui-112 hoặc branch con.
+- Ưu tiên startup crash trên thiết bị thật trước khi tinh chỉnh UI.
+- CI build thành công không được coi là runtime PASS.
+- Giữ các regression test hiện có.
+- APK bàn giao phải ghi versionCode, commit SHA và SHA-256.
+- Mỗi vòng: source → generated source → tests → APK → cài/test thiết bị thật → logcat → kết luận.
+
+## 10. Trạng thái bàn giao
+STATUS: BLOCKED — startup/runtime chưa PASS.
+Ưu tiên số 1: lấy crash log thực tế và xác định chính xác điểm crash. Sau đó mới hoàn thiện UI theo 222927.mp4.
