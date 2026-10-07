@@ -77,31 +77,63 @@ public final class MainActivity extends Activity {
     @Override protected void onDestroy(){epgHandler.removeCallbacksAndMessages(null);super.onDestroy();}
 
     private void setupViews() {
-        setContentView(R.layout.activity_main); Insets.apply(findViewById(R.id.mainRoot)); applyWallpaper();
-        inputUrl=findViewById(R.id.inputUrl); inputSearch=findViewById(R.id.inputSearch); groupRow=findViewById(R.id.groupRow);
-        txtEmpty=findViewById(R.id.txtEmpty); progress=findViewById(R.id.progress);
-        ListView list=findViewById(R.id.listChannels);
-        adapter=new ChannelAdapter(this,new ChannelAdapter.Listener(){@Override public void onSelectionChanged(){updateSummary();}@Override public void onFavoriteChanged(Channel c,boolean f){toast(f?"Đã thêm vào Yêu thích":"Đã bỏ khỏi Yêu thích");if(activeSection==1)filter();else adapter.notifyDataSetChanged();}});
-        list.setAdapter(adapter); list.setItemsCanFocus(false); list.setEmptyView(txtEmpty); list.setOnItemClickListener((p,v,i,id)->play(adapter.getItem(i))); list.setOnItemLongClickListener((p,v,i,id)->{showChannelActions(adapter.getItem(i));return true;});
-        findViewById(R.id.btnLoadUrl).setOnClickListener(v->loadFromUrl()); findViewById(R.id.btnSources).setOnClickListener(v->showPlaylistSources()); findViewById(R.id.btnReloadUrl).setOnClickListener(v->reloadPlaylistUrl()); findViewById(R.id.btnOpenFile).setOnClickListener(v->openFilePicker());
-        findViewById(R.id.btnPlayUrl).setOnClickListener(v->playDirect()); findViewById(R.id.btnWallpaper).setOnClickListener(v->showSettings());
-        findViewById(R.id.btnAllChannels).setOnClickListener(v->selectSection(0)); findViewById(R.id.btnFavorites).setOnClickListener(v->selectSection(1)); findViewById(R.id.btnRecent).setOnClickListener(v->selectSection(2)); findViewById(R.id.btnClearFilters).setOnClickListener(v->{inputSearch.setText("");selectedGroup="";updateGroupButtons();filter();});
-        findViewById(R.id.btnMenu).setOnClickListener(v->setDrawerVisible(true));
-        findViewById(R.id.drawerScrim).setOnClickListener(v->setDrawerVisible(false));
-        findViewById(R.id.btnSearch).setOnClickListener(v->{
-            boolean show=inputSearch.getVisibility()!=View.VISIBLE;
-            inputSearch.setVisibility(show?View.VISIBLE:View.GONE);
-            findViewById(R.id.btnClearFilters).setVisibility(show?View.VISIBLE:View.GONE);
-            if(show){inputSearch.requestFocus();((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).showSoftInput(inputSearch,android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);}
+        setContentView(R.layout.activity_main);
+        Insets.apply(findViewById(R.id.mainRoot));
+        applyWallpaper();
+
+        inputUrl = findViewById(R.id.inputUrl);
+        inputSearch = findViewById(R.id.inputSearch);
+        groupRow = findViewById(R.id.groupRow);
+        txtEmpty = findViewById(R.id.txtEmpty);
+        progress = findViewById(R.id.progress);
+        ListView list = findViewById(R.id.listChannels);
+
+        adapter = new ChannelAdapter(this, new ChannelAdapter.Listener() {
+            @Override public void onSelectionChanged() { updateSummary(); }
+            @Override public void onFavoriteChanged(Channel c, boolean f) {
+                toast(f ? "Đã thêm vào Yêu thích" : "Đã bỏ khỏi Yêu thích");
+                if (activeSection == 1) filter(); else adapter.notifyDataSetChanged();
+                if (mobileUi != null) mobileUi.refreshAfterPlaylist();
+            }
         });
-        findViewById(R.id.btnProfile).setOnClickListener(v->showSettings());
-        findViewById(R.id.btnLiveEvents).setOnClickListener(v->selectSection(0));
-        findViewById(R.id.btnChannel).setOnClickListener(v->selectSection(0));
-        findViewById(R.id.btnTvMode).setOnClickListener(v->chooseInterfaceMode());
-        findViewById(R.id.btnHighlights).setOnClickListener(v->selectSection(2));
-        findViewById(R.id.btnPlaylist).setOnClickListener(v->showPlaylistSources());
-        inputSearch.addTextChangedListener(new TextWatcher(){@Override public void beforeTextChanged(CharSequence s,int st,int c,int a){}@Override public void onTextChanged(CharSequence s,int st,int b,int c){filter();}@Override public void afterTextChanged(Editable e){}});
-        rebuildGroups(); setImportExpanded(allChannels.isEmpty()); updateSectionButtons(); applyInterfaceMode(list);
+        list.setAdapter(adapter);
+        list.setItemsCanFocus(false);
+        list.setEmptyView(txtEmpty);
+        list.setOnItemClickListener((p,v,i,id)->play(adapter.getItem(i)));
+        list.setOnItemLongClickListener((p,v,i,id)->{showChannelActions(adapter.getItem(i));return true;});
+
+        findViewById(R.id.btnMenu).setOnClickListener(v -> setDrawerVisible(true));
+        findViewById(R.id.drawerScrim).setOnClickListener(v -> setDrawerVisible(false));
+
+        mobileUi = new MobileRedesignUi(
+                this,
+                new MobileRedesignUi.Host() {
+                    @Override public void play(Channel channel) { MainActivity.this.play(channel); }
+                    @Override public void loadUrl(String url) {
+                        inputUrl.setText(url == null ? "" : url);
+                        loadFromUrl(url == null ? "" : url.trim(), false);
+                    }
+                    @Override public void loadLocalEntry(MobilePlaylistStore.Entry entry) {
+                        mobileLoadLocalEntry(entry);
+                    }
+                    @Override public void openLocalPlaylistPicker() {
+                        Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                        i.addCategory(Intent.CATEGORY_OPENABLE);
+                        i.setType("*/*");
+                        startActivityForResult(i, MobileRedesignUi.REQUEST_LOCAL_PLAYLIST);
+                    }
+                    @Override public void showSettings() { MainActivity.this.showSettings(); }
+                    @Override public void showNetworkStream() { MainActivity.this.drawerNetworkStream(null); }
+                },
+                () -> new ArrayList<>(allChannels),
+                findViewById(R.id.contentContainer),
+                inputSearch,
+                findViewById(R.id.imgAppLogo),
+                findViewById(R.id.txtAppTitle));
+        mobileUi.install();
+
+        setImportExpanded(false);
+        applyInterfaceMode(list);
     }
 
     private void restoreSession() {
@@ -202,7 +234,23 @@ public final class MainActivity extends Activity {
     }
 
     private void openFilePicker(){Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("*/*");startActivityForResult(i,OPEN_M3U);}
-    @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(result!=RESULT_OK||data==null||data.getData()==null)return;Uri uri=data.getData();if(request==OPEN_M3U)readLocalFile(uri);if(request==PICK_WALLPAPER){io.execute(()->{try{WallpaperStore.importPhoto(getApplicationContext(),uri);ui(()->{applyWallpaper();toast("Đã đổi hình nền");});}catch(Exception e){ui(()->toast("Không mở được hình nền: "+readable(e)));}});}}
+    @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(request==MobileRedesignUi.REQUEST_LOCAL_PLAYLIST){if(result==RESULT_OK&&data!=null&&data.getData()!=null&&mobileUi!=null)mobileUi.handleLocalPlaylistResult(data.getData());return;}if(result!=RESULT_OK||data==null||data.getData()==null)return;Uri uri=data.getData();if(request==OPEN_M3U)readLocalFile(uri);if(request==PICK_WALLPAPER){io.execute(()->{try{WallpaperStore.importPhoto(getApplicationContext(),uri);ui(()->{applyWallpaper();toast("Đã đổi hình nền");});}catch(Exception e){ui(()->toast("Không mở được hình nền: "+readable(e)));}});}}
+    private void mobileLoadLocalEntry(MobilePlaylistStore.Entry entry) {
+        if (entry == null) return;
+        setLoading(true);
+        io.execute(() -> {
+            try (InputStream stream = MobilePlaylistStore.open(getApplicationContext(), entry)) {
+                M3uParser.Result result = parser.parse(readText(stream), "");
+                ui(() -> {
+                    showPlaylist(result, "local://" + entry.id);
+                    setLoading(false);
+                });
+            } catch (Exception e) {
+                ui(() -> showError("Không đọc được playlist local: " + readable(e)));
+            }
+        });
+    }
+
     private void readLocalFile(Uri uri){int requestGeneration=++playlistRequestGeneration;setLoading(true);io.execute(()->{try(InputStream s=getContentResolver().openInputStream(uri)){if(s==null)throw new Exception("Không thể mở tệp");M3uParser.Result r=parser.parse(readText(s),"");ui(()->{if(requestGeneration==playlistRequestGeneration)showPlaylist(r,uri.toString());});}catch(Exception e){ui(()->{if(requestGeneration==playlistRequestGeneration)showError("Không đọc được tệp: "+readable(e));});}});}
     private String readText(InputStream s)throws Exception{ByteArrayOutputStream b=new ByteArrayOutputStream();byte[] chunk=new byte[8192];int total=0,n;while((n=s.read(chunk))!=-1){total+=n;if(total>MAX_PLAYLIST_BYTES)throw new Exception("Playlist lớn hơn 8 MB. Với link video, dùng Phát URL.");b.write(chunk,0,n);}return b.toString(StandardCharsets.UTF_8.name());}
     private void showPlaylist(M3uParser.Result r,String source){showPlaylist(r,source,false);}
@@ -219,10 +267,10 @@ public final class MainActivity extends Activity {
         if(!preserveNavigation){inputSearch.setText("");selectedGroup="";}
         rebuildGroups();filter();setLoading(false);setImportExpanded(false);saveSession();
         if(!epgUrl.isEmpty())loadEpg(false);else adapter.submitGuide(null);
-        if(!PlaylistSourceStore.isDefault(next)&&PlaylistSourceStore.isValid(next))try{PlaylistSourceStore.add(this,"",next);}catch(Exception ignored){}
+        if(!PlaylistSourceStore.isDefault(next)&&PlaylistSourceStore.isValid(next)){try{PlaylistSourceStore.add(this,"",next);}catch(Exception ignored){}}\n        if(mobileUi!=null)mobileUi.refreshAfterPlaylist();
     }
 
-    private void rebuildGroups(){Set<String> u=new LinkedHashSet<>();for(Channel c:allChannels)u.add(c.group());List<String> groups=new ArrayList<>(u);if(!selectedGroup.isEmpty()&&!u.contains(selectedGroup))selectedGroup="";groupRow.removeAllViews();addGroupButton(getString(R.string.all_groups),"");for(String g:groups)addGroupButton(g,g);updateGroupButtons();}
+    private void rebuildGroups(){if(mobileUi!=null)return;Set<String> u=new LinkedHashSet<>();for(Channel c:allChannels)u.add(c.group());List<String> groups=new ArrayList<>(u);if(!selectedGroup.isEmpty()&&!u.contains(selectedGroup))selectedGroup="";groupRow.removeAllViews();addGroupButton(getString(R.string.all_groups),"");for(String g:groups)addGroupButton(g,g);updateGroupButtons();}
     private void addGroupButton(String label,String value){
         Button b=new Button(this);
         b.setTag(value); b.setText(label); b.setTextSize(10); b.setAllCaps(false); b.setSingleLine(true);
@@ -265,7 +313,7 @@ public final class MainActivity extends Activity {
                     play(ch);
                 }).show();
     }
-    public void drawerPlaylists(View v){closeDrawer();showPlaylistSources();}
+    public void drawerPlaylists(View v){closeDrawer();if(mobileUi!=null)mobileUi.showPlaylistScreen();else showPlaylistSources();}
     public void drawerCricScore(View v){closeDrawer();toast("Cric Score được giữ ở dạng tiện ích giao diện; dữ liệu điểm số không thuộc engine 1.10.112.");}
     public void drawerFootScore(View v){closeDrawer();toast("Foot Score được giữ ở dạng tiện ích giao diện; dữ liệu điểm số không thuộc engine 1.10.112.");}
     public void drawerFloatingPlayer(View v){closeDrawer();toast("Floating Player dùng cơ chế phát nền hiện có của NM7.");showPlayerSettings();}
