@@ -250,7 +250,21 @@ public final class MainActivity extends Activity {
         if(visible) panel.bringToFront(); else { scrim.setVisibility(View.GONE); panel.setVisibility(View.GONE); }
     }
     private void closeDrawer(){setDrawerVisible(false);}
-    public void drawerNetworkStream(View v){closeDrawer();showImportTools();playDirect();}
+    public void drawerNetworkStream(View v){
+        closeDrawer();
+        final EditText field=new EditText(this);
+        field.setHint("Stream URL");
+        field.setSingleLine(true);
+        field.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_VARIATION_URI);
+        new AlertDialog.Builder(this).setTitle("Network Stream").setView(field)
+                .setNegativeButton("CANCEL",null)
+                .setPositiveButton("PLAY",(d,w)->{
+                    String url=field.getText().toString().trim();
+                    if(url.isEmpty()){toast("Nhập URL để phát");return;}
+                    Channel ch=new Channel("Network Stream","Network Stream",url,"","",java.util.Collections.emptyMap());
+                    play(ch);
+                }).show();
+    }
     public void drawerPlaylists(View v){closeDrawer();showPlaylistSources();}
     public void drawerCricScore(View v){closeDrawer();toast("Cric Score được giữ ở dạng tiện ích giao diện; dữ liệu điểm số không thuộc engine 1.10.112.");}
     public void drawerFootScore(View v){closeDrawer();toast("Foot Score được giữ ở dạng tiện ích giao diện; dữ liệu điểm số không thuộc engine 1.10.112.");}
