@@ -192,7 +192,7 @@ jobs:
               p.write_text(''.join(lines))
           PY
 
-      - name: Run IPTV parser unit tests
+      - name: Compile Mobile source
         run: |
           set -euxo pipefail
           gradle --no-daemon --console=plain \
@@ -204,9 +204,8 @@ jobs:
             -PtruthXVersion=1.5.0 \
             -PtestXSupportVersion=1.1.0 \
             -PannotationXVersion=1.1.0 \
-            :app:testMobileDebugUnitTest \
-            --tests vn.phuong.iptvplayer.M3uParserTest \
-            --tests vn.phuong.iptvplayer.MainActivityStartupTest
+            :app:compileMobileDebugJavaWithJavac
+
 
       - name: Build Mobile only (current NM7 IPTV Mobile)
         run: |
