@@ -108,6 +108,19 @@ final class MobilePlaylistStore {
         return new FileInputStream(new File(new File(context.getFilesDir(), "mobile-playlists"), entry.value));
     }
 
+    static void rename(Context context, String id, String name) {
+        List<Entry> values = new ArrayList<>(load(context));
+        String clean = cleanName(name, "My Playlist");
+        for (int i = 0; i < values.size(); i++) {
+            Entry value = values.get(i);
+            if (value.id.equals(id)) {
+                values.set(i, new Entry(value.id, clean, value.type, value.value));
+                break;
+            }
+        }
+        save(context, values);
+    }
+
     static void remove(Context context, String id) {
         List<Entry> values = new ArrayList<>(load(context));
         for (int i = values.size() - 1; i >= 0; i--) {
