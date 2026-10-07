@@ -267,7 +267,8 @@ public final class MainActivity extends Activity {
         if(!preserveNavigation){inputSearch.setText("");selectedGroup="";}
         rebuildGroups();filter();setLoading(false);setImportExpanded(false);saveSession();
         if(!epgUrl.isEmpty())loadEpg(false);else adapter.submitGuide(null);
-        if(!PlaylistSourceStore.isDefault(next)&&PlaylistSourceStore.isValid(next)){try{PlaylistSourceStore.add(this,"",next);}catch(Exception ignored){}}\n        if(mobileUi!=null)mobileUi.refreshAfterPlaylist();
+        if(!PlaylistSourceStore.isDefault(next)&&PlaylistSourceStore.isValid(next)){try{PlaylistSourceStore.add(this,"",next);}catch(Exception ignored){}}
+        if(mobileUi!=null)mobileUi.refreshAfterPlaylist();
     }
 
     private void rebuildGroups(){if(mobileUi!=null)return;Set<String> u=new LinkedHashSet<>();for(Channel c:allChannels)u.add(c.group());List<String> groups=new ArrayList<>(u);if(!selectedGroup.isEmpty()&&!u.contains(selectedGroup))selectedGroup="";groupRow.removeAllViews();addGroupButton(getString(R.string.all_groups),"");for(String g:groups)addGroupButton(g,g);updateGroupButtons();}
