@@ -1,3 +1,65 @@
+# CẬP NHẬT TIẾN ĐỘ — 1.10.113 — 2026-10-08
+
+## Trạng thái chính thức
+**1.10.113: source + CI + APK đều hoàn tất; runtime/device chưa được người dùng xác nhận.**
+
+### Source
+- Baseline: **1.10.112 / 128**
+- Baseline branch: `stable/mobile-1.10.112`
+- Baseline commit: `6aea2d995280017c1e7c00310bcca0c9937b50bb`
+- Candidate branch: `work/mobile-app-settings-bottom-v113`
+- Candidate commit: `1a5ee858ee0bd9a4a44707f9c0f9b3fa81e5a764`
+
+## Phạm vi đã làm
+1. **IPTV:** bỏ hàng 4 phím Tất cả/Yêu thích/Tải lại/Gần đây khỏi UI.
+2. **IPTV:** đưa Tải lại xuống cạnh Bỏ lọc.
+3. **IPTV:** giữ Tất cả/Yêu thích/Gần đây trong menu Tùy chọn IPTV; các anchor cũ vẫn tồn tại ẩn để bảo toàn logic MainActivity.
+4. **Bottom navigation:** Tùy chọn ứng dụng tiếp tục là mục riêng bên cạnh YouTube và IPTV.
+5. **YouTube:** chỉnh header Mobile về bố cục sáng kiểu giao diện gốc mong muốn, giữ search/micro/account IDs.
+6. **Version:** 1.10.113 / versionCode 129.
+
+## CI
+- Run **37655352745 — SUCCESS**
+- Parser unit test: SUCCESS
+- Mobile assemble: SUCCESS
+- APK upload: SUCCESS
+- Artifact: **11498119053**
+- APK: `app-mobile-debug.apk`
+- APK SHA-256: `72537004c936a9a358712b28261c9709153252561b57b7952e5fe3131f42019b`
+- Artifact digest: `885fccf5dd8e3004ec6962d7d2c2416bebe354452b3c7c3621f1e470e699c75c6`
+- [Actions](https://github.com/phuongnm7/iptv-player-android/actions/runs/37655352745)
+- [Artifact](https://github.com/phuongnm7/iptv-player-android/actions/runs/37655352745/artifacts/11498119053)
+
+## Files changed
+- `app/build.gradle.kts`
+- `app/src/main/res/layout/activity_main.xml`
+- `app/src/main/java/vn/phuong/iptvplayer/MobileIptvUi.java`
+- `scripts/mobile-ui/res/layout/browse_activity.xml`
+- `.github/workflows/nm7-mobile-113-ui-refinement.yml`
+
+## Kỹ thuật cần lưu ý
+- `MainActivity` vẫn là source of truth cho playlist, filter, reload và application settings.
+- `MobileIptvUi` chỉ xử lý presentation trên Mobile IPTV.
+- `HomeTabBar` quản lý bottom navigation.
+- `scripts/mobile-ui/...` là source generate-time của SmartTube Mobile UI; CI sẽ clone SmartTube và apply patch chain lại.
+- Không xóa các anchor `btnAllChannels`, `btnFavorites`, `btnRecent` cho tới khi refactor xong code MainActivity.
+
+## Chưa chốt stable
+`stable/mobile-1.10.112` **vẫn giữ nguyên**. 1.10.113 chỉ trở thành stable sau khi người dùng test máy thật và xác nhận.
+
+## Checklist bàn giao
+- Test IPTV layout mới.
+- Test reload và filtering.
+- Test bottom navigation + application settings.
+- Test YouTube header/search/mic/account.
+- Regression YouTube player: avatar/status bar/spinner/live chat/background/mini/back.
+- Ghi PASS/FAIL vào repo trước khi đổi stable branch.
+
+## Entry point tiếp theo
+`work/mobile-app-settings-bottom-v113` @ `1a5ee858ee0bd9a4a44707f9c0f9b3fa81e5a764`.
+
+# HISTORICAL PROGRESS BELOW
+
 # STABLE BASELINE — NM7 IPTV Mobile 1.10.112 — 2026-09-30
 
 ## Quyết định ổn định hiện tại
