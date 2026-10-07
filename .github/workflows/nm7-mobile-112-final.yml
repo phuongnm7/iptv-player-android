@@ -204,7 +204,9 @@ jobs:
             -PtruthXVersion=1.5.0 \
             -PtestXSupportVersion=1.1.0 \
             -PannotationXVersion=1.1.0 \
-            :app:testMobileDebugUnitTest --tests vn.phuong.iptvplayer.M3uParserTest
+            :app:testMobileDebugUnitTest \
+            --tests vn.phuong.iptvplayer.M3uParserTest \
+            --tests vn.phuong.iptvplayer.MainActivityStartupTest
 
       - name: Build Mobile only (current NM7 IPTV Mobile)
         run: |
