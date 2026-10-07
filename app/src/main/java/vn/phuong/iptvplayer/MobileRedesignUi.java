@@ -765,7 +765,7 @@ final class MobileRedesignUi {
         TextView t = new TextView(activity);
         t.setText(value == null ? "" : value);
         t.setTextSize(sp);
-        t.setTextColor(activity.getColor(color));
+        t.setTextColor(resolveColor(color));
         return t;
     }
 
@@ -800,6 +800,12 @@ final class MobileRedesignUi {
 
     private GradientDrawable circleBackground(boolean selected) {
         return rounded(selected ? activity.getColor(R.color.accent) : 0xff152942, 0xff314963, 1, 50);
+    }
+
+    private int resolveColor(int value) {
+        int alpha = value & 0xFF000000;
+        if (alpha == 0xFF000000 || alpha == 0) return value;
+        return activity.getColor(value);
     }
 
     private int dp(int value) {
@@ -842,7 +848,7 @@ final class MobileRedesignUi {
                 fallback.setText(first.isEmpty() ? "TV" : first.substring(0, 1).toUpperCase(Locale.ROOT));
                 boolean fav = AppPreferences.isFavorite(activity, c);
                 favorite.setText(fav ? "♥" : "♡");
-                favorite.setTextColor(activity.getColor(fav ? 0xffff5477 : R.color.text_secondary));
+                favorite.setTextColor(resolveColor(fav ? 0xffff5477 : R.color.text_secondary));
                 favorite.setOnClickListener(v -> {
                     boolean now = AppPreferences.toggleFavorite(activity, c);
                     favorite.setText(now ? "♥" : "♡");
