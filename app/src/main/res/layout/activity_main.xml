@@ -79,7 +79,7 @@
             android:layout_weight="1"
             android:layout_marginEnd="5dp"
             android:background="@drawable/button_primary"
-            android:text="TV\nTất cả kênh"
+            android:text="TV&#10;Tất cả kênh"
             android:textAllCaps="false"
             android:textColor="@color/navy"
             android:textSize="12sp"
@@ -92,7 +92,7 @@
             android:layout_weight="1"
             android:layout_marginHorizontal="5dp"
             android:background="@drawable/button_secondary"
-            android:text="★\nYêu thích"
+            android:text="★&#10;Yêu thích"
             android:textAllCaps="false"
             android:textColor="@color/text_primary"
             android:textSize="12sp" />
@@ -104,7 +104,7 @@
             android:layout_weight="1"
             android:layout_marginHorizontal="5dp"
             android:background="@drawable/button_secondary"
-            android:text="◷\nGần đây"
+            android:text="◷&#10;Gần đây"
             android:textAllCaps="false"
             android:textColor="@color/text_primary"
             android:textSize="12sp" />
@@ -116,7 +116,7 @@
             android:layout_weight="1"
             android:layout_marginStart="5dp"
             android:background="@drawable/button_secondary"
-            android:text="☰\nNguồn"
+            android:text="☰&#10;Nguồn"
             android:textAllCaps="false"
             android:textColor="@color/text_primary"
             android:textSize="12sp" />
