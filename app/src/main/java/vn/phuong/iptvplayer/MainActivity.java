@@ -40,6 +40,7 @@ public final class MainActivity extends Activity {
     private final M3uParser parser = new M3uParser();
     private final List<Channel> allChannels = new ArrayList<>();
     private ChannelAdapter adapter;
+    private MobileRedesignUi mobileUi;
     private EditText inputUrl, inputSearch;
     private LinearLayout groupRow;
     private TextView txtEmpty;
