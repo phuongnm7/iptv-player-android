@@ -68,7 +68,9 @@ final class MobileRedesignUi {
 
     private final MainActivity activity;
     private final Host host;
-    private final java.util.function.Supplier<List<Channel>> channelSupplier;
+    interface ChannelProvider { List<Channel> get(); }
+
+    private final ChannelProvider channelSupplier;
     private final LinearLayout content;
     private final EditText search;
     private final ImageView logo;
@@ -86,7 +88,7 @@ final class MobileRedesignUi {
     MobileRedesignUi(
             MainActivity activity,
             Host host,
-            java.util.function.Supplier<List<Channel>> channelSupplier,
+            ChannelProvider channelSupplier,
             LinearLayout content,
             EditText search,
             ImageView logo,
