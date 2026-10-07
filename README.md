@@ -328,3 +328,7 @@ Source 1.10.103 đã được đưa vào build chain. **Chưa đánh dấu PASS*
 1. thời gian mở video YouTube;
 2. vuốt/chuyển tab Browse liên tục;
 3. video 4K trong cùng điều kiện như video test đã gửi.
+
+
+### 1.10.114 startup-crash fix (2026-10-07)
+The 1.10.113 reference-video UI build was found to crash immediately after the Android splash. The cause was a ClassCastException in the existing inline IPTV player lifecycle code: the new reference UI uses a FrameLayout mainRoot, but the provider still cast mainRoot directly to LinearLayout during Activity resume. Version 1.10.114 fixes the provider to resolve the vertical content host safely while keeping the 1.10.112 player pipeline intact. A Robolectric regression test now covers the reference layout and host resolution. CI run #40 completed successfully and produced the corrected APK.
