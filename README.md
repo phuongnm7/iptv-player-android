@@ -1,3 +1,29 @@
+# NM7 IPTV Mobile 1.10.113 — CricHDai-inspired UI branch
+
+> **Development branch:** `feature/mobile-crichdai-ui-112`  
+> **Baseline:** `stable/mobile-1.10.112` → commit `6aea2d995280017c1e7c00310bcca0c9937b50bb`  
+> **Build target:** 1.10.113 / versionCode 129
+
+This branch redesigns the Mobile home/navigation presentation using the observed information architecture of the supplied CricHDai TV reference while preserving the 1.10.112 IPTV playback/data stack. It does not replace or modify the stable 1.10.112 branch.
+
+### UI direction
+- Header with NM7 identity and quick actions.
+- Primary shortcuts for All Channels, Favorites, Recent and Sources.
+- Playlist import moved into a clear, collapsible section.
+- Search and group chips remain immediately above the channel list.
+- Channel cards are more spacious and media-oriented while preserving logo, EPG, favorite and play actions.
+- Existing IPTV, M3U, DRM, EPG, background playback, sleep timer, wallpaper and YouTube/SmartTube behavior remain owned by the baseline implementation.
+
+### Reference-app boundary
+The reference APK is used only for observable UI/UX and information-architecture inspiration. No protected URLs, credentials, keys, decoder logic or security controls are extracted or bypassed.
+
+### Build status
+GitHub Actions workflow: `NM7 IPTV Mobile 1.10.113 CricHDai UI Build`.
+
+See [PROGRESS.md](PROGRESS.md) for the detailed implementation history.
+
+---
+
 # NM7 IPTV Mobile — STABLE BASELINE 1.10.112 — 2026-09-30
 
 > **BẢN ỔN ĐỊNH HIỆN TẠI:** 1.10.112. Bản này được chốt làm mốc ổn định tạm thời tại thời điểm hiện tại. **Mọi bản Mobile/build tiếp theo phải lấy chính xác bản này làm nền**, không tự ý lấy một build 1.10.112 khác hoặc một baseline cũ hơn.
