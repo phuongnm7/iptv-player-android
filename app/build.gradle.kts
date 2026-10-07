@@ -10,20 +10,13 @@ android {
         applicationId = "vn.phuong.iptvplayer"
         minSdk = 23
         targetSdk = 36
-        versionCode = 128
-        versionName = "1.10.112"
-
+        versionCode = 129
+        versionName = "1.10.113"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["applicationClass"] = "vn.phuong.iptvplayer.MobileNm7Application"
-
-        // SmartTube legacy modules have a separate internal dimension.
-        // Mobile consumes only the stable SmartTube runtime.
         missingDimensionStrategy("default", "ststable")
-
     }
 
-    // This project branch is the Mobile product only. CI validation run.
-    // Do not create a TV flavor or package any TV-only implementation here.
     flavorDimensions += "device"
     productFlavors {
         create("mobile") {
@@ -76,15 +69,8 @@ dependencies {
     implementation("androidx.media3:media3-ui:$media3Version")
     implementation("androidx.media3:media3-datasource-okhttp:$media3Version")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
-
-    // SmartTube's DroidApplication extends AndroidX MultiDexApplication.
-    // Keep the dependency direct so the Mobile app compiler can resolve that superclass.
     implementation("androidx.multidex:multidex:2.0.1")
-
-    // SmartTube is the only additional runtime for this Mobile product.
-    // Keep TV/VLC implementation completely out of the Mobile dependency graph.
     add("mobileImplementation", project(":smarttube"))
-
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.14.1")
     testImplementation("org.json:json:20240303")
