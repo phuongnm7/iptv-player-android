@@ -1,6 +1,10 @@
 name: NM7 IPTV Mobile 1.10.113 CricHDai UI Build
 # logo-rework validation trigger
 
+concurrency:
+  group: nm7-mobile-crichdai-ui-112
+  cancel-in-progress: true
+
 "on":
   push:
     branches:
