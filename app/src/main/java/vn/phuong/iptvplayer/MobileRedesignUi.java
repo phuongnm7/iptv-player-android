@@ -322,7 +322,12 @@ final class MobileRedesignUi {
             else if (state == 2) upcoming.add(c);
             else end.add(c);
         }
-        int next24 = 0;\n        long now = System.currentTimeMillis();\n        for (Channel c : upcoming) { java.util.Date start = parseEventStart(c.name()); if (start != null && start.getTime() - now <= 24L * 60L * 60L * 1000L) next24++; }
+        int next24 = 0;
+        long now = System.currentTimeMillis();
+        for (Channel c : upcoming) {
+            java.util.Date start = parseEventStart(c.name());
+            if (start != null && start.getTime() - now <= 24L * 60L * 60L * 1000L) next24++;
+        }
         addStatusChip(statuses, "✓ All (" + all.size() + ")", 0);
         addStatusChip(statuses, "Live (" + live.size() + ")", 1);
         addStatusChip(statuses, "Upcoming (" + upcoming.size() + ")", 2);
