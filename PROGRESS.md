@@ -1,3 +1,29 @@
+# 1.10.113 — Reference-video UI reconstruction — 2026-10-07
+
+## Phân tích trực tiếp video tham chiếu 222927.mp4
+Video dài khoảng 51 giây, giao diện mobile portrait. Các đặc điểm được xác nhận từ frame thực tế:
+- Header nền xanh navy: hamburger + logo/tên app bên trái, search + profile bên phải.
+- Hàng trạng thái dạng pill: All, Live, Upcoming, Next 24h, End.
+- Hàng category icon tròn có badge số lượng và tên category.
+- Nội dung chính là các card sự kiện/kênh nền navy, viền màu; card live có trạng thái Live + đồng hồ giữa hai phía, card upcoming có giờ/ngày + countdown.
+- Bottom navigation cố định 5 mục: Live Events, Channel, TV Mode, Highlights, Playlist; mục đang chọn có nền pill và màu xanh ngọc.
+- Hamburger mở drawer bên trái với đúng nhóm tiện ích quan sát được: Network Stream, Playlists, Cric Score, Foot Score, Floating Player, Enable Low Quality, Copyright, Telegram, Contact, Share, Update App, Exit.
+- Playlist page có tiêu đề Playlists/IPTV, các nhóm OWNER PLAYLISTS / MY PLAYLISTS, card viền xanh ngọc, nút play bên phải và FAB dấu +.
+- Network Stream là dialog tối với Stream URL, Advance Options, CANCEL, PLAY.
+
+## Đã triển khai trên nhánh feature
+- Rebuild activity_main.xml theo đúng information architecture của video: header, status pills, category strip, search-on-demand, event/channel cards, bottom 5-tab navigation và left utility drawer.
+- Channel card được chuyển sang bố cục event-card: tiêu đề nhóm ở giữa, logo + tên kênh, favorite, EPG.
+- Category buttons dùng kiểu hình tròn.
+- Network Stream drawer action đã có dialog nhập URL và phát bằng player hiện tại.
+- Playlists vẫn mở source manager 1.10.112; TV Mode mở interface mode; Highlights mở Recent; Playlist mở playlist manager.
+- Giữ nguyên parser, playlist store, Media3/DRM, EPG, favorite/recent, wallpaper, background playback, sleep timer, YouTube/SmartTube và player pipeline của baseline.
+- Không sửa branch stable 1.10.112.
+
+## Trạng thái
+Đang chạy CI để kiểm tra compile + parser test + APK. Chưa bàn giao APK mới cho tới khi run cuối PASS.
+
+---
 # 1.10.113 — CricHDai-inspired mobile UI redesign — 2026-10-07
 
 ## Phạm vi
