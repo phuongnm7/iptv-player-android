@@ -282,39 +282,130 @@ public final class MainActivity extends Activity {
     private void showEpgEditor(){final EditText field=new EditText(this);field.setHint("https://.../epg.xml hoặc epg.xml.gz");field.setSingleLine(true);field.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_VARIATION_URI);field.setText(epgUrl);field.setSelection(field.length());new AlertDialog.Builder(this).setTitle("Lịch phát sóng XMLTV").setMessage("Ứng dụng tự đọc url-tvg trong playlist. Bạn cũng có thể nhập URL EPG thủ công.").setView(field).setPositiveButton("Tải lịch",(d,w)->{String value=field.getText().toString().trim();if(!value.startsWith("http://")&&!value.startsWith("https://")){toast("URL EPG phải bắt đầu bằng http:// hoặc https://");return;}epgUrl=value;saveSession();loadEpg(true);}).setNeutralButton("Xóa EPG",(d,w)->{epgUrl="";adapter.submitGuide(null);saveSession();toast("Đã xóa lịch phát sóng");}).setNegativeButton("Hủy",null).show();}
     private void loadEpg(boolean notify){String address=epgUrl;io.execute(()->{try{EpgStore.Guide guide=EpgStore.download(address);ui(()->{if(!address.equals(epgUrl))return;adapter.submitGuide(guide);if(notify)toast(guide.size()>0?"Đã cập nhật lịch phát sóng":"Chưa tìm thấy chương trình đang phát");});}catch(Exception error){ui(()->{if(address.equals(epgUrl)&&notify)showError("Không tải được EPG: "+readable(error));});}});}
     private void showSettings(){
-        boolean tv=AppPreferences.isTvInterface(this);
+        final String[] sections = {
+                "◉  Nguồn & Playlist",
+                "⌕  Giao diện",
+                "▶  Player & Playback",
+                "◷  EPG / TV Guide",
+                "☆  Lịch sử & Thông tin"
+        };
+        new AlertDialog.Builder(this)
+                .setTitle("Tùy chọn ứng dụng")
+                .setItems(sections, (dialog, which) -> {
+                    if(which==0) showSourceSettings();
+                    else if(which==1) showInterfaceSettings();
+                    else if(which==2) showPlayerSettings();
+                    else if(which==3) showGuideSettings();
+                    else showHistorySettings();
+                })
+                .setNegativeButton("Đóng", null)
+                .show();
+    }
+
+    private void showSourceSettings(){
+        String[] items = {
+                "Quản lý nguồn IPTV",
+                "Thêm hoặc mở URL / tệp",
+                "Tải lại playlist hiện tại"
+        };
+        new AlertDialog.Builder(this)
+                .setTitle("Nguồn & Playlist")
+                .setItems(items, (dialog, which) -> {
+                    if(which==0) showPlaylistSources();
+                    else if(which==1) showImportTools();
+                    else reloadPlaylistUrl();
+                })
+                .setNegativeButton("Quay lại", (d,w)->showSettings())
+                .show();
+    }
+
+    private void showInterfaceSettings(){
         String mode=AppPreferences.interfaceMode(this);
         String modeLabel="tv".equals(mode)?"TV":"mobile".equals(mode)?"Mobile":"Tự động";
-        String urls=AppPreferences.showUrls(this)?"Ẩn URL trong danh sách":"Hiện URL trong danh sách";
         String rows=AppPreferences.compactRows(this)?"Hàng kênh thoải mái":"Hàng kênh thu gọn";
+        String urls=AppPreferences.showUrls(this)?"Ẩn URL trong danh sách":"Hiện URL trong danh sách";
+        String[] items = {
+                "Giao diện thiết bị: "+modeLabel,
+                "Đổi hình nền",
+                urls,
+                rows
+        };
+        new AlertDialog.Builder(this)
+                .setTitle("Giao diện")
+                .setItems(items, (dialog, which) -> {
+                    if(which==0) chooseInterfaceMode();
+                    else if(which==1) chooseWallpaper();
+                    else if(which==2){
+                        AppPreferences.setShowUrls(this,!AppPreferences.showUrls(this));
+                        adapter.notifyDataSetChanged();
+                        showInterfaceSettings();
+                    } else {
+                        AppPreferences.setCompactRows(this,!AppPreferences.compactRows(this));
+                        adapter.notifyDataSetChanged();
+                        showInterfaceSettings();
+                    }
+                })
+                .setNegativeButton("Quay lại", (d,w)->showSettings())
+                .show();
+    }
+
+    private void showPlayerSettings(){
+        boolean tv=AppPreferences.isPhysicalTv(this);
         String fps=AppPreferences.showFps(this)?"Ẩn FPS khi xem":"Hiện FPS khi xem";
         String clock=AppPreferences.showClock(this)?"Ẩn đồng hồ khi xem":"Hiện đồng hồ khi xem";
         String playerSource=AppPreferences.showPlayerSource(this)?"Ẩn nguồn phát khi xem":"Hiện nguồn phát khi xem";
         String background=AppPreferences.backgroundPlayback(this)?"Tắt phát nền khi khóa màn hình/nhấn Home":"Bật phát nền khi khóa màn hình/nhấn Home";
-        List<String> items=new ArrayList<>(java.util.Arrays.asList("Quản lý nguồn IPTV","Thêm hoặc mở URL/tệp","Tải lại playlist hiện tại","Lịch phát sóng (EPG)","Giao diện: "+modeLabel,"Đổi hình nền",urls,rows,fps,clock,playerSource));
-        final int backgroundIndex;if(tv)backgroundIndex=-1;else{backgroundIndex=items.size();items.add(background);}
-        final int recentIndex=items.size();items.add("Xóa lịch sử Gần đây");
-        final int sleepIndex=items.size();items.add("Hẹn giờ đóng app…");
-        final int aboutIndex=items.size();items.add("Thông tin ứng dụng");
-        new AlertDialog.Builder(this).setTitle("Tùy chọn ứng dụng")
-                .setItems(items.toArray(new String[0]),(dialog,which)->{
-                    if(which==0)showPlaylistSources();
-                    if(which==1)showImportTools();
-                    if(which==2)reloadPlaylistUrl();
-                    if(which==3)showEpgEditor();
-                    if(which==4)chooseInterfaceMode();
-                    if(which==5)chooseWallpaper();
-                    if(which==6){AppPreferences.setShowUrls(this,!AppPreferences.showUrls(this));adapter.notifyDataSetChanged();}
-                    if(which==7){AppPreferences.setCompactRows(this,!AppPreferences.compactRows(this));adapter.notifyDataSetChanged();}
-                    if(which==8)AppPreferences.setShowFps(this,!AppPreferences.showFps(this));
-                    if(which==9)AppPreferences.setShowClock(this,!AppPreferences.showClock(this));
-                    if(which==10)AppPreferences.setShowPlayerSource(this,!AppPreferences.showPlayerSource(this));
-                    if(which==backgroundIndex){boolean enabled=!AppPreferences.backgroundPlayback(this);AppPreferences.setBackgroundPlayback(this,enabled);if(!enabled)stopService(new Intent(this,BackgroundPlaybackService.class));if(enabled&&android.os.Build.VERSION.SDK_INT>=33)requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS},104);toast(enabled?"Đã bật phát nền":"Đã tắt phát nền");}
-                    if(which==recentIndex){AppPreferences.clearRecent(this);if(activeSection==2)filter();toast("Đã xóa lịch sử");}
-                    if(which==sleepIndex)SleepTimer.showDialog(this);
-                    if(which==aboutIndex)showAbout();
-                }).setNegativeButton("Đóng",null).show();
+        List<String> items=new ArrayList<>(java.util.Arrays.asList(
+                fps, clock, playerSource, "Hẹn giờ đóng app…"
+        ));
+        if(!tv) items.add(background);
+        new AlertDialog.Builder(this)
+                .setTitle("Player & Playback")
+                .setItems(items.toArray(new String[0]), (dialog, which) -> {
+                    if(which==0) AppPreferences.setShowFps(this,!AppPreferences.showFps(this));
+                    else if(which==1) AppPreferences.setShowClock(this,!AppPreferences.showClock(this));
+                    else if(which==2) AppPreferences.setShowPlayerSource(this,!AppPreferences.showPlayerSource(this));
+                    else if(which==3) SleepTimer.showDialog(this);
+                    else if(which==4){
+                        boolean enabled=!AppPreferences.backgroundPlayback(this);
+                        AppPreferences.setBackgroundPlayback(this,enabled);
+                        if(!enabled) stopService(new Intent(this,BackgroundPlaybackService.class));
+                        if(enabled&&android.os.Build.VERSION.SDK_INT>=33)
+                            requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS},104);
+                        toast(enabled?"Đã bật phát nền":"Đã tắt phát nền");
+                    }
+                })
+                .setNegativeButton("Quay lại", (d,w)->showSettings())
+                .show();
     }
+
+    private void showGuideSettings(){
+        String epgState=(epgUrl==null||epgUrl.isEmpty())?"Chưa cấu hình URL EPG":"Đã cấu hình EPG";
+        String[] items={"Lịch phát sóng (EPG)","Trạng thái: "+epgState};
+        new AlertDialog.Builder(this)
+                .setTitle("EPG / TV Guide")
+                .setItems(items, (dialog, which) -> {
+                    if(which==0) showEpgEditor();
+                })
+                .setNegativeButton("Quay lại", (d,w)->showSettings())
+                .show();
+    }
+
+    private void showHistorySettings(){
+        String[] items={"Xóa lịch sử Gần đây","Thông tin ứng dụng"};
+        new AlertDialog.Builder(this)
+                .setTitle("Lịch sử & Thông tin")
+                .setItems(items, (dialog, which) -> {
+                    if(which==0){
+                        AppPreferences.clearRecent(this);
+                        if(activeSection==2) filter();
+                        toast("Đã xóa lịch sử");
+                    } else showAbout();
+                })
+                .setNegativeButton("Quay lại", (d,w)->showSettings())
+                .show();
+    }
+
     private void chooseInterfaceMode(){
         String[] labels={"Tự động theo thiết bị","Mobile — cảm ứng","TV — điều khiển D-pad"};
         String[] values={"auto","mobile","tv"};
