@@ -1,3 +1,31 @@
+# 1.10.113 — CricHDai-inspired mobile UI redesign — 2026-10-07
+
+## Phạm vi
+Bắt đầu từ đúng baseline `stable/mobile-1.10.112` / commit `6aea2d995280017c1e7c00310bcca0c9937b50bb`. Nhánh riêng: `feature/mobile-crichdai-ui-112`.
+
+## Nguyên tắc
+- Không sửa `stable/mobile-1.10.112`.
+- Giữ nguyên IPTV engine, M3U parser, DRM metadata/playback, Media3, EPG, favorites, recent, direct URL, playlist source store, wallpaper, background playback, sleep timer và YouTube/SmartTube runtime của baseline.
+- Chỉ tái tổ chức UI, navigation shortcuts và bố cục menu theo trải nghiệm quan sát được từ APK CricHDai TV.
+- Không trích xuất, giải mã hoặc bypass protected URLs, credentials, keys hay security controls của ứng dụng tham chiếu.
+
+## Các thay đổi đã triển khai
+- Version `1.10.113`, versionCode `129`.
+- Home layout mới: app header, nhóm quick actions TV/Favorites/Recent/Sources, khu vực thêm playlist thu gọn, search, group chips và danh sách channel card.
+- Channel card được làm thoáng hơn, logo rectangular/fitted, thông tin nhóm + EPG giữ nguyên, nút favorite/play giữ nguyên.
+- Shortcut `Nguồn` mở trực tiếp trình quản lý playlist source.
+- CI workflow riêng trên branch này.
+
+## Kiểm tra
+- Branch ahead 6 commits, behind 0 so với stable baseline.
+- GitHub Actions đã checkout source + SmartTube pinned source thành công và chạy tới parser unit tests.
+- Chưa đánh dấu runtime PASS cho tới khi APK build thành công và có kiểm thử thiết bị.
+
+## Tiếp theo trong nhánh này
+Hoàn thiện menu/settings grouping và chạy build APK 1.10.113; chỉ sau khi CI/build artifact hợp lệ mới bàn giao APK.
+
+---
+
 # STABLE BASELINE — NM7 IPTV Mobile 1.10.112 — 2026-09-30
 
 ## Quyết định ổn định hiện tại
