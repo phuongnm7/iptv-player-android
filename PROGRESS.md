@@ -21,8 +21,26 @@ Bắt đầu từ đúng baseline `stable/mobile-1.10.112` / commit `6aea2d99528
 - GitHub Actions đã checkout source + SmartTube pinned source thành công và chạy tới parser unit tests.
 - Chưa đánh dấu runtime PASS cho tới khi APK build thành công và có kiểm thử thiết bị.
 
-## Tiếp theo trong nhánh này
-Hoàn thiện menu/settings grouping và chạy build APK 1.10.113; chỉ sau khi CI/build artifact hợp lệ mới bàn giao APK.
+## Hoàn tất build
+### 1.10.113 CricHDai-inspired UI build — CI PASS
+
+- Final commit: `636f6d96a3b894e9bfc8f7452439adc2be38490f`
+- Branch: `feature/mobile-crichdai-ui-112`
+- GitHub Actions run: **#22** — SUCCESS
+- Parser unit tests: **PASS**
+- Mobile assemble: **PASS**
+- APK upload: **PASS**
+- Artifact: `NM7-IPTV-Mobile-1.10.113-UI`
+- Artifact SHA-256: `361877ca4290cd7ca6578193461474f3a9d1bccf6adee3e822ddf2eb688d644c`
+- APK SHA-256: `f6c5a5fe6b1ca381cfd79bb8c0d28eff8681922deb55956465a316e2ade2efe4`
+- Package: `vn.phuong.iptvplayer`
+- Version: **1.10.113**, versionCode **129**
+- Stable baseline `stable/mobile-1.10.112` remains untouched.
+
+APK đã được xuất từ CI artifact và checksum đã được kiểm tra lại trong môi trường làm việc. Runtime trên thiết bị thật vẫn là bước xác nhận thực tế của người dùng; CI không thể thay thế việc test UI trên máy cụ thể.
+
+## Tiếp theo nếu phát sinh phản hồi thiết bị
+Giữ nguyên baseline 1.10.112 và chỉ sửa các điểm regression được xác nhận trên nhánh feature này.
 
 ---
 

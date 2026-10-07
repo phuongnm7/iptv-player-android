@@ -18,6 +18,21 @@ This branch redesigns the Mobile home/navigation presentation using the observed
 The reference APK is used only for observable UI/UX and information-architecture inspiration. No protected URLs, credentials, keys, decoder logic or security controls are extracted or bypassed.
 
 ### Build status
+### 1.10.113 CricHDai-inspired UI build — CI PASS
+
+- Final commit: `636f6d96a3b894e9bfc8f7452439adc2be38490f`
+- Branch: `feature/mobile-crichdai-ui-112`
+- GitHub Actions run: **#22** — SUCCESS
+- Parser unit tests: **PASS**
+- Mobile assemble: **PASS**
+- APK upload: **PASS**
+- Artifact: `NM7-IPTV-Mobile-1.10.113-UI`
+- Artifact SHA-256: `361877ca4290cd7ca6578193461474f3a9d1bccf6adee3e822ddf2eb688d644c`
+- APK SHA-256: `f6c5a5fe6b1ca381cfd79bb8c0d28eff8681922deb55956465a316e2ade2efe4`
+- Package: `vn.phuong.iptvplayer`
+- Version: **1.10.113**, versionCode **129**
+- Stable baseline `stable/mobile-1.10.112` remains untouched.
+
 GitHub Actions workflow: `NM7 IPTV Mobile 1.10.113 CricHDai UI Build`.
 
 See [PROGRESS.md](PROGRESS.md) for the detailed implementation history.
