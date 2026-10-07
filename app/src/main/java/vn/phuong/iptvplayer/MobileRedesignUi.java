@@ -758,7 +758,7 @@ final class MobileRedesignUi {
     }
 
     private void updateNav() {
-        setNav(R.id.navYoutube, 0);
+        setNav(R.id.btnYoutube, 0);
         setNav(R.id.btnLiveEvents, 1);
         setNav(R.id.btnChannel, 2);
         setNav(R.id.btnTvMode, 3);
@@ -829,16 +829,10 @@ final class MobileRedesignUi {
         return i;
     }
 
-    private View lp(int width, int height, float weight) {
-        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(width == 0 ? 0 : width, height, weight);
-        if (width == -2) p.width = LinearLayout.LayoutParams.WRAP_CONTENT;
-        return pToView(p);
-    }
-
-    private View pToView(LinearLayout.LayoutParams p) {
-        View placeholder = new View(activity);
-        placeholder.setLayoutParams(p);
-        return placeholder;
+    private LinearLayout.LayoutParams lp(int width, int height, float weight) {
+        int w = width == -2 ? LinearLayout.LayoutParams.WRAP_CONTENT : width;
+        int h = height == -2 ? LinearLayout.LayoutParams.WRAP_CONTENT : height;
+        return new LinearLayout.LayoutParams(w, h, weight);
     }
 
     private GradientDrawable rounded(int fill, int stroke, int width, float radius) {
