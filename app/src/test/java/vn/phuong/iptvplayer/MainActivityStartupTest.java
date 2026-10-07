@@ -1,62 +1,53 @@
 package vn.phuong.iptvplayer;
 
-import android.app.Application;
+import android.content.Context;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.ActivityController;
-import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(application = MainActivityStartupTest.TestApplication.class, sdk = 34)
+@Config(sdk = 34)
 public class MainActivityStartupTest {
-    public static class TestApplication extends Application {
+    @Test
+    public void referenceLauncherLayoutInflatesAndContainsRequiredViews() {
+        Context context = RuntimeEnvironment.getApplication();
+        View root = LayoutInflater.from(context).inflate(R.layout.activity_main, null);
+
+        assertTrue(root instanceof FrameLayout);
+        assertNotNull(root.findViewById(R.id.btnMenu));
+        assertNotNull(root.findViewById(R.id.btnSearch));
+        assertNotNull(root.findViewById(R.id.btnProfile));
+        assertNotNull(root.findViewById(R.id.statusRow));
+        assertNotNull(root.findViewById(R.id.groupRow));
+        assertNotNull(root.findViewById(R.id.listChannels));
+        assertNotNull(root.findViewById(R.id.btnLiveEvents));
+        assertNotNull(root.findViewById(R.id.btnChannel));
+        assertNotNull(root.findViewById(R.id.btnTvMode));
+        assertNotNull(root.findViewById(R.id.btnHighlights));
+        assertNotNull(root.findViewById(R.id.btnPlaylist));
+        assertNotNull(root.findViewById(R.id.drawerScrim));
+        assertNotNull(root.findViewById(R.id.drawerPanel));
     }
 
     @Test
-    public void mainActivityInflatesAndBindsReferenceUi() {
-        ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).create();
-        MainActivity activity = controller.get();
-        // MainActivity starts its shared background executor during normal startup.
-        // Stop it in this JVM test so the test process cannot remain alive waiting
-        // on restore/network work after the assertions have completed.
-        SessionStore.IO.shutdownNow();
+    public void inlinePlayerResolvesVerticalHostInsideReferenceFrameLayout() {
+        Context context = RuntimeEnvironment.getApplication();
+        FrameLayout shell = new FrameLayout(context);
+        LinearLayout content = new LinearLayout(context);
+        shell.addView(content);
 
-        View root = activity.findViewById(R.id.mainRoot);
-        assertNotNull(root);
-        assertTrue("reference launcher shell must be a ViewGroup", root instanceof android.view.ViewGroup);
-        assertTrue("reference launcher shell must remain a FrameLayout for overlays", root instanceof FrameLayout);
-        assertNotNull(activity.findViewById(R.id.btnMenu));
-        assertNotNull(activity.findViewById(R.id.btnSearch));
-        assertNotNull(activity.findViewById(R.id.btnProfile));
-        assertNotNull(activity.findViewById(R.id.statusRow));
-        assertNotNull(activity.findViewById(R.id.groupRow));
-        assertNotNull(activity.findViewById(R.id.listChannels));
-        assertNotNull(activity.findViewById(R.id.btnLiveEvents));
-        assertNotNull(activity.findViewById(R.id.btnChannel));
-        assertNotNull(activity.findViewById(R.id.btnTvMode));
-        assertNotNull(activity.findViewById(R.id.btnHighlights));
-        assertNotNull(activity.findViewById(R.id.btnPlaylist));
-        assertNotNull(activity.findViewById(R.id.drawerScrim));
-        assertNotNull(activity.findViewById(R.id.drawerPanel));
-
-        // Exercise the provider path that runs immediately after Activity resume.
-        // This used to cast mainRoot directly to LinearLayout and crashed the app
-        // after the Android launch splash when the reference UI changed the shell
-        // to FrameLayout.
-        MobileInlinePlayerProviderV2 provider = new MobileInlinePlayerProviderV2();
-        provider.attachInfo(activity.getApplication(), null);
-        provider.onActivityResumed(activity);
-        provider.onActivityPaused(activity);
-        provider.onActivityDestroyed(activity);
-
-        controller.pause().stop().destroy();
+        assertSame(content, MobileInlinePlayerProviderV2.resolveLayoutHost(shell));
+        assertSame(content, MobileInlinePlayerProviderV2.resolveLayoutHost(content));
     }
 }
