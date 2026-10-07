@@ -1,395 +1,458 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/mainRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     android:background="@color/navy">
 
-    <LinearLayout
+    <FrameLayout
+        android:id="@+id/mainFrame"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
         <LinearLayout
+            android:id="@+id/playerLayoutHost"
             android:layout_width="match_parent"
-            android:layout_height="76dp"
-            android:gravity="center_vertical"
-            android:paddingStart="16dp"
-            android:paddingEnd="12dp">
-
-            <Button
-                android:id="@+id/btnMenu"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="@android:color/transparent"
-                android:text="☰"
-                android:textColor="@color/text_primary"
-                android:textSize="28sp" />
-
-            <ImageView
-                android:layout_width="42dp"
-                android:layout_height="42dp"
-                android:src="@drawable/nm7_main_logo"
-                android:scaleType="centerInside"
-                android:contentDescription="NM7 IPTV" />
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:background="@color/navy">
 
             <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:paddingStart="8dp">
+                android:id="@+id/mobileHeader"
+                android:layout_width="match_parent"
+                android:layout_height="70dp"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp">
+
+                <ImageButton
+                    android:id="@+id/btnMenu"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@android:color/transparent"
+                    android:contentDescription="Mở menu"
+                    android:src="@android:drawable/ic_menu_sort_by_size"
+                    android:tint="@color/text_primary"
+                    android:padding="10dp" />
+
+                <ImageView
+                    android:id="@+id/imgAppLogo"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="2dp"
+                    android:contentDescription="Logo Phuongnm7 IPTV"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nm7_main_logo" />
+
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:id="@+id/txtAppTitle"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="NM7 IPTV"
-                    android:textColor="@color/accent"
-                    android:textSize="21sp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="Phuongnm7 IPTV"
+                    android:textColor="@color/text_primary"
+                    android:textSize="20sp"
                     android:textStyle="bold" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Live sports &amp; TV"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="9sp" />
+
+                <ImageButton
+                    android:id="@+id/btnSearch"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
+                    android:background="@android:color/transparent"
+                    android:contentDescription="Tìm kiếm"
+                    android:src="@android:drawable/ic_menu_search"
+                    android:tint="@color/text_primary"
+                    android:padding="11dp" />
             </LinearLayout>
 
-            <Button
-                android:id="@+id/btnSearch"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="@android:color/transparent"
-                android:text="⌕"
-                android:textColor="@color/text_primary"
-                android:textSize="30sp" />
-            <Button
-                android:id="@+id/btnProfile"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="@android:color/transparent"
-                android:text="◎"
-                android:textColor="@color/text_primary"
-                android:textSize="29sp" />
-        </LinearLayout>
-
-        <HorizontalScrollView
-            android:layout_width="match_parent"
-            android:layout_height="58dp"
-            android:paddingStart="14dp"
-            android:paddingEnd="8dp"
-            android:scrollbars="none">
-            <LinearLayout
-                android:id="@+id/statusRow"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-                <Button
-                    android:id="@+id/btnAllChannels"
-                    android:layout_width="wrap_content"
-                    android:layout_height="44dp"
-                    android:layout_marginEnd="8dp"
-                    android:background="@drawable/button_primary"
-                    android:text="✓  Tất cả"
-                    android:textAllCaps="false"
-                    android:textColor="@color/navy"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
-                <Button
-                    android:id="@+id/btnFavorites"
-                    android:layout_width="wrap_content"
-                    android:layout_height="44dp"
-                    android:layout_marginEnd="8dp"
-                    android:background="@drawable/button_secondary"
-                    android:text="Live"
-                    android:textAllCaps="false"
-                    android:textColor="@color/text_primary"
-                    android:textSize="13sp" />
-                <Button
-                    android:id="@+id/btnRecent"
-                    android:layout_width="wrap_content"
-                    android:layout_height="44dp"
-                    android:layout_marginEnd="8dp"
-                    android:background="@drawable/button_secondary"
-                    android:text="Sắp tới"
-                    android:textAllCaps="false"
-                    android:textColor="@color/text_primary"
-                    android:textSize="13sp" />
-                <Button
-                    android:id="@+id/btnSources"
-                    android:layout_width="wrap_content"
-                    android:layout_height="44dp"
-                    android:background="@drawable/button_secondary"
-                    android:text="Playlist"
-                    android:textAllCaps="false"
-                    android:textColor="@color/text_primary"
-                    android:textSize="13sp" />
-            </LinearLayout>
-        </HorizontalScrollView>
-
-        <HorizontalScrollView
-            android:layout_width="match_parent"
-            android:layout_height="112dp"
-            android:paddingStart="10dp"
-            android:paddingEnd="6dp"
-            android:scrollbars="none">
-            <LinearLayout
-                android:id="@+id/groupRow"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:gravity="center_vertical"
-                android:orientation="horizontal" />
-        </HorizontalScrollView>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="52dp"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
-            android:gravity="center_vertical">
             <EditText
                 android:id="@+id/inputSearch"
-                android:layout_width="0dp"
-                android:layout_height="46dp"
-                android:layout_weight="1"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginStart="14dp"
+                android:layout_marginEnd="14dp"
+                android:layout_marginBottom="4dp"
+                android:background="@drawable/button_secondary"
+                android:hint="Tìm kênh hoặc trận đấu…"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
                 android:singleLine="true"
-                android:hint="⌕  Tìm kênh, nhóm hoặc URL…"
                 android:textColor="@color/text_primary"
                 android:textColorHint="@color/text_secondary"
-                android:background="@drawable/button_secondary"
-                android:paddingHorizontal="14dp"
+                android:textSize="14sp"
                 android:visibility="gone" />
-            <Button
-                android:id="@+id/btnClearFilters"
-                android:layout_width="86dp"
-                android:layout_height="42dp"
-                android:layout_marginStart="8dp"
-                android:background="@drawable/button_secondary"
-                android:text="Bỏ lọc"
-                android:textAllCaps="false"
-                android:textColor="@color/text_primary"
-                android:textSize="11sp"
-                android:visibility="gone" />
+
+            <LinearLayout
+                android:id="@+id/contentContainer"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="vertical" />
+
+            <!-- Compatibility surface retained for the 1.10.112 inline player/legacy engine. -->
+            <LinearLayout
+                android:id="@+id/mobileLegacyCompat"
+                android:layout_width="1dp"
+                android:layout_height="1dp"
+                android:visibility="gone"
+                android:orientation="vertical">
+
+                <EditText
+                    android:id="@+id/inputUrl"
+                    android:layout_width="1dp"
+                    android:layout_height="1dp"
+                    android:visibility="gone" />
+                <LinearLayout
+                    android:id="@+id/groupRow"
+                    android:layout_width="1dp"
+                    android:layout_height="1dp"
+                    android:visibility="gone" />
+                <TextView
+                    android:id="@+id/txtEmpty"
+                    android:layout_width="1dp"
+                    android:layout_height="1dp"
+                    android:visibility="gone" />
+                <ProgressBar
+                    android:id="@+id/progress"
+                    android:layout_width="1dp"
+                    android:layout_height="1dp"
+                    android:visibility="gone" />
+                <ListView
+                    android:id="@+id/listChannels"
+                    android:layout_width="1dp"
+                    android:layout_height="1dp"
+                    android:visibility="gone" />
+                <Button android:id="@+id/btnAllChannels" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+                <Button android:id="@+id/btnFavorites" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+                <Button android:id="@+id/btnRecent" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+                <Button android:id="@+id/btnSources" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+                <Button android:id="@+id/btnLoadUrl" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+                <Button android:id="@+id/btnOpenFile" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+                <Button android:id="@+id/btnPlayUrl" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+                <Button android:id="@+id/btnReloadUrl" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+                <Button android:id="@+id/btnWallpaper" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+                <View android:id="@+id/btnClearFilters" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+            </LinearLayout>
         </LinearLayout>
 
-        <ProgressBar
-            android:id="@+id/progress"
-            style="?android:attr/progressBarStyleHorizontal"
+        <View
+            android:id="@+id/drawerScrim"
             android:layout_width="match_parent"
-            android:layout_height="3dp"
+            android:layout_height="match_parent"
+            android:background="#99000000"
+            android:clickable="true"
+            android:focusable="true"
             android:visibility="gone" />
 
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1">
-
-            <ListView
-                android:id="@+id/listChannels"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:divider="@android:color/transparent"
-                android:dividerHeight="8dp"
-                android:listSelector="@drawable/list_focus"
-                android:clipToPadding="false"
-                android:paddingStart="4dp"
-                android:paddingEnd="4dp"
-                android:paddingBottom="10dp" />
-
-            <TextView
-                android:id="@+id/txtEmpty"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:padding="20dp"
-                android:text="Chưa có kênh phù hợp."
-                android:textColor="@color/text_secondary"
-                android:visibility="gone" />
-        </FrameLayout>
-
         <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="76dp"
-            android:background="@color/navy"
-            android:gravity="center"
-            android:orientation="horizontal"
-            android:paddingTop="4dp"
-            android:paddingBottom="3dp">
+            android:id="@+id/drawerPanel"
+            android:layout_width="300dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="start"
+            android:background="@color/surface"
+            android:elevation="24dp"
+            android:orientation="vertical"
+            android:paddingTop="10dp"
+            android:paddingBottom="12dp"
+            android:visibility="gone">
 
-            <Button
-                android:id="@+id/btnLiveEvents"
-                android:layout_width="0dp"
-                android:layout_height="68dp"
-                android:layout_weight="1"
-                android:background="@drawable/button_secondary"
-                android:text="▣\nLive Events"
-                android:textAllCaps="false"
-                android:textColor="@color/accent"
-                android:textSize="10sp" />
-            <Button
-                android:id="@+id/btnChannel"
-                android:layout_width="0dp"
-                android:layout_height="68dp"
-                android:layout_weight="1"
-                android:background="@drawable/button_secondary"
-                android:text="▣\nChannel"
-                android:textAllCaps="false"
-                android:textColor="@color/text_secondary"
-                android:textSize="10sp" />
-            <Button
-                android:id="@+id/btnTvMode"
-                android:layout_width="0dp"
-                android:layout_height="68dp"
-                android:layout_weight="1"
-                android:background="@drawable/button_secondary"
-                android:text="▣\nTV Mode"
-                android:textAllCaps="false"
-                android:textColor="@color/text_secondary"
-                android:textSize="10sp" />
-            <Button
-                android:id="@+id/btnHighlights"
-                android:layout_width="0dp"
-                android:layout_height="68dp"
-                android:layout_weight="1"
-                android:background="@drawable/button_secondary"
-                android:text="▣\nHighlights"
-                android:textAllCaps="false"
-                android:textColor="@color/text_secondary"
-                android:textSize="10sp" />
-            <Button
-                android:id="@+id/btnPlaylist"
-                android:layout_width="0dp"
-                android:layout_height="68dp"
-                android:layout_weight="1"
-                android:background="@drawable/button_secondary"
-                android:text="☷\nPlaylist"
-                android:textAllCaps="false"
-                android:textColor="@color/text_secondary"
-                android:textSize="10sp" />
-        </LinearLayout>
-    </LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="76dp"
+                android:gravity="center_vertical"
+                android:paddingStart="18dp"
+                android:paddingEnd="18dp">
 
-    <!-- Import controls are retained for 1.10.112 functionality and exposed from the drawer. -->
-    <ScrollView
-        android:id="@+id/importPanel"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:background="@drawable/panel"
-        android:padding="2dp"
-        android:visibility="gone">
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="10dp"
-            android:orientation="vertical">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="Thêm nguồn / danh sách phát" android:textColor="@color/text_primary"
-                android:textSize="13sp" android:textStyle="bold" />
-            <EditText android:id="@+id/inputUrl" android:layout_width="match_parent" android:layout_height="48dp"
-                android:inputType="textUri" android:singleLine="true" android:importantForAutofill="no"
-                android:hint="@string/playlist_url_hint" android:textSize="14sp"
-                android:textColor="@color/text_primary" android:textColorHint="@color/text_secondary"
-                android:backgroundTint="@color/accent" />
-            <LinearLayout android:layout_width="match_parent" android:layout_height="44dp" android:layout_marginTop="6dp">
-                <Button android:id="@+id/btnLoadUrl" android:layout_width="0dp" android:layout_weight="1"
-                    android:layout_height="match_parent" android:background="@drawable/button_primary"
-                    android:text="@string/load_url" android:textSize="12sp" android:textAllCaps="false"
-                    android:textColor="@color/navy" />
-                <Button android:id="@+id/btnOpenFile" android:layout_width="0dp" android:layout_weight="1"
-                    android:layout_height="match_parent" android:layout_marginStart="6dp"
-                    android:background="@drawable/button_secondary" android:text="@string/open_file"
-                    android:textSize="12sp" android:textAllCaps="false" android:textColor="@color/text_primary" />
+                <ImageView
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
+                    android:contentDescription="Logo"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nm7_main_logo" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:paddingStart="10dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Phuongnm7 IPTV"
+                        android:textColor="@color/accent"
+                        android:textSize="19sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Live sports &amp; TV"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="10sp" />
+                </LinearLayout>
             </LinearLayout>
-            <Button android:id="@+id/btnPlayUrl" android:layout_width="match_parent" android:layout_height="42dp"
-                android:layout_marginTop="6dp" android:background="@drawable/button_secondary"
-                android:text="▶ Phát URL trực tiếp" android:textAllCaps="false"
-                android:textColor="@color/accent" android:textSize="12sp" />
-            <Button android:id="@+id/btnReloadUrl" android:layout_width="match_parent" android:layout_height="42dp"
-                android:layout_marginTop="6dp" android:background="@drawable/button_secondary"
-                android:text="↻ Làm mới nguồn hiện tại" android:textAllCaps="false"
-                android:textColor="@color/text_primary" android:textSize="12sp" />
-            <Button android:id="@+id/btnWallpaper" android:layout_width="match_parent" android:layout_height="42dp"
-                android:layout_marginTop="6dp" android:background="@drawable/button_secondary"
-                android:text="⚙ Tùy chọn" android:textAllCaps="false"
-                android:textColor="@color/text_primary" android:textSize="12sp" />
-        </LinearLayout>
-    </ScrollView>
 
-    <View
-        android:id="@+id/drawerScrim"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#99000000"
-        android:visibility="gone" />
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#263955" />
+
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:gravity="center_vertical"
+                        android:onClick="drawerNetworkStream"
+                        android:paddingStart="22dp"
+                        android:text="▣  Network Stream"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:gravity="center_vertical"
+                        android:onClick="drawerPlaylists"
+                        android:paddingStart="22dp"
+                        android:text="▤  Playlists"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:gravity="center_vertical"
+                        android:onClick="drawerCricScore"
+                        android:paddingStart="22dp"
+                        android:text="⌁  Cric Score"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:gravity="center_vertical"
+                        android:onClick="drawerFootScore"
+                        android:paddingStart="22dp"
+                        android:text="⚽  Foot Score"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:gravity="center_vertical"
+                        android:onClick="drawerFloatingPlayer"
+                        android:paddingStart="22dp"
+                        android:text="◉  Floating Player"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:gravity="center_vertical"
+                        android:onClick="drawerLowQuality"
+                        android:paddingStart="22dp"
+                        android:text="⚙  Enable Low Quality"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:gravity="center_vertical"
+                        android:onClick="drawerCopyright"
+                        android:paddingStart="22dp"
+                        android:text="ⓘ  Copyright"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:gravity="center_vertical"
+                        android:onClick="drawerTelegram"
+                        android:paddingStart="22dp"
+                        android:text="➤  Telegram"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:gravity="center_vertical"
+                        android:onClick="drawerContact"
+                        android:paddingStart="22dp"
+                        android:text="♧  Contact"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:gravity="center_vertical"
+                        android:onClick="drawerShare"
+                        android:paddingStart="22dp"
+                        android:text="↗  Share"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:gravity="center_vertical"
+                        android:onClick="drawerUpdate"
+                        android:paddingStart="22dp"
+                        android:text="⇩  Update App"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:gravity="center_vertical"
+                        android:onClick="drawerExit"
+                        android:paddingStart="22dp"
+                        android:text="⇥  Exit"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+                </LinearLayout>
+            </ScrollView>
+        </LinearLayout>
+    </FrameLayout>
 
     <LinearLayout
-        android:id="@+id/drawerPanel"
-        android:layout_width="300dp"
-        android:layout_height="match_parent"
-        android:layout_gravity="start"
+        android:id="@+id/mobileBottomNav"
+        android:layout_width="match_parent"
+        android:layout_height="76dp"
         android:background="@color/navy"
-        android:elevation="18dp"
-        android:orientation="vertical"
-        android:paddingTop="12dp"
-        android:paddingBottom="10dp">
+        android:gravity="center"
+        android:paddingTop="5dp"
+        android:paddingBottom="5dp">
 
         <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="78dp"
-            android:gravity="center_vertical"
-            android:paddingHorizontal="18dp">
-            <ImageView android:layout_width="48dp" android:layout_height="48dp"
-                android:src="@drawable/nm7_main_logo" android:scaleType="centerInside" />
-            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
-                android:layout_weight="1" android:orientation="vertical" android:paddingStart="10dp">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="NM7 IPTV" android:textColor="@color/accent" android:textSize="19sp" android:textStyle="bold" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="Live sports &amp; TV" android:textColor="@color/text_secondary" android:textSize="10sp" />
-            </LinearLayout>
+            android:id="@+id/btnYoutube"
+            android:layout_width="0dp"
+            android:layout_height="64dp"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingStart="3dp"
+            android:paddingEnd="3dp">
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/nm7_nav_youtube"
+                android:contentDescription="YouTube" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="24dp"
+                android:gravity="center"
+                android:text="YouTube"
+                android:textColor="@color/text_secondary"
+                android:textSize="10sp" />
         </LinearLayout>
-        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#243650" />
 
-        <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
-                <TextView android:layout_width="match_parent" android:layout_height="44dp" android:gravity="center_vertical"
-                    android:paddingHorizontal="20dp" android:text="▣  Network Stream" android:textColor="@color/text_primary" android:textSize="14sp"
-                    android:onClick="drawerNetworkStream" />
-                <TextView android:layout_width="match_parent" android:layout_height="44dp" android:gravity="center_vertical"
-                    android:paddingHorizontal="20dp" android:text="▤  Playlists" android:textColor="@color/text_primary" android:textSize="14sp"
-                    android:onClick="drawerPlaylists" />
-                <TextView android:layout_width="match_parent" android:layout_height="44dp" android:gravity="center_vertical"
-                    android:paddingHorizontal="20dp" android:text="⌁  Cric Score" android:textColor="@color/text_primary" android:textSize="14sp"
-                    android:onClick="drawerCricScore" />
-                <TextView android:layout_width="match_parent" android:layout_height="44dp" android:gravity="center_vertical"
-                    android:paddingHorizontal="20dp" android:text="⚽  Foot Score" android:textColor="@color/text_primary" android:textSize="14sp"
-                    android:onClick="drawerFootScore" />
-                <TextView android:layout_width="match_parent" android:layout_height="44dp" android:gravity="center_vertical"
-                    android:paddingHorizontal="20dp" android:text="◉  Floating Player" android:textColor="@color/text_primary" android:textSize="14sp"
-                    android:onClick="drawerFloatingPlayer" />
-                <TextView android:layout_width="match_parent" android:layout_height="44dp" android:gravity="center_vertical"
-                    android:paddingHorizontal="20dp" android:text="⚙  Enable Low Quality" android:textColor="@color/text_primary" android:textSize="14sp"
-                    android:onClick="drawerLowQuality" />
-                <TextView android:layout_width="match_parent" android:layout_height="44dp" android:gravity="center_vertical"
-                    android:paddingHorizontal="20dp" android:text="ⓘ  Copyright" android:textColor="@color/text_primary" android:textSize="14sp"
-                    android:onClick="drawerCopyright" />
-                <TextView android:layout_width="match_parent" android:layout_height="44dp" android:gravity="center_vertical"
-                    android:paddingHorizontal="20dp" android:text="➤  Telegram" android:textColor="@color/text_primary" android:textSize="14sp"
-                    android:onClick="drawerTelegram" />
-                <TextView android:layout_width="match_parent" android:layout_height="44dp" android:gravity="center_vertical"
-                    android:paddingHorizontal="20dp" android:text="♧  Contact" android:textColor="@color/text_primary" android:textSize="14sp"
-                    android:onClick="drawerContact" />
-                <TextView android:layout_width="match_parent" android:layout_height="44dp" android:gravity="center_vertical"
-                    android:paddingHorizontal="20dp" android:text="↗  Share" android:textColor="@color/text_primary" android:textSize="14sp"
-                    android:onClick="drawerShare" />
-                <TextView android:layout_width="match_parent" android:layout_height="44dp" android:gravity="center_vertical"
-                    android:paddingHorizontal="20dp" android:text="⇩  Update App" android:textColor="@color/text_primary" android:textSize="14sp"
-                    android:onClick="drawerUpdate" />
-                <TextView android:layout_width="match_parent" android:layout_height="44dp" android:gravity="center_vertical"
-                    android:paddingHorizontal="20dp" android:text="⇥  Exit" android:textColor="@color/text_primary" android:textSize="14sp"
-                    android:onClick="drawerExit" />
-            </LinearLayout>
-        </ScrollView>
+        <LinearLayout
+            android:id="@+id/btnLiveEvents"
+            android:layout_width="0dp"
+            android:layout_height="64dp"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingStart="3dp"
+            android:paddingEnd="3dp">
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/nm7_nav_iptv"
+                android:contentDescription="Live Events" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="24dp"
+                android:gravity="center"
+                android:text="Live Events"
+                android:textColor="@color/accent"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/btnChannel"
+            android:layout_width="0dp"
+            android:layout_height="64dp"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingStart="3dp"
+            android:paddingEnd="3dp">
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/nm7_nav_iptv"
+                android:contentDescription="Channel" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="24dp"
+                android:gravity="center"
+                android:text="Channel"
+                android:textColor="@color/text_secondary"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/btnTvMode"
+            android:layout_width="0dp"
+            android:layout_height="64dp"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingStart="3dp"
+            android:paddingEnd="3dp">
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/nm7_nav_settings"
+                android:contentDescription="Tùy chọn" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="24dp"
+                android:gravity="center"
+                android:text="Tùy chọn"
+                android:textColor="@color/text_secondary"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/btnPlaylist"
+            android:layout_width="0dp"
+            android:layout_height="64dp"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingStart="3dp"
+            android:paddingEnd="3dp">
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/nm7_nav_library"
+                android:contentDescription="Playlist" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="24dp"
+                android:gravity="center"
+                android:text="Playlist"
+                android:textColor="@color/text_secondary"
+                android:textSize="10sp" />
+        </LinearLayout>
     </LinearLayout>
-</FrameLayout>
+</LinearLayout>
