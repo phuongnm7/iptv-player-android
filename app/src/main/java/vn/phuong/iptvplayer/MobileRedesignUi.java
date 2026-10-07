@@ -33,8 +33,6 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.Nullable;
-
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -143,7 +141,7 @@ final class MobileRedesignUi {
         renderPlaylists();
     }
 
-    void handleLocalPlaylistResult(@Nullable Uri uri) {
+    void handleLocalPlaylistResult(Uri uri) {
         if (uri == null) return;
         try {
             String suggested = uri.getLastPathSegment();
