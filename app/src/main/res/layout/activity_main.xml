@@ -33,7 +33,7 @@
                     android:layout_height="48dp"
                     android:background="@android:color/transparent"
                     android:contentDescription="Mở menu"
-                    android:src="@android:drawable/ic_menu_sort_by_size"
+                    android:src="@drawable/ic_menu_reference"
                     android:tint="@color/text_primary"
                     android:padding="10dp" />
 
@@ -65,7 +65,7 @@
                     android:layout_height="50dp"
                     android:background="@android:color/transparent"
                     android:contentDescription="Tìm kiếm"
-                    android:src="@android:drawable/ic_menu_search"
+                    android:src="@drawable/ic_search_reference"
                     android:tint="@color/text_primary"
                     android:padding="11dp" />
             </LinearLayout>
