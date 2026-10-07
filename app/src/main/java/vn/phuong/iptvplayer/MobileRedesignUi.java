@@ -509,7 +509,7 @@ final class MobileRedesignUi {
         updateNav();
     }
 
-    private TextView sectionTitle(String header, String sub) {
+    private View sectionTitle(String header, String sub) {
         LinearLayout box = new LinearLayout(activity);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(dp(6), dp(14), 0, dp(10));
