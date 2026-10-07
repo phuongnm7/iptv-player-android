@@ -155,10 +155,10 @@ public final class MobileNm7Application extends DroidApplication implements andr
             installSmartTubeBackHandling(activity);
         }
         if (activity instanceof MainActivity) {
-            activity.getWindow().getDecorView().post(() -> {
-                MobileIptvUi.install(activity);
-                HomeTabBar.attach(activity, false);
-            });
+            // MainActivity now owns the complete five-tab Mobile shell. Do not inject
+            // the legacy MobileIptvUi/HomeTabBar overlay here: those layers were designed
+            // for the older 1.10.112 toolbar and can mutate the redesigned view tree during
+            // the first lifecycle callback.
         } else if (SMARTTUBE_BROWSE.equals(name)) {
             activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
             activity.getWindow().getDecorView().post(() -> {
