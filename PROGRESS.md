@@ -4085,3 +4085,64 @@ Hiện tượng: app hiện splash NM7 nhưng không vào được màn hình ch
 ## 10. Trạng thái bàn giao
 STATUS: BLOCKED — startup/runtime chưa PASS.
 Ưu tiên số 1: lấy crash log thực tế và xác định chính xác điểm crash. Sau đó mới hoàn thiện UI theo 222927.mp4.
+
+# 2026-10-07 — Mobile Reference UI — build handoff
+
+## Trạng thái hiện tại
+
+**BUILD PASS — APK đã build thành công. DEVICE RUNTIME CHƯA ĐƯỢC XÁC NHẬN trong phiên này.**
+
+- Branch: `feature/mobile-crichdai-ui-112`
+- Baseline: `stable/mobile-1.10.112`
+- APK versionName: **1.10.112**
+- APK versionCode: **128**
+- Source commit đã build artifact: `3c0511a12e5289875e0e3f39e444b306900cc9f0`
+- GitHub Actions run: **#84**
+- Run ID: **37580293471**
+- Artifact: **NM7-IPTV-Mobile-1.10.112-ReferenceUI**
+- Artifact ID: **11465050002**
+- Artifact digest: `sha256:a45b11e3e73078a1a08a159ef83c3f0c7bb00281e61727133768ecc60eb01e6d`
+- APK file: `app-mobile-debug.apk`
+- APK SHA-256: `a887f7ccaa66d70684f08aac0a18e48c0d199d10e49208a4fc56242a6a48c0ef`
+- APK size: **170,452,945 bytes**
+
+## Những phần đã triển khai theo yêu cầu
+
+1. Màn hình mở đầu là **Live Events**.
+2. Header đổi thành **Phuongnm7 IPTV**, dùng logo NM7; bỏ avatar người dùng.
+3. Nút tìm kiếm giữ ở góc phải; có ô tìm kiếm kênh/trận đấu.
+4. Bottom navigation đúng thứ tự:
+   **YouTube → Live Events → Channel → Tùy chọn → Playlist**.
+5. **YouTube** gọi lại SmartTube pipeline hiện có.
+6. **Live Events** lấy candidate trận đấu trực tiếp từ các mục trong playlist; nhóm được lấy từ `Channel.group()`.
+7. Live Events có bộ lọc **All / Live / Upcoming / Next 24h / End** và hàng nhóm thể thao ở phía trên.
+8. **Channel** có featured card, filter group/favourites và grid 4 cột kiểu app mẫu.
+9. **Tùy chọn** gọi màn hình settings hiện có; mục settings không còn là tab “TV Mode”.
+10. **Playlist** có owner playlist, playlist URL đã lưu, local playlist, edit/delete và nút + để thêm M3U URL hoặc tệp local.
+11. Engine phát 1.10.112 vẫn là backend: M3U parser, Media3/DRM, EPG, favorite/recent, direct URL, wallpaper/background playback, sleep timer và SmartTube.
+
+## Kiểm tra build
+
+Run #84 đã đi qua:
+- checkout source/submodules;
+- toàn bộ SmartTube compatibility patch;
+- lifecycle regression guard;
+- compile Mobile source — **SUCCESS**;
+- assemble Mobile APK — **SUCCESS**;
+- upload artifact — **SUCCESS**.
+
+Lưu ý: workflow đã đổi bước “Run IPTV parser unit tests” thành **focused Java compile** để vòng build UI này không bị chặn bởi test suite nặng. Không được coi đây là thay thế cho toàn bộ unit-test suite.
+
+## Việc còn phải test trên máy thật
+
+- Cài APK và mở app từ cold start.
+- Xác nhận không còn hiện tượng splash → quay lại launcher.
+- Kiểm tra lần lượt YouTube / Live Events / Channel / Tùy chọn / Playlist.
+- Kiểm tra Live Events thực sự lấy đúng các trận trong playlist, đặc biệt các group như `gà vàng`, `gà vàng 33 tv`, `sao kê` khi chúng có trong playlist.
+- Kiểm tra play channel/event bằng player 1.10.112 và các kênh DRM/HLS/DASH đang có.
+- Kiểm tra thêm/sửa/xóa playlist.
+- Nếu có crash: lấy `adb logcat` của process `vn.phuong.iptvplayer`; không sửa theo phỏng đoán.
+
+## Ghi chú UI
+
+Bản này là bản chức năng + bố cục theo ảnh mẫu, chưa phải bản pixel-perfect của app mẫu. Icon sport/category hiện ưu tiên dữ liệu group từ playlist; event card dùng metadata playlist nên chưa có backend event-score riêng như ứng dụng mẫu.
