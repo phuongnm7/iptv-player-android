@@ -24,6 +24,10 @@ public class MainActivityStartupTest {
     public void mainActivityInflatesAndBindsReferenceUi() {
         ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).create();
         MainActivity activity = controller.get();
+        // MainActivity starts its shared background executor during normal startup.
+        // Stop it in this JVM test so the test process cannot remain alive waiting
+        // on restore/network work after the assertions have completed.
+        SessionStore.IO.shutdownNow();
 
         View root = activity.findViewById(R.id.mainRoot);
         assertNotNull(root);
