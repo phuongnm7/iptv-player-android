@@ -180,6 +180,23 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         mainHandler.post(this::syncOrientationUi);
     }
 
+    /**
+     * Resolve the vertical layout that should host the inline player.
+     * The stable launcher used a LinearLayout as mainRoot; the reference UI
+     * deliberately uses a FrameLayout shell so drawers/overlays can sit above
+     * the page. Never cast the shell blindly.
+     */
+    static ViewGroup resolveLayoutHost(View rootView) {
+        if (!(rootView instanceof ViewGroup)) return null;
+        ViewGroup root = (ViewGroup) rootView;
+        if (root instanceof LinearLayout) return root;
+        if (root.getChildCount() > 0) {
+            View candidate = root.getChildAt(0);
+            if (candidate instanceof ViewGroup) return (ViewGroup) candidate;
+        }
+        return root;
+    }
+
     private void attach(MainActivity activity) {
         detach();
         currentActivity = activity;
@@ -189,17 +206,8 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         if (!(rootView instanceof ViewGroup) || channelList == null || fullscreenHost == null) return;
 
         ViewGroup root = (ViewGroup) rootView;
-        // 1.10.113 reference UI uses a FrameLayout shell with the real vertical
-        // launcher content as its first child. Older Mobile player code expected
-        // mainRoot itself to be a LinearLayout and was crashing with a
-        // ClassCastException during the first onResume. Resolve a LinearLayout
-        // content host when available, while retaining compatibility with the
-        // stable 1.10.112 hierarchy.
-        ViewGroup layoutHost = root;
-        if (!(layoutHost instanceof LinearLayout) && root.getChildCount() > 0) {
-            View candidate = root.getChildAt(0);
-            if (candidate instanceof ViewGroup) layoutHost = (ViewGroup) candidate;
-        }
+        ViewGroup layoutHost = resolveLayoutHost(rootView);
+        if (layoutHost == null) return;
 
         panel = new LinearLayout(activity);
         panel.setTag("nm7_inline_player");
