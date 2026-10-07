@@ -189,6 +189,11 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
     static ViewGroup resolveLayoutHost(View rootView) {
         if (!(rootView instanceof ViewGroup)) return null;
         ViewGroup root = (ViewGroup) rootView;
+        // The redesigned Mobile shell keeps mainRoot as a LinearLayout for compatibility
+        // with the 1.10.112 engine, while exposing a dedicated vertical host for the inline
+        // player panel. Prefer that host whenever it exists.
+        View dedicated = root.findViewById(R.id.playerLayoutHost);
+        if (dedicated instanceof ViewGroup) return (ViewGroup) dedicated;
         if (root instanceof LinearLayout) return root;
         if (root.getChildCount() > 0) {
             View candidate = root.getChildAt(0);
