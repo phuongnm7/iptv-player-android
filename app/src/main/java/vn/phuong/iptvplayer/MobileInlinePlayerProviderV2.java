@@ -183,10 +183,23 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
     private void attach(MainActivity activity) {
         detach();
         currentActivity = activity;
-        LinearLayout root = activity.findViewById(R.id.mainRoot);
+        View rootView = activity.findViewById(R.id.mainRoot);
         channelList = activity.findViewById(R.id.listChannels);
         fullscreenHost = activity.findViewById(android.R.id.content);
-        if (root == null || channelList == null || fullscreenHost == null) return;
+        if (!(rootView instanceof ViewGroup) || channelList == null || fullscreenHost == null) return;
+
+        ViewGroup root = (ViewGroup) rootView;
+        // 1.10.113 reference UI uses a FrameLayout shell with the real vertical
+        // launcher content as its first child. Older Mobile player code expected
+        // mainRoot itself to be a LinearLayout and was crashing with a
+        // ClassCastException during the first onResume. Resolve a LinearLayout
+        // content host when available, while retaining compatibility with the
+        // stable 1.10.112 hierarchy.
+        ViewGroup layoutHost = root;
+        if (!(layoutHost instanceof LinearLayout) && root.getChildCount() > 0) {
+            View candidate = root.getChildAt(0);
+            if (candidate instanceof ViewGroup) layoutHost = (ViewGroup) candidate;
+        }
 
         panel = new LinearLayout(activity);
         panel.setTag("nm7_inline_player");
@@ -261,12 +274,27 @@ public final class MobileInlinePlayerProviderV2 extends ContentProvider implemen
         panel.addView(stats, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
-        LinearLayout.LayoutParams panelParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        panelParams.setMarginStart(-root.getPaddingLeft());
-        panelParams.setMarginEnd(-root.getPaddingRight());
+        ViewGroup.LayoutParams panelParams;
+        if (layoutHost instanceof LinearLayout) {
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            lp.setMarginStart(-root.getPaddingLeft());
+            lp.setMarginEnd(-root.getPaddingRight());
+            panelParams = lp;
+        } else if (layoutHost instanceof FrameLayout) {
+            FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT);
+            lp.leftMargin = -root.getPaddingLeft();
+            lp.rightMargin = -root.getPaddingRight();
+            lp.gravity = android.view.Gravity.TOP;
+            panelParams = lp;
+        } else {
+            panelParams = new ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
         root.setClipToPadding(false);
-        root.addView(panel, Math.min(1, root.getChildCount()), panelParams);
+        layoutHost.setClipToPadding(false);
+        layoutHost.addView(panel, Math.min(1, layoutHost.getChildCount()), panelParams);
 
         originalClick = channelList.getOnItemClickListener();
         channelList.setOnItemClickListener((parent, view, position, id) -> {
