@@ -1,3 +1,71 @@
+# NM7 IPTV Mobile — CURRENT HANDOFF — 1.10.113 — 2026-10-08
+
+> **ỨNG VIÊN HIỆN TẠI, CHƯA CHỐT STABLE:** 1.10.113. Bản này phát triển trực tiếp từ stable baseline 1.10.112 / commit `6aea2d995280017c1e7c00310bcca0c9937b50bb`. CI đã PASS và APK đã được tạo. Chưa đánh dấu stable cho tới khi người dùng test thực tế trên thiết bị.
+
+## Mốc nền
+- Stable baseline: **1.10.112** (`stable/mobile-1.10.112`)
+- Baseline commit: `6aea2d995280017c1e7c00310bcca0c9937b50bb`
+- Candidate branch: `work/mobile-app-settings-bottom-v113`
+- Candidate commit: `1a5ee858ee0bd9a4a44707f9c0f9b3fa81e5a764`
+- [Xem commit](https://github.com/phuongnm7/iptv-player-android/commit/1a5ee858ee0bd9a4a44707f9c0f9b3fa81e5a764)
+
+## Thay đổi 1.10.113
+
+### IPTV
+- Bỏ hàng hiển thị 4 phím **Tất cả / Yêu thích / Tải lại / Gần đây**.
+- Giữ `btnAllChannels`, `btnFavorites`, `btnRecent` làm anchor ẩn để không phá logic `selectSection()` / `filter()` của `MainActivity`.
+- Đưa **↻ Tải lại** xuống cùng hàng với **Bỏ lọc**.
+- Thêm **⚙ Tùy chọn IPTV** ở cùng hàng; menu vẫn có **Tất cả kênh / Yêu thích / Gần đây**.
+- Không duplicate **Tùy chọn ứng dụng** trong IPTV.
+
+### YouTube
+- Header Mobile chuyển về bố cục sáng: **logo NM7 + NM7 + tìm kiếm + micro + tài khoản**.
+- Giữ các ID `nm7_search`, `nm7_voice`, `nm7_account`; không thay business logic Browse.
+
+### Version
+- versionName: **1.10.113**
+- versionCode: **129**
+
+## CI / APK
+- Workflow: **NM7 IPTV Mobile 1.10.113 UI Refinement Build**
+- Workflow file: `.github/workflows/nm7-mobile-113-ui-refinement.yml`
+- Run ID: **37655352745 — SUCCESS**
+- [GitHub Actions](https://github.com/phuongnm7/iptv-player-android/actions/runs/37655352745)
+- Artifact: **NM7-IPTV-Mobile-1.10.113-FINAL**
+- Artifact ID: **11498119053**
+- [Artifact](https://github.com/phuongnm7/iptv-player-android/actions/runs/37655352745/artifacts/11498119053)
+- APK trong artifact: `app-mobile-debug.apk`
+- APK SHA-256: **72537004c936a9a358712b28261c9709153252561b57b7952e5fe3131f42019b**
+- Artifact digest: **sha256:885fccf5dd8e3004ec6962d7d2c2416bebe354452b3c7c3621f1e470e699c75c6**
+
+## File quan trọng
+- `app/build.gradle.kts` — version 1.10.113 / 129.
+- `app/src/main/res/layout/activity_main.xml` — layout IPTV mới.
+- `app/src/main/java/vn/phuong/iptvplayer/MobileIptvUi.java` — IPTV Mobile UI.
+- `app/src/main/java/vn/phuong/iptvplayer/HomeTabBar.java` — bottom navigation.
+- `app/src/main/java/vn/phuong/iptvplayer/MainActivity.java` — playlist/filter/reload/app settings.
+- `scripts/mobile-ui/res/layout/browse_activity.xml` — YouTube header generate-time.
+- `scripts/patch-mobile-ui.py`, `scripts/patch-mobile-v37.py`, `scripts/patch-mobile-v106.py` — SmartTube build chain.
+
+## Runtime test còn thiếu
+CI PASS chỉ chứng minh build thành công. Cần test máy thật:
+- IPTV: row 4 phím biến mất; Bỏ lọc + Tải lại cùng hàng; Tùy chọn IPTV chuyển được Tất cả/Yêu thích/Gần đây.
+- Bottom bar: YouTube / IPTV / Tùy chọn ứng dụng.
+- Tùy chọn ứng dụng mở đầy đủ.
+- YouTube header đúng giao diện mong muốn; search/mic/account hoạt động.
+- Regression YouTube: avatar, status bar/player, spinner, live chat, background/mini, back.
+
+## Quy tắc bàn giao
+- `stable/mobile-1.10.112` vẫn là baseline chính thức.
+- Không dùng `main` làm nền nếu đã đi sau baseline.
+- Nếu 1.10.113 PASS runtime và được chốt stable, bản kế tiếp là **1.10.114 / versionCode 130**.
+- Mobile only; không tự ý thay Android TV.
+- UI SmartTube phải sửa ở `scripts/mobile-ui/...` hoặc patch script; không sửa thư mục generated rồi kỳ vọng CI giữ lại.
+- Generated source phải được kiểm tra; CI PASS không thay thế runtime test.
+
+---
+
+# LỊCH SỬ CŨ
 # NM7 IPTV Mobile — STABLE BASELINE 1.10.112 — 2026-09-30
 
 > **BẢN ỔN ĐỊNH HIỆN TẠI:** 1.10.112. Bản này được chốt làm mốc ổn định tạm thời tại thời điểm hiện tại. **Mọi bản Mobile/build tiếp theo phải lấy chính xác bản này làm nền**, không tự ý lấy một build 1.10.112 khác hoặc một baseline cũ hơn.
