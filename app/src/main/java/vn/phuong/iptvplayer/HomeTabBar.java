@@ -39,13 +39,19 @@ public final class HomeTabBar {
         bar.setElevation(dp(activity, 8));
         bar.setPadding(0, dp(activity, 4), 0, dp(activity, 4));
 
-        addItem(activity, bar, R.drawable.nm7_nav_youtube, youtubeSelected, () -> {
+        addItem(activity, bar, R.drawable.nm7_nav_youtube, youtubeSelected, "YouTube", () -> {
             if (!youtubeSelected) openBrowse(activity);
         });
 
-        addItem(activity, bar, R.drawable.nm7_nav_iptv, !youtubeSelected, () -> {
+        addItem(activity, bar, R.drawable.nm7_nav_iptv, !youtubeSelected, "IPTV", () -> {
             if (youtubeSelected) openIptv(activity);
         });
+
+        // Application settings is a top-level destination of the same bottom bar.
+        // It reuses MainActivity's existing dialog so every existing setting and behavior
+        // stays identical to the 1.10.112 implementation.
+        addItem(activity, bar, R.drawable.nm7_nav_settings, false, "Tùy chọn",
+                () -> openAppSettings(activity));
 
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(activity, 64), Gravity.BOTTOM);
@@ -116,6 +122,21 @@ public final class HomeTabBar {
                 () -> MobileInlinePlayerProviderV2.resumeForIptvTab(activity), 180L);
     }
 
+    private static void openAppSettings(Activity activity) {
+        if (activity instanceof MainActivity) {
+            ((MainActivity) activity).showSettingsFromNavigation();
+            return;
+        }
+        // Settings are hosted by the existing MainActivity. Return to that host with
+        // the same no-animation handoff used by the existing IPTV navigation.
+        SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_IPTV);
+        MobileNm7Application.markTabSwitch();
+        Intent intent = new Intent(activity, MainActivity.class);
+        intent.putExtra(MainActivity.EXTRA_OPEN_APP_SETTINGS, true);
+        intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+        startWithoutAnimation(activity, intent);
+    }
+
     private static void openBrowse(Activity activity) {
         SharedPlaybackSession.setTab(activity, SharedPlaybackSession.TAB_YOUTUBE);
         MobileNm7Application.markTabSwitch();
@@ -151,7 +172,8 @@ public final class HomeTabBar {
         }
     }
 
-    private static void addItem(Activity activity, LinearLayout bar, int iconRes, boolean selected, Runnable action) {
+    private static void addItem(Activity activity, LinearLayout bar, int iconRes, boolean selected,
+                                 String title, Runnable action) {
         LinearLayout item = new LinearLayout(activity);
         item.setGravity(Gravity.CENTER);
         item.setOrientation(LinearLayout.VERTICAL);
@@ -168,7 +190,6 @@ public final class HomeTabBar {
         item.addView(icon, new LinearLayout.LayoutParams(size, size));
 
         TextView label = new TextView(activity);
-        String title = iconRes == R.drawable.nm7_nav_youtube ? "YouTube" : "IPTV";
         label.setText(title);
         item.setContentDescription(title);
         label.setTextSize(11);

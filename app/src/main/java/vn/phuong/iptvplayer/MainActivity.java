@@ -35,6 +35,7 @@ public final class MainActivity extends Activity {
     private static final int PICK_WALLPAPER = 103;
     private static final int MAX_PLAYLIST_BYTES = 8 * 1024 * 1024;
     private static final String DEFAULT_PLAYLIST = PlaylistSourceStore.DEFAULT_URL;
+    static final String EXTRA_OPEN_APP_SETTINGS = "open_app_settings";
 
     private final ExecutorService io = SessionStore.IO;
     private final M3uParser parser = new M3uParser();
@@ -51,7 +52,19 @@ public final class MainActivity extends Activity {
     private final android.os.Handler epgHandler=new android.os.Handler(android.os.Looper.getMainLooper());
     private final Runnable epgTick=new Runnable(){@Override public void run(){if(adapter!=null)adapter.notifyDataSetChanged();epgHandler.postDelayed(this,60_000);}};
 
-    @Override protected void onCreate(Bundle savedInstanceState) { super.onCreate(savedInstanceState); setupViews(); restoreSession(); epgHandler.post(epgTick); }
+    @Override protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setupViews();
+        restoreSession();
+        epgHandler.post(epgTick);
+        maybeShowSettings(getIntent());
+    }
+
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        maybeShowSettings(intent);
+    }
     @Override protected void onResume(){
         super.onResume();
         // A launcher relaunch must not rebuild the YouTube Browse page when a live
@@ -84,7 +97,7 @@ public final class MainActivity extends Activity {
         adapter=new ChannelAdapter(this,new ChannelAdapter.Listener(){@Override public void onSelectionChanged(){updateSummary();}@Override public void onFavoriteChanged(Channel c,boolean f){toast(f?"Đã thêm vào Yêu thích":"Đã bỏ khỏi Yêu thích");if(activeSection==1)filter();else adapter.notifyDataSetChanged();}});
         list.setAdapter(adapter); list.setItemsCanFocus(false); list.setEmptyView(txtEmpty); list.setOnItemClickListener((p,v,i,id)->play(adapter.getItem(i))); list.setOnItemLongClickListener((p,v,i,id)->{showChannelActions(adapter.getItem(i));return true;});
         findViewById(R.id.btnLoadUrl).setOnClickListener(v->loadFromUrl()); findViewById(R.id.btnReloadUrl).setOnClickListener(v->reloadPlaylistUrl()); findViewById(R.id.btnOpenFile).setOnClickListener(v->openFilePicker());
-        findViewById(R.id.btnPlayUrl).setOnClickListener(v->playDirect()); findViewById(R.id.btnWallpaper).setOnClickListener(v->showSettings());
+        findViewById(R.id.btnPlayUrl).setOnClickListener(v->playDirect());
         findViewById(R.id.btnAllChannels).setOnClickListener(v->selectSection(0)); findViewById(R.id.btnFavorites).setOnClickListener(v->selectSection(1)); findViewById(R.id.btnRecent).setOnClickListener(v->selectSection(2)); findViewById(R.id.btnClearFilters).setOnClickListener(v->{inputSearch.setText("");selectedGroup="";updateGroupButtons();filter();});
         inputSearch.addTextChangedListener(new TextWatcher(){@Override public void beforeTextChanged(CharSequence s,int st,int c,int a){}@Override public void onTextChanged(CharSequence s,int st,int b,int c){filter();}@Override public void afterTextChanged(Editable e){}});
         rebuildGroups(); setImportExpanded(allChannels.isEmpty()); updateSectionButtons(); applyInterfaceMode(list);
@@ -281,6 +294,16 @@ public final class MainActivity extends Activity {
     private void showImportTools(){setImportExpanded(true);inputUrl.setText("");inputUrl.requestFocus();}
     private void showEpgEditor(){final EditText field=new EditText(this);field.setHint("https://.../epg.xml hoặc epg.xml.gz");field.setSingleLine(true);field.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_VARIATION_URI);field.setText(epgUrl);field.setSelection(field.length());new AlertDialog.Builder(this).setTitle("Lịch phát sóng XMLTV").setMessage("Ứng dụng tự đọc url-tvg trong playlist. Bạn cũng có thể nhập URL EPG thủ công.").setView(field).setPositiveButton("Tải lịch",(d,w)->{String value=field.getText().toString().trim();if(!value.startsWith("http://")&&!value.startsWith("https://")){toast("URL EPG phải bắt đầu bằng http:// hoặc https://");return;}epgUrl=value;saveSession();loadEpg(true);}).setNeutralButton("Xóa EPG",(d,w)->{epgUrl="";adapter.submitGuide(null);saveSession();toast("Đã xóa lịch phát sóng");}).setNegativeButton("Hủy",null).show();}
     private void loadEpg(boolean notify){String address=epgUrl;io.execute(()->{try{EpgStore.Guide guide=EpgStore.download(address);ui(()->{if(!address.equals(epgUrl))return;adapter.submitGuide(guide);if(notify)toast(guide.size()>0?"Đã cập nhật lịch phát sóng":"Chưa tìm thấy chương trình đang phát");});}catch(Exception error){ui(()->{if(address.equals(epgUrl)&&notify)showError("Không tải được EPG: "+readable(error));});}});}
+    void showSettingsFromNavigation(){ showSettings(); }
+
+    private void maybeShowSettings(Intent intent){
+        if(intent==null||!intent.getBooleanExtra(EXTRA_OPEN_APP_SETTINGS,false)) return;
+        intent.removeExtra(EXTRA_OPEN_APP_SETTINGS);
+        findViewById(android.R.id.content).post(()->{
+            if(!isFinishing() && !isDestroyed()) showSettings();
+        });
+    }
+
     private void showSettings(){
         boolean tv=AppPreferences.isTvInterface(this);
         String mode=AppPreferences.interfaceMode(this);
