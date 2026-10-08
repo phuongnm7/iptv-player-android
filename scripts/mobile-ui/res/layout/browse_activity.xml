@@ -15,7 +15,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="#FFFFFF"
-        android:elevation="0dp">
+        android:elevation="2dp">
 
         <!-- YouTube-like top app bar: wordmark on the left, create/search on the right. -->
         <LinearLayout
@@ -28,21 +28,13 @@
             android:orientation="horizontal">
 
             <ImageView
-                android:layout_width="32dp"
-                android:layout_height="24dp"
-                android:src="@drawable/nm7_tube_logo"
+                android:id="@+id/nm7_youtube_wordmark"
+                android:layout_width="52dp"
+                android:layout_height="20dp"
+                android:src="@drawable/nm7_youtube_wordmark"
                 android:scaleType="fitCenter"
+                android:adjustViewBounds="true"
                 android:contentDescription="YouTube" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="2dp"
-                android:text="YouTube"
-                android:textColor="#0F0F0F"
-                android:textSize="22sp"
-                android:fontFamily="sans-serif-medium"
-                android:includeFontPadding="false" />
 
             <Space
                 android:layout_width="0dp"
@@ -103,6 +95,7 @@
                     app:tabGravity="center"
                     app:tabIndicatorHeight="0dp"
                     app:tabBackground="@drawable/nm7_tab_bg"
+                    app:tabTextAppearance="@style/Nm7YoutubeChipText"
                     app:tabTextColor="#0F0F0F"
                     app:tabSelectedTextColor="#FFFFFF"
                     app:tabMinWidth="0dp"
