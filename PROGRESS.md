@@ -1,3 +1,33 @@
+# CẬP NHẬT TIẾN ĐỘ — 1.10.128 — 2026-10-08
+
+## Kết quả mới nhất
+**1.10.128 đã build thành công và người dùng đã test thực tế: tạm ổn.**
+
+### YouTube logo / wordmark
+- Đã thay asset logo bằng **ảnh YouTube do người dùng cung cấp**, không tự dựng lại logo.
+- Giữ nguyên bố cục, vị trí, kích thước UI và logic của bản trước.
+- Người dùng xác nhận bản hiện tại **tạm ổn**.
+- **Lỗi nhỏ còn lại:** logo YouTube hiển thị hơi nhỏ.
+- Không tiếp tục chỉnh kích thước trong 1.10.128 để tránh làm thay đổi layout đã ổn định.
+- Vòng sau chỉ xử lý **scale/kích thước logo**, không thay đổi geometry khác nếu không có yêu cầu.
+
+## Source / CI
+- Branch: `work/mobile-youtube-ui-v128`
+- Commit: `6535b8189fda2b0e957e76755884762c8162ff7e`
+- Workflow: **NM7 IPTV Mobile 1.10.128 Exact YouTube Wordmark — Build**
+- Run ID: **37761713778 — SUCCESS**
+- Artifact: **NM7-IPTV-Mobile-1.10.128-FINAL**
+- Artifact ID: **11542827736**
+- Artifact digest: `sha256:653bae046a31dffce40fd78a0b5442333982ee65d2a7b9b73f35d1c5465ebcee`
+
+## Handoff cho vòng sau
+1. Giữ nguyên toàn bộ behavior/layout đã được người dùng xác nhận ở 1.10.128.
+2. Chỉ tăng kích thước logo YouTube một cách có kiểm soát.
+3. Không tự thay logo bằng asset khác.
+4. Sau khi chỉnh phải build CI và kiểm tra artifact trước khi giao.
+
+---
+
 # CẬP NHẬT TIẾN ĐỘ — 1.10.128 FIXED — 2026-10-08
 
 ## Xác định dứt điểm vì sao logo YouTube biến mất
