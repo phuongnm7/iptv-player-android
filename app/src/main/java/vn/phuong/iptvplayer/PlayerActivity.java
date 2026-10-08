@@ -166,7 +166,17 @@ public final class PlayerActivity extends Activity {
             DefaultHttpDataSource.Factory http=new DefaultHttpDataSource.Factory().setUserAgent(ua).setConnectTimeoutMs(20_000).setReadTimeoutMs(35_000).setAllowCrossProtocolRedirects(true).setDefaultRequestProperties(headers);
             DefaultDataSource.Factory data=new DefaultDataSource.Factory(this,http); DefaultMediaSourceFactory mediaFactory=new DefaultMediaSourceFactory(data).setLoadErrorHandlingPolicy(new DefaultLoadErrorHandlingPolicy(6));
             MediaItem.Builder builder=new MediaItem.Builder().setUri(url); String inferred=mime.isEmpty()?StreamSpec.inferMime(url,options):mime; if(inferred!=null&&!inferred.isEmpty()) builder.setMimeType(inferred);
-            DrmSpec drm=DrmSpec.create(drmSystem,drmLicense); findViewById(R.id.btnDrm).setVisibility(drm.hasDrm()?View.VISIBLE:View.GONE); if(drm.remoteClearKey()){resolveRemoteClearKey(drm,headers);return;} DrmPlayback.configure(drm,builder,mediaFactory);
+            // Do not carry stale KODIPROP DRM metadata into a native HLS stream.
+            // Some playlists expose both an MPD+ClearKey fallback and a working
+            // HLS endpoint. Media3 must only be given DRM configuration when the
+            // selected URL is actually a DASH/MPD stream; otherwise it can fail
+            // with ERROR_CODE_DRM_SYSTEM_ERROR before HLS playback even starts.
+            boolean dashStream = MimeTypes.APPLICATION_MPD.equals(inferred)
+                    || url.toLowerCase(Locale.ROOT).matches(".*\\.mpd(?:[?#].*)?$");
+            DrmSpec drm = dashStream ? DrmSpec.create(drmSystem, drmLicense) : DrmSpec.create("", "");
+            findViewById(R.id.btnDrm).setVisibility(drm.hasDrm()?View.VISIBLE:View.GONE);
+            if(drm.remoteClearKey()){resolveRemoteClearKey(drm,headers);return;}
+            DrmPlayback.configure(drm,builder,mediaFactory);
             player=new ExoPlayer.Builder(this,new DefaultRenderersFactory(this).setEnableDecoderFallback(true)).setLoadControl(stableLoadControl()).setMediaSourceFactory(mediaFactory).build();
             player.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),true); player.setHandleAudioBecomingNoisy(true); playerView.setPlayer(player);
             player.addAnalyticsListener(new AnalyticsListener(){@Override public void onVideoEnabled(EventTime e,DecoderCounters c){videoCounters=c;fpsMeter.reset();}}); applyQuality();
