@@ -1,3 +1,44 @@
+# CẬP NHẬT TIẾN ĐỘ — 1.10.128 FIXED — 2026-10-08
+
+## Xác định dứt điểm vì sao logo YouTube biến mất
+
+Đã đọc trực tiếp video người dùng gửi **223433.mp4** (1080×2400, 11.77s). Ở các frame Browse sau khi màn hình Tùy chọn đóng, camera + search + chip + feed vẫn hiện nhưng **logo YouTube không xuất hiện ngay từ đầu**. Điều này loại trừ lỗi vị trí/status-bar/overlay là nguyên nhân chính của video này.
+
+### Nguyên nhân chính đã tìm thấy
+Tôi đã giải nén **chính APK 1.10.128** đã gửi trước đó và kiểm tra resource mà Browse dùng:
+`res/drawable-nodpi-v4/nm7_youtube_wordmark_exact.png`.
+
+File trong APK báo đúng kích thước 200×52 nhưng **PNG bị hỏng CRC ở chunk IDAT**. Vì vậy ImageView không thể decode ảnh và logo/chữ biến mất hoàn toàn. Đây là lý do các bản trước cứ build SUCCESS nhưng trên thiết bị lại không có logo.
+
+### Sửa lần này
+- Giữ nguyên geometry đang được người dùng chấp nhận: vị trí, hộp 76dp×30dp, header, camera/search, chip, feed, status bar và các chức năng khác.
+- Không thay đổi thêm layout.
+- Thay asset PNG lỗi bằng **JPEG 120×31 hợp lệ** được tạo từ chính crop YouTube gốc.
+- Layout chỉ đổi drawable source sang `@drawable/nm7_youtube_wordmark_exact` (resource JPEG); không đổi vị trí/kích thước ImageView.
+- Build xong và **giải nén lại chính APK mới để kiểm tra binary resource**.
+- Resource mới trong APK: JPEG 120×31 RGB, checksum:
+  `2046bf47241ff820d65f10afd131d9b7b15cc391b00306c9c317420de6d5345a`
+- PIL verify: **VALID**.
+- Không có bước nào sửa playback/IPTV/feed.
+
+### Build cuối đã kiểm chứng
+- Branch: `work/mobile-youtube-ui-v128`
+- Workflow: **37754550022 — SUCCESS**
+- Artifact: `NM7-IPTV-Mobile-1.10.128-FINAL`
+- Artifact ID: **11539398217**
+- Artifact digest: `sha256:6515ff5d83353b6cb467220c13fe6e9869d9a717e05ec8c5ca23c9c23da9825f`
+- APK SHA-256: **0cfc4debbec2af4606c432fc2d1b8836016bb8f42062c1d835c858296262db36**
+- APK size: **170,433,? bytes (~163 MiB)**
+- APK resource đã giải nén/verify: **JPEG hợp lệ**.
+
+### Runtime
+Môi trường build không có thiết bị Android thật để tự cài và quay video. Tuy nhiên lần này đã kiểm tra được nguyên nhân ở chính binary APK, không chỉ kiểm tra build status.
+
+### Baseline
+- 1.10.128 FIXED vẫn dựa trên geometry của 1.10.127.
+- `stable/mobile-1.10.112` không thay đổi.
+---
+
 # CẬP NHẬT TIẾN ĐỘ — 1.10.128 — 2026-10-08
 
 ## YouTube logo + wordmark: exact visual replacement, geometry preserved
