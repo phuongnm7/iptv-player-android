@@ -77,7 +77,10 @@ xml = xml.replace('android:paddingTop="8dp"\n            android:paddingStart="1
 xml = xml.replace('android:paddingTop="0dp"\n            android:paddingBottom="12dp"',
                   'android:paddingTop="0dp"\n            android:paddingBottom="0dp"')
 
-xml = xml.replace('</LinearLayout>\n', '</androidx.coordinatorlayout.widget.CoordinatorLayout>\n')
+if not xml.rstrip().endswith('</LinearLayout>'):
+    raise SystemExit("v119: root closing LinearLayout missing")
+head, tail = xml.rsplit('</LinearLayout>', 1)
+xml = head + '</androidx.coordinatorlayout.widget.CoordinatorLayout>' + tail
 DST.parent.mkdir(parents=True, exist_ok=True)
 DST.write_text(xml, encoding="utf-8")
 
