@@ -33,7 +33,7 @@ android {
 
     sourceSets["main"].apply {
         java.srcDirs("../third_party/SmartTube-droid/smarttubedroid/src/main/java")
-        res.srcDirs("../third_party/SmartTube-droid/smarttubedroid/src/main/res")
+        res.srcDirs("../third_party/SmartTube-droid/smarttubedroid/src/main/res", "src/main/res")
         assets.srcDirs("../third_party/SmartTube-droid/smarttubedroid/src/main/assets")
     }
 }
