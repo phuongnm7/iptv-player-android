@@ -1,3 +1,39 @@
+# CẬP NHẬT TIẾN ĐỘ — 1.10.123 — 2026-10-08
+
+## Sửa đúng lỗi logo YouTube quá nhỏ/không đúng tỷ lệ sau khi đối chiếu ảnh 223390.jpg
+
+### Kết luận từ ảnh thiết bị
+Ảnh 223390.jpg cho thấy status bar **đã tách khỏi Browse header**. Lỗi còn lại không phải status bar che logo nữa mà là **wordmark PNG có canvas trắng 150x33**, khiến ImageView dù lớn vẫn chỉ hiển thị phần logo thực ở giữa với kích thước rất nhỏ (trông như bị lớp trắng đè). Vì vậy tiếp tục sửa z-order/padding cho PNG là sai hướng.
+
+### 1.10.123 — correction
+- Loại bỏ việc dùng PNG screenshot làm logo YouTube.
+- Tạo logo YouTube bằng **vector red play button 40x28dp**.
+- Chữ **YouTube** được render bằng TextView thật, sans-serif-medium, 20sp, màu #0F0F0F.
+- Header đặt lại **48dp**, left inset 16dp, đúng tỷ lệ với ảnh YouTube gốc.
+- Không còn canvas trắng nằm bên trong asset nên không thể che/thu nhỏ phần chữ-logo.
+- Giữ nguyên create-video/search icons và chip bar.
+- Không thay đổi playback/IPTV/feed/avatar/spinner/live-chat/background playback/bottom navigation.
+
+### Build
+- Branch: `work/mobile-youtube-ui-v123`
+- Version: **1.10.123 / versionCode 139**
+- Workflow: **37738329818 — SUCCESS**
+- Artifact: `NM7-IPTV-Mobile-1.10.123-FINAL`
+- Artifact ID: **11532693124**
+- Artifact digest: **sha256:b5206e9f1dec10db51d94b35b0631475e55b6ca90555dfcef96a60870d8e3a8e**
+- APK SHA-256: **884283b7c8dccef93a5069ec01fbcc981cc6751b71ce45ac0516d8ec9df96c01**
+- APK size: **170,426,064 bytes**
+- Actions: https://github.com/phuongnm7/iptv-player-android/actions/runs/37738329818
+
+### Runtime validation
+Ảnh 223390.jpg được dùng trực tiếp để xác định lỗi asset. Build đã xác nhận thành công. Chưa có thiết bị Android điều khiển trực tiếp để chụp ảnh xác nhận runtime, nên chưa đánh dấu pixel-perfect.
+
+### Baseline
+- 1.10.123 lấy nền từ **1.10.122**
+- `stable/mobile-1.10.112` không bị thay đổi.
+
+---
+
 # CẬP NHẬT TIẾN ĐỘ — 1.10.122 — 2026-10-08
 
 ## Sửa lớp đè lên logo YouTube theo ảnh 223388.jpg
