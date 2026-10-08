@@ -1,3 +1,41 @@
+# CẬP NHẬT TIẾN ĐỘ — 1.10.121 — 2026-10-08
+
+## Root-cause fix from video 223383.mp4 — native Android 15 edge-to-edge policy
+
+Video `223383.mp4` was inspected directly. At the stable feed frame (~8.2s), the status-bar clock/icons occupy the top ~70–80px while the YouTube wordmark is simultaneously rendered in that same region. This proves the failure is at **window/content coordinate policy**, not logo artwork or a missing ImageView margin.
+
+### Root cause
+The Mobile app and SmartTube module target SDK 36. On Android 15, apps targeting API 35+ are edge-to-edge by default; Android documentation explicitly states that status-bar/background-color APIs do not prevent content from being drawn behind the status bar and that insets must be handled. Android 15 still supports the compatibility opt-out via `windowOptOutEdgeToEdgeEnforcement=true` for apps targeting SDK 36 when running on Android 15.
+
+The previous v120 fix still left the window in explicit edge-to-edge mode and depended on runtime WindowInsets dispatch. The user video shows that path was not reliably moving the actual Browse content origin.
+
+### 1.10.121 correction
+- Added `android:windowOptOutEdgeToEdgeEnforcement=true` directly to `Theme.SmartTubeDroid`.
+- Explicitly set the Browse theme status/navigation bars to white with dark system icons.
+- Removed the previous `setDecorFitsSystemWindows(false)` path from BrowseActivity.
+- BrowseActivity no longer installs/depends on a manual root/spacer WindowInsets listener for the status bar.
+- Lets Android's native non-edge-to-edge compatibility layout place the Browse root **below the status bar automatically** on the affected Android 15 device.
+- Existing v119 Coordinator/AppBar feed architecture is retained; no playback/decoder/IPTV/YouTube data/avatar/spinner/live-chat/background playback/bottom navigation changes.
+
+### Verification
+- Build run: **37733712568 — SUCCESS**
+- Artifact: `NM7-IPTV-Mobile-1.10.121-FINAL`
+- Artifact ID: **11530584878**
+- Artifact SHA-256: **6606444e1965b82a253dd08754ce78d7f8c2aa128a6db63fa133ead359db7b18**
+- APK SHA-256: **5afdb724d04d784ae169348ac6269fe30b9b3b52fe32540a2ee0909a549422f1**
+- APK size: **170,426,? bytes (~163 MiB)**
+
+### Runtime acceptance
+This patch is specifically intended to reproduce the geometry of the supplied YouTube reference image: status bar occupies its own system region; YouTube header begins below it; wordmark is not covered by the clock/status icons.
+
+The environment still cannot interact with the user's Android device, so runtime/pixel acceptance must be confirmed from the next device video.
+
+### Baseline
+- 1.10.121 is based on **1.10.120**
+- `stable/mobile-1.10.112` unchanged.
+- Do not mark stable until device confirmation.
+---
+
 # CẬP NHẬT TIẾN ĐỘ — 1.10.120 — 2026-10-08
 
 ## Sửa lỗi logo YouTube bị status bar che — xác định nguyên nhân từ video 223380.mp4
