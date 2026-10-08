@@ -1,3 +1,41 @@
+# CẬP NHẬT TIẾN ĐỘ — 1.10.122 — 2026-10-08
+
+## Sửa lớp đè lên logo YouTube theo ảnh 223388.jpg
+
+### Phân tích ảnh thực tế
+Ảnh `223388.jpg` cho thấy status bar giờ đã nằm tách phía trên header; lỗi còn lại không phải do kích thước logo. Phần header/logo cần được đặt ở lớp vẽ trên cùng trong chính Browse chrome, vì content container của Browse có thể nằm ở cùng coordinate space sau các patch scroll trước.
+
+### 1.10.122 đã xử lý
+- Bỏ kiến trúc CoordinatorLayout/AppBar scroll cho **chrome cố định**.
+- Browse trở lại **LinearLayout normal flow**: header → chip row → content.
+- Header là `FrameLayout` nền trắng **opaque**, nằm trước content trong layout tree.
+- Logo YouTube có `elevation/translationZ` cao hơn các lớp con và `clipChildren=false`.
+- Không có RecyclerView nào dùng `match_parent` để chồng lên header.
+- Content dùng `layout_weight=1`, nên chỉ chiếm vùng còn lại sau header/chips.
+- Xóa mọi `appbar_scrolling_view_behavior` và synthetic header padding.
+- Giữ native Android 15 edge-to-edge opt-out từ 1.10.121 để content bắt đầu dưới status bar.
+- Playback YouTube, IPTV, avatar, spinner, live-chat, background playback và bottom navigation không thay đổi.
+
+### Build
+- Branch: `work/mobile-youtube-ui-v122`
+- Version: **1.10.122 / versionCode 138**
+- Workflow: **37736535139 — SUCCESS**
+- Artifact: `NM7-IPTV-Mobile-1.10.122-FINAL`
+- Artifact ID: **11531608083**
+- Artifact digest: **sha256:6a030b1d26b48c3ee57bc2bb6097e23f82a75047338b41e658bcd8b4818dcf2d**
+- APK SHA-256: **febf79ac63e4a7011806c18ef1f0738d950ab0c22cac4cf9b314f9e8f72e91e7**
+- APK size: **170,425,064 bytes**
+- Actions: https://github.com/phuongnm7/iptv-player-android/actions/runs/37736535139
+
+### Runtime
+Ảnh `223388.jpg` được dùng trực tiếp để xác định lỗi lớp vẽ. Môi trường build không có thiết bị Android thật để tự cài và chụp ảnh runtime, vì vậy chưa thể tuyên bố pixel-perfect trước khi nhận ảnh xác nhận từ thiết bị.
+
+### Baseline
+- 1.10.122 lấy nền từ **1.10.121**
+- `stable/mobile-1.10.112` không bị thay đổi.
+
+---
+
 # CẬP NHẬT TIẾN ĐỘ — 1.10.121 — 2026-10-08
 
 ## Root-cause fix from video 223383.mp4 — native Android 15 edge-to-edge policy
