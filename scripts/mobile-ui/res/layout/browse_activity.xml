@@ -112,6 +112,18 @@
             </LinearLayout>
         </HorizontalScrollView>
 
+        <!-- Retained as hidden compatibility anchors for existing search/account handlers. -->
+        <ImageButton
+            android:id="@+id/nm7_voice"
+            android:layout_width="1dp"
+            android:layout_height="1dp"
+            android:visibility="gone" />
+        <ImageButton
+            android:id="@+id/nm7_account"
+            android:layout_width="1dp"
+            android:layout_height="1dp"
+            android:visibility="gone" />
+
         <!-- Retained as a hidden compatibility anchor for menu/refresh actions. -->
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/browse_toolbar"
