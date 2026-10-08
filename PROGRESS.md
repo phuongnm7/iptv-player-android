@@ -1,3 +1,45 @@
+# CẬP NHẬT TIẾN ĐỘ — 1.10.128 — 2026-10-08
+
+## YouTube logo + wordmark: exact visual replacement, geometry preserved
+
+Đã đối chiếu trực tiếp:
+- 223414.jpg: YouTube gốc.
+- 223416.jpg: NM7 1.10.127.
+
+### So sánh
+Vị trí/khung hiển thị của NM7 đã đúng theo xác nhận của người dùng, nhưng hình thức logo chưa đúng:
+- icon NM7 là dạng pill/rounded capsule khác logo gốc;
+- chữ NM7 dùng nét chữ khác, hẹp và đậm hơn chữ YouTube gốc;
+- glyph của wordmark gốc nên được giữ nguyên thay vì dựng lại bằng TextView.
+
+### Cách sửa 1.10.128
+- Không thay đổi layout geometry của 1.10.127.
+- Giữ nguyên @id/nm7_youtube_wordmark, 76dp × 30dp, cùng vị trí và tất cả header controls.
+- Chỉ thay drawable được ImageView hiện hữu sử dụng.
+- Asset nm7_youtube_wordmark_exact.png được crop trực tiếp từ vùng logo + chữ YouTube của ảnh gốc 223414.jpg, rồi resize thành 200×52 px mà không thay đổi hình dạng glyph.
+- Không sửa camera/search, header, chip, feed, status bar, playback hoặc IPTV.
+- Build guard xác nhận 76dp × 30dp và paddingStart=16dp vẫn giữ nguyên.
+- Asset trong APK đã được giải nén và kiểm tra: PNG 200×52 RGB, 7308 bytes.
+- SHA-256 asset trong APK: a09465b8c1ce62480a63e31d2174ee57e6bed300878573b2dae5dedd74a69da4.
+
+### Build
+- Branch: work/mobile-youtube-ui-v128
+- Version: 1.10.128 / versionCode 144
+- Workflow: 37750921906 — SUCCESS
+- Artifact: NM7-IPTV-Mobile-1.10.128-FINAL
+- Artifact ID: 11537443856
+- Artifact digest: sha256:ebc3edd3677fec49a01ed81b3cb8f137017f89641f257d7c12922d00ec1e927f
+- APK SHA-256: 5a596453fb81ee73720d70c3b1af0bb7a99dbbfffdcdc9fa479d47d17d55191a
+- APK size: 170,440,295 bytes
+
+### Acceptance
+Build + binary asset validation đã hoàn tất. Chưa có thiết bị Android điều khiển trực tiếp trong môi trường build để tự chụp ảnh runtime, nên chưa tuyên bố pixel-perfect runtime trước khi có ảnh từ máy người dùng.
+
+### Baseline
+- 1.10.128 lấy nền 1.10.127.
+- stable/mobile-1.10.112 không thay đổi.
+---
+
 # CẬP NHẬT TIẾN ĐỘ — 1.10.127 — 2026-10-08
 
 ## Khôi phục logo YouTube từ video 223408.mp4 — không thay đổi geometry đã được chấp nhận
