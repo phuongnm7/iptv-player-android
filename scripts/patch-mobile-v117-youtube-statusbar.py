@@ -121,8 +121,7 @@ if "protected void onResume()" in s:
     m = pattern.search(s)
     if not m:
         raise SystemExit("v117: onResume block not found")
-    new_block = onresume + "    @Override
-    protected void onPause"
+    new_block = onresume + "    @Override\n    protected void onPause"
     s = s[:m.start()] + new_block + s[m.end():]
 else:
     anchor = "    @Override
