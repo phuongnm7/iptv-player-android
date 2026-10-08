@@ -1,3 +1,39 @@
+# CẬP NHẬT TIẾN ĐỘ — 1.10.117 — 2026-10-08
+
+## Sửa lỗi chồng lấn status bar trên Android 15 theo ảnh thiết bị
+
+Ảnh thiết bị mới cho thấy YouTube header vẫn nằm dưới vùng status bar dù 1.10.116 đã thử bật decor fitting. Phân tích cho thấy Android 15/target SDK hiện đại có edge-to-edge bắt buộc, nên không thể chỉ dựa vào setDecorFitsSystemWindows(true).
+
+### 1.10.117 đã thay đổi
+- Giữ status bar luôn hiển thị, nền trắng, icon hệ thống màu tối.
+- Giữ cửa sổ edge-to-edge ở API 30+, nhưng không để header tự quyết định vị trí.
+- Gắn listener trực tiếp lên browse_root và lấy status-bar inset thực tế từ WindowInsets.
+- Đưa chính inset đó thành paddingTop của toàn bộ Browse root, bảo đảm logo YouTube + header bắt đầu bên dưới đồng hồ và các icon hệ thống.
+- Không cộng inset thêm lần nữa vào AppBarLayout, tránh double-spacing.
+- Re-apply trong onWindowFocusChanged hiện có để chống SmartTube/MotherActivity ghi đè fullscreen state.
+- Giữ nguyên feed/content layout, playback YouTube, IPTV, avatar, spinner, live-chat, background playback và navigation.
+
+### Build
+- Branch: work/mobile-youtube-ui-v117
+- Version: 1.10.117 / versionCode 133
+- Workflow run: 37725366745 — SUCCESS
+- Build/assemble: SUCCESS
+- Artifact: NM7-IPTV-Mobile-1.10.117-FINAL
+- Artifact ID: 11528100279
+- Artifact digest: 9d706af1ccbe2bfef53cb8733579fd4e2d646f5959dc0adffe8d4fff573ac796
+- APK SHA-256: 2747650256c38036460d13d00b4be98f1625c69247ca0ecf87dc369d7ab5ba01
+- APK size: 170,424,979 bytes
+- Actions: https://github.com/phuongnm7/iptv-player-android/actions/runs/37725366745
+
+### Runtime
+Chưa có thiết bị Android được điều khiển trực tiếp trong môi trường build, nên chưa thể tự xác nhận ảnh chụp runtime. Tuy nhiên, 1.10.117 đã build thành công từ source với patch status-bar mới.
+
+### Baseline
+- 1.10.117 lấy nền từ 1.10.116
+- stable/mobile-1.10.112 không bị thay đổi.
+
+---
+
 # CẬP NHẬT TIẾN ĐỘ — 1.10.116 — 2026-10-08
 
 ## Device comparison correction — YouTube header + feed gap
