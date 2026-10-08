@@ -21,6 +21,24 @@ jobs:
             git clone --depth 1 --recurse-submodules https://github.com/systematiq-one/SmartTube-droid.git third_party/SmartTube-droid
           fi
           git -C third_party/SmartTube-droid submodule update --init --force --recursive
+      - name: Patch SmartTube legacy Android modules
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          root=Path("third_party/SmartTube-droid")
+          for p in root.rglob("build.gradle"):
+              if "/gradle/" in p.as_posix(): continue
+              t=p.read_text(errors="ignore")
+              if not re.search(r'\bandroid\s*\{',t): continue
+              manifest=p.parent/"src/main/AndroidManifest.xml"
+              if not manifest.exists(): continue
+              m=re.search(r'\bpackage\s*=\s*["\']([^"\']+)["\']',manifest.read_text(errors="ignore"))
+              if not m: continue
+              if not re.search(r'\bnamespace\s*[= ]',t):
+                  t=re.sub(r'(\bandroid\s*\{)',r'\1\n    namespace "'+m.group(1)+'"',t,count=1)
+                  p.write_text(t)
+          PY
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
