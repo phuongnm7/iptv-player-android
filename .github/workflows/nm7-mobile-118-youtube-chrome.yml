@@ -1,5 +1,5 @@
 name: NM7 IPTV Mobile 1.10.118 YouTube UI Chrome Architecture Fix — Build
-# YouTube-reference UI validation trigger
+# YouTube-reference UI validation trigger v2
 
 "on":
   push:
