@@ -103,39 +103,5 @@ method = """    private void applyNm7PortraitSystemBars() {
     }"""
 s = s[:pos] + method + s[end:]
 
-# Replace the existing BrowseActivity onResume while preserving presenter callbacks.
-pattern = re.compile(
-    r"""    @Override
-    protected void onResume() {
-.*?
-    }
-
-    @Override
-    protected void onPause""",
-    re.S,
-)
-match = pattern.search(s)
-if not match:
-    raise SystemExit("v117: BrowseActivity onResume block missing")
-
-onresume = """    @Override
-    protected void onResume() {
-        super.onResume();
-
-        if (!mJustCreated) {
-            mBrowsePresenter.onViewResumed();
-        }
-
-        mJustCreated = false;
-
-        applyNm7PortraitSystemBars();
-        getWindow().getDecorView().post(this::applyNm7PortraitSystemBars);
-        getWindow().getDecorView().postDelayed(this::applyNm7PortraitSystemBars, 160);
-    }
-
-    @Override
-    protected void onPause"""
-s = s[:match.start()] + onresume + s[match.end():]
-
 BROWSE.write_text(s, encoding="utf-8")
 print("NM7 Mobile 1.10.117 status-bar correction applied")
