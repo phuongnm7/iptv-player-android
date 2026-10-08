@@ -1,33 +1,46 @@
-# CẬP NHẬT TIẾN ĐỘ — 1.10.128 — 2026-10-08
+# CẬP NHẬT TIẾN ĐỘ — CHỐT STABLE 1.10.128 — 2026-10-08
 
-## Kết quả mới nhất
-**1.10.128 đã build thành công và người dùng đã test thực tế: tạm ổn.**
+## Kết luận
 
-### YouTube logo / wordmark
-- Đã thay asset logo bằng **ảnh YouTube do người dùng cung cấp**, không tự dựng lại logo.
-- Giữ nguyên bố cục, vị trí, kích thước UI và logic của bản trước.
-- Người dùng xác nhận bản hiện tại **tạm ổn**.
-- **Lỗi nhỏ còn lại:** logo YouTube hiển thị hơi nhỏ.
-- Không tiếp tục chỉnh kích thước trong 1.10.128 để tránh làm thay đổi layout đã ổn định.
-- Vòng sau chỉ xử lý **scale/kích thước logo**, không thay đổi geometry khác nếu không có yêu cầu.
+**1.10.128 đã được người dùng test thực tế và chốt là bản ổn định đến hiện tại.**
 
-## Source / CI
-- Branch: `work/mobile-youtube-ui-v128`
-- Commit: `6535b8189fda2b0e957e76755884762c8162ff7e`
+Đây là baseline chính thức để phát triển các bản Mobile tiếp theo.
+
+### Thay đổi cuối cùng
+
+- Giữ nguyên toàn bộ geometry/layout/functionality đã ổn định.
+- Chỉ tăng nhẹ kích thước logo YouTube theo ảnh người dùng gửi.
+- Kích thước hộp logo: **84dp × 32dp**.
+- Không thay đổi playback, IPTV, navigation, header controls hoặc Android TV.
+- Người dùng xác nhận bản cuối: **được / ổn định đến hiện tại**.
+
+## Source / CI / Artifact
+
+- Stable branch: `stable/mobile-1.10.128`
+- Development branch: `work/mobile-youtube-ui-v128`
+- Build commit: `ce19a4cb9ed65b3953107ffff8b2eaf9605ff74a`
 - Workflow: **NM7 IPTV Mobile 1.10.128 Exact YouTube Wordmark — Build**
-- Run ID: **37761713778 — SUCCESS**
+- Run ID: **37776866236 — SUCCESS**
 - Artifact: **NM7-IPTV-Mobile-1.10.128-FINAL**
-- Artifact ID: **11542827736**
-- Artifact digest: `sha256:653bae046a31dffce40fd78a0b5442333982ee65d2a7b9b73f35d1c5465ebcee`
+- Artifact ID: **11550202229**
+- Artifact digest: `sha256:f61beb800c4bcd10f4fff57082dc99f871d54716c74d972227cd8b2802f4db0d`
+- Artifact size: **69,592,875 bytes**
 
-## Handoff cho vòng sau
-1. Giữ nguyên toàn bộ behavior/layout đã được người dùng xác nhận ở 1.10.128.
-2. Chỉ tăng kích thước logo YouTube một cách có kiểm soát.
-3. Không tự thay logo bằng asset khác.
-4. Sau khi chỉnh phải build CI và kiểm tra artifact trước khi giao.
+## Quy tắc handoff cho các bản sau
+
+1. Lấy **1.10.128** làm nền trực tiếp.
+2. Không tự ý lấy lại baseline cũ.
+3. Giữ nguyên những phần đã được người dùng xác nhận ổn định.
+4. Chỉ sửa đúng phạm vi người dùng yêu cầu.
+5. Tăng version/versionCode cho mỗi build mới.
+6. Build + verify CI trước khi giao.
+7. Chỉ cập nhật stable baseline sau khi người dùng test thực tế và xác nhận.
+
+## Trạng thái
+
+**STABLE / CURRENT BASELINE: 1.10.128**
 
 ---
-
 # CẬP NHẬT TIẾN ĐỘ — 1.10.128 FIXED — 2026-10-08
 
 ## Xác định dứt điểm vì sao logo YouTube biến mất
