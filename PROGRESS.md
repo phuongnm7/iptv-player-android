@@ -23,7 +23,7 @@ The previous v120 fix still left the window in explicit edge-to-edge mode and de
 - Artifact ID: **11530584878**
 - Artifact SHA-256: **6606444e1965b82a253dd08754ce78d7f8c2aa128a6db63fa133ead359db7b18**
 - APK SHA-256: **5afdb724d04d784ae169348ac6269fe30b9b3b52fe32540a2ee0909a549422f1**
-- APK size: **170,426,? bytes (~163 MiB)**
+- APK size: **170,425,103 bytes (~162.5 MiB)**
 
 ### Runtime acceptance
 This patch is specifically intended to reproduce the geometry of the supplied YouTube reference image: status bar occupies its own system region; YouTube header begins below it; wordmark is not covered by the clock/status icons.
