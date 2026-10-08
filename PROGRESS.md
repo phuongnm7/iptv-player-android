@@ -1,3 +1,40 @@
+# CẬP NHẬT TIẾN ĐỘ — 1.10.127 — 2026-10-08
+
+## Khôi phục logo YouTube từ video 223408.mp4 — không thay đổi geometry đã được chấp nhận
+
+### Phân tích video
+Video **223408.mp4** (1080×2400, 12.66s, 68.46 fps) đã được trích frame 0–12s. Kết quả nhất quán: header nền trắng, camera/search và chip vẫn hiển thị, nhưng **wordmark YouTube biến mất hoàn toàn**. Vì vậy lỗi 1.10.126 không phải do vị trí logo hay status bar nữa.
+
+### Nguyên nhân xác định
+v1.10.126 đã đổi **chính view/container có id `nm7_youtube_wordmark`** từ LinearLayout của v1.10.123 thành ImageView. Điều này phá cấu trúc UI đã hoạt động ở v1.10.123. Asset vẫn được đóng gói trong APK, nhưng view contract của Browse đã bị thay đổi.
+
+### 1.10.127
+- Quay **trực tiếp về source geometry v1.10.123**; kiểm tra byte-for-byte source layout là giống v1.10.123.
+- Không chạy v124/v125/v126.
+- Giữ nguyên `nm7_youtube_wordmark` là **LinearLayout container**.
+- Giữ nguyên vị trí/kích thước header, camera/search, chip/feed/status-bar.
+- Giữ nguyên renderer logo của v1.10.123 (vector icon + TextView) để khôi phục khả năng hiển thị chắc chắn.
+- Không thay đổi playback, IPTV, avatars, spinner, live-chat, background playback hay navigation.
+
+### Build verification
+- Branch: `work/mobile-youtube-ui-v127`
+- Version: **1.10.127 / versionCode 143**
+- Workflow: **37746599671 — SUCCESS**
+- Artifact: `NM7-IPTV-Mobile-1.10.127-FINAL`
+- Artifact ID: **11536790259**
+- Artifact digest: **sha256:6926e77d69420109e0a901becee6d9797865dac97f0bdbc9e19b7d18a535e83d**
+- APK SHA-256: **69cb772a535e7aa748000c4b8cddebf9ee106f5062a5aeb6c11baff347765a1d**
+- APK size: **170,432,438 bytes**
+- APK đã kiểm tra có `res/layout/browse_activity.xml`, `nm7_youtube_icon.xml` và `nm7_youtube_wordmark.png`.
+
+### Acceptance
+Đã phân tích video và xác định cụ thể nguyên nhân 1.10.126 làm mất logo. Build 1.10.127 thành công và được kiểm tra lại resource trong APK. Chưa có thiết bị Android thật trong môi trường để tự cài/chụp frame runtime; do đó chưa tuyên bố pixel-perfect.
+
+### Baseline
+- 1.10.127 lấy nền **1.10.123**, bỏ toàn bộ thay đổi logo của v124–v126.
+- `stable/mobile-1.10.112` không thay đổi.
+---
+
 # CẬP NHẬT TIẾN ĐỘ — 1.10.123 — 2026-10-08
 
 ## Sửa đúng lỗi logo YouTube quá nhỏ/không đúng tỷ lệ sau khi đối chiếu ảnh 223390.jpg
