@@ -1,3 +1,44 @@
+# CẬP NHẬT TIẾN ĐỘ — 1.10.115 — 2026-10-08
+
+## YouTube Mobile — final visual alignment pass theo ảnh YouTube gốc
+
+1.10.115 tiếp tục trực tiếp từ **1.10.113 → 1.10.114**, chỉ tập trung vào giao diện Browse YouTube và lỗi khoảng trắng phía dưới dải chip. Không thay đổi playback/decoder, IPTV, avatar, spinner, live-chat hoặc lifecycle.
+
+### Đã xử lý
+- Dùng **wordmark YouTube theo ảnh tham chiếu** thay cho việc ghép icon + chữ `YouTube` bằng TextView, để hình dạng logo không phụ thuộc font Android.
+- Dải topic chip được chuẩn hóa gần giao diện YouTube gốc: nền đen cho mục đang chọn, xám nhạt cho mục thường, typography sans-serif medium, chữ hoa và không extra font padding.
+- Giữ Search ở bên phải và Create/video icon cạnh Search.
+- Giữ Explore/compass chip ở đầu dải topic.
+- **Xử lý khoảng trắng lớn dưới topic bar:** khi đổi section hoặc batch dữ liệu đầu tiên được nạp, RecyclerView được reset về position 0 và stop stale scroll. Điều này loại bỏ trường hợp section mới kế thừa scroll offset cũ và để lại vùng trắng lớn trước video đầu tiên.
+- Giữ nguyên toàn bộ API/ID section và logic dữ liệu hiện có.
+- Hệ thống status bar portrait tiếp tục dùng inset thực tế để header nằm dưới thanh status, không chồng lên status bar.
+- Bottom navigation **YouTube / IPTV / Tùy chọn** của NM7 được giữ nguyên.
+
+### Source
+- Branch: `work/mobile-youtube-ui-v115`
+- Version: **1.10.115 / versionCode 131**
+- Base: **1.10.114** trên `work/mobile-youtube-ui-v114`
+- Patch: `scripts/patch-mobile-v115-youtube-ui.py`
+- UI layout source: `scripts/mobile-ui/res/layout/browse_activity.xml`
+- Wordmark: `scripts/mobile-ui/res/drawable-nodpi/nm7_youtube_wordmark.jpg`
+
+### CI
+- Run **37721283423 — SUCCESS**
+- Parser unit test: **SUCCESS**
+- Mobile assemble: **SUCCESS**
+- APK upload: **SUCCESS**
+- Artifact: **NM7-IPTV-Mobile-1.10.115-FINAL**
+- Artifact ID: **11526122682**
+- Artifact digest: **2224b4b46b9d96452786010a6dd3e92a2d0d3f24d3b51d37474c16d390ca6348**
+- APK SHA-256: **802eef97d6f90a9ec1e1741074ae013f35df9b6d339c1c71a43d134e87dc4702**
+- APK size: **170,426,201 bytes (~163 MiB)**
+- Actions: https://github.com/phuongnm7/iptv-player-android/actions/runs/37721283423
+
+### Runtime
+**Chưa có thiết bị Android thực tế trong môi trường build để xác nhận pixel/runtime.** Vì vậy 1.10.115 chưa được đánh dấu stable; người dùng cần cài và đối chiếu với ảnh YouTube gốc. Stable branch `stable/mobile-1.10.112` không bị thay đổi.
+
+---
+
 # CẬP NHẬT TIẾN ĐỘ — 1.10.114 — 2026-10-08
 
 ## YouTube Mobile UI — bám sát giao diện YouTube gốc theo 2 ảnh tham chiếu
