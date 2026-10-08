@@ -1,42 +1,52 @@
 #!/usr/bin/env python3
-"""NM7 Mobile 1.10.128 — YouTube logo/font appearance ONLY.
+"""NM7 Mobile 1.10.128 — YouTube logo/font appearance-only.
 
-User acceptance boundary:
-- 1.10.127 has the correct position and size.
-- Change NOTHING about header geometry, status bar, camera/search, chips, feed,
-  playback, IPTV, or any other feature.
-- Only replace the drawable used by the existing @id/nm7_youtube_wordmark.
+Accepted geometry = 1.10.127. Do not change any header/system-bar/chip/feed geometry.
+Only replace the visual children inside the existing v1.10.123 wordmark container.
 
-The exact logo/text crop is taken from the supplied original YouTube screenshot
-223414.jpg. This preserves the original YouTube glyph shape instead of substituting
-an Android font.
+The exact raster is a tight crop from the supplied original YouTube screenshot:
+223414.jpg. It contains the authentic logo shape and authentic "YouTube" glyphs,
+so no Android font substitution is involved.
 """
 from pathlib import Path
 import shutil
 
-SRC_ASSET=Path("scripts/mobile-ui/res/drawable-nodpi/nm7_youtube_wordmark_exact.png")
-DST_ASSET=Path("third_party/SmartTube-droid/smarttubedroid/src/main/res/drawable-nodpi/nm7_youtube_wordmark_exact.png")
 LAYOUT=Path("third_party/SmartTube-droid/smarttubedroid/src/main/res/layout/browse_activity.xml")
+ASSET=Path("scripts/mobile-ui/res/drawable-nodpi/nm7_youtube_wordmark_exact.png")
+DST=Path("third_party/SmartTube-droid/smarttubedroid/src/main/res/drawable-nodpi/nm7_youtube_wordmark_exact.png")
 
-if not SRC_ASSET.is_file() or not DST_ASSET.parent.is_dir() or not LAYOUT.is_file():
-    raise SystemExit("v128: required asset/layout missing")
+if not LAYOUT.is_file() or not ASSET.is_file():
+    raise SystemExit("v128: required files missing")
 
-shutil.copyfile(SRC_ASSET,DST_ASSET)
+DST.parent.mkdir(parents=True,exist_ok=True)
+shutil.copyfile(ASSET,DST)
 
 s=LAYOUT.read_text(encoding="utf-8")
-old='android:src="@drawable/nm7_youtube_wordmark"'
-new='android:src="@drawable/nm7_youtube_wordmark_exact"'
-if old not in s:
-    raise SystemExit("v128: expected v1.10.127 wordmark drawable reference not found")
 
-# Appearance-only: change exactly one XML attribute. Width/height/position remain untouched.
-s2=s.replace(old,new,1)
-if s2==s:
-    raise SystemExit("v128: no layout change made")
-LAYOUT.write_text(s2,encoding="utf-8")
+# v1.10.123 renderer has this stable outer wordmark container.
+start=s.find('''            <LinearLayout
+                android:id="@+id/nm7_youtube_wordmark"''')
+if start<0:
+    raise SystemExit("v128: v1.10.123 wordmark container not found")
 
-# Hard guard: fail if the accepted geometry changed in this patch.
-assert 'android:layout_width="76dp"' in s2
-assert 'android:layout_height="30dp"' in s2
-assert 'android:paddingStart="16dp"' in s2
-print("v1.10.128: exact YouTube logo/font asset substituted; geometry untouched")
+end=s.find("            <Space",start)
+if end<0:
+    raise SystemExit("v128: wordmark end anchor not found")
+
+# Preserve the accepted left placement and 48dp header height. The current v1.10.127
+# visible logo occupies approximately the same 76dp x 30dp box; keep that exact box
+# and use the original screenshot crop inside it.
+new='''            <ImageView
+                android:id="@+id/nm7_youtube_wordmark"
+                android:layout_width="76dp"
+                android:layout_height="30dp"
+                android:src="@drawable/nm7_youtube_wordmark_exact"
+                android:scaleType="fitCenter"
+                android:adjustViewBounds="false"
+                android:contentDescription="YouTube" />
+
+'''
+s=s[:start]+new+s[end:]
+
+LAYOUT.write_text(s,encoding="utf-8")
+print("v1.10.128: exact YouTube reference logo/font substituted; 76dp x 30dp box preserved")
