@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- NM7 Mobile YouTube browse chrome: visually aligned with the supplied
      YouTube phone reference while preserving SmartTube section/content IDs. -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/browse_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:background="#FFFFFF"
     android:paddingBottom="64dp">
 
@@ -15,7 +14,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="#FFFFFF"
-        android:elevation="2dp">
+        android:elevation="2dp"
+        app:liftOnScroll="false">
 
         <!-- YouTube-like top app bar: wordmark on the left, create/search on the right. -->
         <LinearLayout
@@ -25,7 +25,8 @@
             android:paddingStart="16dp"
             android:paddingEnd="4dp"
             android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            app:layout_scrollFlags="scroll|enterAlways">
 
             <ImageView
                 android:id="@+id/nm7_youtube_wordmark"
@@ -58,7 +59,7 @@
                 android:src="@drawable/browse_ic_search"
                 android:tint="#0F0F0F"
                 android:contentDescription="Tìm kiếm" />
-        </LinearLayout>
+        </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
         <!-- Match the reference chip strip: fixed Explore affordance + dynamic SmartTube sections. -->
         <HorizontalScrollView
@@ -67,6 +68,7 @@
             android:layout_height="48dp"
             android:scrollbars="none"
             android:fillViewport="false"
+            app:layout_scrollFlags="scroll|enterAlways"
             android:paddingStart="8dp"
             android:paddingEnd="8dp">
 
@@ -128,8 +130,8 @@
     <FrameLayout
         android:id="@+id/browse_content"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/browse_grid"
