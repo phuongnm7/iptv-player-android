@@ -54,6 +54,7 @@ dependencies {
     // because SharedModules constants are not exposed to this Kotlin DSL module.
     implementation("androidx.annotation:annotation:1.1.0")
     implementation("androidx.recyclerview:recyclerview:1.2.1")
+    implementation("androidx.coordinatorlayout:coordinatorlayout:1.1.0")
     implementation("androidx.constraintlayout:constraintlayout:1.1.2")
     implementation("androidx.media:media:1.2.0")
     implementation("androidx.multidex:multidex:2.0.1")
