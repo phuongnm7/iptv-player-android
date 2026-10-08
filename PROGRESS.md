@@ -1,3 +1,46 @@
+# CẬP NHẬT TIẾN ĐỘ — 1.10.116 — 2026-10-08
+
+## Device comparison correction — YouTube header + feed gap
+
+Bản 1.10.116 được triển khai sau khi đối chiếu trực tiếp ảnh NM7 người dùng gửi với ảnh YouTube gốc và tập trung đúng hai vùng được khoanh.
+
+### Vấn đề đã xác định
+1. Logo/wordmark: bản trước đang dùng một ảnh có vùng trắng thừa và ImageView quá nhỏ, khiến logo YouTube bị thu nhỏ/clipped.
+2. Khoảng trắng dưới chip: không phải khoảng cách thiết kế của YouTube; feed RecyclerView đang chịu trạng thái/decor/offset còn sót, làm video đầu tiên rơi xuống rất thấp.
+3. Status bar: Browse chưa ép được cửa sổ về layout bình thường ổn định trên thiết bị, nên header có thể bắt đầu sát mép trên và đè vùng status bar.
+
+### 1.10.116 đã sửa
+- Dùng wordmark crop sát nội dung từ chính ảnh YouTube gốc người dùng cung cấp, tránh ghép chữ bằng font Android.
+- Tăng vùng hiển thị wordmark lên khoảng 76dp × 30dp để giữ tỉ lệ/chiều cao tương ứng ảnh gốc trên thiết bị.
+- Portrait Browse dùng normal decor fitting (setDecorFitsSystemWindows(true) trên API 30+) và hiển thị status bar nền trắng với icon tối.
+- Không cộng thêm status-bar inset lần hai vào AppBarLayout.
+- Dọn toàn bộ RecyclerView.ItemDecoration của feed trên Mobile Browse.
+- Ép LinearLayoutManager về reverseLayout=false, stackFromEnd=false và scrollToPositionWithOffset(0, 0).
+- Khi section đầu tiên có dữ liệu, thực hiện một lần reset feed về item 0; có thêm post-layout reset để tránh stale layout state.
+- Giữ chip typography/chip layout từ vòng trước; không đụng playback/IPTV/avatar/spinner/live-chat/background playback/lifecycle.
+- Giữ nguyên bottom navigation của NM7.
+
+### Build
+- Branch: work/mobile-youtube-ui-v116
+- Version: 1.10.116 / versionCode 132
+- Build-only validation: Run 37723730612 — SUCCESS
+- Mobile assemble: SUCCESS
+- APK artifact: NM7-IPTV-Mobile-1.10.116-FINAL
+- Artifact ID: 11527346207
+- Artifact SHA-256: 0d2732e8f57db97689e6da621d0c24cdd836697067a7ae3ea82a590ddb518dd4
+- APK SHA-256: 25e8c2786a0c9b8eefb52fb10b90aa83892b328c40330f136d4b96ffb9b69142
+- APK size: 170,424,987 bytes
+- Actions: https://github.com/phuongnm7/iptv-player-android/actions/runs/37723730612
+
+### Validation note
+Workflow đầy đủ có bước parser unit-test riêng đã bị runner giữ ở trạng thái chạy quá lâu; build-only workflow đã hoàn tất SUCCESS và tạo APK từ đúng source 1.10.116. Vì môi trường không có thiết bị Android thật nên chưa thể tự chụp màn hình runtime để xác nhận pixel-perfect.
+
+### Baseline
+- 1.10.116 lấy đúng nền 1.10.115.
+- stable/mobile-1.10.112 không bị thay đổi.
+
+---
+
 # CẬP NHẬT TIẾN ĐỘ — 1.10.115 — 2026-10-08
 
 ## YouTube Mobile — final visual alignment pass theo ảnh YouTube gốc
