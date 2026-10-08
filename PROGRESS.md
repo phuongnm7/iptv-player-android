@@ -1,3 +1,48 @@
+# CẬP NHẬT TIẾN ĐỘ — 1.10.114 — 2026-10-08
+
+## YouTube Mobile UI — bám sát giao diện YouTube gốc theo 2 ảnh tham chiếu
+
+Đã triển khai trên nền **1.10.113** với phạm vi **UI YouTube Browse + system-bar layout**, không thay đổi đường playback/decoder, IPTV, avatar, spinner, live-chat hoặc lifecycle đã có.
+
+### Đối chiếu ảnh tham chiếu
+- Giữ nền trắng của header và status bar.
+- Header được sắp lại theo mẫu YouTube phone: **logo YouTube bên trái; Create/video + Search bên phải**.
+- Bỏ Mic/Account khỏi hàng trên cùng; các anchor cũ vẫn tồn tại ẩn để không phá code/logic hiện hữu.
+- Thêm dải topic chips cuộn ngang bên dưới header.
+- Chip đang chọn: nền đen + chữ trắng; chip thường: nền xám nhạt + chữ đen.
+- Thêm nút **Khám phá** dạng chip/icon ở đầu dải.
+- Không thay đổi ID/API của `browse_tabs`, `browse_grid`, `browse_rows`, `browse_settings`, `browse_toolbar`.
+- Sửa system-window handling của `BrowseActivity`: hiện status bar, icon status bar tối trên nền trắng và áp dụng **status-bar inset thực tế vào AppBarLayout** để header không còn nằm/chồng lên vùng status bar.
+- Portrait dùng inset thật; landscape không ép thêm top inset.
+
+### Source
+- Branch: `work/mobile-youtube-ui-v114`
+- Version: **1.10.114 / versionCode 130**
+- Base: **1.10.113** @ `work/mobile-app-settings-bottom-v113`
+- Workflow: `.github/workflows/nm7-mobile-114-youtube-ui.yml`
+- UI patch: `scripts/patch-mobile-v114-youtube-ui.py`
+
+### CI
+- Run **37719542318 — SUCCESS**
+- Parser unit test: **SUCCESS**
+- Mobile assemble: **SUCCESS**
+- APK upload: **SUCCESS**
+- Artifact: **NM7-IPTV-Mobile-1.10.114-FINAL**
+- Artifact ID: **11525530641**
+- Artifact digest: **bc4789723d2b6f9add714fd45d36e87dca1247f5deb860d3b9c884208197042e**
+- APK SHA-256: **8dadabb459c003d487d1600b13c3bbebb46b044f7ac534045c6933bf1c5acb31**
+- GitHub Actions: https://github.com/phuongnm7/iptv-player-android/actions/runs/37719542318
+
+### Runtime status
+CI và source verification đã PASS. **Chưa có test trực tiếp trên thiết bị Android trong môi trường này**, nên chưa đánh dấu visual/runtime PASS. APK 1.10.114 được bàn giao để test trên đúng thiết bị đã dùng trong ảnh tham chiếu.
+
+## Nguyên tắc tiếp theo
+- Không đổi baseline ổn định `stable/mobile-1.10.112` chỉ vì CI PASS.
+- Không chạm các đường playback/UI đã ổn định trong 1.10.113 khi sửa lỗi mới.
+- Chỉ đánh dấu 1.10.114 stable sau khi người dùng xác nhận thực tế.
+
+---
+
 # CẬP NHẬT TIẾN ĐỘ — 1.10.113 — 2026-10-08
 
 ## Trạng thái chính thức
