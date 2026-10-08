@@ -80,8 +80,7 @@ method='''    private void applyNm7PortraitSystemBars() {
                 root,
                 (v, insets) -> {
                     final androidx.core.graphics.Insets bars =
-                            androidx.core.view.WindowInsetsCompat.toWindowInsetsCompat(insets)
-                                    .getInsets(androidx.core.view.WindowInsetsCompat.Type.statusBars());
+                            insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.statusBars());
                     final int safeTop = Math.max(0, bars.top);
 
                     android.view.ViewGroup.LayoutParams lp = spacer.getLayoutParams();
