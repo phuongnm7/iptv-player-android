@@ -29,9 +29,9 @@
 
             <ImageView
                 android:id="@+id/nm7_youtube_wordmark"
-                android:layout_width="52dp"
-                android:layout_height="20dp"
-                android:src="@drawable/nm7_youtube_wordmark"
+                android:layout_width="76dp"
+                android:layout_height="30dp"
+                android:src="@drawable/nm7_youtube_wordmark.png"
                 android:scaleType="fitCenter"
                 android:adjustViewBounds="true"
                 android:contentDescription="YouTube" />
@@ -136,7 +136,10 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
-            android:padding="12dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="0dp"
+            android:paddingBottom="12dp"
             android:scrollbars="vertical"
             android:visibility="gone" />
 
