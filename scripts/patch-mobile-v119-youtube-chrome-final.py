@@ -41,8 +41,7 @@ xml=xml.replace(
     '<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"',
     '<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"',
     1)
-xml=xml.replace('    android:orientation="vertical"
-', '', 1)
+xml=xml.replace("    android:orientation=\"vertical\"\n", "", 1)
 
 # Root owns no top inset/padding. A dedicated spacer owns the status-bar reservation.
 xml=xml.replace('    android:paddingBottom="64dp"
@@ -101,18 +100,14 @@ xml=xml.replace(
         app:layout_behavior="@string/appbar_scrolling_view_behavior">''',1)
 
 # Visible RecyclerViews: never add a fake top gap. Preserve horizontal margins.
-xml=xml.replace('android:paddingTop="8dp"
-            android:paddingStart="12dp"',
-                'android:paddingTop="0dp"
-            android:paddingStart="12dp"')
-xml=xml.replace('android:paddingTop="0dp"
-            android:paddingBottom="12dp"',
-                'android:paddingTop="0dp"
-            android:paddingBottom="0dp"',1)
+xml=xml.replace("""android:paddingTop="8dp"
+            android:paddingStart="12dp"""","""android:paddingTop="0dp"
+            android:paddingStart="12dp"""")
+xml=xml.replace("""android:paddingTop="0dp"
+            android:paddingBottom="12dp"""","""android:paddingTop="0dp"
+            android:paddingBottom="0dp"""",1)
 
-xml=xml.replace('</LinearLayout>
-', '</androidx.coordinatorlayout.widget.CoordinatorLayout>
-')
+xml=xml.replace("</LinearLayout>\n", "</androidx.coordinatorlayout.widget.CoordinatorLayout>\n")
 DST.parent.mkdir(parents=True,exist_ok=True)
 DST.write_text(xml,encoding="utf-8")
 
