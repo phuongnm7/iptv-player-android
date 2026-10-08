@@ -177,7 +177,7 @@ if "mNm7FirstFeedLayoutFixed" not in s:
     s = s.replace(anchor, anchor + "\n    private boolean mNm7FirstFeedLayoutFixed;", 1)
 
 if "private void nm7FixInitialFeedPosition" not in s:
-    anchor = "    // ------------------------------------------------------------------ tab plumbing\n"
+    anchor = "    private void initContent() {"
     helper = '''    private void nm7FixInitialFeedPosition() {
         if (mNm7FirstFeedLayoutFixed) return;
         mNm7FirstFeedLayoutFixed = true;
@@ -197,8 +197,8 @@ if "private void nm7FixInitialFeedPosition" not in s:
 
 '''
     if anchor not in s:
-        raise SystemExit("v119: tab plumbing anchor missing")
-    s = s.replace(anchor, anchor + helper, 1)
+        raise SystemExit("v119: initContent anchor missing")
+    s = s.replace(anchor, helper + anchor, 1)
 
 focus_old = '''        BrowseSection section = mSections.get(position);
         mCurrentSection = section;
