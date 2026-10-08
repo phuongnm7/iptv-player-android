@@ -35,11 +35,11 @@ if end<0:
 
 # Preserve the accepted left placement and 48dp header height. The current v1.10.127
 # visible logo occupies approximately the same 76dp x 30dp box; keep that exact box
-# and use the original screenshot crop inside it.
+# and use the original screenshot crop inside it. Increase only the visible logo box slightly to 84dp x 32dp; leave all other chrome geometry unchanged.
 new='''            <ImageView
                 android:id="@+id/nm7_youtube_wordmark"
-                android:layout_width="76dp"
-                android:layout_height="30dp"
+                android:layout_width="84dp"
+                android:layout_height="32dp"
                 android:src="@drawable/nm7_youtube_wordmark_exact"
                 android:scaleType="fitCenter"
                 android:adjustViewBounds="false"
@@ -49,4 +49,4 @@ new='''            <ImageView
 s=s[:start]+new+s[end:]
 
 LAYOUT.write_text(s,encoding="utf-8")
-print("v1.10.128: exact YouTube reference logo/font substituted; 76dp x 30dp box preserved")
+print("v1.10.128: exact YouTube reference logo/font substituted; 84dp x 32dp visual box used")
