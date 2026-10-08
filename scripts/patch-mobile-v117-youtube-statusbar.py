@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """NM7 Mobile 1.10.117: Android 15 status-bar correction.
 
-The device screenshot proves the Browse window is still drawing the YouTube header
-under the real status bar. Android 15 edge-to-edge can ignore legacy decor fitting,
-so the fix is explicit: keep the system status bar visible and apply its actual
-top inset as padding to the Browse root. Re-apply after onResume/window focus because
-MotherActivity/SmartTube may change fullscreen flags during lifecycle callbacks.
+The device screenshot shows the Browse header being drawn underneath the real
+status bar. Android 15 edge-to-edge means legacy decor fitting is not sufficient.
+This patch explicitly shows the status bar and reserves its real inset on the
+Browse root. It reapplies the same state after onResume and window focus because
+SmartTube/MotherActivity can touch fullscreen flags during lifecycle callbacks.
 
-No playback, IPTV, YouTube data, avatar, spinner or navigation logic is changed.
+No playback, IPTV, data, avatar, spinner, live-chat or navigation behavior is changed.
 """
 from pathlib import Path
 import re
@@ -30,7 +30,7 @@ shutil.copyfile(SRC_LOGO, DST_LOGO)
 
 s = BROWSE.read_text(encoding="utf-8")
 
-# Replace the existing NM7 portrait system-bar method from v114/v116.
+# Replace the portrait system-bar method produced by v114/v116.
 sig = "    private void applyNm7PortraitSystemBars() {"
 pos = s.find(sig)
 if pos < 0:
@@ -58,8 +58,8 @@ method = """    private void applyNm7PortraitSystemBars() {
         window.setStatusBarColor(android.graphics.Color.WHITE);
 
         if (android.os.Build.VERSION.SDK_INT >= 30) {
-            // Android 15+ enforces edge-to-edge for modern target SDKs. Keep the window
-            // edge-to-edge but compensate explicitly with the actual status-bar inset.
+            // Android 15+ enforces edge-to-edge for modern target SDKs. Keep edge-to-edge
+            // but explicitly reserve the actual status-bar inset in Browse root.
             window.setDecorFitsSystemWindows(false);
             android.view.WindowInsetsController controller = window.getInsetsController();
             if (controller != null) {
@@ -93,48 +93,49 @@ method = """    private void applyNm7PortraitSystemBars() {
                     top = insets.getSystemWindowInsetTop();
                 }
 
-                // The root itself owns the status-bar reservation. This guarantees the
-                // first row (wordmark) can never be drawn underneath the status icons.
+                // Reserve the status-bar area once at the root. The header can therefore
+                // never overlap the clock/network/status icons.
                 v.setPadding(left, Math.max(0, top), right, bottom);
                 return insets;
             });
-
             root.requestApplyInsets();
         }
     }"""
 s = s[:pos] + method + s[end:]
 
-# Reapply after MotherActivity/SmartTube fullscreen handling. This is necessary on
-# Android 15 where the window can be changed during super.onResume().
+# Replace the existing BrowseActivity onResume while preserving presenter callbacks.
+pattern = re.compile(
+    r"""    @Override
+    protected void onResume() {
+.*?
+    }
+
+    @Override
+    protected void onPause""",
+    re.S,
+)
+match = pattern.search(s)
+if not match:
+    raise SystemExit("v117: BrowseActivity onResume block missing")
+
 onresume = """    @Override
     protected void onResume() {
         super.onResume();
+
+        if (!mJustCreated) {
+            mBrowsePresenter.onViewResumed();
+        }
+
+        mJustCreated = false;
+
         applyNm7PortraitSystemBars();
         getWindow().getDecorView().post(this::applyNm7PortraitSystemBars);
-        getWindow().getDecorView().postDelayed(this::applyNm7PortraitSystemBars, 120);
+        getWindow().getDecorView().postDelayed(this::applyNm7PortraitSystemBars, 160);
     }
 
-"""
-if "protected void onResume()" in s:
-    # Replace the existing BrowseActivity onResume body, preserving presenter behavior.
-    pattern = re.compile(r"    @Override\n    protected void onResume\(\) \{.*?^    \}\n\n    @Override\n    protected void onPause", re.S | re.M)
-    m = pattern.search(s)
-    if not m:
-        raise SystemExit("v117: onResume block not found")
-    new_block = onresume + "    @Override\n    protected void onPause"
-    s = s[:m.start()] + new_block + s[m.end():]
-else:
-    anchor = "    @Override
-    protected void onPause"
-    if anchor not in s:
-        raise SystemExit("v117: onPause anchor missing")
-    s = s.replace(anchor, onresume + anchor, 1)
-
-s = s.replace(
-    'android:layout_width="52dp"\n                android:layout_height="20dp"\n                android:src="@drawable/nm7_youtube_wordmark"',
-    'android:layout_width="76dp"\n                android:layout_height="30dp"\n                android:src="@drawable/nm7_youtube_wordmark"',
-    1,
-)
+    @Override
+    protected void onPause"""
+s = s[:match.start()] + onresume + s[match.end():]
 
 BROWSE.write_text(s, encoding="utf-8")
-print("NM7 Mobile 1.10.117 Android 15 status-bar/root-inset correction applied")
+print("NM7 Mobile 1.10.117 status-bar correction applied")
