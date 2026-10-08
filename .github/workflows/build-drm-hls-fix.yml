@@ -1,0 +1,43 @@
+name: Build NM7 DRM-HLS Fix APK
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Restore SmartTube submodule
+        run: |
+          if [ ! -d third_party/SmartTube-droid/.git ]; then
+            rm -rf third_party/SmartTube-droid
+            git clone --depth 1 --recurse-submodules https://github.com/systematiq-one/SmartTube-droid.git third_party/SmartTube-droid
+          fi
+          git -C third_party/SmartTube-droid submodule update --init --force --recursive
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+          cache-provider: basic
+          validate-wrappers: false
+      - name: Build mobile
+        run: gradle --no-daemon --console=plain -PcompileSdkVersion=android-36 -PminSdkVersion=23 -PtargetSdkVersion=36 -PbuildToolsVersion=36.0.0 -PtestXSupportVersion=1.1.0 -PannotationXVersion=1.1.0 -ProbolectricVersion=4.6.1 assembleMobileDebug
+      - name: Package APK
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/mobile/debug/app-mobile-debug.apk dist/NM7-IPTV-Mobile-DRM-HLS-Fix.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NM7-IPTV-Mobile-DRM-HLS-Fix
+          path: dist/NM7-IPTV-Mobile-DRM-HLS-Fix.apk
+          retention-days: 30
