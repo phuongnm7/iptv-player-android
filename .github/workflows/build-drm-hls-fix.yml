@@ -1,6 +1,9 @@
 name: Build NM7 DRM-HLS Fix APK
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/build-drm-hls-fix.yml'
 permissions:
   contents: read
 jobs:
