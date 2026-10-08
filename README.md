@@ -1,38 +1,52 @@
-# NM7 IPTV Mobile — CURRENT HANDOFF — 1.10.128 — 2026-10-08
+# NM7 IPTV Mobile — STABLE BASELINE 1.10.128 — 2026-10-08
 
-> **1.10.128 đã BUILD SUCCESS và được người dùng test thực tế: tạm ổn.** Bản này giữ nguyên bố cục/kích thước/vị trí đã chốt; thay asset YouTube bằng logo do người dùng cung cấp. Logo hiện **hơi nhỏ**, ghi nhận để chỉnh ở vòng sau. Chưa thay đổi geometry trong vòng này.
+> **1.10.128 là bản ổn định chính thức hiện tại.** Người dùng đã test thực tế và xác nhận bản này ổn định đến thời điểm hiện tại. Đây là **baseline bắt buộc cho các bản Mobile tiếp theo**.
 
-## Mốc hiện tại
-- Version: **1.10.128**
-- Branch: `work/mobile-youtube-ui-v128`
-- Commit: `6535b8189fda2b0e957e76755884762c8162ff7e`
-- Người dùng xác nhận: **tạm ổn**
-- Ghi nhận cho bản sau: **logo YouTube hơi nhỏ**; không sửa thêm ở bản 1.10.128 để tránh regression.
+## Mốc ổn định đã chốt
 
-## Thay đổi 1.10.128
-- Thay asset wordmark bằng **logo YouTube do người dùng cung cấp**.
-- Giữ nguyên bố cục, vị trí, kích thước và hành vi UI đã có.
-- Không tự vẽ lại logo/wordmark.
-- Không thay đổi logic IPTV/YouTube hoặc Android TV.
+- **Version:** 1.10.128
+- **versionCode:** 144
+- **Stable branch:** `stable/mobile-1.10.128`
+- **Development branch:** `work/mobile-youtube-ui-v128`
+- **Build commit:** `ce19a4cb9ed65b3953107ffff8b2eaf9605ff74a`
+- **Build:** GitHub Actions run `37776866236` — **SUCCESS**
+- **Người dùng xác nhận:** **ổn định đến hiện tại**
 
-## CI / APK
+## Phạm vi thay đổi của bản 1.10.128
+
+- Sử dụng **logo YouTube do người dùng cung cấp**.
+- Logo đã được tăng kích thước **nhẹ** theo ảnh thực tế người dùng gửi.
+- Kích thước hộp logo: **84dp × 32dp**.
+- Giữ nguyên vị trí, header, camera, tìm kiếm, chip, feed và các chức năng đã ổn định.
+- **Không thay đổi logic IPTV/YouTube, playback, navigation hoặc Android TV.**
+
+## CI / APK cuối cùng đã chốt
+
 - Workflow: **NM7 IPTV Mobile 1.10.128 Exact YouTube Wordmark — Build**
-- Workflow file: `.github/workflows/nm7-mobile-128-youtube-wordmark-exact.yml`
-- Run ID: **37761713778 — SUCCESS**
-- [GitHub Actions](https://github.com/phuongnm7/iptv-player-android/actions/runs/37761713778)
+- Run ID: **37776866236 — SUCCESS**
 - Artifact: **NM7-IPTV-Mobile-1.10.128-FINAL**
-- Artifact ID: **11542827736**
-- [Artifact](https://github.com/phuongnm7/iptv-player-android/actions/runs/37761713778/artifacts/11542827736)
-- Artifact digest: **sha256:653bae046a31dffce40fd78a0b5442333982ee65d2a7b9b73f35d1c5465ebcee**
-- Artifact size: **69,592,846 bytes**
+- Artifact ID: **11550202229**
+- Artifact size: **69,592,875 bytes**
+- Artifact SHA-256: `f61beb800c4bcd10f4fff57082dc99f871d54716c74d972227cd8b2802f4db0d`
+- [GitHub Actions](https://github.com/phuongnm7/iptv-player-android/actions/runs/37776866236)
+- [APK Artifact](https://github.com/phuongnm7/iptv-player-android/actions/runs/37776866236/artifacts/11550202229)
 
-## Trạng thái runtime
-- **PASS/tạm ổn:** logo YouTube đã đúng nguồn hình người dùng cung cấp.
-- **Còn tồn tại:** logo hơi nhỏ.
-- **Kế hoạch:** không sửa tiếp trong 1.10.128; bản kế tiếp sẽ điều chỉnh riêng kích thước logo, giữ nguyên geometry và behavior đã ổn định.
+## Quy tắc phát triển bắt buộc từ 1.10.128
+
+1. **Mọi bản Mobile tiếp theo phải lấy 1.10.128 làm nền.**
+2. Baseline nguồn là commit **`ce19a4cb9ed65b3953107ffff8b2eaf9605ff74a`** và stable branch **`stable/mobile-1.10.128`**.
+3. Không tự ý quay lại 1.10.127, 1.10.123, 1.10.112 hoặc baseline cũ hơn nếu người dùng không yêu cầu.
+4. Không thay đổi các phần đã được người dùng xác nhận ổn định nếu không có yêu cầu cụ thể hoặc bằng chứng regression.
+5. Bản sửa tiếp theo phải tăng version/versionCode và phải build/verify trên GitHub Actions trước khi giao.
+6. Chỉ khi người dùng test thực tế và xác nhận bản mới ổn định thì mới chuyển stable baseline sang bản mới.
+
+## Trạng thái hiện tại
+
+**STABLE — 1.10.128**
+
+Logo YouTube hiện đã đúng nguồn hình người dùng cung cấp và đã được tăng nhẹ kích thước theo yêu cầu cuối cùng. Bản này được **chốt làm mốc ổn định đến hiện tại**.
 
 ---
-
 
 # LỊCH SỬ CŨ
 # NM7 IPTV Mobile — STABLE BASELINE 1.10.112 — 2026-09-30
