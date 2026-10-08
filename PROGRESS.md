@@ -1,3 +1,41 @@
+# CẬP NHẬT TIẾN ĐỘ — 1.10.126 — 2026-10-08
+
+## Sửa lỗi logo YouTube biến mất trong video 223402.mp4
+
+### Phân tích thực tế
+Video `223402.mp4` (1080×2400, ~11.93s) đã được đọc và trích frame ở 0.8s, 1.5s, 2.5s, 5s, 6s, 8s, 10s và 11.5s. Trong các frame Browse sau khi tải, camera + search + chip vẫn hiện nhưng **wordmark YouTube hoàn toàn không hiện**.
+
+### Nguyên nhân xác định ở source/build
+Bản 1.10.125 không phải chỉ thay asset. Patch v125 thay container accepted của v1.10.123 và tạo một view mới với ID khác (`nm7_youtube_wordmark_exact`). Điều này phá contract của Browse UI đã được người dùng xác nhận ổn ở 1.10.123. Ngoài ra workflow v125 dựa trên chuỗi patch quá dài và thiếu kiểm tra build-time rằng view logo cuối cùng vẫn tồn tại.
+
+### 1.10.126
+- Quay **thẳng về base 1.10.123**.
+- Bỏ hoàn toàn patch v124/v125.
+- Giữ nguyên header geometry của v1.10.123.
+- Giữ nguyên **ID gốc `@id/nm7_youtube_wordmark`**.
+- Chỉ thay phần hình ảnh hiển thị của vùng wordmark bằng asset crop trực tiếp từ ảnh YouTube gốc.
+- Không thay vị trí header, camera/search, chip, feed, status bar hoặc tính năng playback/IPTV.
+- Asset được đóng gói trong APK.
+
+### Build verification
+- Branch: `work/mobile-youtube-ui-v126`
+- Version: **1.10.126 / versionCode 142**
+- Workflow: **37744314854 — SUCCESS**
+- Artifact: `NM7-IPTV-Mobile-1.10.126-FINAL`
+- Artifact ID: **11534733605**
+- Artifact digest: **sha256:279c086356fd0e4817f0ab82f730823f29b03044380929158809e7ad9b175d22**
+- APK SHA-256 đã kiểm tra từ file artifact: **7f0fbbaa487cc8cedde28220c70ffcb7fa92476c0338c4bf1394b63b3e8f21f0**
+- APK size: **170,425,? bytes (~163 MiB)**
+- APK chứa: `res/drawable-nodpi-v4/nm7_youtube_wordmark_exact.png` và `res/layout/browse_activity.xml`.
+
+### Acceptance
+Đã có build thành công và kiểm tra asset tồn tại trong APK. Chưa có thiết bị Android thật trong môi trường để tự cài/chụp screenshot runtime, nên không tuyên bố pixel-perfect trước khi người dùng kiểm tra bản 1.10.126.
+
+### Baseline
+- 1.10.126 lấy nền **1.10.123**, bỏ qua 1.10.124 và 1.10.125.
+- `stable/mobile-1.10.112` không thay đổi.
+---
+
 # CẬP NHẬT TIẾN ĐỘ — 1.10.123 — 2026-10-08
 
 ## Sửa đúng lỗi logo YouTube quá nhỏ/không đúng tỷ lệ sau khi đối chiếu ảnh 223390.jpg
