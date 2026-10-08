@@ -1,3 +1,44 @@
+# CẬP NHẬT TIẾN ĐỘ — 1.10.120 — 2026-10-08
+
+## Sửa lỗi logo YouTube bị status bar che — xác định nguyên nhân từ video 223380.mp4
+
+### Phân tích video
+Video 223380.mp4 có độ phân giải 1080×2400, dài 23.56 giây. Ở các frame 3.4s, 6.7s, 10.1s, 13.5s và 16.8s, status icons vẫn nằm ở vùng y đầu màn hình và logo YouTube bắt đầu quá cao, khiến phần biểu tượng đỏ/chữ YouTube bị đè. Đồng thời feed video đã bắt đầu ngay sau chip bar, nên lỗi khoảng trắng lớn của các bản trước không còn là lỗi chính trong video mới.
+
+### Nguyên nhân xác định
+1. Bản v1.10.119 dùng một listener WindowInsets đặt trên **DecorView**, không phải `browse_root`. Sau khi SmartTube/MotherActivity thay đổi window flags, inset không được truyền ổn định tới Browse root, nên status-bar spacer vẫn có thể bằng 0.
+2. Vì vậy header thực sự bắt đầu từ y=0 trong edge-to-edge mode Android 15 và status bar được vẽ chồng lên wordmark.
+3. Không cần tiếp tục tăng/giảm padding cố định. Fix đúng là buộc `browse_root` nhận WindowInsets trực tiếp và dùng status-bar inset thực tế để thay đổi một child spacer.
+
+### 1.10.120 đã sửa
+- Listener WindowInsets chuyển **trực tiếp lên `browse_root`** bằng `ViewCompat.setOnApplyWindowInsetsListener`.
+- Lấy `WindowInsetsCompat.Type.statusBars()` trực tiếp; không chuyển đổi sai kiểu native/compat.
+- Request inset ngay lập tức + post + delayed post để cover trường hợp listener cài trước window attach.
+- Giữ status bar visible, nền trắng, icon tối.
+- Giữ edge-to-edge cho Android 15 nhưng dành đúng số pixel status bar cho spacer trước AppBar.
+- Không đụng feed position/playback/IPTV.
+- Không thêm padding thủ công vào RecyclerView.
+
+### Build
+- Branch: `work/mobile-youtube-ui-v120`
+- Version: **1.10.120 / versionCode 136**
+- Workflow: **37730897210 — SUCCESS**
+- Artifact: `NM7-IPTV-Mobile-1.10.120-FINAL`
+- Artifact ID: **11530395285**
+- Artifact digest: **sha256:5b8d28989f8abeb9e0c8e5cc517bd26f557b23846f6a10a5f02ab64bebbad389**
+- APK SHA-256: **247734e3e6adeb403c1323c294e6c08451200ab3e363f8d5fc4b1094e96cf742**
+- APK size: **170,425,076 bytes**
+- Actions: https://github.com/phuongnm7/iptv-player-android/actions/runs/37730897210
+
+### Runtime validation
+Đã dùng video 223380.mp4 làm nguồn phân tích trực tiếp. Môi trường hiện tại không có thiết bị Android để tự cài APK và chụp frame runtime, nên chưa tuyên bố pixel-perfect. Tuy nhiên lỗi v120 đã được sửa đúng điểm mà video chứng minh: listener được đặt sai tầng.
+
+### Baseline
+- 1.10.120 lấy nền từ **1.10.119**
+- `stable/mobile-1.10.112` không bị thay đổi.
+
+---
+
 # CẬP NHẬT TIẾN ĐỘ — 1.10.119 — 2026-10-08
 
 ## Final video-driven correction — YouTube header/status bar + initial feed layout
