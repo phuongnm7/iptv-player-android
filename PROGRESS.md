@@ -1,3 +1,40 @@
+# CẬP NHẬT TIẾN ĐỘ — 1.10.125 — 2026-10-08
+
+## Khắc phục lỗi 1.10.124 làm mất logo — giữ nguyên geometry 1.10.123
+
+Đã xem trực tiếp video người dùng gửi \`223396.mp4\`. Frame ~2.5s cho thấy rõ: **toàn bộ wordmark YouTube biến mất**, trong khi header, camera và search vẫn còn. Đây không phải lỗi font hay vị trí; bản 1.10.124 đã đi sai source layout.
+
+### Nguyên nhân
+Workflow 1.10.124 không lấy layout cuối của 1.10.123 mà chạy lại từ source layout trung gian cũ, sau đó thay wordmark. Điều này làm mất trạng thái UI đã được người dùng xác nhận đúng ở 1.10.123.
+
+### 1.10.125 — cách sửa
+- **Không chạy 1.10.124.**
+- Lấy đúng workflow/source chain của **1.10.123** làm nền.
+- Chỉ chạy thêm một patch cuối để thay renderer của wordmark.
+- Giữ nguyên container/geometry của v1.10.123.
+- Thay phần vector + TextView bằng **ảnh crop wordmark trực tiếp từ ảnh YouTube gốc 223392.jpg**.
+- Asset được đóng gói trong APK và đã kiểm tra tồn tại.
+- Không thay đổi header position, header height, camera/search position, chip bar, feed, status bar, playback, IPTV hoặc các tính năng khác.
+
+### Build
+- Branch: \`work/mobile-youtube-ui-v125\`
+- Version: **1.10.125 / versionCode 141**
+- Workflow: **37742340847 — SUCCESS**
+- Artifact: \`NM7-IPTV-Mobile-1.10.125-FINAL\`
+- Artifact ID: **11535050241**
+- Artifact digest: **sha256:6bde3480114c0a77d817eedb8cc8d26af1179e4ed75348af22b9283407bf6c69**
+- APK SHA-256: **9ae67c5d5f6cceb27773f3b0dddb937dae2a5d978fc3e4537fd0f9bb13b4bc61**
+- APK size: **170,432,465 bytes**
+- Đã kiểm tra trong APK có \`nm7_youtube_wordmark_exact.png\`, \`nm7_youtube_icon.xml\` và \`browse_activity.xml\`.
+
+### Runtime
+Video đã được dùng để xác định chính xác lỗi 1.10.124. Chưa có thiết bị Android điều khiển trực tiếp trong môi trường build nên chưa thể tự xác nhận ảnh runtime.
+
+### Baseline
+- 1.10.125 lấy nền từ **1.10.123**, bỏ qua 1.10.124.
+- \`stable/mobile-1.10.112\` không bị thay đổi.
+---
+
 # CẬP NHẬT TIẾN ĐỘ — 1.10.123 — 2026-10-08
 
 ## Sửa đúng lỗi logo YouTube quá nhỏ/không đúng tỷ lệ sau khi đối chiếu ảnh 223390.jpg
