@@ -1,3 +1,40 @@
+# CẬP NHẬT TIẾN ĐỘ — 1.10.124 — 2026-10-08
+
+## Logo + chữ YouTube — appearance-only correction
+
+Đã đối chiếu trực tiếp hai ảnh người dùng gửi:
+- 223392.jpg: YouTube gốc.
+- 223393.jpg: NM7 1.10.123.
+
+Người dùng xác nhận ở 1.10.123 vị trí và kích thước đã đạt, chỉ còn khác ở hình dạng/logo và font chữ. Vì vậy 1.10.124 không thay đổi vị trí, kích thước header, vị trí icon video/search, chip bar, feed hoặc status-bar behavior.
+
+### 1.10.124 đã sửa
+- Bỏ renderer ghép vector icon + TextView của 1.10.123.
+- Dùng wordmark crop trực tiếp từ ảnh YouTube gốc 223392.jpg làm tài sản logo/text.
+- Crop gốc 189×48 px; tạo asset 156×34 px để nằm trong cùng vùng hiển thị đã được chấp nhận ở 1.10.123.
+- Giữ nguyên display box của logo ở 76dp × 30dp.
+- Dùng fitStart + center_vertical|start, không đụng vị trí/hộp kích thước của header.
+- Không sửa bất kỳ logic playback/IPTV/feed/avatar/spinner/live-chat/background playback/bottom navigation nào.
+
+### Build
+- Branch: work/mobile-youtube-ui-v124
+- Version: 1.10.124 / versionCode 140
+- Workflow: 37740724921 — SUCCESS
+- Artifact: NM7-IPTV-Mobile-1.10.124-FINAL
+- Artifact ID: 11533198611
+- Artifact digest: sha256:4d5af77ad51e14e0e4e8bd12b7f9d6a8d2e4d6542cccb17b9b92f3a85621753f
+- APK SHA-256: 1908fa86971bd31d379fa40ceb367d4b0566066f136618f7500ad44f804dcb40
+- APK size: 170,432,465 bytes
+- Actions: https://github.com/phuongnm7/iptv-player-android/actions/runs/37740724921
+
+### Runtime
+Chưa có thiết bị Android điều khiển trực tiếp trong môi trường build. Bản này vì vậy chỉ xác nhận source/build; cần ảnh chụp trên máy người dùng để xác nhận phần logo/font đúng như ảnh YouTube gốc.
+
+### Baseline
+- 1.10.124 lấy nền từ 1.10.123
+- stable/mobile-1.10.112 không bị thay đổi.
+---
+
 # CẬP NHẬT TIẾN ĐỘ — 1.10.123 — 2026-10-08
 
 ## Sửa đúng lỗi logo YouTube quá nhỏ/không đúng tỷ lệ sau khi đối chiếu ảnh 223390.jpg
