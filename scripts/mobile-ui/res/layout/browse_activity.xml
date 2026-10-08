@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Home screen: toolbar + scrollable section tabs + swappable content area.
-     NOTE: activities extend FragmentActivity (not AppCompatActivity), so Material
-     widgets MUST use explicit com.google.android.material.* tags. -->
+<!-- NM7 Mobile YouTube browse chrome: visually aligned with the supplied
+     YouTube phone reference while preserving SmartTube section/content IDs. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/browse_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -14,52 +14,110 @@
         android:id="@+id/browse_app_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#FFFFFF">
+        android:background="#FFFFFF"
+        android:elevation="0dp">
 
-        <!-- Match the original YouTube-style phone header: white surface, compact
-             NM7 brand, search, microphone and account actions in their native positions. -->
+        <!-- YouTube-like top app bar: wordmark on the left, create/search on the right. -->
         <LinearLayout
-            android:layout_width="match_parent" android:layout_height="60dp"
-            android:paddingStart="8dp" android:paddingEnd="4dp"
-            android:gravity="center_vertical" android:orientation="horizontal">
-            <ImageView android:layout_width="30dp" android:layout_height="34dp"
-                android:src="@drawable/nm7_tube_logo" android:importantForAccessibility="no" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:layout_marginStart="6dp" android:layout_marginEnd="8dp"
-                android:text="NM7" android:textColor="#202124" android:textSize="18sp"
-                android:fontFamily="sans-serif-medium" />
-            <Space android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
-            <ImageButton android:id="@+id/nm7_search" android:layout_width="44dp"
-                android:layout_height="48dp" android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/browse_ic_search" android:tint="#5F6368"
-                android:contentDescription="Tìm kiếm" />
-            <ImageButton android:id="@+id/nm7_voice" android:layout_width="40dp"
-                android:layout_height="48dp" android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/nm7_mic" android:tint="#5F6368"
-                android:contentDescription="Tìm kiếm bằng giọng nói" />
-            <ImageButton android:id="@+id/nm7_account" android:layout_width="44dp"
-                android:layout_height="48dp" android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/browse_ic_account" android:tint="#5F6368"
-                android:contentDescription="@string/dialog_account_list" />
-        </LinearLayout>
-        <!-- Keep the original menu and refresh action accessible from the search long press. -->
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/browse_toolbar" android:layout_width="match_parent"
-            android:layout_height="0dp" android:visibility="gone" />
-
-        <com.google.android.material.tabs.TabLayout
-            android:id="@+id/browse_tabs"
+            android:id="@+id/nm7_youtube_header"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:tabMode="scrollable"
-            app:tabIndicatorHeight="0dp"
-            app:tabBackground="@drawable/nm7_tab_bg"
-            app:tabTextColor="#EEEEEE"
-            app:tabSelectedTextColor="#101014"
-            app:tabMinWidth="72dp"
-            app:tabPaddingStart="14dp"
-            app:tabPaddingEnd="14dp" />
+            android:layout_height="56dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="4dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
+            <ImageView
+                android:layout_width="32dp"
+                android:layout_height="24dp"
+                android:src="@drawable/nm7_tube_logo"
+                android:scaleType="fitCenter"
+                android:contentDescription="YouTube" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="2dp"
+                android:text="YouTube"
+                android:textColor="#0F0F0F"
+                android:textSize="22sp"
+                android:fontFamily="sans-serif-medium"
+                android:includeFontPadding="false" />
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <ImageButton
+                android:id="@+id/nm7_video"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/nm7_video_camera"
+                android:tint="#0F0F0F"
+                android:contentDescription="Tạo video" />
+
+            <ImageButton
+                android:id="@+id/nm7_search"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/browse_ic_search"
+                android:tint="#0F0F0F"
+                android:contentDescription="Tìm kiếm" />
+        </LinearLayout>
+
+        <!-- Match the reference chip strip: fixed Explore affordance + dynamic SmartTube sections. -->
+        <HorizontalScrollView
+            android:id="@+id/nm7_chip_scroll"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:scrollbars="none"
+            android:fillViewport="false"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageButton
+                    android:id="@+id/nm7_explore"
+                    android:layout_width="48dp"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="4dp"
+                    android:background="@drawable/nm7_explore_bg"
+                    android:src="@drawable/nm7_explore"
+                    android:tint="#0F0F0F"
+                    android:contentDescription="Khám phá" />
+
+                <com.google.android.material.tabs.TabLayout
+                    android:id="@+id/browse_tabs"
+                    android:layout_width="wrap_content"
+                    android:layout_height="48dp"
+                    android:clipToPadding="false"
+                    app:tabMode="scrollable"
+                    app:tabGravity="center"
+                    app:tabIndicatorHeight="0dp"
+                    app:tabBackground="@drawable/nm7_tab_bg"
+                    app:tabTextColor="#0F0F0F"
+                    app:tabSelectedTextColor="#FFFFFF"
+                    app:tabMinWidth="0dp"
+                    app:tabPaddingStart="14dp"
+                    app:tabPaddingEnd="14dp"
+                    app:tabRippleColor="#E5E5E5" />
+            </LinearLayout>
+        </HorizontalScrollView>
+
+        <!-- Retained as a hidden compatibility anchor for menu/refresh actions. -->
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/browse_toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:visibility="gone" />
     </com.google.android.material.appbar.AppBarLayout>
 
     <FrameLayout
@@ -68,7 +126,6 @@
         android:layout_height="0dp"
         android:layout_weight="1">
 
-        <!-- TYPE_GRID / TYPE_SHORTS_GRID / TYPE_MULTI_GRID: 2-column card grid -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/browse_grid"
             android:layout_width="match_parent"
@@ -78,31 +135,30 @@
             android:scrollbars="vertical"
             android:visibility="gone" />
 
-        <!-- TYPE_ROW: vertical list of titled horizontal card rows -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/browse_rows"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
             android:paddingTop="8dp"
-            android:paddingStart="12dp" android:paddingEnd="12dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
             android:paddingBottom="8dp"
             android:scrollbars="vertical"
             android:visibility="gone" />
 
-        <!-- TYPE_SETTINGS_GRID: simple icon+title rows -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/browse_settings"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
             android:paddingTop="8dp"
-            android:paddingStart="12dp" android:paddingEnd="12dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
             android:paddingBottom="8dp"
             android:scrollbars="vertical"
             android:visibility="gone" />
 
-        <!-- Error state: centered message + optional action button -->
         <LinearLayout
             android:id="@+id/browse_error_container"
             android:layout_width="match_parent"
@@ -125,7 +181,6 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:visibility="gone" />
-
         </LinearLayout>
 
         <ProgressBar
@@ -136,9 +191,5 @@
             android:layout_gravity="center"
             android:indeterminate="true"
             android:visibility="gone" />
-
     </FrameLayout>
-
 </LinearLayout>
-
-
