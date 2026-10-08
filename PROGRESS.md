@@ -1,3 +1,55 @@
+# CẬP NHẬT TIẾN ĐỘ — 1.10.119 — 2026-10-08
+
+## Final video-driven correction — YouTube header/status bar + initial feed layout
+
+Đã đối chiếu trực tiếp video `223364.mp4` và ảnh thiết bị `223375.jpg`.
+
+### Quan sát từ video
+- Khi Browse chrome vừa xuất hiện, wordmark YouTube có thể bị vẽ vào vùng status-bar/khung chuyển cảnh.
+- Khi chip bar hiện, feed có lúc bắt đầu thấp hơn rất nhiều so với chip bar, tạo vùng trắng lớn.
+- Hiện tượng thay đổi theo trạng thái chrome, nên không phải lỗi thumbnail/card đơn lẻ.
+
+### Nguyên nhân ở source
+Chuỗi patch cũ trộn hai mô hình:
+- v57/v56: Browse overlay + tự thay đổi visibility/padding theo chrome;
+- v114: quay lại LinearLayout + AppBarLayout;
+- các đoạn scroll-chrome cũ vẫn còn hoạt động.
+Ngoài ra v118 trước đó chỉ thay đổi Java nhưng không chuyển source layout sau khi v57/v114 chạy, nên architecture mong muốn chưa thực sự vào APK.
+
+### 1.10.119 đã sửa dứt điểm ở tầng layout
+- Patch chạy **sau v114**, sau khi các patch cũ hoàn tất.
+- Chuyển Browse cuối cùng sang **CoordinatorLayout**.
+- Thêm `nm7_status_bar_spacer` làm child thực sự; spacer nhận chiều cao status bar từ WindowInsets.
+- Không dùng root `paddingTop` để đẩy header nữa.
+- Header YouTube + chip strip nằm trong AppBarLayout với `scroll|enterAlways`.
+- Feed là scrolling sibling của AppBarLayout, dùng `appbar_scrolling_view_behavior`.
+- Xóa toàn bộ fake top padding theo chiều cao header.
+- Không tự GONE/INVISIBLE hoặc resize AppBar để tạo hiệu ứng chrome.
+- Reset scroll **chỉ tại thời điểm section/feed vừa được nạp**, tránh kéo ngược vị trí sau khi người dùng đã cuộn.
+- Wordmark tăng từ 76×30dp lên 92×36dp để gần kích thước ảnh YouTube gốc hơn.
+- Thêm dependency CoordinatorLayout trực tiếp cho module smarttube.
+- Không thay đổi playback/IPTV/network/avatar/spinner/comments/background playback/bottom navigation.
+
+### Build
+- Branch: `work/mobile-youtube-ui-v119`
+- Version: **1.10.119 / versionCode 135**
+- Workflow: **37729414221 — SUCCESS**
+- Artifact: `NM7-IPTV-Mobile-1.10.119-FINAL`
+- Artifact ID: **11529755026**
+- Artifact digest: **d97240bcace9d93e407afeef9566dae668b1a057dc64405be55de22e0843e61d**
+- APK SHA-256: **2887bd5f0faaaca1d078262907a46fa2cf085fe8ae1a98109e65048633e1dfe3**
+- APK size: **~163 MiB**
+- Đã giải nén artifact và xác nhận checksum đúng với `SHA256SUMS.txt`.
+
+### Runtime
+Video thực tế đã được dùng làm bằng chứng để thay đổi kiến trúc. Môi trường build không có thiết bị Android thật để tự cài và chụp ảnh runtime, nên chưa đánh dấu pixel-perfect cho đến khi có ảnh/video sau khi cài 1.10.119.
+
+### Baseline
+- 1.10.119 lấy nền từ **1.10.118**
+- `stable/mobile-1.10.112` không bị thay đổi.
+
+---
+
 # CẬP NHẬT TIẾN ĐỘ — 1.10.118 — 2026-10-08
 
 ## Xử lý dứt điểm lỗi status bar + khoảng trắng theo video 223364.mp4
