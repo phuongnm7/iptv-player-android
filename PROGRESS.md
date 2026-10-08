@@ -1,3 +1,48 @@
+# CẬP NHẬT TIẾN ĐỘ — 1.10.118 — 2026-10-08
+
+## Xử lý dứt điểm lỗi status bar + khoảng trắng theo video 223364.mp4
+
+Đã xem video người dùng gửi frame-by-frame. Video cho thấy rõ hai trạng thái:
+- Khi chrome YouTube xuất hiện lại, logo bị status bar đè lên một phần.
+- Khi chrome mở, một vùng trắng rất lớn xuất hiện giữa dải chip và video đầu tiên.
+- Khi chrome ẩn, feed lại dồn lên phía trên. Điều này xác nhận lỗi không nằm ở thumbnail/card mà ở kiến trúc chrome + feed scrolling.
+
+### Nguyên nhân xác định
+Chuỗi patch Mobile cũ đã chuyển Browse sang mô hình overlay ở v57 và có code tự thêm top padding theo chiều cao header. Sau đó patch giao diện v114 lại ghi đè layout thành LinearLayout/AppBarLayout nhưng vẫn giữ code scroll-chrome cũ. Hai mô hình này mâu thuẫn, tạo ra blank region và trạng thái header không ổn định.
+
+### 1.10.118 đã sửa
+- Browse root chuyển sang CoordinatorLayout.
+- AppBarLayout được đặt làm scrolling app bar thực sự.
+- RecyclerView là scrolling sibling với appbar_scrolling_view_behavior.
+- Header YouTube và dải chip dùng layout_scrollFlags="scroll|enterAlways", để chrome cuộn cùng feed thay vì overlay thủ công.
+- Vô hiệu hóa việc v56/v57 tự ẩn AppBarLayout và tự bơm header.getHeight() vào padding RecyclerView.
+- Không còn top padding thủ công tạo blank region.
+- Status bar được xử lý một lần ở browse_root: lấy inset thật từ WindowInsets và đặt paddingTop của root; không cộng lại vào AppBarLayout.
+- Wordmark YouTube vẫn dùng ảnh crop sát từ ảnh YouTube gốc, được đóng gói trực tiếp trong module smarttube để tránh mất resource khi link source-set.
+- Không thay đổi playback, IPTV, avatar, spinner, live-chat, background playback hay bottom navigation.
+
+### Build/verification
+- Branch: work/mobile-youtube-ui-v118
+- Version: 1.10.118 / versionCode 134
+- Workflow: 37727225247 — SUCCESS
+- Build/assemble: SUCCESS
+- Artifact: NM7-IPTV-Mobile-1.10.118-FINAL
+- Artifact ID: 11528053938
+- Artifact digest: d873badeaf129a069ec2996602f219603105d2d7f613b0ae454d170b79828a66
+- APK SHA-256 thực tế sau giải nén artifact: 307c1626505247c71054b3422b60d5b9e3aed1bccfed02b5a0d88280205b87eb
+- APK size: 170,424,977 bytes
+- Đã xác nhận trong APK có res/layout/browse_activity.xml và res/drawable-nodpi-v4/nm7_youtube_wordmark.png
+- Actions: https://github.com/phuongnm7/iptv-player-android/actions/runs/37727225247
+
+### Runtime
+Đã phân tích video thực tế do người dùng gửi; chưa có quyền điều khiển thiết bị Android từ môi trường build để tự cài/chụp lại màn hình. Vì vậy chưa tuyên bố pixel-perfect runtime. Tuy nhiên lần này kiến trúc UI đã được sửa đúng theo hiện tượng quan sát được thay vì tiếp tục cộng/trừ padding thủ công.
+
+### Baseline
+- 1.10.118 lấy nền từ 1.10.117
+- stable/mobile-1.10.112 không bị thay đổi.
+
+---
+
 # CẬP NHẬT TIẾN ĐỘ — 1.10.117 — 2026-10-08
 
 ## Sửa lỗi chồng lấn status bar trên Android 15 theo ảnh thiết bị
