@@ -1,27 +1,30 @@
 #!/usr/bin/env python3
-"""Fail-closed structural verification for NM7 1.10.129 pull-to-refresh."""
+"""Fail-closed verification for NM7 1.10.130 YouTube Home pull-to-refresh."""
 from pathlib import Path
 
 root = Path("third_party/SmartTube-droid")
 java = (root / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/browse/BrowseActivity.java").read_text(encoding="utf-8")
 layout = (root / "smarttubedroid/src/main/res/layout/browse_activity.xml").read_text(encoding="utf-8")
-gradle = (root / "smarttubedroid/build.gradle").read_text(encoding="utf-8")
+upstream_gradle = (root / "smarttubedroid/build.gradle").read_text(encoding="utf-8")
+module_gradle = Path("smarttube/build.gradle.kts").read_text(encoding="utf-8")
 app_gradle = Path("app/build.gradle.kts").read_text(encoding="utf-8")
 
 checks = [
-    ("uses SwipeRefreshLayout", "SwipeRefreshLayout" in java),
-    ("layout includes pull-refresh container", 'android:id="@+id/browse_pull_refresh"' in layout),
-    ("browse content remains inside refresh target", 'android:id="@+id/browse_content"' in layout and 'android:layout_height="match_parent">' in layout),
-    ("SwipeRefreshLayout dependency is explicit", "androidx.swiperefreshlayout:swiperefreshlayout:1.1.0" in gradle),
-    ("pull gesture is gated to Home", "mPullToRefresh.setEnabled(isHomeSection())" in java and "MediaGroup.TYPE_HOME" in java),
-    ("gesture checks feed scroll position", "current.canScrollVertically(-1)" in java),
+    ("BrowseActivity observes Activity-level gestures", "dispatchTouchEvent(MotionEvent event)" in java and "trackPullDownGesture(event);" in java),
+    ("touch start requires Home, inside content, and feed top", "isHomeSection()" in java and "isCurrentFeedAtTop()" in java and "isTouchInsidePullArea(event)" in java),
+    ("downward threshold and horizontal-swipe guard are present", "density * 96f" in java and "dy > Math.abs(dx) * 1.2f" in java and "Math.abs(dx) > Math.abs(dy) * 1.25f" in java),
+    ("native refresh receives first chance before fallback", "mPullToRefresh.post(() ->" in java and "!mPullToRefresh.isRefreshing()" in java),
     ("reload uses existing presenter", "mBrowsePresenter.refresh(false);" in java),
-    ("spinner ends after loading/error", "mPullToRefresh.setRefreshing(false)" in java and "if (!show && mPullToRefresh" in java),
-    ("versionName incremented", 'versionName = "1.10.129"' in app_gradle),
-    ("versionCode incremented", "versionCode = 145" in app_gradle),
+    ("pull indicator is limited to Home", "mPullToRefresh.setEnabled(isHomeSection())" in java),
+    ("refresh indicator cleans up on load/error and timeout", "finishPullRefresh();" in java and "20_000L" in java and "mPullToRefresh.setRefreshing(false)" in java),
+    ("layout wraps actual Browse content", 'android:id="@+id/browse_pull_refresh"' in layout and 'android:id="@+id/browse_content"' in layout),
+    ("upstream SwipeRefreshLayout dependency is declared", "androidx.swiperefreshlayout:swiperefreshlayout:1.1.0" in upstream_gradle),
+    ("compiled :smarttube module has SwipeRefreshLayout dependency", 'implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")' in module_gradle),
+    ("versionName is 1.10.130", 'versionName = "1.10.130"' in app_gradle),
+    ("versionCode is 146", "versionCode = 146" in app_gradle),
 ]
 for label, ok in checks:
     if not ok:
         raise SystemExit("FAIL: " + label)
     print("PASS: " + label)
-print(f"PASS: {len(checks)} pull-to-refresh structural checks")
+print(f"PASS: {len(checks)} pull-to-refresh checks")
