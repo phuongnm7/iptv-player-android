@@ -6,6 +6,7 @@ ROOT = Path("third_party/SmartTube-droid")
 JAVA = ROOT / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/browse/BrowseActivity.java"
 LAYOUT = ROOT / "smarttubedroid/src/main/res/layout/browse_activity.xml"
 GRADLE = ROOT / "smarttubedroid/build.gradle"
+APP_MODULE_GRADLE = Path("smarttube/build.gradle.kts")
 
 
 def replace_once(text, old, new, label):
@@ -29,6 +30,19 @@ gradle = replace_once(
     "SwipeRefreshLayout dependency"
 )
 GRADLE.write_text(gradle, encoding="utf-8")
+ 
+# The checked-in project compiles these sources through the root :smarttube module.
+if not APP_MODULE_GRADLE.is_file():
+    raise SystemExit(f"v129 pull-refresh: required app module build file missing: {APP_MODULE_GRADLE}")
+module_gradle = APP_MODULE_GRADLE.read_text(encoding="utf-8")
+module_anchor = '    implementation("androidx.recyclerview:recyclerview:1.2.1")'
+module_gradle = replace_once(
+    module_gradle,
+    module_anchor,
+    module_anchor + '\\n    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")',
+    "root :smarttube SwipeRefreshLayout dependency"
+)
+APP_MODULE_GRADLE.write_text(module_gradle, encoding="utf-8")
 
 layout = LAYOUT.read_text(encoding="utf-8")
 frame_open = '''    <FrameLayout
