@@ -1,5 +1,6 @@
 name: NM7 IPTV Mobile 1.10.129 YouTube Pull-to-Refresh — Build
 # YouTube home pull-to-refresh candidate — v129
+# Build is intentionally gated on successful pull-to-refresh structural checks.
 
 "on":
   push:
