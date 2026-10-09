@@ -39,7 +39,7 @@ module_anchor = '    implementation("androidx.recyclerview:recyclerview:1.2.1")'
 module_gradle = replace_once(
     module_gradle,
     module_anchor,
-    module_anchor + '\\n    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")',
+    module_anchor + '\n    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")',
     "root :smarttube SwipeRefreshLayout dependency"
 )
 APP_MODULE_GRADLE.write_text(module_gradle, encoding="utf-8")
