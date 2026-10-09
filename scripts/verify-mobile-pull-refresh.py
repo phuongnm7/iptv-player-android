@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Fail-closed verification for NM7 1.10.130 YouTube Home pull-to-refresh."""
 from pathlib import Path
+import re
 
 root = Path("third_party/SmartTube-droid")
 java = (root / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/browse/BrowseActivity.java").read_text(encoding="utf-8")
@@ -10,7 +11,7 @@ module_gradle = Path("smarttube/build.gradle.kts").read_text(encoding="utf-8")
 app_gradle = Path("app/build.gradle.kts").read_text(encoding="utf-8")
 
 checks = [
-    ("BrowseActivity observes Activity-level gestures", "dispatchTouchEvent(MotionEvent event)" in java and "trackPullDownGesture(event);" in java),
+    ("exactly one Activity dispatcher contains pull observer", len(re.findall(r"(?m)^\s*public\s+boolean\s+dispatchTouchEvent\s*\(", java)) == 1 and bool(re.search(r"(?m)^\s*public\s+boolean\s+dispatchTouchEvent\s*\([^)]*MotionEvent\s+(\w+)\s*\)\s*\{\s*trackPullDownGesture\(\1\);", java))),
     ("touch start requires Home, inside content, and feed top", "isHomeSection()" in java and "isCurrentFeedAtTop()" in java and "isTouchInsidePullArea(event)" in java),
     ("downward threshold and horizontal-swipe guard are present", "density * 96f" in java and "dy > Math.abs(dx) * 1.2f" in java and "Math.abs(dx) > Math.abs(dy) * 1.25f" in java),
     ("native refresh receives first chance before fallback with duplicate guard", "mPullToRefresh.post(() ->" in java and "!mPullToRefresh.isRefreshing()" in java and "!mNativeRefreshHandledThisGesture" in java and "mNativeRefreshHandledThisGesture = true;" in java),
