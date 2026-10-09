@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Add robust YouTube Home pull-to-refresh fallback for NM7 Mobile v1.10.130."""
 from pathlib import Path
+import re
 
 ROOT = Path("third_party/SmartTube-droid")
 JAVA = ROOT / "smarttubedroid/src/main/java/com/liskovsoft/smartyoutubetv2/droid/ui/browse/BrowseActivity.java"
@@ -127,13 +128,7 @@ java = replace_once(java, focus_anchor, focus_replacement, "Home-only enablement
 # The fallback is posted so SwipeRefreshLayout gets the first opportunity to handle the
 # gesture; it invokes reload only when the native listener did not already start.
 touch_anchor = "    // ------------------------------------------------------------------ init\n"
-touch_methods = '''    @Override
-    public boolean dispatchTouchEvent(MotionEvent event) {
-        trackPullDownGesture(event);
-        return super.dispatchTouchEvent(event);
-    }
-
-    private void trackPullDownGesture(MotionEvent event) {
+touch_methods = '''    private void trackPullDownGesture(MotionEvent event) {
         if (mPullToRefresh == null) {
             return;
         }
@@ -166,8 +161,7 @@ touch_methods = '''    @Override
                     float threshold = getResources().getDisplayMetrics().density * 96f;
                     if (dy >= threshold && dy > Math.abs(dx) * 1.2f) {
                         mPullToRefresh.post(() -> {
-                            // If SwipeRefreshLayout handled it, isRefreshing is already true.
-                            // Otherwise this fallback covers nested horizontal Home rows.
+                            // Run only if native SwipeRefreshLayout did not already handle it.
                             if (mPullToRefresh != null && !mNativeRefreshHandledThisGesture
                                     && !mPullToRefresh.isRefreshing()
                                     && isHomeSection() && isCurrentFeedAtTop()) {
@@ -218,7 +212,7 @@ touch_methods = '''    @Override
 
         mPullToRefresh.removeCallbacks(mPullRefreshTimeout);
         mPullToRefresh.postDelayed(mPullRefreshTimeout, 20_000L);
-        // Use BrowsePresenter's existing reload path; do not recreate BrowseActivity.
+        // Reuse the current BrowsePresenter reload path; do not recreate the Activity.
         mBrowsePresenter.refresh(false);
     }
 
@@ -232,7 +226,38 @@ touch_methods = '''    @Override
     }
 
 '''
+# Important: an earlier Mobile UI patch already installs an Activity-level dispatcher.
+# Modify its existing override instead of adding a second dispatchTouchEvent method.
+dispatch_pattern = re.compile(
+    r'(?m)^(?P<indent>[ \t]*)public\s+boolean\s+dispatchTouchEvent\s*'
+    r'\(\s*(?:(?:@[\w.]+(?:\([^)]*\))?)\s*)*(?:(?:final)\s+)?'
+    r'(?:android\.view\.)?MotionEvent\s+(?P<arg>\w+)\s*\)\s*\{'
+)
+matches = list(dispatch_pattern.finditer(java))
+if len(matches) > 1:
+    raise SystemExit(f"v130 pull-refresh: expected <=1 Activity dispatcher, found {len(matches)}")
+if matches:
+    match = matches[0]
+    arg = match.group("arg")
+    indent = match.group("indent") + "    "
+    method_end_probe = java[match.end():match.end() + 500]
+    call = f"trackPullDownGesture({arg});"
+    if call not in method_end_probe:
+        java = java[:match.end()] + "\n" + indent + call + java[match.end():]
+else:
+    dispatch = '''    @Override
+    public boolean dispatchTouchEvent(MotionEvent event) {
+        trackPullDownGesture(event);
+        return super.dispatchTouchEvent(event);
+    }
+
+'''
+    java = replace_once(java, touch_anchor, dispatch + touch_anchor, "Activity-level gesture dispatcher")
 java = replace_once(java, touch_anchor, touch_methods + touch_anchor, "Activity-level gesture tracker")
+java = java.replace(
+    "import android.os.Bundle;",
+    "import android.os.Bundle;\nimport java.util.regex.Pattern;",
+) if False else java
 
 # Refresh indicator must stop on both normal loading completion and the existing error path.
 progress_anchor = "        runOnUiThread(() -> mProgressBar.setVisibility(show ? View.VISIBLE : View.GONE));"
