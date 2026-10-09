@@ -1,17 +1,26 @@
-# TIẾN ĐỘ — NM7 IPTV MOBILE 1.10.129 — YOUTUBE PULL-TO-REFRESH
+# TIẾN ĐỘ — NM7 IPTV MOBILE 1.10.130 — YOUTUBE HOME PULL-TO-REFRESH REDO
 
-## Phạm vi thay đổi
+## Vì sao phải làm lại
+- Người dùng đã kiểm thử 1.10.129 và xác nhận vuốt ở Trang chủ không làm reload; thực tế không khác 1.10.128. Vì vậy trạng thái build SUCCESS trước đó chỉ xác nhận biên dịch, không chứng minh gesture hoạt động.
+- 1.10.129 chỉ gắn `SwipeRefreshLayout` bao quanh một `FrameLayout` nhiều kiểu danh sách. Dù có callback cuộn lên, nó không đủ để bắt lỗi cử chỉ trong Home feed có RecyclerView lồng theo chiều ngang.
+- Chưa kết luận thiết bị runtime dùng đúng nhánh/gesture nào là nguyên nhân duy nhất; lần sửa này thêm fallback bắt cử chỉ ở cấp Activity thay vì giả định parent SwipeRefreshLayout luôn nhận được kéo vuốt.
 
-- Baseline bắt buộc: **1.10.128**, commit `ce19a4cb9ed65b3953107ffff8b2eaf9605ff74a`; nhánh stable không bị di chuyển.
-- Candidate: **1.10.129**, `versionCode 145`.
-- Ở Trang chủ YouTube, kéo xuống khi feed đang ở đầu để gọi lại tải feed giống YouTube gốc.
-- Dùng AndroidX `SwipeRefreshLayout`; gọi `BrowsePresenter.refresh(false)`, không khởi tạo lại Activity, không reset tab/player.
-- Chỉ bật tại `MediaGroup.TYPE_HOME`; chặn gesture nếu RecyclerView hiện hành còn cuộn lên được.
-- Spinner kết thúc theo callback dừng tải hoặc khi hiện lỗi. Không chỉnh logic IPTV hoặc playback.
-- Workflow: `.github/workflows/nm7-mobile-129-youtube-pull-refresh.yml`.
-- Nhánh phát triển: `work/mobile-youtube-pull-refresh-v129`.
-- Cần kiểm tra patch cấu trúc và build qua GitHub Actions trước khi gửi APK.
-- **Không chuyển baseline STABLE** cho tới khi người dùng tự kiểm thử và xác nhận ổn định.
+## Thiết kế 1.10.130
+- Candidate: **1.10.130**, `versionCode 146`.
+- Nhánh: `work/mobile-youtube-pull-refresh-v130`.
+- Baseline ổn định: `stable/mobile-1.10.128`, commit `ce19a4cb9ed65b3953107ffff8b2eaf9605ff74a`; không di chuyển stable.
+- Giữ SwipeRefreshLayout cho spinner và đường native; thêm fallback quan sát touch ở `BrowseActivity.dispatchTouchEvent`, rồi mới thực hiện fallback sau khi AndroidX có cơ hội xử lý cử chỉ.
+- Gesture chỉ hợp lệ khi bắt đầu trong content Trang chủ, section có ID Home và danh sách đang ở đầu; ngưỡng 96dp theo trục dọc, loại trừ thao tác vuốt ngang.
+- Native callback và fallback dùng cùng `onPullToRefresh()`; fallback kiểm tra trạng thái `isRefreshing()` để tránh gọi reload hai lần.
+- Reload bằng `BrowsePresenter.refresh(false)`, không recreate Activity, không đổi section/player.
+- Dừng spinner khi callback tải kết thúc, khi báo lỗi hoặc sau timeout 20 giây.
+- Verifier phải kiểm tra các điều kiện gesture và dependency của đúng module `:smarttube`; workflow build APK 1.10.130 riêng.
+- **Chưa được đánh dấu runtime PASS chỉ vì CI xanh.** Không chuyển STABLE trước khi người dùng xác nhận thao tác thật trên thiết bị.
+
+## Trạng thái kiểm thử
+- 1.10.129: **FAIL theo kiểm thử thực tế của người dùng**; không được xem là bản có pull-to-refresh hoạt động.
+- 1.10.130: đang chuẩn bị candidate mới; chờ verifier + build + binary inspection, sau đó cần thử nghiệm thực tế.
+
 
 ---
 
