@@ -13,7 +13,7 @@ checks = [
     ("BrowseActivity observes Activity-level gestures", "dispatchTouchEvent(MotionEvent event)" in java and "trackPullDownGesture(event);" in java),
     ("touch start requires Home, inside content, and feed top", "isHomeSection()" in java and "isCurrentFeedAtTop()" in java and "isTouchInsidePullArea(event)" in java),
     ("downward threshold and horizontal-swipe guard are present", "density * 96f" in java and "dy > Math.abs(dx) * 1.2f" in java and "Math.abs(dx) > Math.abs(dy) * 1.25f" in java),
-    ("native refresh receives first chance before fallback", "mPullToRefresh.post(() ->" in java and "!mPullToRefresh.isRefreshing()" in java),
+    ("native refresh receives first chance before fallback with duplicate guard", "mPullToRefresh.post(() ->" in java and "!mPullToRefresh.isRefreshing()" in java and "!mNativeRefreshHandledThisGesture" in java and "mNativeRefreshHandledThisGesture = true;" in java),
     ("reload uses existing presenter", "mBrowsePresenter.refresh(false);" in java),
     ("pull indicator is limited to Home", "mPullToRefresh.setEnabled(isHomeSection())" in java),
     ("refresh indicator cleans up on load/error and timeout", "finishPullRefresh();" in java and "20_000L" in java and "mPullToRefresh.setRefreshing(false)" in java),
