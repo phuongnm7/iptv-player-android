@@ -1,3 +1,20 @@
+# TIẾN ĐỘ — NM7 IPTV MOBILE 1.10.129 — YOUTUBE PULL-TO-REFRESH
+
+## Phạm vi thay đổi
+
+- Baseline bắt buộc: **1.10.128**, commit `ce19a4cb9ed65b3953107ffff8b2eaf9605ff74a`; nhánh stable không bị di chuyển.
+- Candidate: **1.10.129**, `versionCode 145`.
+- Ở Trang chủ YouTube, kéo xuống khi feed đang ở đầu để gọi lại tải feed giống YouTube gốc.
+- Dùng AndroidX `SwipeRefreshLayout`; gọi `BrowsePresenter.refresh(false)`, không khởi tạo lại Activity, không reset tab/player.
+- Chỉ bật tại `MediaGroup.TYPE_HOME`; chặn gesture nếu RecyclerView hiện hành còn cuộn lên được.
+- Spinner kết thúc theo callback dừng tải hoặc khi hiện lỗi. Không chỉnh logic IPTV hoặc playback.
+- Workflow: `.github/workflows/nm7-mobile-129-youtube-pull-refresh.yml`.
+- Nhánh phát triển: `work/mobile-youtube-pull-refresh-v129`.
+- Cần kiểm tra patch cấu trúc và build qua GitHub Actions trước khi gửi APK.
+- **Không chuyển baseline STABLE** cho tới khi người dùng tự kiểm thử và xác nhận ổn định.
+
+---
+
 # CẬP NHẬT TIẾN ĐỘ — 1.10.128 — 2026-10-08
 
 ## Kết quả mới nhất
