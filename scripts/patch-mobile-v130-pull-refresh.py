@@ -254,11 +254,6 @@ else:
 '''
     java = replace_once(java, touch_anchor, dispatch + touch_anchor, "Activity-level gesture dispatcher")
 java = replace_once(java, touch_anchor, touch_methods + touch_anchor, "Activity-level gesture tracker")
-java = java.replace(
-    "import android.os.Bundle;",
-    "import android.os.Bundle;\nimport java.util.regex.Pattern;",
-) if False else java
-
 # Refresh indicator must stop on both normal loading completion and the existing error path.
 progress_anchor = "        runOnUiThread(() -> mProgressBar.setVisibility(show ? View.VISIBLE : View.GONE));"
 progress_replacement = '''        runOnUiThread(() -> {
