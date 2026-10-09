@@ -1,38 +1,42 @@
-# NM7 IPTV Mobile — CURRENT HANDOFF — 1.10.128 — 2026-10-08
+# NM7 IPTV Mobile — STABLE BASELINE 1.10.128 — 2026-10-08
 
-> **1.10.128 đã BUILD SUCCESS và được người dùng test thực tế: tạm ổn.** Bản này giữ nguyên bố cục/kích thước/vị trí đã chốt; thay asset YouTube bằng logo do người dùng cung cấp. Logo hiện **hơi nhỏ**, ghi nhận để chỉnh ở vòng sau. Chưa thay đổi geometry trong vòng này.
+> **1.10.128 là mốc ổn định chính thức hiện tại.** Mọi bản Mobile tiếp theo phải lấy đúng commit nền dưới đây; không tự ý quay lại baseline cũ.
 
-## Mốc hiện tại
-- Version: **1.10.128**
-- Branch: `work/mobile-youtube-ui-v128`
-- Commit: `6535b8189fda2b0e957e76755884762c8162ff7e`
-- Người dùng xác nhận: **tạm ổn**
-- Ghi nhận cho bản sau: **logo YouTube hơi nhỏ**; không sửa thêm ở bản 1.10.128 để tránh regression.
+## Mốc ổn định chính thức
 
-## Thay đổi 1.10.128
-- Thay asset wordmark bằng **logo YouTube do người dùng cung cấp**.
-- Giữ nguyên bố cục, vị trí, kích thước và hành vi UI đã có.
-- Không tự vẽ lại logo/wordmark.
-- Không thay đổi logic IPTV/YouTube hoặc Android TV.
+- **Version:** 1.10.128
+- **versionCode:** 144
+- **Stable branch:** `stable/mobile-1.10.128`
+- **Development branch:** `work/mobile-youtube-pull-refresh-v129`
+- **Baseline commit:** `ce19a4cb9ed65b3953107ffff8b2eaf9605ff74a`
+- **GitHub Actions run:** `37776866236` — **SUCCESS**
+- **Artifact:** `NM7-IPTV-Mobile-1.10.128-FINAL`
+- **Artifact ID:** `11550202229`
+- **Baseline status:** giữ nguyên; bản candidate mới không tự động được chốt STABLE.
 
-## CI / APK
-- Workflow: **NM7 IPTV Mobile 1.10.128 Exact YouTube Wordmark — Build**
-- Workflow file: `.github/workflows/nm7-mobile-128-youtube-wordmark-exact.yml`
-- Run ID: **37761713778 — SUCCESS**
-- [GitHub Actions](https://github.com/phuongnm7/iptv-player-android/actions/runs/37761713778)
-- Artifact: **NM7-IPTV-Mobile-1.10.128-FINAL**
-- Artifact ID: **11542827736**
-- [Artifact](https://github.com/phuongnm7/iptv-player-android/actions/runs/37761713778/artifacts/11542827736)
-- Artifact digest: **sha256:653bae046a31dffce40fd78a0b5442333982ee65d2a7b9b73f35d1c5465ebcee**
-- Artifact size: **69,592,846 bytes**
+## Phạm vi đã chốt ở 1.10.128
 
-## Trạng thái runtime
-- **PASS/tạm ổn:** logo YouTube đã đúng nguồn hình người dùng cung cấp.
-- **Còn tồn tại:** logo hơi nhỏ.
-- **Kế hoạch:** không sửa tiếp trong 1.10.128; bản kế tiếp sẽ điều chỉnh riêng kích thước logo, giữ nguyên geometry và behavior đã ổn định.
+- Logo YouTube được tăng nhẹ theo ảnh người dùng gửi, hộp logo 84dp × 32dp.
+- Giữ nguyên layout, phát IPTV/YouTube, điều hướng, trạng thái player và Android TV.
+- Chỉ đổi mốc STABLE sau khi người dùng kiểm thử bản mới và xác nhận ổn định.
+
+## Ứng viên tiếp theo — 1.10.129 YouTube pull-to-refresh
+
+- **Version candidate:** 1.10.129
+- **versionCode:** 145
+- **Development branch:** `work/mobile-youtube-pull-refresh-v129`
+- **Nguồn phát triển:** commit `ce19a4cb9ed65b3953107ffff8b2eaf9605ff74a` (1.10.128).
+- **Tính năng:** kéo xuống từ đầu nguồn cấp tại Trang chủ YouTube để tải lại feed như YouTube gốc.
+- **Giới hạn:** chỉ kích hoạt tại section Home, khi RecyclerView không còn cuộn lên; các tab khác, player và IPTV giữ nguyên.
+- **Cách thực hiện:** AndroidX `SwipeRefreshLayout` gọi `BrowsePresenter.refresh(false)`; dừng spinner khi tải xong hoặc báo lỗi.
+- **CI status:** chờ GitHub Actions. Candidate không thay đổi mốc STABLE.
+
+## APK ổn định hiện tại
+
+- [GitHub Actions 1.10.128](https://github.com/phuongnm7/iptv-player-android/actions/runs/37776866236)
+- [Artifact 1.10.128](https://github.com/phuongnm7/iptv-player-android/actions/runs/37776866236/artifacts/11550202229)
 
 ---
-
 
 # LỊCH SỬ CŨ
 # NM7 IPTV Mobile — STABLE BASELINE 1.10.112 — 2026-09-30
