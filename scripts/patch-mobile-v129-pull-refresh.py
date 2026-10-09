@@ -50,8 +50,8 @@ swipe_open = '''    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 layout = replace_once(layout, frame_open, swipe_open, "browse_content wrapper")
 layout = replace_once(
     layout,
+    "    </FrameLayout>\n</LinearLayout>",
     "        </FrameLayout>\n    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>\n</LinearLayout>",
-    "        </FrameLayout>\n    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>\n\n</LinearLayout>",
     "browse_content closing wrapper"
 )
 LAYOUT.write_text(layout, encoding="utf-8")
