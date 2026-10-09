@@ -7,7 +7,7 @@
 - **Version:** 1.10.128
 - **versionCode:** 144
 - **Stable branch:** `stable/mobile-1.10.128`
-- **Development branch:** `work/mobile-youtube-pull-refresh-v129`
+- **Development branch:** `work/mobile-youtube-pull-refresh-v130`
 - **Baseline commit:** `ce19a4cb9ed65b3953107ffff8b2eaf9605ff74a`
 - **GitHub Actions run:** `37776866236` — **SUCCESS**
 - **Artifact:** `NM7-IPTV-Mobile-1.10.128-FINAL`
@@ -20,16 +20,18 @@
 - Giữ nguyên layout, phát IPTV/YouTube, điều hướng, trạng thái player và Android TV.
 - Chỉ đổi mốc STABLE sau khi người dùng kiểm thử bản mới và xác nhận ổn định.
 
-## Ứng viên tiếp theo — 1.10.129 YouTube pull-to-refresh
+## Ứng viên tiếp theo — 1.10.130 YouTube pull-to-refresh
 
-- **Version candidate:** 1.10.129
-- **versionCode:** 145
-- **Development branch:** `work/mobile-youtube-pull-refresh-v129`
-- **Nguồn phát triển:** commit `ce19a4cb9ed65b3953107ffff8b2eaf9605ff74a` (1.10.128).
-- **Tính năng:** kéo xuống từ đầu nguồn cấp tại Trang chủ YouTube để tải lại feed như YouTube gốc.
-- **Giới hạn:** chỉ kích hoạt tại section Home, khi RecyclerView không còn cuộn lên; các tab khác, player và IPTV giữ nguyên.
-- **Cách thực hiện:** AndroidX `SwipeRefreshLayout` gọi `BrowsePresenter.refresh(false)`; dừng spinner khi tải xong hoặc báo lỗi.
-- **CI status:** chờ GitHub Actions. Candidate không thay đổi mốc STABLE.
+- **Version candidate:** 1.10.130
+- **versionCode:** 146
+- **Development branch:** `work/mobile-youtube-pull-refresh-v130`
+- **Nguồn phát triển:** tiếp tục từ nhánh candidate, giữ nguyên mốc STABLE `stable/mobile-1.10.128`.
+- **Lý do làm lại:** người dùng xác nhận 1.10.129 không có thay đổi runtime so với 1.10.128; build thành công trước đó nhưng chưa đạt tiêu chí tính năng.
+- **Cách xử lý:** giữ `SwipeRefreshLayout` làm indicator/handler chuẩn, bổ sung bộ theo dõi gesture tại `BrowseActivity.dispatchTouchEvent` để xử lý trường hợp feed Home có hàng RecyclerView lồng ngang.
+- **Điều kiện kích hoạt:** chỉ khi touch bắt đầu trong content Trang chủ, section đang là `MediaGroup.TYPE_HOME`, feed ở đầu; yêu cầu kéo dọc xuống tối thiểu 96dp và loại trừ vuốt ngang.
+- **Tải lại:** dùng `BrowsePresenter.refresh(false)`, không dựng lại Activity, không chủ động đổi tab hoặc player; timeout 20 giây để tránh spinner bị kẹt.
+- **Kiểm chứng CI:** phải qua verifier riêng cho đường đi gesture, build và kiểm tra mã trong APK. Build success chưa được xem là runtime pass.
+- **Baseline:** 1.10.128 vẫn giữ nguyên, không chuyển stable cho tới khi người dùng xác nhận bản mới chạy thật trên máy.
 
 ## APK ổn định hiện tại
 
