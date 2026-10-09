@@ -90,6 +90,7 @@ java = replace_once(
     private float mPullStartRawY;
     private boolean mPullStartEligible;
     private boolean mPullGestureCancelled;
+    private boolean mNativeRefreshHandledThisGesture;
     private final Runnable mPullRefreshTimeout = this::finishPullRefresh;""",
     "pull-refresh state fields",
 )
@@ -146,6 +147,7 @@ touch_methods = '''    @Override
                         && isTouchInsidePullArea(event)
                         && isCurrentFeedAtTop();
                 mPullGestureCancelled = false;
+                mNativeRefreshHandledThisGesture = false;
                 break;
             case MotionEvent.ACTION_MOVE:
                 if (mPullStartEligible) {
@@ -166,7 +168,8 @@ touch_methods = '''    @Override
                         mPullToRefresh.post(() -> {
                             // If SwipeRefreshLayout handled it, isRefreshing is already true.
                             // Otherwise this fallback covers nested horizontal Home rows.
-                            if (mPullToRefresh != null && !mPullToRefresh.isRefreshing()
+                            if (mPullToRefresh != null && !mNativeRefreshHandledThisGesture
+                                    && !mPullToRefresh.isRefreshing()
                                     && isHomeSection() && isCurrentFeedAtTop()) {
                                 mPullToRefresh.setRefreshing(true);
                                 onPullToRefresh();
@@ -207,6 +210,7 @@ touch_methods = '''    @Override
     }
 
     private void onPullToRefresh() {
+        mNativeRefreshHandledThisGesture = true;
         if (!isHomeSection()) {
             finishPullRefresh();
             return;
