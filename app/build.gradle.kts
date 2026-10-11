@@ -64,10 +64,6 @@ dependencies {
     implementation("androidx.media3:media3-datasource-okhttp:$media3Version")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
-    // Experimental ReVanced patching runtime. This branch intentionally raises Mobile minSdk
-    // to 26 because ReVanced Patcher itself requires Android 8.0+.
-    implementation("app.revanced:patcher-android:22.1.0-dev.1")
-
     // Compile the VLC fallback activity for both variants, but package LibVLC only
     // in the TV APK. The Mobile APK therefore stays lightweight.
     compileOnly("org.videolan.android:libvlc-all:3.6.1")

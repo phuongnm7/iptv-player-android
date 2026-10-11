@@ -3,7 +3,6 @@ package vn.phuong.iptvplayer;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
@@ -16,12 +15,17 @@ import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.webkit.CookieManager;
+import android.webkit.WebChromeClient;
+import android.webkit.WebResourceError;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -36,10 +40,7 @@ import java.util.concurrent.ExecutorService;
 public final class MainActivity extends Activity {
     private static final int OPEN_M3U = 101;
     private static final int PICK_WALLPAPER = 103;
-    private static final int OPEN_REVANCED_APK = 104;
-    private static final String EMBEDDED_YOUTUBE_ASSET = "revanced/youtube-20.40.45-revanced.apk";
-    private static final String EMBEDDED_GMSCORE_ASSET = "revanced/gmscore-0.3.13.2.250932.apk";
-    private static final String EMBEDDED_GMSCORE_FILE = "gmscore-0.3.13.2.250932.apk";
+    private static final String YOUTUBE_HOME_URL = "https://m.youtube.com/";
     private static final int MAX_PLAYLIST_BYTES = 8 * 1024 * 1024;
     private static final String DEFAULT_PLAYLIST = PlaylistSourceStore.DEFAULT_URL;
 
@@ -48,11 +49,12 @@ public final class MainActivity extends Activity {
     private final List<Channel> allChannels = new ArrayList<>();
     private ChannelAdapter adapter;
     private EditText inputUrl, inputSearch;
-    private LinearLayout groupRow, iptvPanel;
-    private android.widget.ScrollView youtubePanel;
-    private Button btnTabIptv, btnTabYoutube, btnInstallGmsCore, btnInstallYoutube, btnOpenYoutube;
+    private LinearLayout groupRow, iptvPanel, youtubePanel;
+    private Button btnTabIptv, btnTabYoutube, btnYoutubeBack, btnYoutubeForward, btnYoutubeReload, btnYoutubeHome;
     private TextView txtYoutubeStatus;
-    private boolean youtubeTabActive;
+    private ProgressBar youtubeProgress;
+    private WebView youtubeWebView;
+    private boolean youtubeTabActive, youtubePageLoaded;
     private TextView txtEmpty;
     private ProgressBar progress;
     private int duplicateCount, missingUrlCount, activeSection;
@@ -63,25 +65,42 @@ public final class MainActivity extends Activity {
     private final Runnable epgTick=new Runnable(){@Override public void run(){if(adapter!=null)adapter.notifyDataSetChanged();epgHandler.postDelayed(this,60_000);}};
 
     @Override protected void onCreate(Bundle savedInstanceState) { super.onCreate(savedInstanceState); setupViews(); restoreSession(); epgHandler.post(epgTick); }
-    @Override protected void onDestroy(){epgHandler.removeCallbacksAndMessages(null);super.onDestroy();}
-    @Override protected void onResume(){super.onResume();refreshYouTubePanel();}
+    @Override protected void onDestroy(){
+        epgHandler.removeCallbacksAndMessages(null);
+        if(youtubeWebView!=null){
+            youtubeWebView.stopLoading();
+            youtubeWebView.setWebChromeClient(null);
+            youtubeWebView.setWebViewClient(null);
+            youtubeWebView.destroy();
+        }
+        super.onDestroy();
+    }
+    @Override protected void onPause(){
+        if(youtubeWebView!=null)youtubeWebView.onPause();
+        super.onPause();
+    }
+    @Override protected void onResume(){
+        super.onResume();
+        if(youtubeWebView!=null&&youtubeTabActive){
+            youtubeWebView.onResume();
+            youtubeWebView.resumeTimers();
+        }
+    }
     private void setupViews() {
         setContentView(R.layout.activity_main); Insets.apply(findViewById(R.id.mainRoot)); applyWallpaper();
         iptvPanel=findViewById(R.id.iptvPanel); youtubePanel=findViewById(R.id.youtubePanel);
         btnTabIptv=findViewById(R.id.btnTabIptv); btnTabYoutube=findViewById(R.id.btnTabYoutube);
         txtYoutubeStatus=findViewById(R.id.txtYoutubeStatus);
-        btnInstallGmsCore=findViewById(R.id.btnInstallGmsCore); btnInstallYoutube=findViewById(R.id.btnInstallYoutube);
-        btnOpenYoutube=findViewById(R.id.btnOpenYoutube);
+        youtubeProgress=findViewById(R.id.youtubeProgress); youtubeWebView=findViewById(R.id.youtubeWebView);
+        btnYoutubeBack=findViewById(R.id.btnYoutubeBack); btnYoutubeForward=findViewById(R.id.btnYoutubeForward);
+        btnYoutubeReload=findViewById(R.id.btnYoutubeReload); btnYoutubeHome=findViewById(R.id.btnYoutubeHome);
         btnTabIptv.setOnClickListener(v->showIptvTab());
         btnTabYoutube.setOnClickListener(v->showYouTubeTab());
-        btnInstallGmsCore.setOnClickListener(v->installEmbeddedGmsCore());
-        btnInstallYoutube.setOnClickListener(v->{
-            if(!RevancedBridge.isGmsCoreInstalled(this)){
-                refreshYouTubePanel();
-                Toast.makeText(this,"Trước tiên hãy cài GmsCore rồi quay lại tab YouTube.",Toast.LENGTH_LONG).show();
-            }else installEmbeddedYouTube();
-        });
-        btnOpenYoutube.setOnClickListener(v->openYouTubeReVanced());
+        btnYoutubeBack.setOnClickListener(v->{if(youtubeWebView.canGoBack())youtubeWebView.goBack();});
+        btnYoutubeForward.setOnClickListener(v->{if(youtubeWebView.canGoForward())youtubeWebView.goForward();});
+        btnYoutubeReload.setOnClickListener(v->{if(youtubeWebView.getUrl()==null)loadYouTubeHome();else youtubeWebView.reload();});
+        btnYoutubeHome.setOnClickListener(v->loadYouTubeHome());
+        setupYouTubeWebView();
         inputUrl=findViewById(R.id.inputUrl); inputSearch=findViewById(R.id.inputSearch); groupRow=findViewById(R.id.groupRow);
         txtEmpty=findViewById(R.id.txtEmpty); progress=findViewById(R.id.progress);
         ListView list=findViewById(R.id.listChannels);
@@ -188,16 +207,6 @@ public final class MainActivity extends Activity {
     private void openFilePicker(){Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("*/*");startActivityForResult(i,OPEN_M3U);}
     @Override protected void onActivityResult(int request,int result,Intent data){
         super.onActivityResult(request,result,data);
-        if(request==OPEN_REVANCED_APK && result==RESULT_OK && data!=null && data.getData()!=null){
-            Uri apk=data.getData();
-            io.execute(()->{String info;
-                try{info=RevancedBridge.inspectYouTubeApk(this,apk);}
-                catch(Exception e){info="Không đọc được APK: "+readable(e);}
-                final String resultMessage=info;
-                ui(()->new AlertDialog.Builder(this).setTitle("Kiểm tra APK YouTube").setMessage(resultMessage).setPositiveButton("Đóng",null).show());
-            });
-            return;
-        }
         if(result!=RESULT_OK||data==null||data.getData()==null)return;
         Uri uri=data.getData();
         if(request==OPEN_M3U)readLocalFile(uri);
@@ -308,7 +317,6 @@ public final class MainActivity extends Activity {
         List<String> items=new ArrayList<>(java.util.Arrays.asList("Quản lý nguồn IPTV","Thêm hoặc mở URL/tệp","Tải lại playlist hiện tại","Lịch phát sóng (EPG)","Giao diện: "+modeLabel,"Đổi hình nền",urls,rows,fps,clock,playerSource));
         final int backgroundIndex;if(tv)backgroundIndex=-1;else{backgroundIndex=items.size();items.add(background);}
         final int recentIndex=items.size();items.add("Xóa lịch sử Gần đây");
-        final int youtubeIndex=items.size();items.add("YouTube / ReVanced");
         final int aboutIndex=items.size();items.add("Thông tin ứng dụng");
         new AlertDialog.Builder(this).setTitle("Tùy chọn ứng dụng")
                 .setItems(items.toArray(new String[0]),(dialog,which)->{
@@ -325,14 +333,16 @@ public final class MainActivity extends Activity {
                     if(which==10)AppPreferences.setShowPlayerSource(this,!AppPreferences.showPlayerSource(this));
                     if(which==backgroundIndex){boolean enabled=!AppPreferences.backgroundPlayback(this);AppPreferences.setBackgroundPlayback(this,enabled);if(!enabled)stopService(new Intent(this,BackgroundPlaybackService.class));if(enabled&&android.os.Build.VERSION.SDK_INT>=33)requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS},104);toast(enabled?"Đã bật phát nền":"Đã tắt phát nền");}
                     if(which==recentIndex){AppPreferences.clearRecent(this);if(activeSection==2)filter();toast("Đã xóa lịch sử");}
-                    if(which==youtubeIndex)showYouTubeReVancedTools();
                     if(which==aboutIndex)showAbout();
                 }).setNegativeButton("Đóng",null).show();
     }
-    private void showYouTubeReVancedTools(){showYouTubeTab();}
-
     private void showIptvTab(){
         youtubeTabActive=false;
+        if(youtubeWebView!=null){
+            youtubeWebView.evaluateJavascript("document.querySelectorAll('video,audio').forEach(function(m){m.pause();});",null);
+            youtubeWebView.onPause();
+            youtubeWebView.pauseTimers();
+        }
         iptvPanel.setVisibility(View.VISIBLE);
         youtubePanel.setVisibility(View.GONE);
         updateTopTabButtons();
@@ -343,7 +353,12 @@ public final class MainActivity extends Activity {
         iptvPanel.setVisibility(View.GONE);
         youtubePanel.setVisibility(View.VISIBLE);
         updateTopTabButtons();
-        refreshYouTubePanel();
+        youtubeWebView.onResume();
+        youtubeWebView.resumeTimers();
+        if(!youtubePageLoaded){
+            youtubePageLoaded=true;
+            loadYouTubeHome();
+        }
     }
 
     private void updateTopTabButtons(){
@@ -356,90 +371,94 @@ public final class MainActivity extends Activity {
         btnTabYoutube.setSelected(youtubeTabActive);
     }
 
-    private void refreshYouTubePanel(){
-        if(txtYoutubeStatus==null)return;
-        boolean gmsInstalled=RevancedBridge.isGmsCoreInstalled(this);
-        boolean youtubeInstalled=getPackageManager().getLaunchIntentForPackage("com.google.android.youtube")!=null;
-        if(!gmsInstalled){
-            txtYoutubeStatus.setText("YouTube / ReVanced chưa sẵn sàng.\n\nBước 1: Cài GmsCore bằng nút bên dưới và xác nhận trình cài đặt Android. Sau khi cài xong, quay lại NM7 để tiếp tục.");
-        }else if(!youtubeInstalled){
-            txtYoutubeStatus.setText("GmsCore đã được cài.\n\nBước 2: Cài YouTube ReVanced. Sau khi Android cài xong, quay lại tab YouTube và nhấn Mở YouTube.");
-        }else{
-            txtYoutubeStatus.setText("YouTube đã được cài.\n\nNhấn Mở YouTube để mở ứng dụng riêng của Android. YouTube không bị nhét vào danh sách kênh IPTV.");
-        }
-        btnInstallGmsCore.setVisibility(gmsInstalled?View.GONE:View.VISIBLE);
-        btnInstallYoutube.setVisibility(youtubeInstalled?View.GONE:View.VISIBLE);
-        btnInstallYoutube.setEnabled(gmsInstalled&&!youtubeInstalled);
-        btnInstallYoutube.setText(gmsInstalled?"Cài YouTube ReVanced":"Bước 2: Cài YouTube ReVanced (cần GmsCore trước)");
-        btnOpenYoutube.setVisibility(youtubeInstalled?View.VISIBLE:View.GONE);
-    }
+    private void setupYouTubeWebView(){
+        WebSettings settings=youtubeWebView.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setDatabaseEnabled(true);
+        settings.setJavaScriptCanOpenWindowsAutomatically(false);
+        settings.setSupportMultipleWindows(false);
+        settings.setMediaPlaybackRequiresUserGesture(true);
+        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+        settings.setLoadsImagesAutomatically(true);
+        String userAgent=settings.getUserAgentString();
+        if(userAgent!=null)settings.setUserAgentString(userAgent.replace("; wv","").replace("Version/4.0 ",""));
+        CookieManager cookies=CookieManager.getInstance();
+        cookies.setAcceptCookie(true);
+        CookieManager.setAcceptThirdPartyCookies(youtubeWebView,true);
 
-    private boolean ensurePackageInstallPermission(){
-        if(android.os.Build.VERSION.SDK_INT<26 || getPackageManager().canRequestPackageInstalls()) return true;
-        try{
-            Intent settings=new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                    Uri.parse("package:"+getPackageName()));
-            startActivity(settings);
-            Toast.makeText(this,"Hãy cho phép NM7 cài ứng dụng từ nguồn này, quay lại NM7 rồi nhấn cài lại.",Toast.LENGTH_LONG).show();
-        }catch(Exception e){
-            new AlertDialog.Builder(this).setTitle("Cần quyền cài ứng dụng")
-                    .setMessage("Mở Cài đặt Android và cho phép NM7 cài ứng dụng từ nguồn này.\\n\\n"+readable(e))
-                    .setPositiveButton("Đóng",null).show();
-        }
-        return false;
-    }
-
-    private void installEmbeddedGmsCore(){
-        if(!ensurePackageInstallPermission()) return;
-        io.execute(()->{
-            try{
-                File dir=new File(getCacheDir(),"revanced");
-                if(!dir.exists()&&!dir.mkdirs())throw new Exception("Không tạo được thư mục tạm");
-                File apk=new File(dir,EMBEDDED_GMSCORE_FILE);
-                try(InputStream in=getAssets().open(EMBEDDED_GMSCORE_ASSET);FileOutputStream out=new FileOutputStream(apk)){
-                    byte[] buffer=new byte[64*1024];int n;while((n=in.read(buffer))!=-1)out.write(buffer,0,n);
+        youtubeWebView.setWebChromeClient(new WebChromeClient(){
+            @Override public void onProgressChanged(WebView view,int value){
+                youtubeProgress.setProgress(value);
+                youtubeProgress.setVisibility(value>=100?View.GONE:View.VISIBLE);
+                updateYouTubeNavigationButtons();
+            }
+            @Override public void onReceivedTitle(WebView view,String title){
+                if(title!=null&&!title.trim().isEmpty())txtYoutubeStatus.setText("YouTube • "+title);
+            }
+        });
+        youtubeWebView.setWebViewClient(new WebViewClient(){
+            @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){
+                return shouldKeepYouTubeNavigationInsideApp(request.getUrl().toString());
+            }
+            @Override public boolean shouldOverrideUrlLoading(WebView view,String url){
+                return shouldKeepYouTubeNavigationInsideApp(url);
+            }
+            @Override public void onPageStarted(WebView view,String url,android.graphics.Bitmap favicon){
+                txtYoutubeStatus.setText("Đang tải YouTube bên trong NM7…");
+                youtubeProgress.setVisibility(View.VISIBLE);
+                youtubeProgress.setProgress(0);
+                updateYouTubeNavigationButtons();
+            }
+            @Override public void onPageFinished(WebView view,String url){
+                String title=view.getTitle();
+                txtYoutubeStatus.setText(title==null||title.trim().isEmpty()?"YouTube đang chạy bên trong NM7.":"YouTube • "+title);
+                youtubeProgress.setProgress(100);
+                youtubeProgress.setVisibility(View.GONE);
+                updateYouTubeNavigationButtons();
+            }
+            @Override public void onReceivedError(WebView view,WebResourceRequest request,WebResourceError error){
+                if(request.isForMainFrame()){
+                    txtYoutubeStatus.setText("Không tải được YouTube. Kiểm tra kết nối rồi bấm Tải lại.");
+                    youtubeProgress.setVisibility(View.GONE);
                 }
-                Uri uri=androidx.core.content.FileProvider.getUriForFile(this,getPackageName()+".revancedfiles",apk);
-                Intent install=new Intent(Intent.ACTION_INSTALL_PACKAGE);install.setData(uri);
-                install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_ACTIVITY_NEW_TASK);
-                ui(()->{
-                    try{startActivity(install);}
-                    catch(Exception e){
-                        new AlertDialog.Builder(this).setTitle("Không thể cài GmsCore")
-                                .setMessage("Android chưa cho phép NM7 mở trình cài đặt APK. Hãy bật quyền cài ứng dụng từ nguồn này rồi thử lại.\\n\\n"+readable(e))
-                                .setPositiveButton("Đóng",null).show();
-                    }
-                });
-            }catch(Exception e){ui(()->showError("Không đọc được GmsCore tích hợp: "+readable(e)));}
+            }
         });
     }
-    private void installEmbeddedYouTube(){
-        if(!ensurePackageInstallPermission()) return;
-        io.execute(()->{
-            try{
-                File dir=new File(getCacheDir(),"revanced");
-                if(!dir.exists()&&!dir.mkdirs())throw new Exception("Không tạo được thư mục tạm");
-                File apk=new File(dir,"youtube-20.40.45-revanced.apk");
-                try(InputStream in=getAssets().open(EMBEDDED_YOUTUBE_ASSET);FileOutputStream out=new FileOutputStream(apk)){
-                    byte[] buffer=new byte[64*1024];int n;while((n=in.read(buffer))!=-1)out.write(buffer,0,n);
-                }
-                Uri uri=androidx.core.content.FileProvider.getUriForFile(this,getPackageName()+".revancedfiles",apk);
-                Intent install=new Intent(Intent.ACTION_INSTALL_PACKAGE);install.setData(uri);install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_ACTIVITY_NEW_TASK);
-                ui(()->{try{startActivity(install);}catch(Exception e){new AlertDialog.Builder(this).setTitle("Không thể cài YouTube ReVanced").setMessage("Android chưa cho phép NM7 mở trình cài đặt APK. Hãy bật quyền cài ứng dụng từ nguồn này rồi thử lại.\\n\\n"+readable(e)).setPositiveButton("Đóng",null).show();}});
-            }catch(Exception e){ui(()->showError("Không đọc được YouTube ReVanced tích hợp: "+readable(e)));}
-        });
+
+    private boolean shouldKeepYouTubeNavigationInsideApp(String target){
+        Uri uri=Uri.parse(target);
+        String scheme=uri.getScheme();
+        if(scheme==null||"http".equalsIgnoreCase(scheme)||"https".equalsIgnoreCase(scheme)
+                ||"about".equalsIgnoreCase(scheme)||"data".equalsIgnoreCase(scheme)
+                ||"blob".equalsIgnoreCase(scheme)||"javascript".equalsIgnoreCase(scheme))return false;
+        txtYoutubeStatus.setText("Liên kết cần ứng dụng ngoài đã bị chặn để giữ YouTube trong NM7.");
+        return true;
     }
-    private void openYouTubeReVanced(){
-        final String packageName="com.google.android.youtube";
-        Intent launch=getPackageManager().getLaunchIntentForPackage(packageName);
-        if(launch!=null){
-            try{ launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); startActivity(launch); toast("Đã mở YouTube / ReVanced"); return; }
-            catch(Exception ignored){}
+
+    private void loadYouTubeHome(){
+        youtubePageLoaded=true;
+        txtYoutubeStatus.setText("Đang mở YouTube trong NM7…");
+        youtubeWebView.loadUrl(YOUTUBE_HOME_URL);
+    }
+
+    private void updateYouTubeNavigationButtons(){
+        if(youtubeWebView==null)return;
+        btnYoutubeBack.setEnabled(youtubeWebView.canGoBack());
+        btnYoutubeForward.setEnabled(youtubeWebView.canGoForward());
+        btnYoutubeBack.setAlpha(youtubeWebView.canGoBack()?1f:.45f);
+        btnYoutubeForward.setAlpha(youtubeWebView.canGoForward()?1f:.45f);
+    }
+
+    @Override public void onBackPressed(){
+        if(youtubeTabActive){
+            if(youtubeWebView!=null&&youtubeWebView.canGoBack())youtubeWebView.goBack();
+            else showIptvTab();
+            return;
         }
-        new AlertDialog.Builder(this).setTitle("YouTube / ReVanced chưa được cài")
-                .setMessage("Chưa tìm thấy ứng dụng có package com.google.android.youtube trên thiết bị.")
-                .setPositiveButton("Đóng",null).show();
+        super.onBackPressed();
     }
+
     private void chooseInterfaceMode(){
         String[] labels={"Tự động theo thiết bị","Mobile — cảm ứng","TV — điều khiển D-pad"};
         String[] values={"auto","mobile","tv"};

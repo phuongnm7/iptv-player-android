@@ -231,10 +231,17 @@ if not tap_node(youtube_tab):
     raise AssertionError("Could not select the YouTube top-level tab")
 time.sleep(.5)
 youtube_root = hierarchy()
-if not has_id(youtube_root, "txtYoutubeStatus") or not has_id(youtube_root, "btnInstallGmsCore"):
+if not has_id(youtube_root, "txtYoutubeStatus") or not has_id(youtube_root, "youtubeWebView"):
     print_diagnostics()
-    raise AssertionError("YouTube tab did not show its dedicated install/open screen")
-print("PASS: YouTube tab opens a separate ReVanced install/open screen")
+    raise AssertionError("YouTube tab did not show its in-app WebView")
+if has_id(youtube_root, "btnInstallGmsCore") or has_id(youtube_root, "btnInstallYoutube") or has_id(youtube_root, "btnOpenYoutube"):
+    print_diagnostics()
+    raise AssertionError("YouTube tab still exposes a separate-app installer/launcher")
+foreground = adb("shell", "dumpsys", "activity", "activities")
+if PACKAGE not in foreground or ACTIVITY not in foreground:
+    print_diagnostics()
+    raise AssertionError("YouTube tab left the NM7 activity instead of staying inside the app")
+print("PASS: YouTube tab is a WebView inside NM7 and does not launch a second app")
 
 iptv_tab = next((n for n in youtube_root.iter("node") if n.get("resource-id") == PACKAGE + ":id/btnTabIptv"), None)
 if not tap_node(iptv_tab):

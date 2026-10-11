@@ -1,6 +1,5 @@
 name: Build private Android APK
-# ReVanced integration build
-# Trigger NM7 embedded YouTube build
+# NM7 Mobile single-app build; YouTube website is shown inside an in-app WebView
 
 on:
   push:
@@ -55,49 +54,6 @@ jobs:
           log-accepted-android-sdk-licenses: false
       - name: Install Android SDK packages
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
-      - name: Prepare embedded ReVanced patch bundle
-        run: |
-          set -euo pipefail
-          mkdir -p app/src/main/assets/revanced
-          curl --fail --location --retry 3 --retry-delay 2 \
-            https://api.revanced.app/v5/patches.rvp \
-            --output app/src/main/assets/revanced/patches.rvp
-          test -s app/src/main/assets/revanced/patches.rvp
-          unzip -t app/src/main/assets/revanced/patches.rvp >/dev/null
-          sha256sum app/src/main/assets/revanced/patches.rvp | tee app/src/main/assets/revanced/patches.rvp.sha256
-      - name: Prepare embedded ReVanced GmsCore
-        run: |
-          set -euo pipefail
-          mkdir -p app/src/main/assets/revanced
-          curl --fail --location --retry 3 --retry-delay 2 \
-            https://github.com/ReVanced/GmsCore/releases/download/v0.3.13.2.250932/app.revanced.android.gms-250932004-signed.apk \
-            -o app/src/main/assets/revanced/gmscore-0.3.13.2.250932.apk
-          test -s app/src/main/assets/revanced/gmscore-0.3.13.2.250932.apk
-          sha256sum app/src/main/assets/revanced/gmscore-0.3.13.2.250932.apk
-
-      - name: Prepare embedded YouTube ReVanced 20.40.45
-        run: |
-          set -euo pipefail
-          curl --fail --location --retry 3 --retry-delay 2 \
-            https://github.com/ReVanced/revanced-cli/releases/download/v6.0.0/revanced-cli-6.0.0-all.jar \
-            -o revanced-cli.jar
-          curl --fail --location --retry 3 -A "Mozilla/5.0" \
-            "https://drive.usercontent.google.com/download?id=1JwOfraPKaOKvDfdhuWwNkf2REL7D6Ngz&export=download&confirm=t" \
-            -o youtube-20.40.45.apk
-          test -s youtube-20.40.45.apk
-          java -jar revanced-cli.jar patch \
-            -p app/src/main/assets/revanced/patches.rvp \
-            -b \
-            -e "GmsCore support" \
-            -e "Spoof video streams" \
-            --purge \
-            -o youtube-20.40.45-revanced.apk \
-            youtube-20.40.45.apk
-          test -s youtube-20.40.45-revanced.apk
-          mkdir -p app/src/main/assets/revanced
-          cp youtube-20.40.45-revanced.apk app/src/main/assets/revanced/youtube-20.40.45-revanced.apk
-          sha256sum app/src/main/assets/revanced/youtube-20.40.45-revanced.apk
-
       - name: Compile, test and lint Mobile
         run: gradle --no-daemon --console=plain testMobileDebugUnitTest lintMobileDebug assembleMobileDebug
       - name: Read Mobile version
@@ -112,10 +68,11 @@ jobs:
           apk="dist/mobile/NM7-IPTV-Mobile-${{ steps.mobile_version.outputs.version }}.apk"
           cp app/build/outputs/apk/mobile/debug/app-mobile-debug.apk "$apk"
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$apk"
-          # Confirm the single distributable NM7 APK contains the embedded test payloads.
-          unzip -l "$apk" | grep -q 'assets/revanced/youtube-20.40.45-revanced.apk'
-          unzip -l "$apk" | grep -q 'assets/revanced/gmscore-0.3.13.2.250932.apk'
-          unzip -l "$apk" | grep -q 'assets/revanced/patches.rvp'
+          # Do not ship another installable YouTube app inside the NM7 package.
+          if unzip -l "$apk" | grep -Eq 'assets/revanced/(youtube-.*\.apk|gmscore-.*\.apk|patches\.rvp)'; then
+            echo 'Unexpected separate YouTube/GmsCore APK payload inside NM7' >&2
+            exit 1
+          fi
           if unzip -l "$apk" | grep -q 'libvlc\\.so'; then
             echo 'Mobile APK unexpectedly contains LibVLC' >&2
             exit 1
@@ -126,7 +83,7 @@ jobs:
         continue-on-error: true
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: NM7-IPTV-Mobile-${{ steps.mobile_version.outputs.version }}-ReVanced-Embedded-Test-APK
+          name: NM7-IPTV-Mobile-${{ steps.mobile_version.outputs.version }}-Single-App-YouTube-WebView-Test-APK
           path: dist/mobile/
           retention-days: 30
           if-no-files-found: error
@@ -135,7 +92,6 @@ jobs:
           test -e /dev/kvm
           sudo chmod a+rw /dev/kvm
       - name: Smoke-test Mobile APK on Android 15
-        continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
           api-level: 35
