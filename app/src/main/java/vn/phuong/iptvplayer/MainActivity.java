@@ -335,7 +335,23 @@ public final class MainActivity extends Activity {
                 }).setNegativeButton("Đóng",null).show();
     }
 
+    private boolean ensurePackageInstallPermission(){
+        if(android.os.Build.VERSION.SDK_INT<26 || getPackageManager().canRequestPackageInstalls()) return true;
+        try{
+            Intent settings=new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                    Uri.parse("package:"+getPackageName()));
+            startActivity(settings);
+            Toast.makeText(this,"Hãy cho phép NM7 cài ứng dụng từ nguồn này, quay lại NM7 rồi nhấn cài lại.",Toast.LENGTH_LONG).show();
+        }catch(Exception e){
+            new AlertDialog.Builder(this).setTitle("Cần quyền cài ứng dụng")
+                    .setMessage("Mở Cài đặt Android và cho phép NM7 cài ứng dụng từ nguồn này.\\n\\n"+readable(e))
+                    .setPositiveButton("Đóng",null).show();
+        }
+        return false;
+    }
+
     private void installEmbeddedGmsCore(){
+        if(!ensurePackageInstallPermission()) return;
         io.execute(()->{
             try{
                 File dir=new File(getCacheDir(),"revanced");
@@ -359,6 +375,7 @@ public final class MainActivity extends Activity {
         });
     }
     private void installEmbeddedYouTube(){
+        if(!ensurePackageInstallPermission()) return;
         io.execute(()->{
             try{
                 File dir=new File(getCacheDir(),"revanced");
