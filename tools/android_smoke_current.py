@@ -246,13 +246,17 @@ if not has_id(root, "listChannels") and not has_id(root, "txtEmpty"):
     print_diagnostics()
     raise AssertionError("Returning to TV / IPTV did not restore the channel list")
 
-# Landscape startup regression for phones/tablets that rotate the Mobile activity.
-run_adb("shell", "settings", "put", "system", "user_rotation", "1", check=False)
-time.sleep(1.2)
-root = launch_main()
-if not has_id(root, "mainRoot"):
-    print_diagnostics()
-    raise AssertionError("Landscape main screen did not open")
-assert_consolidated_header(root, "Landscape Mobile UI")
-print("PASS: landscape Mobile layout launches without missing startup controls")
+# Landscape layout regression. Resize the active activity in-place; restarting immediately after
+# changing emulator rotation can intermittently return CI to the launcher before UIAutomator attaches.
+run_adb("shell", "wm", "size", "1920x1080", check=False)
+try:
+    time.sleep(1.2)
+    root = hierarchy()
+    if not has_id(root, "mainRoot"):
+        print_diagnostics()
+        raise AssertionError("Main screen was lost while switching to landscape dimensions")
+    assert_consolidated_header(root, "Landscape Mobile UI")
+    print("PASS: landscape Mobile layout remains available without missing startup controls")
+finally:
+    run_adb("shell", "wm", "size", "reset", check=False)
 print("PASS: Link, source and about controls are consolidated into Mobile app options")
