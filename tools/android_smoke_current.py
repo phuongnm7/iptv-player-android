@@ -23,6 +23,10 @@ PACKAGE_MATCH = re.search(r"^package: name='([^']+)'", BADGING, re.MULTILINE)
 if PACKAGE_MATCH is None:
     raise RuntimeError("Could not read applicationId from test APK")
 PACKAGE = PACKAGE_MATCH.group(1)
+ACTIVITY_MATCH = re.search(r"^launchable-activity: name='([^']+)'", BADGING, re.MULTILINE)
+if ACTIVITY_MATCH is None:
+    raise RuntimeError("Could not read launchable activity from test APK")
+ACTIVITY = ACTIVITY_MATCH.group(1)
 
 
 def run_adb(*args, timeout=40, check=True):
@@ -180,7 +184,7 @@ def launch_main():
         "start",
         "-W",
         "-n",
-        PACKAGE + "/.MainActivity",
+        PACKAGE + "/" + ACTIVITY,
         timeout=40,
     )
     print(launch.stdout)
