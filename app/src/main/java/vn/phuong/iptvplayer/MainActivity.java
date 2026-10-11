@@ -111,7 +111,7 @@ public final class MainActivity extends Activity {
         findViewById(R.id.btnAllChannels).setOnClickListener(v->selectSection(0)); findViewById(R.id.btnFavorites).setOnClickListener(v->selectSection(1)); findViewById(R.id.btnRecent).setOnClickListener(v->selectSection(2)); findViewById(R.id.btnClearFilters).setOnClickListener(v->{inputSearch.setText("");selectedGroup="";updateGroupButtons();filter();});
         inputSearch.addTextChangedListener(new TextWatcher(){@Override public void beforeTextChanged(CharSequence s,int st,int c,int a){}@Override public void onTextChanged(CharSequence s,int st,int b,int c){filter();}@Override public void afterTextChanged(Editable e){}});
         rebuildGroups(); setImportExpanded(allChannels.isEmpty()); updateSectionButtons(); applyInterfaceMode(list);
-        updateTopTabButtons(); refreshYouTubePanel();
+        updateTopTabButtons();
     }
 
     private void restoreSession() {
@@ -385,7 +385,7 @@ public final class MainActivity extends Activity {
         if(userAgent!=null)settings.setUserAgentString(userAgent.replace("; wv","").replace("Version/4.0 ",""));
         CookieManager cookies=CookieManager.getInstance();
         cookies.setAcceptCookie(true);
-        CookieManager.setAcceptThirdPartyCookies(youtubeWebView,true);
+        cookies.setAcceptThirdPartyCookies(youtubeWebView,true);
 
         youtubeWebView.setWebChromeClient(new WebChromeClient(){
             @Override public void onProgressChanged(WebView view,int value){
