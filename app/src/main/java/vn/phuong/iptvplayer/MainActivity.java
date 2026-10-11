@@ -361,11 +361,11 @@ public final class MainActivity extends Activity {
         boolean gmsInstalled=RevancedBridge.isGmsCoreInstalled(this);
         boolean youtubeInstalled=getPackageManager().getLaunchIntentForPackage("com.google.android.youtube")!=null;
         if(!gmsInstalled){
-            txtYoutubeStatus.setText("YouTube / ReVanced chưa sẵn sàng.\\n\\nBước 1: Cài GmsCore bằng nút bên dưới và xác nhận trình cài đặt Android. Sau khi cài xong, quay lại NM7 để tiếp tục.");
+            txtYoutubeStatus.setText("YouTube / ReVanced chưa sẵn sàng.\n\nBước 1: Cài GmsCore bằng nút bên dưới và xác nhận trình cài đặt Android. Sau khi cài xong, quay lại NM7 để tiếp tục.");
         }else if(!youtubeInstalled){
-            txtYoutubeStatus.setText("GmsCore đã được cài.\\n\\nBước 2: Cài YouTube ReVanced. Sau khi Android cài xong, quay lại tab YouTube và nhấn Mở YouTube.");
+            txtYoutubeStatus.setText("GmsCore đã được cài.\n\nBước 2: Cài YouTube ReVanced. Sau khi Android cài xong, quay lại tab YouTube và nhấn Mở YouTube.");
         }else{
-            txtYoutubeStatus.setText("YouTube đã được cài.\\n\\nNhấn Mở YouTube để mở ứng dụng riêng của Android. YouTube không bị nhét vào danh sách kênh IPTV.");
+            txtYoutubeStatus.setText("YouTube đã được cài.\n\nNhấn Mở YouTube để mở ứng dụng riêng của Android. YouTube không bị nhét vào danh sách kênh IPTV.");
         }
         btnInstallGmsCore.setVisibility(gmsInstalled?View.GONE:View.VISIBLE);
         btnInstallYoutube.setVisibility(youtubeInstalled?View.GONE:View.VISIBLE);
