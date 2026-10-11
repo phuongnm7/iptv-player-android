@@ -220,7 +220,31 @@ if not (has_id(root, "listChannels") or has_id(root, "txtEmpty")):
     print_diagnostics()
     raise AssertionError("Neither the channel list nor its empty state is available")
 assert_consolidated_header(root, "Portrait UI")
+if not has_id(root, "btnTabIptv") or not has_id(root, "btnTabYoutube"):
+    print_diagnostics()
+    raise AssertionError("Top-level TV / IPTV and YouTube tabs are missing")
 print("PASS: portrait application launches and current IPTV interface is available")
+
+youtube_tab = next((n for n in root.iter("node") if n.get("resource-id") == PACKAGE + ":id/btnTabYoutube"), None)
+if not tap_node(youtube_tab):
+    print_diagnostics()
+    raise AssertionError("Could not select the YouTube top-level tab")
+time.sleep(.5)
+youtube_root = hierarchy()
+if not has_id(youtube_root, "txtYoutubeStatus") or not has_id(youtube_root, "btnInstallGmsCore"):
+    print_diagnostics()
+    raise AssertionError("YouTube tab did not show its dedicated install/open screen")
+print("PASS: YouTube tab opens a separate ReVanced install/open screen")
+
+iptv_tab = next((n for n in youtube_root.iter("node") if n.get("resource-id") == PACKAGE + ":id/btnTabIptv"), None)
+if not tap_node(iptv_tab):
+    print_diagnostics()
+    raise AssertionError("Could not return to the TV / IPTV tab")
+time.sleep(.4)
+root = hierarchy()
+if not has_id(root, "listChannels") and not has_id(root, "txtEmpty"):
+    print_diagnostics()
+    raise AssertionError("Returning to TV / IPTV did not restore the channel list")
 
 # Landscape startup regression for phones/tablets that rotate the Mobile activity.
 run_adb("shell", "settings", "put", "system", "user_rotation", "1", check=False)

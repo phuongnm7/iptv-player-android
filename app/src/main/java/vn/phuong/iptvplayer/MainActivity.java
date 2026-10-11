@@ -48,7 +48,11 @@ public final class MainActivity extends Activity {
     private final List<Channel> allChannels = new ArrayList<>();
     private ChannelAdapter adapter;
     private EditText inputUrl, inputSearch;
-    private LinearLayout groupRow;
+    private LinearLayout groupRow, iptvPanel;
+    private android.widget.ScrollView youtubePanel;
+    private Button btnTabIptv, btnTabYoutube, btnInstallGmsCore, btnInstallYoutube, btnOpenYoutube;
+    private TextView txtYoutubeStatus;
+    private boolean youtubeTabActive;
     private TextView txtEmpty;
     private ProgressBar progress;
     private int duplicateCount, missingUrlCount, activeSection;
@@ -60,8 +64,24 @@ public final class MainActivity extends Activity {
 
     @Override protected void onCreate(Bundle savedInstanceState) { super.onCreate(savedInstanceState); setupViews(); restoreSession(); epgHandler.post(epgTick); }
     @Override protected void onDestroy(){epgHandler.removeCallbacksAndMessages(null);super.onDestroy();}
+    @Override protected void onResume(){super.onResume();refreshYouTubePanel();}
     private void setupViews() {
         setContentView(R.layout.activity_main); Insets.apply(findViewById(R.id.mainRoot)); applyWallpaper();
+        iptvPanel=findViewById(R.id.iptvPanel); youtubePanel=findViewById(R.id.youtubePanel);
+        btnTabIptv=findViewById(R.id.btnTabIptv); btnTabYoutube=findViewById(R.id.btnTabYoutube);
+        txtYoutubeStatus=findViewById(R.id.txtYoutubeStatus);
+        btnInstallGmsCore=findViewById(R.id.btnInstallGmsCore); btnInstallYoutube=findViewById(R.id.btnInstallYoutube);
+        btnOpenYoutube=findViewById(R.id.btnOpenYoutube);
+        btnTabIptv.setOnClickListener(v->showIptvTab());
+        btnTabYoutube.setOnClickListener(v->showYouTubeTab());
+        btnInstallGmsCore.setOnClickListener(v->installEmbeddedGmsCore());
+        btnInstallYoutube.setOnClickListener(v->{
+            if(!RevancedBridge.isGmsCoreInstalled(this)){
+                refreshYouTubePanel();
+                Toast.makeText(this,"Trước tiên hãy cài GmsCore rồi quay lại tab YouTube.",Toast.LENGTH_LONG).show();
+            }else installEmbeddedYouTube();
+        });
+        btnOpenYoutube.setOnClickListener(v->openYouTubeReVanced());
         inputUrl=findViewById(R.id.inputUrl); inputSearch=findViewById(R.id.inputSearch); groupRow=findViewById(R.id.groupRow);
         txtEmpty=findViewById(R.id.txtEmpty); progress=findViewById(R.id.progress);
         ListView list=findViewById(R.id.listChannels);
@@ -72,6 +92,7 @@ public final class MainActivity extends Activity {
         findViewById(R.id.btnAllChannels).setOnClickListener(v->selectSection(0)); findViewById(R.id.btnFavorites).setOnClickListener(v->selectSection(1)); findViewById(R.id.btnRecent).setOnClickListener(v->selectSection(2)); findViewById(R.id.btnClearFilters).setOnClickListener(v->{inputSearch.setText("");selectedGroup="";updateGroupButtons();filter();});
         inputSearch.addTextChangedListener(new TextWatcher(){@Override public void beforeTextChanged(CharSequence s,int st,int c,int a){}@Override public void onTextChanged(CharSequence s,int st,int b,int c){filter();}@Override public void afterTextChanged(Editable e){}});
         rebuildGroups(); setImportExpanded(allChannels.isEmpty()); updateSectionButtons(); applyInterfaceMode(list);
+        updateTopTabButtons(); refreshYouTubePanel();
     }
 
     private void restoreSession() {
@@ -308,31 +329,49 @@ public final class MainActivity extends Activity {
                     if(which==aboutIndex)showAbout();
                 }).setNegativeButton("Đóng",null).show();
     }
-    private void showYouTubeReVancedTools(){
-        String bundleStatus = RevancedBundleStore.status(this);
-        boolean gmsInstalled = RevancedBridge.isGmsCoreInstalled(this);
-        boolean youtubeInstalled = getPackageManager().getLaunchIntentForPackage("com.google.android.youtube") != null;
-        String gmsStatus = gmsInstalled ? "GmsCore: đã cài" : "GmsCore: chưa cài";
-        String youtubeStatus = youtubeInstalled ? "YouTube/ReVanced: đã cài" : "YouTube/ReVanced: chưa cài";
-        String message = bundleStatus + "\\n" + gmsStatus + "\\n" + youtubeStatus
-                + "\\n\\nBản hiện tại đã có sẵn APK YouTube ReVanced trong NM7. GmsCore là package Android riêng nên phải được cài vào hệ thống trước khi YouTube ReVanced hoạt động đầy đủ.";
-        String[] actions = gmsInstalled
-                ? new String[]{"Cài YouTube ReVanced từ NM7","Chọn APK YouTube để kiểm tra","Mở YouTube / ReVanced"}
-                : new String[]{"Cài GmsCore từ NM7 (bắt buộc)","Chọn APK YouTube để kiểm tra","Mở YouTube / ReVanced"};
-        new AlertDialog.Builder(this)
-                .setTitle("YouTube / ReVanced")
-                .setMessage(message)
-                .setItems(actions,(d,w)->{
-                    if(w==0){
-                        if(gmsInstalled) installEmbeddedYouTube();
-                        else installEmbeddedGmsCore();
-                    }else if(w==1){
-                        Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT);
-                        intent.addCategory(Intent.CATEGORY_OPENABLE);
-                        intent.setType("application/vnd.android.package-archive");
-                        startActivityForResult(intent,OPEN_REVANCED_APK);
-                    }else openYouTubeReVanced();
-                }).setNegativeButton("Đóng",null).show();
+    private void showYouTubeReVancedTools(){showYouTubeTab();}
+
+    private void showIptvTab(){
+        youtubeTabActive=false;
+        iptvPanel.setVisibility(View.VISIBLE);
+        youtubePanel.setVisibility(View.GONE);
+        updateTopTabButtons();
+    }
+
+    private void showYouTubeTab(){
+        youtubeTabActive=true;
+        iptvPanel.setVisibility(View.GONE);
+        youtubePanel.setVisibility(View.VISIBLE);
+        updateTopTabButtons();
+        refreshYouTubePanel();
+    }
+
+    private void updateTopTabButtons(){
+        if(btnTabIptv==null||btnTabYoutube==null)return;
+        btnTabIptv.setBackgroundResource(youtubeTabActive?R.drawable.button_secondary:R.drawable.button_primary);
+        btnTabYoutube.setBackgroundResource(youtubeTabActive?R.drawable.button_primary:R.drawable.button_secondary);
+        btnTabIptv.setTextColor(getColor(youtubeTabActive?R.color.text_primary:R.color.navy));
+        btnTabYoutube.setTextColor(getColor(youtubeTabActive?R.color.navy:R.color.text_primary));
+        btnTabIptv.setSelected(!youtubeTabActive);
+        btnTabYoutube.setSelected(youtubeTabActive);
+    }
+
+    private void refreshYouTubePanel(){
+        if(txtYoutubeStatus==null)return;
+        boolean gmsInstalled=RevancedBridge.isGmsCoreInstalled(this);
+        boolean youtubeInstalled=getPackageManager().getLaunchIntentForPackage("com.google.android.youtube")!=null;
+        if(!gmsInstalled){
+            txtYoutubeStatus.setText("YouTube / ReVanced chưa sẵn sàng.\\n\\nBước 1: Cài GmsCore bằng nút bên dưới và xác nhận trình cài đặt Android. Sau khi cài xong, quay lại NM7 để tiếp tục.");
+        }else if(!youtubeInstalled){
+            txtYoutubeStatus.setText("GmsCore đã được cài.\\n\\nBước 2: Cài YouTube ReVanced. Sau khi Android cài xong, quay lại tab YouTube và nhấn Mở YouTube.");
+        }else{
+            txtYoutubeStatus.setText("YouTube đã được cài.\\n\\nNhấn Mở YouTube để mở ứng dụng riêng của Android. YouTube không bị nhét vào danh sách kênh IPTV.");
+        }
+        btnInstallGmsCore.setVisibility(gmsInstalled?View.GONE:View.VISIBLE);
+        btnInstallYoutube.setVisibility(youtubeInstalled?View.GONE:View.VISIBLE);
+        btnInstallYoutube.setEnabled(gmsInstalled&&!youtubeInstalled);
+        btnInstallYoutube.setText(gmsInstalled?"Cài YouTube ReVanced":"Bước 2: Cài YouTube ReVanced (cần GmsCore trước)");
+        btnOpenYoutube.setVisibility(youtubeInstalled?View.VISIBLE:View.GONE);
     }
 
     private boolean ensurePackageInstallPermission(){
