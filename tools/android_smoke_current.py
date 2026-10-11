@@ -3,14 +3,26 @@
 Checks Mobile startup in both portrait and landscape orientations.
 No public IPTV stream is required.
 """
+import os
 import re
 import subprocess
 import sys
 import time
 import xml.etree.ElementTree as ET
 
-PACKAGE = "vn.phuong.iptvplayer"
 APK = sys.argv[1]
+ANDROID_HOME = os.environ.get("ANDROID_HOME", os.path.expanduser("~/Android/Sdk"))
+AAPT = os.path.join(ANDROID_HOME, "build-tools", "36.0.0", "aapt")
+BADGING = subprocess.run(
+    [AAPT, "dump", "badging", APK],
+    check=True,
+    capture_output=True,
+    text=True,
+).stdout
+PACKAGE_MATCH = re.search(r"^package: name='([^']+)'", BADGING, re.MULTILINE)
+if PACKAGE_MATCH is None:
+    raise RuntimeError("Could not read applicationId from test APK")
+PACKAGE = PACKAGE_MATCH.group(1)
 
 
 def run_adb(*args, timeout=40, check=True):
