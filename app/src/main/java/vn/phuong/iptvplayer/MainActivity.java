@@ -2,6 +2,8 @@ package vn.phuong.iptvplayer;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.annotation.SuppressLint;
+import android.window.OnBackInvokedDispatcher;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -88,6 +90,10 @@ public final class MainActivity extends Activity {
     }
     private void setupViews() {
         setContentView(R.layout.activity_main); Insets.apply(findViewById(R.id.mainRoot)); applyWallpaper();
+        if(android.os.Build.VERSION.SDK_INT>=33){
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                    OnBackInvokedDispatcher.PRIORITY_DEFAULT,this::handleBackNavigation);
+        }
         iptvPanel=findViewById(R.id.iptvPanel); youtubePanel=findViewById(R.id.youtubePanel);
         btnTabIptv=findViewById(R.id.btnTabIptv); btnTabYoutube=findViewById(R.id.btnTabYoutube);
         txtYoutubeStatus=findViewById(R.id.txtYoutubeStatus);
@@ -450,13 +456,18 @@ public final class MainActivity extends Activity {
         btnYoutubeForward.setAlpha(youtubeWebView.canGoForward()?1f:.45f);
     }
 
-    @Override public void onBackPressed(){
+    private void handleBackNavigation(){
         if(youtubeTabActive){
             if(youtubeWebView!=null&&youtubeWebView.canGoBack())youtubeWebView.goBack();
             else showIptvTab();
             return;
         }
-        super.onBackPressed();
+        finish();
+    }
+
+    @SuppressLint("GestureBackNavigation")
+    @Override public void onBackPressed(){
+        handleBackNavigation();
     }
 
     private void chooseInterfaceMode(){
