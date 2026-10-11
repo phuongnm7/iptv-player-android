@@ -20,6 +20,8 @@ android {
     productFlavors {
         create("mobile") {
             dimension = "device"
+            // Keep the experimental ReVanced build installable beside stable NM7.
+            applicationIdSuffix = ".revancedtest"
             versionNameSuffix = "-mobile"
             manifestPlaceholders["vlcFallbackEnabled"] = "false"
         }
